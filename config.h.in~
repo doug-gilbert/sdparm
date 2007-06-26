@@ -1,5 +1,8 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Define to 1 if you have the `getopt_long' function. */
+#undef HAVE_GETOPT_LONG
+
 /* Name of package */
 #undef PACKAGE
 
@@ -26,6 +29,9 @@
 
 /* assume sdparm on linux */
 #undef SDPARM_LINUX
+
+/* sdparm on Tru64 UNIX */
+#undef SDPARM_OSF1
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS

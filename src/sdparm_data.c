@@ -42,7 +42,7 @@
  */
 
 
-/* Mode pages that aren't specific to any transport protocol */
+/* Mode pages that aren't specific to any transport protocol or vendor */
 struct sdparm_values_name_t sdparm_gen_mode_pg[] = {
     {IEC_MP, MSP_BACK_CTL, 0, 0, "bc", "Background control (SBC)"},
     {CACHING_MP, 0, 0, 0, "ca", "Caching (SBC)"},
@@ -60,7 +60,7 @@ struct sdparm_values_name_t sdparm_gen_mode_pg[] = {
     {MED_CONF_MP, 0, 1, 0, "mco", "Medium configuration (SSC)"},
     {MED_PART_MP, 0, 1, 0, "mpa", "Medium partition (SSC)"},
     {MRW_MP, 0, 5, 0, "mrw", "Mount rainier reWritable (MMC)"},
-    {CONTROL_MP, MSP_SAT_PATA, 0, 0, "pat", "SAT pATA control"},
+    {CONTROL_MP, MSP_SAT_PATA, -1, 0, "pat", "SAT pATA control"},
     {PROT_SPEC_LU_MP, 0, -1, 0, "pl", "Protocol specific logical unit"},
     {POWER_MP, 0, -1, 0, "po", "Power condition"},
     {POWER_OLD_MP, 0, 0, 0, "poo", "Power condition - old version"},
@@ -77,7 +77,7 @@ struct sdparm_values_name_t sdparm_gen_mode_pg[] = {
     {0, 0, 0, 0, NULL, NULL},
 };
 
-/* fixed length, indexed by transport protocol number, dummy on end. */
+/* Array for transport id, acronym and name association. */
 /* Those transports commented with "none" don't have transport specific */
 /* mode pages. */
 struct sdparm_values_name_t sdparm_transport_id[] = {
@@ -91,7 +91,7 @@ struct sdparm_values_name_t sdparm_transport_id[] = {
     {TP_ADT, 0, -1, 0, "adt", "Automation/Drive interface (ADT)"},
     {TP_ATA, 0, -1, 0, "ata", "AT attachment interface (ATA/ATAPI)"},
                                                          /* none */
-    {0x9, 0, -1, 0, "u0x9", NULL},
+    {0x9, 0, -1, 0, "u0x9", NULL},      /* leading "u" so not number */
     {0xa, 0, -1, 0, "u0xa", NULL},
     {0xb, 0, -1, 0, "u0xb", NULL},
     {0xc, 0, -1, 0, "u0xc", NULL},
@@ -105,6 +105,8 @@ static struct sdparm_values_name_t sdparm_fcp_mode_pg[] = {    /* FCP-3 */
     {DISCONNECT_MP, 0, -1, 0, "dr", "Disconnect-reconnect (FCP)"},
     {PROT_SPEC_LU_MP, 0, -1, 0, "luc", "lu: control (FCP)"},
     {PROT_SPEC_PORT_MP, 0, -1, 0, "pc", "port: control (FCP)"},
+    {PROT_SPEC_LU_MP, 0, -1, 0, "pl", "lu: control (generic name)"},
+    {PROT_SPEC_PORT_MP, 0, -1, 0, "pp", "port: control (generic name)"},
     {0, 0, 0, 0, NULL, NULL},
 };
 
@@ -120,6 +122,9 @@ static struct sdparm_values_name_t sdparm_spi_mode_pg[] = {    /* SPI-4 */
         "port: report transfer capabilities (SPI)"},
     {PROT_SPEC_PORT_MP, MSP_SPI_STC, -1, 0, "stc",
         "port: saved training config value (SPI)"},
+    /* second preference name so put out of alphabetical order */
+    {PROT_SPEC_LU_MP, 0, -1, 0, "pl", "lu: control (generic name)"},
+    {PROT_SPEC_PORT_MP, 0, -1, 0, "pp", "port: short format (generic name)"},
     {0, 0, 0, 0, NULL, NULL},
 };
 
@@ -128,7 +133,7 @@ static struct sdparm_values_name_t sdparm_srp_mode_pg[] = {    /* SRP */
     {0, 0, 0, 0, NULL, NULL},
 };
 
-static struct sdparm_values_name_t sdparm_sas_mode_pg[] = {    /* SAS-1.1 */
+static struct sdparm_values_name_t sdparm_sas_mode_pg[] = {    /* SAS-2 */
     {DISCONNECT_MP, 0, -1, 0, "dr", "Disconnect-reconnect (SAS)"},
     {PROT_SPEC_LU_MP, 0, -1, 0, "lsf", "lu: SSP short format (SAS)"},
     {PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 0, "pcd",
@@ -136,8 +141,13 @@ static struct sdparm_values_name_t sdparm_sas_mode_pg[] = {    /* SAS-1.1 */
     {PROT_SPEC_PORT_MP, 0, -1, 0, "psf", "port: SSP short format (SAS)"},
     {PROT_SPEC_PORT_MP, MSP_SAS_SHA, -1, 0, "sha",
         "port: shared protocol specific (SAS)"},
+    /* second preference name so put out of alphabetical order */
+    {PROT_SPEC_LU_MP, 0, -1, 0, "pl", "lu: SSP short format (generic name)"},
+    {PROT_SPEC_PORT_MP, 0, -1, 0, "pp",
+        "port: SSP short format (generic name)"},
     {0, 0, 0, 0, NULL, NULL},
 };
+
 
 struct sdparm_values_name_t sdparm_vpd_pg[] = {
     {VPD_ATA_INFO, 0, -1, 1, "ai", "ATA information (SAT)"},
@@ -336,13 +346,17 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
 
     /* Caching mode page [0x8] sbc2 */
     {"IC", CACHING_MP, 0, 0, 2, 7, 1, 0,
-        "Initiator control", NULL},
+        "Initiator control",
+        "0: disk uses own adaptive caching algorithm\t"
+        "1: disk caching algorithm controlled by NCS or CCS"},
     {"ABPF", CACHING_MP, 0, 0, 2, 6, 1, 0,
         "Abort pre-fetch", NULL},
     {"CAP", CACHING_MP, 0, 0, 2, 5, 1, 0,
         "Caching analysis permitted", NULL},
     {"DISC", CACHING_MP, 0, 0, 2, 4, 1, 0,
-        "Discontinuity", NULL},
+        "Discontinuity",
+        "0: pre-fetch truncated or wrapped at time discontinuity\t"
+        "1: pre-fetch continues across time discontinuity"},
     {"SIZE", CACHING_MP, 0, 0, 2, 3, 1, 0,
         "Size enable",
         "0: number of cache segments (NCS) controls cache segmentation\t"
@@ -350,13 +364,21 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"WCE", CACHING_MP, 0, 0, 2, 2, 1, MF_COMMON,
         "Write cache enable", NULL},
     {"MF", CACHING_MP, 0, 0, 2, 1, 1, 0,
-        "Multiplication factor", NULL},
+        "Multiplication factor",
+        "0: MIPF and MAPF specify blocks\t"
+        "1: multiply MIPF and MAPF by blocks in read command"},
     {"RCD", CACHING_MP, 0, 0, 2, 0, 1, MF_COMMON,
         "Read cache disable", NULL},
     {"DRRP", CACHING_MP, 0, 0, 3, 7, 4, 0,
-        "Demand read retension priority", NULL},
+        "Demand read retention priority",
+        "0: treat requested and other data equally\t"
+        "1: replace requested data before other data\t"
+        "15: replace other data before requested data"},
     {"WRP", CACHING_MP, 0, 0, 3, 3, 4, 0,
-        "Write retension priority", NULL},
+        "Write retention priority",
+        "0: treat requested and other data equally\t"
+        "1: replace requested data before other data\t"
+        "15: replace other data before requested data"},
     {"DPTL", CACHING_MP, 0, 0, 4, 7, 16, 0,
         "Disable pre-fetch transfer length", NULL},
     {"MIPF", CACHING_MP, 0, 0, 6, 7, 16, 0,
@@ -368,7 +390,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"FSW", CACHING_MP, 0, 0, 12, 7, 1, 0,
         "Force sequential write", NULL},
     {"LBCSS", CACHING_MP, 0, 0, 12, 6, 1, 0,
-        "Logical block cache segment size", NULL},
+        "Logical block cache segment size",
+        "0: CSS unit is bytes; 1: CSS unit is blocks"},
     {"DRA", CACHING_MP, 0, 0, 12, 5, 1, 0,
         "Disable read ahead", NULL},
     {"NV_DIS", CACHING_MP, 0, 0, 12, 0, 1, 0,
@@ -431,31 +454,31 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"IALUAE", CONTROL_MP, MSP_SPC_CE, -1, 4, 0, 1, 0,
         "Implicit asymmetric logical unit access enabled", NULL},
 
-    /* SAT: pATA control mode subpage [0xa,0xf1] sat-r07 */
-    /* treat as if in sbc (rather than spc) */
-    {"MWD2", CONTROL_MP, MSP_SAT_PATA, 0, 4, 6, 1, 0,
+    /* SAT: pATA control mode subpage [0xa,0xf1] sat-r09 */
+    /* treat as spc since could be disk or ATAPI */
+    {"MWD2", CONTROL_MP, MSP_SAT_PATA, -1, 4, 6, 1, 0,
         "Multi word DMA bit 2", NULL},
-    {"MWD1", CONTROL_MP, MSP_SAT_PATA, 0, 4, 5, 1, 0,
+    {"MWD1", CONTROL_MP, MSP_SAT_PATA, -1, 4, 5, 1, 0,
         "Multi word DMA bit 1", NULL},
-    {"MWD0", CONTROL_MP, MSP_SAT_PATA, 0, 4, 4, 1, 0,
+    {"MWD0", CONTROL_MP, MSP_SAT_PATA, -1, 4, 4, 1, 0,
         "Multi word DMA bit 0", NULL},
-    {"PIO4", CONTROL_MP, MSP_SAT_PATA, 0, 4, 1, 1, 0,
+    {"PIO4", CONTROL_MP, MSP_SAT_PATA, -1, 4, 1, 1, 0,
         "Parallel IO bit 4", NULL},
-    {"PIO3", CONTROL_MP, MSP_SAT_PATA, 0, 4, 0, 1, 0,
+    {"PIO3", CONTROL_MP, MSP_SAT_PATA, -1, 4, 0, 1, 0,
         "Parallel IO bit 3", NULL},
-    {"UDMA6", CONTROL_MP, MSP_SAT_PATA, 0, 5, 6, 1, 0,
+    {"UDMA6", CONTROL_MP, MSP_SAT_PATA, -1, 5, 6, 1, 0,
         "Ultra DMA bit 6", NULL},
-    {"UDMA5", CONTROL_MP, MSP_SAT_PATA, 0, 5, 5, 1, 0,
+    {"UDMA5", CONTROL_MP, MSP_SAT_PATA, -1, 5, 5, 1, 0,
         "Ultra DMA bit 5", NULL},
-    {"UDMA4", CONTROL_MP, MSP_SAT_PATA, 0, 5, 4, 1, 0,
+    {"UDMA4", CONTROL_MP, MSP_SAT_PATA, -1, 5, 4, 1, 0,
         "Ultra DMA bit 4", NULL},
-    {"UDMA3", CONTROL_MP, MSP_SAT_PATA, 0, 5, 3, 1, 0,
+    {"UDMA3", CONTROL_MP, MSP_SAT_PATA, -1, 5, 3, 1, 0,
         "Ultra DMA bit 3", NULL},
-    {"UDMA2", CONTROL_MP, MSP_SAT_PATA, 0, 5, 2, 1, 0,
+    {"UDMA2", CONTROL_MP, MSP_SAT_PATA, -1, 5, 2, 1, 0,
         "Ultra DMA bit 2", NULL},
-    {"UDMA1", CONTROL_MP, MSP_SAT_PATA, 0, 5, 1, 1, 0,
+    {"UDMA1", CONTROL_MP, MSP_SAT_PATA, -1, 5, 1, 1, 0,
         "Ultra DMA bit 1", NULL},
-    {"UDMA0", CONTROL_MP, MSP_SAT_PATA, 0, 5, 0, 1, 0,
+    {"UDMA0", CONTROL_MP, MSP_SAT_PATA, -1, 5, 0, 1, 0,
         "Ultra DMA bit 0", NULL},
 
     /* Power condition mode page - obsolete block-device-only version */
@@ -604,15 +627,17 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"MTCT", ES_MAN_MP, 0, 0xd, 6, 7, 16, MF_COMMON,
         "Maximum task completion time (100ms)", NULL},
 
-    /* (Transport) protocol specific logical unit control mode page */
-    /*   [0x18] spc3 */
+    /* Protocol specific logical unit control mode page [0x18] spc3 */
     {"LUPID", PROT_SPEC_LU_MP, 0, -1, 2, 3, 4, 0,
         "Logical unit's (transport) protocol identifier",
-        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
+        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi\t"
+        "[try adding '-t <transport>' to get more fields]"},
 
-    /* (Transport) protocol specific port control mode page [0x19] spc3 */
+    /* Protocol specific port control mode page [0x19] spc3 */
     {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, 0,
-        "Port's (transport) protocol identifier", NULL},
+        "Port's (transport) protocol identifier",
+        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi\t"
+        "[try adding '-t <transport>' to get more fields]"},
 
     /* Power condition mode page [0x1a] spc3 */
     {"IDLE", POWER_MP, 0, -1, 3, 1, 1, 0,
@@ -650,15 +675,23 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"REPC", IEC_MP, 0, -1, 8, 7, 32, 0,
         "Report count", NULL},
 
-    /* Background control mode subpage [0x1c,0x1] sbc2 */
-    {"EN_PS", IEC_MP, MSP_BACK_CTL, 0, 4, 0, 1, 0,
-        "Enable pre-scan", NULL},
-    {"EN_BMS", IEC_MP, MSP_BACK_CTL, 0, 5, 0, 1, 0,
+    /* Background control mode subpage [0x1c,0x1] sbc3 */
+    {"S_L_FULL", IEC_MP, MSP_BACK_CTL, 0, 4, 2, 1, 0,
+        "Suspend on log full", NULL},
+    {"LOWIR", IEC_MP, MSP_BACK_CTL, 0, 4, 1, 1, 0,
+        "Log only when intervention required", NULL},
+    {"EN_BMS", IEC_MP, MSP_BACK_CTL, 0, 4, 0, 1, 0,
         "Enable background medium scan", NULL},
+    {"EN_PS", IEC_MP, MSP_BACK_CTL, 0, 5, 0, 1, 0,
+        "Enable pre-scan", NULL},
     {"BMS_I", IEC_MP, MSP_BACK_CTL, 0, 6, 7, 16, 0,
         "Background medium scan interval time (hour)", NULL},
-    {"PS_T", IEC_MP, MSP_BACK_CTL, 0, 8, 7, 16, 0,
-        "Pre-scan timeout (hour)", NULL},
+    {"BPS_TL", IEC_MP, MSP_BACK_CTL, 0, 8, 7, 16, 0,
+        "Background pre-scan time limit (hour)", NULL},
+    {"MIN_IDLE", IEC_MP, MSP_BACK_CTL, 0, 10, 7, 16, 0,
+        "Minumum idle time before background scan (ms)", NULL},
+    {"MAX_SUSP", IEC_MP, MSP_BACK_CTL, 0, 12, 7, 16, 0,
+        "Maximum time to suspend background scan (ms)", NULL},
 
     /* Medium configuration mode page [0x1d] ssc3 */
     {"WORMM", MED_CONF_MP, 0, 1, 2, 0, 1, 0,
@@ -823,7 +856,8 @@ static struct sdparm_mode_page_item sdparm_mitem_fcp_arr[] = {
 
     /* protocol specific port control page [0x19] fcp3 */
     {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, MF_COMMON,
-        "Port's (transport) protocol identifier", NULL},
+        "Port's (transport) protocol identifier",
+        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
     {"DTFD", PROT_SPEC_PORT_MP, 0, -1, 3, 7, 1, MF_COMMON,
         "Disable target fabric discovery", NULL},
     {"PLPB", PROT_SPEC_PORT_MP, 0, -1, 3, 6, 1, MF_COMMON,
@@ -878,13 +912,15 @@ static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
 
     /* protocol specific port control page [0x19] spi4 */
     {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, MF_COMMON,
-        "Port's (transport) protocol identifier", NULL},
+        "Port's (transport) protocol identifier",
+        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
     {"STT", PROT_SPEC_PORT_MP, 0, -1, 4, 7, 16, MF_COMMON,
         "Synchronous transfer timeout (ms)", NULL},
 
     /* margin control subpage  [0x19,0x1] spi4 */
     {"PPID_1", PROT_SPEC_PORT_MP, MSP_SPI_MC, -1, 5, 3, 4, 0,
-        "Port's (transport) protocol identifier", NULL},
+        "Port's (transport) protocol identifier",
+        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
     {"DS", PROT_SPEC_PORT_MP, MSP_SPI_MC, -1, 7, 7, 4, 0,
         "Driver strength", NULL},
     {"DA", PROT_SPEC_PORT_MP, MSP_SPI_MC, -1, 8, 7, 4, 0,
@@ -896,7 +932,8 @@ static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
 
     /* saved training configuration subpage [0x19,0x2] spi4 */
     {"PPID_2", PROT_SPEC_PORT_MP, MSP_SPI_STC, -1, 5, 3, 4, 0,
-        "Port's (transport) protocol identifier", NULL},
+        "Port's (transport) protocol identifier",
+        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
     {"DB0", PROT_SPEC_PORT_MP, MSP_SPI_STC, -1, 10, 7, 32, MF_HEX,
         "DB(0) value", NULL},
     {"DB1", PROT_SPEC_PORT_MP, MSP_SPI_STC, -1, 14, 7, 32, MF_HEX,
@@ -954,7 +991,8 @@ static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
 
     /* negotiated settings subpage [0x19,0x3] spi4 */
     {"PPID_3", PROT_SPEC_PORT_MP, MSP_SPI_NS, -1, 5, 3, 4, 0,
-        "Port's (transport) protocol identifier", NULL},
+        "Port's (transport) protocol identifier",
+        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
     {"TPF", PROT_SPEC_PORT_MP, MSP_SPI_NS, -1, 6, 7, 8, 0,
         "Transfer period factor", NULL},
     {"RAO", PROT_SPEC_PORT_MP, MSP_SPI_NS, -1, 8, 7, 8, 0,
@@ -972,7 +1010,8 @@ static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
 
     /* report transfer capabilities subpage [0x19,0x4] spi4 */
     {"PPID_4", PROT_SPEC_PORT_MP, MSP_SPI_RTC, -1, 5, 3, 4, 0,
-        "Port's (transport) protocol identifier", NULL},
+        "Port's (transport) protocol identifier",
+        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
     {"MTPF", PROT_SPEC_PORT_MP, MSP_SPI_RTC, -1, 6, 7, 8, 0,
         "Minimum transfer period factor", NULL},
     {"MRAO", PROT_SPEC_PORT_MP, MSP_SPI_RTC, -1, 8, 7, 8, 0,
@@ -1015,7 +1054,8 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
 
     /* protocol specific port control page - short format [0x19] sas1 */
     {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, MF_COMMON,
-        "Port's (transport) protocol identifier", NULL},
+        "Port's (transport) protocol identifier",
+        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
     {"BAE", PROT_SPEC_PORT_MP, 0, -1, 2, 5, 1, MF_COMMON,
         "Broadcast asynchronous event", NULL},
     {"RLM", PROT_SPEC_PORT_MP, 0, -1, 2, 4, 1, MF_COMMON, 
@@ -1029,7 +1069,8 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
 
     /* phy control + discover subpage [0x19,0x1] sas1 */
     {"PPID_1", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 5, 3, 4, 0,
-        "Port's (transport) protocol identifier", NULL},
+        "Port's (transport) protocol identifier",
+        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
     {"NOP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 7, 7, 8, MF_COMMON, 
         "Number of phys", NULL},
     /* */
@@ -1117,7 +1158,8 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
 
     /* SSP shared protocol specific port subpage [0x19,0x2] sas2 */
     {"PPID_2", PROT_SPEC_PORT_MP, MSP_SAS_SHA, -1, 5, 3, 4, 0,
-        "Port's (transport) protocol identifier", NULL},
+        "Port's (transport) protocol identifier",
+        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
     {"PLT", PROT_SPEC_PORT_MP, MSP_SAS_SHA, -1, 6, 7, 16, 0, 
         "Power loss timeout(ms)", NULL},
 
@@ -1143,6 +1185,146 @@ struct sdparm_transport_pair sdparm_transport_mp[] = {
     {NULL, NULL},
     {NULL, NULL},       /* 15 */
 };
+
+
+/* Vendor specific mode pages */
+struct sdparm_values_name_t sdparm_vendor_id[] = {
+    {VENDOR_SEAGATE, 0, -1, 0, "sea", "Seagate disk"},
+    {VENDOR_HITACHI, 0, -1, 0, "hit", "Hitachi disk"},
+    {VENDOR_MAXTOR, 0, -1, 0, "max", "Maxtor disk"},
+    {0, 0, 0, 0, NULL, NULL},
+};
+
+static struct sdparm_values_name_t sdparm_v_seagate_mode_pg[] = {
+    {UNIT_ATTENTION_MP, 0, 0, 0, "ua", "Unit attention (seagate)"},
+    {0, 0, 0, 0, NULL, NULL},
+};
+
+static struct sdparm_mode_page_item sdparm_mitem_v_seagate_arr[] = {
+    /* Unit attention page [0x0] Seagate */
+    {"PM", UNIT_ATTENTION_MP, 0, 0, 2, 7, 1, MF_COMMON,
+        "Performance Mode",
+        "0: adaptive cache ('server mode')\t"
+        "1: number of cache segments as per caching page ('desktop mode')"},
+    {"SSM", UNIT_ATTENTION_MP, 0, 0, 2, 6, 1, 0,
+        "Synchronous select mode (SPI)",
+        "0: drive will not initiate WDTR or SDTR\t"
+        "1: drive may initiate WDTR or SDTR"},
+    {"IL", UNIT_ATTENTION_MP, 0, 0, 2, 5, 1, MF_COMMON,
+        "Inquiry length",
+        "0: more than 36 bytes in response\t"
+        "1: 36 byte response as per SCSI-2"},
+    {"UA", UNIT_ATTENTION_MP, 0, 0, 2, 4, 1, MF_COMMON,
+        "Unit attention",
+        "0: unit attention condition for all initiators after reset\t"
+        "1: no check condition with unit attention after reset"},
+    {"DFUA", UNIT_ATTENTION_MP, 0, 0, 2, 3, 1, 0,
+        "Disable force unit access (FUA)",
+        "0: honour FUA bit setting on READ and WRITE commands\t"
+        "1: ignore FUA bit setting"},
+    {"ROUND", UNIT_ATTENTION_MP, 0, 0, 2, 2, 1, 0,
+        "Reporting of log parameter rounding (wrap around)",
+        "0: do not report (silently round)\t"
+        "1: report rounding (as per SPC-4)"},
+    {"STRICT", UNIT_ATTENTION_MP, 0, 0, 2, 1, 1, MF_COMMON,
+        "Strict when trying to alter unchangeable mode page fields",
+        "0: silently ignore\t"
+        "1: report as error"},
+    {"SCSI2", UNIT_ATTENTION_MP, 0, 0, 2, 0, 1, MF_COMMON,
+        "SCSI-2 lengths for control and caching mode pages",
+        "0: as per recent standards\t"
+        "1: SCSI-2 lengths: control, 6; caching, 10"},
+    {"SSEEK", UNIT_ATTENTION_MP, 0, 0, 3, 6, 1, 0,
+        "Self seek",
+        "0: off (normal operating mode)\t"
+        "1: enter self seek mode (test power dissipation, acoustics, etc)"},
+    {"JIT3", UNIT_ATTENTION_MP, 0, 0, 4, 3, 1, 0,
+        "Just in time 3, slowest seek type",
+        "0: can not use this seek type in seek speed algorithm\t"
+        "1: can use this seek type in seek speed algorithm"},
+    {"JIT2", UNIT_ATTENTION_MP, 0, 0, 4, 2, 1, 0,
+        "Just in time 2, second slowest seek type",
+        "0: can not use this seek type in seek speed algorithm\t"
+        "1: can use this seek type in seek speed algorithm"},
+    {"JIT1", UNIT_ATTENTION_MP, 0, 0, 4, 1, 1, 0,
+        "Just in time 1, second fastest seek type",
+        "0: can not use this seek type in seek speed algorithm\t"
+        "1: can use this seek type in seek speed algorithm"},
+    {"JIT0", UNIT_ATTENTION_MP, 0, 0, 4, 0, 1, 0,
+        "Just in time 0, fastest seek type",
+        "0: can not use this seek type in seek speed algorithm\t"
+        "1: can use this seek type in seek speed algorithm"},
+
+    {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
+};
+
+static struct sdparm_values_name_t sdparm_v_hitachi_mode_pg[] = {
+    {UNIT_ATTENTION_MP, 0, 0, 0, "vup", "Vendor unique parameters (hitachi)"},
+    {0, 0, 0, 0, NULL, NULL},
+};
+
+static struct sdparm_mode_page_item sdparm_mitem_v_hitachi_arr[] = {
+    /* Vendor unique parameters page [0x0] Hitachi */
+    {"MRG", UNIT_ATTENTION_MP, 0, 0, 2, 3, 1, 0,
+        "Merge Glist into Plist (during format)", NULL},
+    {"VGMDE", UNIT_ATTENTION_MP, 0, 0, 3, 6, 1, MF_COMMON,
+        "Veggie mode (do random seeks when idle)", NULL},
+    {"RRNDE", UNIT_ATTENTION_MP, 0, 0, 3, 1, 1, 0,
+        "Report recovered non data errors (when PER set)", NULL},
+    {"FDD", UNIT_ATTENTION_MP, 0, 0, 5, 4, 1, 0,
+        "Format degraded disable (reporting for Test Unit Ready)", NULL},
+    {"CAEN", UNIT_ATTENTION_MP, 0, 0, 5, 1, 1, MF_COMMON,
+        "Command aging enable", NULL},
+    {"IGRA", UNIT_ATTENTION_MP, 0, 0, 6, 7, 1, MF_COMMON,
+        "Ignore reassigned LBA (when RC also set)", NULL},
+    {"AVERP", UNIT_ATTENTION_MP, 0, 0, 6, 6, 1, MF_COMMON,
+        "AV ERP mode (maximum retry count for read errors)",
+        "0: use default (ignore RRC)\t"
+        "1: use RRC field"},
+    {"OCT", UNIT_ATTENTION_MP, 0, 0, 6, 3, 12, 0,
+        "Overall command timer, 0 -> disabled (50 ms)", NULL},
+    {"TT", UNIT_ATTENTION_MP, 0, 0, 9, 7, 8, 0,
+        "Temperature threshold (celsius), 0 -> 85C", NULL},
+    {"CAL", UNIT_ATTENTION_MP, 0, 0, 10, 7, 16, 0,
+        "Command aging limit (50 ms), 0 -> 85C", NULL},
+    {"RRT", UNIT_ATTENTION_MP, 0, 0, 12, 7, 8, 0,
+        "Read reporting threshold for read recovered errors when PER set",
+        NULL},
+    {"WRT", UNIT_ATTENTION_MP, 0, 0, 13, 7, 8, 0,
+        "Write reporting threshold for write recovered errors when PER set",
+        NULL},
+    {"DRRT", UNIT_ATTENTION_MP, 0, 0, 14, 7, 1, 0,
+        "Disable restore reassign target",
+        "0: REASSIGN attempts to recovery old data\t"
+        "1: REASSIGN ignores old data"},
+    {"FFMT", UNIT_ATTENTION_MP, 0, 0, 14, 3, 1, 0,
+        "Fast format enable, format without writes to customer media", NULL},
+    {"FCERT", UNIT_ATTENTION_MP, 0, 0, 15, 5, 1, 0,
+        "Format certification (enable)", NULL},
+
+    {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
+};
+
+static struct sdparm_values_name_t sdparm_v_maxtor_mode_pg[] = {
+    {UNIT_ATTENTION_MP, 0, 0, 0, "uac", "Unit attention condition (maxtor)"},
+    {0, 0, 0, 0, NULL, NULL},
+};
+
+static struct sdparm_mode_page_item sdparm_mitem_v_maxtor_arr[] = {
+    /* Unit attention page [0x0] Seagate */
+    {"DUA", UNIT_ATTENTION_MP, 0, 0, 2, 4, 1, MF_COMMON,
+        "Disable unit attention", NULL},
+};
+
+/* Indexed by VENDOR_* define */
+struct sdparm_vendor_pair sdparm_vendor_mp[] = {
+    {sdparm_v_seagate_mode_pg, sdparm_mitem_v_seagate_arr},
+    {sdparm_v_hitachi_mode_pg, sdparm_mitem_v_hitachi_arr},
+    {sdparm_v_maxtor_mode_pg, sdparm_mitem_v_maxtor_arr},
+};
+
+int sdparm_vendor_mp_len = 
+        sizeof(sdparm_vendor_mp) / sizeof(sdparm_vendor_mp[0]);
 
 
 const char * sdparm_pdt_doc_strs[] = {

@@ -14,6 +14,7 @@
 #define VPD_ATA_INFO_RESP_LEN 572
 
 /* Mode page numbers */
+#define UNIT_ATTENTION_MP 0
 #define RW_ERR_RECOVERY_MP 1
 #define DISCONNECT_MP 2
 #define FORMAT_MP 3
@@ -97,6 +98,11 @@
 #define TP_ATA 8
 #define TP_NONE 0xf
 
+/* Vendor identifiers */
+#define VENDOR_SEAGATE 0x0
+#define VENDOR_HITACHI 0x1
+#define VENDOR_MAXTOR 0x2
+
 /* bit flag settings for sdparm_mode_page_item::flags */
 #define MF_COMMON 0x1   /* output in summary mode */
 #define MF_HEX 0x2
@@ -115,18 +121,19 @@
 
 struct sdparm_opt_coll {
     int all;
-    int mode_6;
+    int dbd;
     int defaults;
     int dummy;
     int enumerate;
+    int flexible;
     int hex;
     int inquiry;
     int long_out;
-    int saved;
-    int flexible;
-    int transport;
-    int dbd;
+    int mode_6;
     int quiet;
+    int save;
+    int transport;
+    int vendor;
 };
 
 struct sdparm_values_name_t {
@@ -171,6 +178,11 @@ struct sdparm_transport_pair {
     struct sdparm_mode_page_item * mitem;
 };
 
+struct sdparm_vendor_pair {
+    struct sdparm_values_name_t * mpage;
+    struct sdparm_mode_page_item * mitem;
+};
+
 struct sdparm_command {
     int cmd_num;
     const char * name;
@@ -180,6 +192,9 @@ extern struct sdparm_values_name_t sdparm_gen_mode_pg[];
 extern struct sdparm_values_name_t sdparm_vpd_pg[];
 extern struct sdparm_values_name_t sdparm_transport_id[];
 extern struct sdparm_transport_pair sdparm_transport_mp[];
+extern struct sdparm_values_name_t sdparm_vendor_id[];
+extern struct sdparm_vendor_pair sdparm_vendor_mp[];
+extern int sdparm_vendor_mp_len;
 extern struct sdparm_mode_page_item sdparm_mitem_arr[];
 extern struct sdparm_command sdparm_command_arr[];
 
@@ -199,12 +214,13 @@ extern const char * sdparm_mode_page_policy_arr[];
 
 extern int sdp_get_mp_len(unsigned char * mp);
 extern const struct sdparm_values_name_t * sdp_get_mode_detail(
-                int page_num, int subpage_num, int pdt, int transp_proto);
+                int page_num, int subpage_num, int pdt, int transp_proto,
+                int vendor_num);
 extern void sdp_get_mpage_name(int page_num, int subpage_num, int pdt,
-                int transp_proto, int plus_acron, int hex, char * bp,
-                int max_b_len);
+                int transp_proto, int vendor_num, int plus_acron, int hex,
+                char * bp, int max_b_len);
 extern const struct sdparm_values_name_t * sdp_find_mp_by_acron(
-                const char * ap, int transp_proto);
+                const char * ap, int transp_proto, int vendor_num);
 const struct sdparm_values_name_t *
         sdp_get_vpd_detail(int page_num, int subvalue, int pdt);
 extern const struct sdparm_values_name_t * sdp_find_vpd_by_acron(
@@ -212,8 +228,13 @@ extern const struct sdparm_values_name_t * sdp_find_vpd_by_acron(
 extern const char * sdp_get_transport_name(int proto_num);
 extern const struct sdparm_values_name_t * sdp_find_transport_by_acron(
                 const char * ap);
+extern const char * sdp_get_vendor_name(int vendor_num);
+extern const struct sdparm_values_name_t * sdp_find_vendor_by_acron(
+                const char * ap);
+extern const struct sdparm_vendor_pair * sdp_get_vendor_pair(int vendor_num);
 extern const struct sdparm_mode_page_item * sdp_find_mitem_by_acron(
-                const char * ap, int * from, int transp_proto);
+                const char * ap, int * from, int transp_proto,
+                int vendor_num);
 extern unsigned long long sdp_get_big_endian(const unsigned char * from,
                 int start_bit, int num_bits);
 extern void sdp_set_big_endian(unsigned long long val, unsigned char * to,
@@ -249,5 +270,15 @@ extern void sdp_enumerate_commands();
 extern int sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp,
                 int pdt, const struct sdparm_opt_coll * opts,
                 int verbose);
+
+/*
+ * Declarations for functions that are port dependant
+ */
+
+#ifdef SDPARM_WIN32
+
+extern int sg_do_wscan(char letter, int verbose);
+
+#endif
 
 #endif

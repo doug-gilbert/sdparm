@@ -25,7 +25,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Version 1.1 20051125
+ * Version 1.2 20060921
  */
 
 #include <stdlib.h>
@@ -202,12 +202,26 @@ static void check(const struct sdparm_mode_page_item * mpi)
     }
 }
 
+static const char * get_vendor_name(int vendor_num)
+{
+    const struct sdparm_values_name_t * vnp;
+
+    for (vnp = sdparm_vendor_id; vnp->acron; ++vnp) {
+        if (vendor_num == vnp->value)
+            return vnp->name;
+    }
+    return NULL;
+}
+
 int main(int argc, char ** argv)
 {
     int k;
     const struct sdparm_transport_pair * tp;
+    const struct sdparm_vendor_pair * vp;
+    const char * ccp;
 
-    printf("Check integrity of mode page item tables in sdparm\n");
+    printf("    Check integrity of mode page item tables in sdparm\n");
+    printf("    ==================================================\n\n");
     printf("Generic (i.e. non-transport specific) mode page items:\n");
     check(sdparm_mitem_arr);
     printf("\n");
@@ -216,6 +230,18 @@ int main(int argc, char ** argv)
         if (tp->mitem) {
             printf("%s mode page items:\n", sdparm_transport_id[k].name);
             check(tp->mitem);
+            printf("\n");
+        }
+    }
+    vp = sdparm_vendor_mp;
+    for (k = 0; k < sdparm_vendor_mp_len; ++k, ++vp) {
+        if (vp->mitem) {
+            ccp = get_vendor_name(k);
+            if (ccp)
+                printf("%s mode page items:\n", ccp);
+            else
+                printf("0x%x mode page items:\n", k);
+            check(vp->mitem);
             printf("\n");
         }
     }

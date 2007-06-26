@@ -28,6 +28,17 @@ In FreeBSD, the configure/make/make_install method should work.
 With Tru64 this invocation can be used:
     "./autogen.sh && CC=cc ./configure && gmake"
 
-8th July 2006
+On Windows (win2k or later) download cygwin plus gcc, makefile
+and binutils (if they are not in the minimal cygwin distribution).
+Then from within a cygwin (bash) shell issue these commands:
+    ./configure
+    make
+A 'make install' can also be done. The executable is called
+sdparm.exe and is in the 'src' subdirectory. It can be executed
+in a DOS ("cmd") shell as long as the cygwin1.dll file that it
+depends on is placed in an appropriate place.
+   
+
+12th October 2006
 Douglas Gilbert
 

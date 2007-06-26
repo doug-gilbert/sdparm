@@ -35,7 +35,7 @@
 
 #include "sdparm.h"
 #include "sg_lib.h"
-#include "sg_cmds.h"
+#include "sg_cmds_basic.h"
 
 /* sdparm_vpd.c : does mainly VPD page processing associated with the
  * INQUIRY SCSI command.

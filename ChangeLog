@@ -2,6 +2,20 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
+ChangeLog for sdparm-1.00 [20061016]
+  - update Background control mode subpage (SBC-3)
+    - fix EN_BMS and EN_PS swap
+  - add 'extra' information to Caching mode page (SBC-3)
+  - substitute sg_cmds_basic.[hc] for sg_cmds.[hc]
+  - add '--vendor=<vn>' ('-M <vn>') option for vendor specific
+    mode pages (start with Seagate, Hitachi and Maxtor)
+  - fix '--save' so has no effect without '--set' or '--clear'
+  - win32 port based on SCSI Pass Through (SPT) interface
+    - add '--wscan' option in win32 port to scan for available
+      device names
+  - re-arrange some exits status values to be that same as
+    those used by sg3_utils-1.22
+
 ChangeLog for sdparm-0.99 [20060708]
   - add old power condition page for disks only (0xd)
   - zero whole device specific parameter field for disks (not
@@ -10,8 +24,6 @@ ChangeLog for sdparm-0.99 [20060708]
     added in sdparm-0.98 (libata doesn't support REQUEST SENSE)
   - expand exit status values to be more expressive (and the
     same as those used by the sg3_utils-1.21 package)
-  - use new SG_LIB_CAT_NOT_READY and other indications to give
-    more accurate error messages.
   - warn if value to change a mode page field exceeds the
     field size
   - sync with spc4r05a

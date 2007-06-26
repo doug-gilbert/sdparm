@@ -1,4 +1,4 @@
-.TH SDPARM "8" "July 2006" "sdparm-0.99" SDPARM
+.TH SDPARM "8" "October 2006" "sdparm-1.00" SDPARM
 .SH NAME
 sdparm \- fetch and potentially change SCSI device attributes, send commands
 .SH SYNOPSIS
@@ -7,12 +7,15 @@ sdparm \- fetch and potentially change SCSI device attributes, send commands
 [\fI--defaults\fR] [\fI--dummy\fR] [\fI--flexible\fR] [\fI--get=<str>\fR]
 [\fI--help\fR] [\fI--hex\fR] [\fI--inquiry\fR] [\fI--long\fR]
 [\fI--page=<pg>[,<spg>]\fR] [\fI--quiet\fR] [\fI--save\fR]
-[\fI--set=<str>\fR] [\fI--six\fR] [\fI--transport=<tn>\fR] [\fI--verbose\fR]
-[\fI--version\fR] \fI<scsi_device>\fR
+[\fI--set=<str>\fR] [\fI--six\fR] [\fI--transport=<tn>\fR]
+[\fI--vendor=<vn>\fR] [\fI--verbose\fR] [\fI--version\fR] \fI<scsi_device>\fR
 .PP
 .B sdparm
 \fI--enumerate\fR [\fI--all\fR] [\fI--inquiry\fR] [\fI--long\fR]
-[\fI--page=<pg>[,<spg>]\fR] [\fI--transport=<tn>\fR]
+[\fI--page=<pg>[,<spg>]\fR] [\fI--transport=<tn>\fR] [\fI--vendor=<vn>\fR]
+.PP
+.B sdparm
+\fI--wscan\fR [\fI--verbose\fR]
 .SH DESCRIPTION
 .\" Add any additional description here
 .PP
@@ -30,10 +33,12 @@ known mode page attributes for that device are listed. Individual
 attributes can be displayed with the '--get' option (e.g. '--get=WCE'
 to fetch the state of the Writeback Cache Enable attribute).
 .PP
-By default this utility shows mode pages that a common to all
-transport protocols. These are termed here as "generic" mode pages.
+By default this utility shows mode pages that are common to all
+transport protocols. These are termed as "generic" mode pages.
 Transport protocol specific mode pages are selected with
 the '--transport=' option. See the TRANSPORT section below.
+Vendor specific mode pages are selected with the '--vendor=' option.
+See the VENDORS section below.
 .PP
 Although originally for SCSI disks (or storage devices that appear to the
 OS as SCSI disks) many of the mode pages are for other SCSI device types.
@@ -58,8 +63,8 @@ the default action is to output a relatively small number of
 commonly used attributes from different pages. When a
 specific (mode) page number is given with the '--page=' option then
 all the attributes of that page are output (irrespective of the
-setting of this option). For use with the '--enumerate' option see
-ENUMERATE section below.
+setting of this option). For this option's action when used with
+the '--enumerate' option see the ENUMERATE section below.
 .TP
 --clear=<str> | -c <str>
 The <str> contains a comma separated list of attribute acronyms. In
@@ -74,14 +79,14 @@ use '-e -C x' (using any command name, valid or otherwise).
 .TP
 --dbd | -B
 disable block descriptors. This is a bit in MODE SENSE cdbs that
-rarely needs to be set. The one known case is a MODE SENSE 6
-issued to a Reduced Block Commands (RBC) device where the RBC standard
-says it shall be set.
+rarely needs to be set. One known case is a MODE SENSE 6 issued to a
+Reduced Block Commands (RBC) device where the RBC standard says it
+shall be set.
 .TP
 --defaults | -D
 sets the given mode page to its default values. Requires the '--page='
 option to be given to specify the mode page. To make the default mode
-page values also the saved mode page values use the '--save' option as
+page values also the saved mode page values, use the '--save' option as
 well.
 .TP
 --dummy | -d
@@ -93,8 +98,8 @@ for testing.
 --enumerate | -e
 lists out descriptive information about the pages and attributes known
 to this utility. Ignores the <scsi_device> argument and other options
-apart from the '--all', '--inquiry', '--long', '--page='
-and '--transport=' options.
+apart from the '--all', '--inquiry', '--long', '--page=', '--transport='
+and '--vendor=' options.
 If '--enumerate' is given without other options then the known (generic)
 mode pages are listed. See the ENUMERATE section below.
 .TP
@@ -124,8 +129,8 @@ by "0x" and space separated. If a value of "1" is given with
 the '--get=' option (e.g. '--get=WCE=1') then only the current value
 is output in hex, prefixed by "0x". If a value of "2" is given with
 the '--get=' option then only the current value is output as 
-a (signed) integer. Can be used multiple times (e.g. '-HH'). Useful
-with the ATA Information VPD page which usually outputs its
+a (signed) integer. This option can be used multiple times (e.g. '-HH').
+Useful with the ATA Information VPD page which usually outputs its
 IDENTIFY (PACKET) DEVICE response in 16 bit hex words; with '-HH' outputs
 that response in hex bytes; with -HHH outputs the same response in a
 format suitable for 'hdparm --Istdin' to decode.
@@ -200,12 +205,26 @@ the Fibre Channel Protocol). One way to list available transport protocols
 numbers and their associated abbreviations is to give an invalid
 transport protocol number such as '-t x'; another way is '-e -l'.
 .TP
+--vendor=<tn> | -M <vn>
+Specifies the vendor (i.e. manufacturer) where <vn> is either a
+number (o or more) or an abbreviation (e.g. "sea" for Seagate disk
+vendor specific). One way to list available vendor numbers and their
+associated abbreviations is to give an invalid vendor number such
+as '-M x'; another way is '-e -l'.
+.TP
 --verbose | -v
 increase the level of verbosity, (i.e. debug output). In some cases
 more decoding is done (e.g. fields within a standard INQUIRY response).
 .TP
 --version | -V
 print the version string and then exit.
+.TP
+--wscan | -w
+this option is available in Windows only. It lists the device names that are
+available. In many cases there is more than one device name for a given
+device. Attempts to group all device names for one device on a single
+line (exceptions: USB and IEEE 1394 devices). See the "Win32 port" section
+in the README file.
 .PP
 A mode page for which no abbreviation is known (e.g. a vendor specific mode
 page) can be listed in hexadecimal by using the option
@@ -337,6 +356,17 @@ namespace. This becomes difficult if a mode page has multiple
 descriptors each of which has the same set of acronyms. The SAS phy
 control and discover page is an example of this. The current
 solution is to prepend "2_" to the second set of acronyms.
+.SH VENDORS
+SCSI leaves a lot of space for vendor specific information. Often
+this is described in product manuals. The '--vendor=<n>' (or '-M <vn>')
+option allows known vendor specific mode pages to be examined and/or
+modified by acronym.
+.PP
+In this utility the syntax and semantics of vendor specific
+mode pages is very similar to those of transport protocol specific
+mode pages. Both cannot be specified together. Vendor specific
+modes pages can still be accessed numerically (as shown at the
+end of the EXAMPLES section).
 .SH COMMANDS
 The command option sends a SCSI command to the given device. If the
 command fails then this is reflected in the non-zero exit status.
@@ -552,24 +582,31 @@ the <scsi_device> reports an illegal request with an additional
 sense code of "invalid operation code" which means that it doesn't
 support the requested command.
 .TP
-.B 10
-the <scsi_device> reports it has a check condition but "no sense".
-Some polling commands (e.g. REQUEST SENSE) can react this way.
-It is unlikely that this value will occur as an exit status.
-.TP
 .B 11
-the <scsi_device> reports a "recovered error". The requested command
-was successful. Most likely a utility will report a recovered error
-to stderr and continue, probably leaving the utility with an exit
-status of 0 .
+the <scsi_device> reports an aborted command. In some cases aborted
+commands can be retried immediately (e.g. if the transport aborted
+the command due to congestion).
 .TP
 .B 15
 the utility is unable to open, close or use the given <scsi_device>.
 The given file name could be incorrect or there may be permission
 problems. Adding the '-v' option may give more information.
 .TP
+.B 20
+the <scsi_device> reports it has a check condition but "no sense".
+Some polling commands (e.g. REQUEST SENSE) can react this way.
+It is unlikely that this value will occur as an exit status.
+.TP
+.B 21
+the <scsi_device> reports a "recovered error". The requested command
+was successful. Most likely a utility will report a recovered error
+to stderr and continue, probably leaving the utility with an exit
+status of 0 .
+.TP
 .B 33
-the command sent to <scsi_device> has timed out.
+the command sent to <scsi_device> has timed out. This occurs in Linux
+only; in other ports a command timeout will appear as a transport (or OS)
+error.
 .TP
 .B 97
 the response to a SCSI command failed sanity checks.
