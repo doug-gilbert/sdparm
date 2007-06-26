@@ -7,11 +7,11 @@ use SCSI command sets are ATAPI CD/DVD drives, SCSI and ATAPI tape
 drives and SCSI enclosures.
 
 This utility was originally written for Linux. It has been ported
-to FreeBSD, Tru64, and Windows.
+to FreeBSD, Solaris, Tru64, and Windows.
 
 Relationship to sg3_utils
 -------------------------
-This package shares code with sg3_utils (version 1.21).
+This package shares code with sg3_utils (version 1.24).
 sg3_utils is a package of utilities that typically act at the SCSI
 command level. sg3_utils is written by the same author. The shared code
 (sg_lib.[hc] and sg_cmds_basic.[hc]) includes tables of SCSI command
@@ -57,6 +57,8 @@ of this code that others may be able to re-use is the information in
 the tables in sdparm_data.c and sg_lib.c . This is information garnered
 from "SCSI" drafts and standards at http://www.t10.org (plus some
 information from the ATA drafts and standards at http://www.t13.org ).
+Vendor specific mode page information is found in the sdparm_data_vendor.c
+file.
 
 Notes
 -----
@@ -96,6 +98,10 @@ services), "ch" (media changer (for tapes)), and "pr" for processor device
 type (e.g. SAF-TE devices). All these device may also be accessed via
 the "pass" device. To see the mapping between the "pass" device name and
 the corresponding higher level device node try "camcontrol devlist".
+
+Solaris port
+------------
+Currently assumes gcc is present.
 
 
 Tru64 (osf) port
@@ -164,4 +170,4 @@ may be used but "PD" is obviously quicker to type.
 
 
 Douglas Gilbert
-24th January 2007
+6th June 2007

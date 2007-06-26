@@ -59,6 +59,8 @@ const struct sdparm_values_name_t *
         vnp = sdparm_transport_mp[transp_proto].mpage;
     else
         vnp = sdparm_gen_mode_pg;
+    if (NULL == vnp)
+        return NULL;
 
     for ( ; vnp->acron; ++vnp) {
         if ((page_num == vnp->value) && (subpage_num == vnp->subvalue)) {
@@ -132,6 +134,8 @@ const struct sdparm_values_name_t * sdp_find_mp_by_acron(const char * ap,
         vnp = sdparm_transport_mp[transp_proto].mpage;
     else
         vnp = sdparm_gen_mode_pg;
+    if (NULL == vnp)
+        return NULL;
 
     for ( ; vnp->acron; ++vnp) {
         if (0 == strcmp(vnp->acron, ap))

@@ -2,7 +2,13 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.01 [20070124]
+ChangeLog for sdparm-1.02 [20070606]
+  - append relative target port identifier to SAS target
+    port address with '-iq' option
+  - add solaris port
+  - place vendor specific data in sdparm_data_vendor.c
+
+ChangeLog for sdparm-1.01 [20070405]
   - add element address assignment mode page (smc)
   - improve error handling in lk 2.4 series mapping to
     sg devices
@@ -10,7 +16,14 @@ ChangeLog for sdparm-1.01 [20070124]
     - include <inttypes.h> to use PRIx64 instead of %llx
   - add LUICLR bit to extended inquiry VPD page
   - correct some headers for C++ inclusion
-    - fix most C code to compile under C++
+    - fix some C code to compile under C++
+  - fix bug when unusual transport or vendor given
+  - add a Fujitsu vendor mode page
+  - add "initial priority" to control extension mpage
+  - add "disconnect-reconnect" mpage to generic list;
+    there are still transport specific versions
+  - extend block limits VPD page (sbc3r09)
+  - sync with sg3_utils-1.24 pass-through code
 
 ChangeLog for sdparm-1.00 [20061016]
   - update Background control mode subpage (SBC-3)
