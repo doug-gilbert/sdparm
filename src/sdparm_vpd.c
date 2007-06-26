@@ -49,11 +49,14 @@ static int decode_dev_ids_quiet(unsigned char * buff, int len,
                                 int m_assoc, int m_desig_type,
                                 int m_code_set)
 {
-    int m, p_id, c_set, piv, assoc, desig_type, i_len;
-    int c_id, d_id, naa, vsi, off, u;
+    int m, p_id, c_set, piv, assoc, desig_type, i_len, is_sas;
+    int naa, off, u, rtp;
     const unsigned char * ucp;
     const unsigned char * ip;
+    unsigned char sas_tport_addr[8];
 
+    rtp = 0;
+    memset(sas_tport_addr, 0, sizeof(sas_tport_addr));
     off = -1;
     while ((u = sg_vpd_dev_id_iter(buff, len, &off, m_assoc, m_desig_type,
                                    m_code_set)) == 0) {
@@ -68,6 +71,7 @@ static int decode_dev_ids_quiet(unsigned char * buff, int len,
         p_id = ((ucp[0] >> 4) & 0xf);
         c_set = (ucp[0] & 0xf);
         piv = ((ucp[1] & 0x80) ? 1 : 0);
+        is_sas = (piv && (6 == p_id)) ? 1 : 0;
         assoc = ((ucp[1] >> 4) & 0x3);
         desig_type = (ucp[1] & 0xf);
         switch (desig_type) {
@@ -78,7 +82,7 @@ static int decode_dev_ids_quiet(unsigned char * buff, int len,
         case 2: /* EUI-64 based */
             if ((8 != i_len) && (12 != i_len) && (16 != i_len))
                 fprintf(stderr, "      << expect 8, 12 and 16 byte "
-                        "ids, got %d>>\n", i_len);
+                        "EUI, got %d>>\n", i_len);
             printf("0x");
             for (m = 0; m < i_len; ++m)
                 printf("%02x", (unsigned int)ip[m]);
@@ -86,44 +90,58 @@ static int decode_dev_ids_quiet(unsigned char * buff, int len,
             break;
         case 3: /* NAA */
             if (1 != c_set) {
-                fprintf(stderr, "      << expected binary code_set (1)>>\n");
+                fprintf(stderr, "      << unexpected code set %d for "
+                        "NAA>>\n", c_set);
                 dStrHex((const char *)ip, i_len, 0);
                 break;
             }
             naa = (ip[0] >> 4) & 0xff;
             if (! ((2 == naa) || (5 == naa) || (6 == naa))) {
-                fprintf(stderr, "      << expected naa [0x%x]>>\n", naa);
+                fprintf(stderr, "      << unexpected NAA [0x%x]>>\n", naa);
                 dStrHex((const char *)ip, i_len, 0);
                 break;
             }
             if (2 == naa) {
                 if (8 != i_len) {
-                    fprintf(stderr, "      << expected NAA 2 identifier "
+                    fprintf(stderr, "      << unexpected NAA 2 identifier "
                             "length: 0x%x>>\n", i_len);
                     dStrHex((const char *)ip, i_len, 0);
                     break;
                 }
-                d_id = (((ip[0] & 0xf) << 8) | ip[1]);
-                c_id = ((ip[2] << 16) | (ip[3] << 8) | ip[4]);
-                vsi = ((ip[5] << 16) | (ip[6] << 8) | ip[7]);
                 printf("0x");
                 for (m = 0; m < 8; ++m)
                     printf("%02x", (unsigned int)ip[m]);
                 printf("\n");
             } else if (5 == naa) {
                 if (8 != i_len) {
-                    fprintf(stderr, "      << expected NAA 5 identifier "
+                    fprintf(stderr, "      << unexpected NAA 5 identifier "
                             "length: 0x%x>>\n", i_len);
                     dStrHex((const char *)ip, i_len, 0);
                     break;
                 }
-                printf("0x");
-                for (m = 0; m < 8; ++m)
-                    printf("%02x", (unsigned int)ip[m]);
-                printf("\n");
+                if ((0 == is_sas) || (1 != assoc)) {
+                    printf("0x");
+                    for (m = 0; m < 8; ++m)
+                        printf("%02x", (unsigned int)ip[m]);
+                    printf("\n");
+                } else if (rtp) {
+                    printf("0x");
+                    for (m = 0; m < 8; ++m)
+                        printf("%02x", (unsigned int)ip[m]);
+                    printf(",0x%x\n", rtp);
+                    rtp = 0;
+                } else {
+                    if (sas_tport_addr[0]) {
+                        printf("0x");
+                        for (m = 0; m < 8; ++m)
+                            printf("%02x", (unsigned int)sas_tport_addr[m]);
+                        printf("\n");
+                    }
+                    memcpy(sas_tport_addr, ip, sizeof(sas_tport_addr));
+                }
             } else if (6 == naa) {
                 if (16 != i_len) {
-                    fprintf(stderr, "      << expected NAA 6 identifier "
+                    fprintf(stderr, "      << unexpected NAA 6 identifier "
                             "length: 0x%x>>\n", i_len);
                     dStrHex((const char *)ip, i_len, 0);
                     break;
@@ -135,8 +153,19 @@ static int decode_dev_ids_quiet(unsigned char * buff, int len,
             }
             break;
         case 4: /* Relative target port */
+            if ((0 == is_sas) || (1 != c_set) || (1 != assoc) || (4 != i_len))
+                break;
+            rtp = ((ip[2] << 8) | ip[3]);
+            if (sas_tport_addr[0]) {
+                printf("0x");
+                for (m = 0; m < 8; ++m)
+                    printf("%02x", (unsigned int)sas_tport_addr[m]);
+                printf(",0x%x\n", rtp);
+                memset(sas_tport_addr, 0, sizeof(sas_tport_addr));
+                rtp = 0;
+            }
             break;
-        case 5: /* Target port group */
+        case 5: /* (primary) Target port group */
             break;
         case 6: /* Logical unit group */
             break;
@@ -158,8 +187,14 @@ static int decode_dev_ids_quiet(unsigned char * buff, int len,
             break;
         }
     }
+    if (sas_tport_addr[0]) {
+        printf("0x");
+        for (m = 0; m < 8; ++m)
+            printf("%02x", (unsigned int)sas_tport_addr[m]);
+        printf("\n");
+    }
     if (-2 == u) {
-        fprintf(stderr, "VPD page error: short designator around "
+        fprintf(stderr, "VPD page error: short designator near "
                 "offset %d\n", off);
         return SG_LIB_CAT_MALFORMED;
     }
@@ -205,7 +240,7 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
         }
         if (NULL == print_if_found)
             printf("  %s:\n", sdparm_assoc_arr[assoc]);
-        printf("    desig_type: %s,  code_set: %s\n",
+        printf("    designator type: %s,  code set: %s\n",
                sdparm_desig_type_arr[desig_type], sdparm_code_set_arr[c_set]);
         if (piv && ((1 == assoc) || (2 == assoc)))
             printf("     transport: %s\n", sdparm_transport_proto_arr[p_id]);
@@ -223,7 +258,7 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
             if (! long_out) {
                 if ((8 != i_len) && (12 != i_len) && (16 != i_len)) {
                     fprintf(stderr, "      << expect 8, 12 and 16 byte "
-                            "ids, got %d>>\n", i_len);
+                            "EUI, got %d>>\n", i_len);
                     dStrHex((const char *)ip, i_len, 0);
                     break;
                 }
@@ -274,19 +309,20 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
             break;
         case 3: /* NAA */
             if (1 != c_set) {
-                fprintf(stderr, "      << expected binary code_set (1)>>\n");
+                fprintf(stderr, "      << unexpected code set %d for "
+                        "NAA>>\n", c_set);
                 dStrHex((const char *)ip, i_len, 0);
                 break;
             }
             naa = (ip[0] >> 4) & 0xff;
             if (! ((2 == naa) || (5 == naa) || (6 == naa))) {
-                fprintf(stderr, "      << expected naa [0x%x]>>\n", naa);
+                fprintf(stderr, "      << unexpected NAA [0x%x]>>\n", naa);
                 dStrHex((const char *)ip, i_len, 0);
                 break;
             }
             if (2 == naa) {
                 if (8 != i_len) {
-                    fprintf(stderr, "      << expected NAA 2 identifier "
+                    fprintf(stderr, "      << unexpected NAA 2 identifier "
                             "length: 0x%x>>\n", i_len);
                     dStrHex((const char *)ip, i_len, 0);
                     break;
@@ -310,7 +346,7 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
                 printf("\n");
             } else if (5 == naa) {
                 if (8 != i_len) {
-                    fprintf(stderr, "      << expected NAA 5 identifier "
+                    fprintf(stderr, "      << unexpected NAA 5 identifier "
                             "length: 0x%x>>\n", i_len);
                     dStrHex((const char *)ip, i_len, 0);
                     break;
@@ -338,7 +374,7 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
                 }
             } else if (6 == naa) {
                 if (16 != i_len) {
-                    fprintf(stderr, "      << expected NAA 6 identifier "
+                    fprintf(stderr, "      << unexpected NAA 6 identifier "
                             "length: 0x%x>>\n", i_len);
                     dStrHex((const char *)ip, i_len, 0);
                     break;
@@ -384,7 +420,7 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
             d_id = ((ip[2] << 8) | ip[3]);
             printf("      Relative target port: 0x%x\n", d_id);
             break;
-        case 5: /* Target port group */
+        case 5: /* (primary) Target port group */
             if ((1 != c_set) || (1 != assoc) || (4 != i_len)) {
                 fprintf(stderr, "      << expected binary code_set, target "
                         "port association, length 4>>\n");
@@ -550,22 +586,38 @@ static int decode_scsi_ports_vpd(unsigned char * buff, int len,
     return 0;
 }
 
-static int decode_ext_inq_vpd(unsigned char * buff, int len)
+static int decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
 {
     if (len < 7) {
         fprintf(stderr, "Extended INQUIRY data VPD page length too "
                 "short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
-    printf("  SPT: %d  GRD_CHK: %d  APP_CHK: %d  REF_CHK: %d\n",
-           ((buff[4] >> 3) & 0x7), !!(buff[4] & 0x4), !!(buff[4] & 0x2),
-           !!(buff[4] & 0x1));
-    printf("  GRP_SUP: %d  PRIOR_SUP: %d  HEADSUP: %d  ORDSUP: %d  "
-           "SIMPSUP: %d\n", !!(buff[5] & 0x10), !!(buff[5] & 0x8),
-           !!(buff[5] & 0x4), !!(buff[5] & 0x2), !!(buff[5] & 0x1));
-    printf("  CORR_D_SUP=%d NV_SUP=%d V_SUP=%d LUICLR=%d\n",
-           !!(buff[6] & 0x4), !!(buff[6] & 0x2), !!(buff[6] & 0x1),
-           !!(buff[7] & 0x1));
+    if (quiet) {
+        printf("spt=%d\n", ((buff[4] >> 3) & 0x7));
+        printf("grd_chk=%d\n", !!(buff[4] & 0x4));
+        printf("app_chk=%d\n", !!(buff[4] & 0x2));
+        printf("ref_chk=%d\n", !!(buff[4] & 0x1));
+        printf("GRP_SUP=%d\n", !!(buff[5] & 0x10));
+        printf("prior_sup=%d\n", !!(buff[5] & 0x8));
+        printf("headsup=%d\n", !!(buff[5] & 0x4));
+        printf("ordsup=%d\n", !!(buff[5] & 0x2));
+        printf("simpsup=%d\n", !!(buff[5] & 0x1)); 
+        printf("corr_d_sup=%d\n", !!(buff[6] & 0x4));
+        printf("nv_sup=%d\n", !!(buff[6] & 0x2));
+        printf("v_sup=%d\n", !!(buff[6] & 0x1));
+        printf("luiclr=%d\n", !!(buff[7] & 0x1));
+    } else {
+        printf("  SPT: %d  GRD_CHK: %d  APP_CHK: %d  REF_CHK: %d\n",
+               ((buff[4] >> 3) & 0x7), !!(buff[4] & 0x4), !!(buff[4] & 0x2),
+               !!(buff[4] & 0x1));
+        printf("  GRP_SUP: %d  PRIOR_SUP: %d  HEADSUP: %d  ORDSUP: %d  "
+               "SIMPSUP: %d\n", !!(buff[5] & 0x10), !!(buff[5] & 0x8),
+               !!(buff[5] & 0x4), !!(buff[5] & 0x2), !!(buff[5] & 0x1));
+        printf("  CORR_D_SUP: %d  NV_SUP: %d  V_SUP: %d  LUICLR: %d\n",
+               !!(buff[6] & 0x4), !!(buff[6] & 0x2), !!(buff[6] & 0x1),
+               !!(buff[7] & 0x1));
+    }
     return 0;
 }
 
@@ -645,6 +697,12 @@ static int decode_block_limits_vpd(unsigned char * buff, int len)
     u = (buff[12] << 24) | (buff[13] << 16) | (buff[14] << 8) |
         buff[15];
     printf("  Optimal transfer length: %u blocks\n", u);
+    if (len > 19) {     /* added in sbc3r09 */
+        u = (buff[16] << 24) | (buff[17] << 16) | (buff[18] << 8) |
+            buff[19];
+        printf("  Maximum prefetch, xdread, xdwrite transfer length: %u "
+               "blocks\n", u);
+    }
     return 0;
 }
 
@@ -865,13 +923,13 @@ int sdp_process_vpd_page(int sg_fd, int pn, int spn,
         }
         if (opts->long_out)
             printf("Extended inquiry data [0x86] VPD page:\n");
-        else
+        else if (! opts->quiet)
             printf("Extended inquiry data VPD page:\n");
         if (opts->hex) {
             dStrHex((const char *)b, len + 4, 0);
             return 0;
         }
-        res = decode_ext_inq_vpd(b, len + 4);
+        res = decode_ext_inq_vpd(b, len + 4, opts->quiet);
         if (res)
             return res;
         break;

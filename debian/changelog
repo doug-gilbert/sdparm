@@ -1,8 +1,14 @@
+sdparm (1.02-0.1) unstable; urgency=low
+
+  * xxxxxxxxxxxxxxxx
+
+ -- Douglas Gilbert <dgilbert@interlog.org>  Wed, 06 Jun 2007 18:00:00 +0200
+
 sdparm (1.01-0.1) unstable; urgency=low
 
   * add element address assignment mode page (smc)
 
- -- Douglas Gilbert <dgilbert@interlog.org>  Wed, 24 Jan 2007 15:00:00 -0500
+ -- Douglas Gilbert <dgilbert@interlog.org>  Thu, 05 Apr 2007 23:00:00 -0400
 
 sdparm (1.00-0.1) unstable; urgency=low
 

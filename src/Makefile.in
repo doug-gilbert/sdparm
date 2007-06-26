@@ -50,8 +50,9 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
 am_sdparm_OBJECTS = sdparm.$(OBJEXT) sdparm_data.$(OBJEXT) \
-	sdparm_access.$(OBJEXT) sdparm_vpd.$(OBJEXT) \
-	sdparm_cmd.$(OBJEXT) sg_lib.$(OBJEXT) sg_cmds_basic.$(OBJEXT)
+	sdparm_data_vendor.$(OBJEXT) sdparm_access.$(OBJEXT) \
+	sdparm_vpd.$(OBJEXT) sdparm_cmd.$(OBJEXT) sg_lib.$(OBJEXT) \
+	sg_cmds_basic.$(OBJEXT)
 sdparm_OBJECTS = $(am_sdparm_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -154,6 +155,7 @@ AM_CFLAGS = -Wall -W
 sdparm_SOURCES = sdparm.c	\
 			sdparm.h	\
 			sdparm_data.c	\
+			sdparm_data_vendor.c	\
 			sdparm_access.c	\
 			sdparm_vpd.c	\
 			sdparm_cmd.c	\
@@ -244,6 +246,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sdparm_access.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sdparm_cmd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sdparm_data.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sdparm_data_vendor.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sdparm_vpd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sg_cmds_basic.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sg_lib.Po@am__quote@

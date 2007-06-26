@@ -24,7 +24,7 @@
 /* sdparm Build Host */
 #undef SDPARM_BUILD_HOST
 
-/* sdparm on FreeBSD */
+/* sdparm on Solaris */
 #undef SDPARM_FREEBSD
 
 /* assume sdparm on linux */

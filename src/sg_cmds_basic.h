@@ -221,7 +221,7 @@ extern int sg_mode_page_offset(const unsigned char * resp, int resp_len,
  * SG_LIB_CAT_ILLEGAL_REQ -> bad field in cdb, SG_LIB_CAT_UNIT_ATTENTION,
  * SG_LIB_CAT_NOT_READY -> device not ready,
  * SG_LIB_CAT_MALFORMED -> bad response, -1 -> other failure.
- * If success_mask pointer is not NULL then zeroes it then sets bit 0, 1,
+ * If success_mask pointer is not NULL then zeros it then sets bit 0, 1,
  * 2 and/or 3 if the current, changeable, default and saved values
  * respectively have been fetched. If error on current page
  * then stops and returns that error; otherwise continues if an error is
@@ -244,6 +244,8 @@ extern int sg_cmds_close_device(int device_fd);
 extern const char * sg_cmds_version();
 
 
+struct sg_pt_base;
+
 /* This is an internal worker used by both sg_cmds_basic and sg_cmds_extra */
 /* Returns -2 for sense data (may not be fatal), -1 for failed or the
    number of bytes fetched. For data out (to device) or no data, set
@@ -251,9 +253,10 @@ extern const char * sg_cmds_version();
    output via 'o_sense_cat' pointer (if not NULL). Outputs to
    sg_warnings_strm (def: stderr) if problems; depending on 'noisy'
    and 'verbose' settings */
-extern int sg_cmds_process_resp(void * ptvp, const char * leadin, int res,
-                                int mx_resp_len, const unsigned char * sense_b,
-                                int noisy, int verbose, int * o_sense_cat);
+extern int sg_cmds_process_resp(struct sg_pt_base * ptvp, const char * leadin,
+                                int res, int mx_resp_len,
+                                const unsigned char * sense_b, int noisy,
+                                int verbose, int * o_sense_cat);
 
 #ifdef __cplusplus
 }

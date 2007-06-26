@@ -29,6 +29,11 @@ FreeBSD
 -------
 In FreeBSD, the configure/make/make_install method should work.
 
+Solaris
+-------
+In Solaris, the configure/make/make_install method should work.
+It is assumed gcc is present.
+
 Tru64 (OSF)
 -----------
 With Tru64 this invocation can be used:
@@ -57,6 +62,6 @@ The executable is called sdparm.exe and is in the 'src' subdirectory.
 It can be executed in a MSYS or DOS ("cmd") shell.
    
 
-21st January 2007
+3rd May 2007
 Douglas Gilbert
 
