@@ -55,7 +55,7 @@
 #include <scsi/sg_lib.h>
 #include <scsi/sg_cmds.h>
 
-static char * version_str = "1.12 20050519";
+static char * version_str = "1.13 20050523";
 
 
 #define SENSE_BUFF_LEN 32       /* Arbitrary, could be larger */
@@ -929,9 +929,10 @@ int sg_mode_page_offset(const unsigned char * resp, int resp_len,
  * then stops and returns that error; otherwise continues if an error is
  * detected but returns the first error encountered.  */
 int sg_get_mode_page_controls(int sg_fd, int mode6, int pg_code,
-                              int sub_pg_code, int flexible, int mx_mpage_len,
-                              int * success_mask, void * pcontrol_arr[],
-                              int * reported_len, int verbose)
+                              int sub_pg_code, int dbd, int flexible,
+                              int mx_mpage_len, int * success_mask,
+                              void * pcontrol_arr[], int * reported_len,
+                              int verbose)
 {
     int k, n, res, offset, calc_len, xfer_len, resp_mode6;
     unsigned char buff[MODE_RESP_ARB_LEN];
@@ -950,11 +951,11 @@ int sg_get_mode_page_controls(int sg_fd, int mode6, int pg_code,
     /* first try to find length of current page response */
     memset(buff, 0, MODE10_RESP_HDR_LEN);
     if (mode6)  /* want first 8 bytes just in case */
-        res = sg_ll_mode_sense6(sg_fd, 0 /* dbd */, 0 /* pc */, pg_code,
+        res = sg_ll_mode_sense6(sg_fd, dbd, 0 /* pc */, pg_code,
                                 sub_pg_code, buff, MODE10_RESP_HDR_LEN, 0,
                                 verbose);
     else
-        res = sg_ll_mode_sense10(sg_fd, 0 /* llbaa */, 0 /* dbd */,
+        res = sg_ll_mode_sense10(sg_fd, 0 /* llbaa */, dbd,
                                  0 /* pc */, pg_code, sub_pg_code, buff,
                                  MODE10_RESP_HDR_LEN, 0, verbose);
     if (0 != res)
@@ -1006,11 +1007,11 @@ int sg_get_mode_page_controls(int sg_fd, int mode6, int pg_code,
             continue;
         memset(pcontrol_arr[k], 0, mx_mpage_len);
         if (mode6)
-            res = sg_ll_mode_sense6(sg_fd, 0 /* dbd */, k /* pc */,
+            res = sg_ll_mode_sense6(sg_fd, dbd, k /* pc */,
                                     pg_code, sub_pg_code, buff,
                                     calc_len, 0, verbose);
         else
-            res = sg_ll_mode_sense10(sg_fd, 0 /* llbaa */, 0 /* dbd */,
+            res = sg_ll_mode_sense10(sg_fd, 0 /* llbaa */, dbd,
                                      k /* pc */, pg_code, sub_pg_code,
                                      buff, calc_len, 0, verbose);
         if (0 != res) {

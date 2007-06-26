@@ -92,8 +92,8 @@ extern int sg_mode_page_offset(const unsigned char * resp, int resp_len,
                                int err_buff_len);
 
 extern int sg_get_mode_page_controls(int sg_fd, int mode6, int pg_code,
-                              int sub_pg_code, int flexible, int mx_mpage_len,
-                              int * success_mask, void * pcontrol_arr[],
-                              int * reported_len, int verbose);
-
+                              int sub_pg_code, int dbd, int flexible,
+                              int mx_mpage_len, int * success_mask,
+                              void * pcontrol_arr[], int * reported_len,
+                              int verbose);
 #endif
