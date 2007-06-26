@@ -63,11 +63,13 @@ struct sdparm_values_name_t sdparm_gen_mode_pg[] = {
     {CONTROL_MP, MSP_SAT_PATA, 0, 0, "pat", "SAT pATA control"},
     {PROT_SPEC_LU_MP, 0, -1, 0, "pl", "Protocol specific logical unit"},
     {POWER_MP, 0, -1, 0, "po", "Power condition"},
+    {POWER_OLD_MP, 0, 0, 0, "poo", "Power condition - old version"},
+        /* POWER_OLD_MP for disks as clashes with old MMC specs */
     {PROT_SPEC_PORT_MP, 0, -1, 0, "pp", "Protocol specific port"},
     {RBC_DEV_PARAM_MP, 0, 0xe, 0, "rbc", "RBC device parameters (RBC)"},
     {RIGID_DISK_MP, 0, 0, 0, "rd", "Rigid disk (SBC)"},
     {RW_ERR_RECOVERY_MP, 0, -1, 0, "rw", "Read write error recovery"},
-        /* since in SBC, SSC and MMC treat as if in SPC */
+        /* since in SBC, SSC and MMC treat RW_ERR_RECOVERY_MP as if in SPC */
     {TIMEOUT_PROT_MP, 0, 5, 0, "tp", "Timeout and protect (MMC)"},
     {V_ERR_RECOVERY_MP, 0, 0, 0, "ve", "Verify error recovery (SBC)"},
     {WRITE_PARAM_MP, 0, 5, 0, "wp", "Write parameters (MMC)"},
@@ -455,6 +457,17 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Ultra DMA bit 1", NULL},
     {"UDMA0", CONTROL_MP, MSP_SAT_PATA, 0, 5, 0, 1, 0,
         "Ultra DMA bit 0", NULL},
+
+    /* Power condition mode page - obsolete block-device-only version */
+    /*   [0xd] sbc (replacement page now at 0x1a) */
+    {"IDLE-OLD", POWER_OLD_MP, 0, 0, 3, 1, 1, 0,
+        "Idle timer active", NULL},
+    {"STBY-OLD", POWER_OLD_MP, 0, 0, 3, 0, 1, 0,
+        "Standby timer active", NULL},
+    {"ICT-OLD", POWER_OLD_MP, 0, 0, 4, 7, 32, 0,
+        "Idle condition timer (100 ms)", NULL},
+    {"SCT-OLD", POWER_OLD_MP, 0, 0, 8, 7, 32, 0,
+        "Standby condition timer (100 ms)", NULL},
 
     /* Data compression mode page [0xf] ssc3 */
     {"DCE", DATA_COMPR_MP, 0, 1, 2, 7, 1, MF_COMMON,

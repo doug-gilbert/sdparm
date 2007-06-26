@@ -1,5 +1,5 @@
 %define	name	sdparm
-%define	version	0.98
+%define	version	0.99
 %define	release	1
 
 Summary:	List or change SCSI disk parameters
@@ -57,6 +57,9 @@ make install \
 %{_mandir}/man8/*
 
 %changelog
+* Sat Jul 08 2006 - dgilbert at interlog dot com
+- add old power condition page for disks
+  * sdparm-0.99
 * Thu May 18 2006 - dgilbert at interlog dot com
 - add medium configuration mode page
   * sdparm-0.98

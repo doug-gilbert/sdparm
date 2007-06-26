@@ -1,6 +1,9 @@
 The author of sdparm would like to thank the following people who
 have made contributions:
 
+Bryan Henderson < bryanh at giraffe-data dot com >
+	add old power condition page (0xd) plus other fixes
+
 Hayashi Naoyuki <titan at culzean dot org>
         port to Tru64 [20060127]
 
@@ -8,4 +11,4 @@ Kai Makisara <Kai dot Makisara at kolumbus dot fi>
         for tape mode pages and interface usability suggestions [20050517]
 
 Doug Gilbert
-3rd February 2006
+5th June 2006
