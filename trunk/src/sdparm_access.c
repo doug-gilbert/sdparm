@@ -118,14 +118,24 @@ const struct sdparm_values_name_t * sdp_find_mp_by_acron(const char * ap,
     return NULL;
 }
 
-const char * sdp_get_vpd_name(int page_num)
+const struct sdparm_values_name_t *
+        sdp_get_vpd_detail(int page_num, int subvalue, int pdt)
 {
     const struct sdparm_values_name_t * vnp;
+    int sv, ty;
 
+    sv = (subvalue < 0) ? 1 : 0;
+    ty = (pdt < 0) ? 1 : 0;
     for (vnp = sdparm_vpd_pg; vnp->acron; ++vnp) {
-        if (page_num == vnp->value)
-            return vnp->name;
+        if ((page_num == vnp->value) &&
+            (sv || (subvalue == vnp->subvalue)) &&
+            (ty || (pdt == vnp->pdt)))
+            return vnp;
     }
+    if (! ty)
+        return sdp_get_vpd_detail(page_num, subvalue, -1);
+    if (! sv)
+        return sdp_get_vpd_detail(page_num, -1, -1);
     return NULL;
 }
 

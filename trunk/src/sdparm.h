@@ -33,6 +33,7 @@
 #define PROT_SPEC_PORT_MP 0x19
 #define POWER_MP 0x1a
 #define IEC_MP 0x1c
+#define MED_CONF_MP 0x1d
 #define TIMEOUT_PROT_MP 0x1d
 #define MMCMS_MP 0x2a
 #define ALL_MPAGES 0x3f
@@ -67,15 +68,20 @@
 #define VPD_MODE_PG_POLICY 0x87
 #define VPD_SCSI_PORTS 0x88
 #define VPD_ATA_INFO 0x89
-#define VPD_BLOCK_LIMITS 0xb0
+#define VPD_BLOCK_LIMITS 0xb0   /* SBC-3 */
+#define VPD_SA_DEV_CAP 0xb0     /* SSC-3 */
+#define VPD_MAN_ASS_SN 0xb1     /* SSC-3 */
+#define VPD_TA_SUPPORTED 0xb2   /* SSC-3 */
 
 #define VPD_ASSOC_LU 0
 #define VPD_ASSOC_TPORT 1
 #define VPD_ASSOC_TDEVICE 2
 
-#define VPD_DI_SEL_LU 2
-#define VPD_DI_SEL_TPORT 4
-#define VPD_DI_SEL_TARGET 8
+/* values are 2**vpd_assoc */
+#define VPD_DI_SEL_LU 1
+#define VPD_DI_SEL_TPORT 2
+#define VPD_DI_SEL_TARGET 4
+#define VPD_DI_SEL_AS_IS 32
 
 /* Transport protocol identifiers */
 #define TP_FCP 0
@@ -126,7 +132,7 @@ struct sdparm_values_name_t {
     int subvalue;
     int pdt;         /* peripheral device type id, -1 is the default */
                      /* (not applicable) value */
-    int read_only;
+    int ro_vendor;   /* read-only or vendor flag */
     const char * acron;
     const char * name;
 };
@@ -178,7 +184,7 @@ extern const char * sdparm_pdt_doc_strs[];
 extern const char * sdparm_transport_proto_arr[];
 extern const char * sdparm_code_set_arr[];
 extern const char * sdparm_assoc_arr[];
-extern const char * sdparm_id_type_arr[];
+extern const char * sdparm_desig_type_arr[];
 extern const char * sdparm_ansi_version_arr[];
 extern const char * sdparm_network_service_type_arr[];
 extern const char * sdparm_mode_page_policy_arr[];
@@ -195,7 +201,8 @@ extern void sdp_get_mpage_name(int page_num, int subpage_num, int pdt,
                 int transp_proto, int hex, char * bp, int max_b_len);
 extern const struct sdparm_values_name_t * sdp_find_mp_by_acron(
                 const char * ap, int transp_proto);
-extern const char * sdp_get_vpd_name(int page_num);
+const struct sdparm_values_name_t *
+        sdp_get_vpd_detail(int page_num, int subvalue, int pdt);
 extern const struct sdparm_values_name_t * sdp_find_vpd_by_acron(
                 const char * ap);
 extern const char * sdp_get_transport_name(int proto_num);
@@ -225,7 +232,8 @@ extern char * sdp_get_pdt_doc_str(int version, int buff_len,
  */
 
 extern int sdp_process_vpd_page(int sg_fd, int pn, int spn,
-                 const struct sdparm_opt_coll * opts, int verbose);
+                                const struct sdparm_opt_coll * opts,
+                                int req_pdt, int verbose);
 
 /*
  * Declarations for functions found in sdparm_cmd.c

@@ -1,4 +1,4 @@
-.TH SDPARM "8" "January 2006" "sdparm-0.97" SDPARM
+.TH SDPARM "8" "May 2006" "sdparm-0.98" SDPARM
 .SH NAME
 sdparm \- fetch and potentially change SCSI device attributes, send commands
 .SH SYNOPSIS
@@ -167,7 +167,7 @@ suppress output of device name followed by the vendor, product and
 revision strings fetched from an INQUIRY response. Without this option
 such a line is typically the first line output by sdparm. Reduces
 output from the device identification VPD page, typically to one
-line (or none) for each of di_lu, di_port and di_target.
+line (or none) for each of di_lu, di_port, di_target and di_asis.
 .TP
 --save | -S
 when a mode page is being modified (by using the '--clear=' and/or '--set="
@@ -214,7 +214,9 @@ combination '--page=<pn> --hex'.
 Numbers input to sdparm (e.g. in the command line arguments) are assumed
 to be in decimal unless there is a hexadecimal indicator. A hexadecimal
 indicator is either a leading '0x' or '0X' (i.e. the C language convention)
-or a trailing 'h' or 'H' (i.e. the convention used at www.t10.org ).
+or a trailing 'h' or 'H' (i.e. the convention used at www.t10.org ). In
+the case of '--page=' either a string or number is expected, so hex numbers
+like 'ch' (12) should be prefixed by a zero (e.g. '0ch').
 .SH PARAMETERS
 The '--clear=', '--get=' and '--set=" options can take a string argument
 which is a comma separated list of attributes. Each attribute can
@@ -407,11 +409,14 @@ transport related settings at the ATA(PI) transport level. Such settings
 can be accessed with blktool (and viewed with 'sg_inq -A').
 .PP
 Since the device identification VPD page (acronym "di") potentially
-contains a lot of diverse identifiers, three subset acronyms are
-available. They are "di_lu" for identifiers associated with the
-addressed logical unit, "di_target" for identifiers associated with the
-target device and "di_port" for identifiers associated with the
-target port (which the command arrived via).
+contains a lot of diverse designators, several associated acronyms are
+available. They are "di_lu" for designators associated with the
+addressed logical unit, "di_port" for designators associated with the
+target port (which the command arrived via) and "di_target" for
+designators associated with the target device. When "di" is used
+designators are grouped by lu, then port and then target device.
+To see all designators decoded in the order that they appear in the
+VPD page use "di_asis".
 .PP
 In the linux kernel 2.6 series any device node that understands a SCSI
 command set (e.g. SCSI disks and CD/DVD drives) may be specified. More
@@ -430,7 +435,7 @@ To list the common (generic) mode parameters of a disk:
 .PP
    sdparm /dev/sda
 .PP
-To list the descriptors within the device identification VPD page
+To list the designators within the device identification VPD page
 of a disk:
 .PP
    sdparm --inquiry /dev/sda

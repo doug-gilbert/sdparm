@@ -57,6 +57,7 @@ struct sdparm_values_name_t sdparm_gen_mode_pg[] = {
     {ES_MAN_MP, 0, 0xd, 0, "esm", "Enclosure services management (SES)"},
     {FORMAT_MP, 0, 0, 0, "fo", "Format (SBC)"},
     {IEC_MP, 0, -1, 0, "ie", "Informational exceptions control"},
+    {MED_CONF_MP, 0, 1, 0, "mco", "Medium configuration (SSC)"},
     {MED_PART_MP, 0, 1, 0, "mpa", "Medium partition (SSC)"},
     {MRW_MP, 0, 5, 0, "mrw", "Mount rainier reWritable (MMC)"},
     {CONTROL_MP, MSP_SAT_PATA, 0, 0, "pat", "SAT pATA control"},
@@ -130,18 +131,20 @@ static struct sdparm_values_name_t sdparm_sas_mode_pg[] = {    /* SAS-1.1 */
     {PROT_SPEC_LU_MP, 0, -1, 0, "lsf", "lu: SSP short format (SAS)"},
     {PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 0, "pcd",
         "port: phy control and discover (SAS)"},
+    {PROT_SPEC_PORT_MP, 0, -1, 0, "psf", "port: SSP short format (SAS)"},
     {PROT_SPEC_PORT_MP, MSP_SAS_SHA, -1, 0, "sha",
         "port: shared protocol specific (SAS)"},
-    {PROT_SPEC_PORT_MP, 0, -1, 0, "psf", "port: SSP short format (SAS)"},
     {0, 0, 0, 0, NULL, NULL},
 };
 
 struct sdparm_values_name_t sdparm_vpd_pg[] = {
-    {VPD_ATA_INFO, 0, -1, 1, "ai", "ATA information"},
+    {VPD_ATA_INFO, 0, -1, 1, "ai", "ATA information (SAT)"},
     {VPD_ASCII_OP_DEF, 0, -1, 1, "aod",
      "ASCII implemented operating definition (obs)"},
     {VPD_BLOCK_LIMITS, 0, 0, 1, "bl", "Block limits (SBC)"},
     {VPD_DEVICE_ID, 0, -1, 1, "di", "Device identification"},
+    {VPD_DEVICE_ID, VPD_DI_SEL_AS_IS, -1, 1, "di_asis", "Like 'di' "
+     "but designators ordered as found"},
     {VPD_DEVICE_ID, VPD_DI_SEL_LU, -1, 1, "di_lu", "Device identification, "
      "lu only"},
     {VPD_DEVICE_ID, VPD_DI_SEL_TPORT, -1, 1, "di_port", "Device "
@@ -151,12 +154,17 @@ struct sdparm_values_name_t sdparm_vpd_pg[] = {
     {VPD_EXT_INQ, 0, -1, 1, "ei", "Extended inquiry data"},
     {VPD_IMP_OP_DEF, 0, -1, 1, "iod",
      "Implemented operating definition (obs)"},
+    {VPD_MAN_ASS_SN, 0, 1, 1, "mas",
+     "Manufacturer assigned serial number (SSC)"},
     {VPD_MAN_NET_ADDR, 0, -1, 1, "mna", "Management network addresses"},
     {VPD_MODE_PG_POLICY, 0, -1, 1, "mpp", "Mode page policy"},
-    {VPD_UNIT_SERIAL_NUM, 0, -1, 1, "sn", "Unit serial number"},
+    {VPD_SA_DEV_CAP, 0, 1, 1, "sad",
+     "Sequential access device capabilities (SSC)"},
     {VPD_SOFTW_INF_ID, 0, -1, 1, "sii", "Software interface identification"},
+    {VPD_UNIT_SERIAL_NUM, 0, -1, 1, "sn", "Unit serial number"},
     {VPD_SCSI_PORTS, 0, -1, 1, "sp", "SCSI ports"},
     {VPD_SUPPORTED_VPDS, 0, -1, 1, "sv", "Supported VPD pages"},
+    {VPD_TA_SUPPORTED, 0, 1, 1, "tas", "TapeAlert supported flags (SSC)"},
     {0, 0, 0, 0, NULL, NULL},
 };
 
@@ -391,7 +399,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"RAC", CONTROL_MP, 0, -1, 4, 6, 1, 0,
         "Report a check", NULL},
     {"UA_INTLCK", CONTROL_MP, 0, -1, 4, 5, 2, 0,
-        "Unit attention interlocks controls",
+        "Unit attention interlocks control",
         "0: unit attention cleared with check condition status\t"
         "2: unit attention not cleared with check condition status\t"
         "3: as 2 plus ua on busy, task set full or reservation conflict"},
@@ -488,7 +496,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"LOIS", DEV_CONF_MP, 0, 1, 8, 6, 1, 0,
         "Logical object identifiers supported", NULL},
     {"RSMK", DEV_CONF_MP, 0, 1, 8, 5, 1, MF_COMMON,
-        "Report setmarks", NULL},
+        "Report setmarks (obsolete)", NULL},
     {"AVC", DEV_CONF_MP, 0, 1, 8, 4, 1, 0,
         "Automatic velocity control", NULL},
     {"SOCF", DEV_CONF_MP, 0, 1, 8, 3, 2, 0,
@@ -498,7 +506,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"REW", DEV_CONF_MP, 0, 1, 8, 0, 1, 0,
         "Report early warning", NULL},
     {"GAP_S", DEV_CONF_MP, 0, 1, 9, 7, 8, 0,
-        "Gap size", NULL},
+        "Gap size (obsolete)", NULL},
     {"EOD_D", DEV_CONF_MP, 0, 1, 10, 7, 3, 0,
         "EOD (end-of-data) defined",
         "0: default; 1: format defined; 2: SOCF; 3: not supported"},
@@ -532,6 +540,14 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Permanent write protection", NULL},
 
     /* Device configuration extension mode subpage [0x10,1 ] ssc3 */
+    {"TARPF", DEV_CONF_MP, MSP_DEV_CONF_EXT, 1, 4, 3, 1, 0,
+        "TapeAlert respect parameter fields", NULL},
+    {"TASER", DEV_CONF_MP, MSP_DEV_CONF_EXT, 1, 4, 2, 1, 0,
+        "TapeAlert select except reporting", NULL},
+    {"TARPC", DEV_CONF_MP, MSP_DEV_CONF_EXT, 1, 4, 1, 1, 0,
+        "TapeAlert respect page control", NULL},
+    {"TAPLSD", DEV_CONF_MP, MSP_DEV_CONF_EXT, 1, 4, 0, 1, 0,
+        "TapeAlert prevent log sense deactivation", NULL},
     {"SEM", DEV_CONF_MP, MSP_DEV_CONF_EXT, 1, 5, 3, 4, 0,
         "Short erase mode",
         "0: as per ssc-2; 1: erase has no effect; 2: record EOD indication"},
@@ -631,6 +647,18 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"PS_T", IEC_MP, MSP_BACK_CTL, 0, 8, 7, 16, 0,
         "Pre-scan timeout (hour)", NULL},
 
+    /* Medium configuration mode page [0x1d] ssc3 */
+    {"WORMM", MED_CONF_MP, 0, 1, 2, 0, 1, 0,
+        "Worm mode", NULL},
+    {"WMLR", MED_CONF_MP, 0, 1, 4, 7, 8, 0,
+        "Worm mode label restrictions",
+        "0: disallow overwrite; 1: disallow some format labels overwrite\t"
+        "2: allow all format labels to be overwritten"},
+    {"WMFR", MED_CONF_MP, 0, 1, 5, 7, 8, 0,
+        "Worm mode filemark restrictions",
+        "2: allow filemarks before EOD except closest to BOP\t"
+        "3: allow any number of filemarks before EOD"},
+
     /* Timeout and protect mode page [0x1d] mmc5 */
     {"G3E", TIMEOUT_PROT_MP, 0, 5, 4, 3, 1, 0,
         "Group 3 timeout capability enable", NULL},
@@ -662,9 +690,9 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"D_RAM_W", MMCMS_MP, 0, 5, 3, 5, 1, 0,
         "DVD-RAM write", NULL},
     {"D_R_W", MMCMS_MP, 0, 5, 3, 4, 1, 0,
-        "DVD-R write", NULL},         /* was D_R_R, wrong, clashed with above */
+        "DVD-R write", NULL},     /* was D_R_R, wrong, clashed with above */
     {"TST_WR", MMCMS_MP, 0, 5, 3, 2, 1, 0,
-        "Test write", NULL},          /* was TST_W but clashed with page 0x5 */
+        "Test write", NULL},      /* was TST_W but clashed with page 0x5 */
     {"CD_RW_W", MMCMS_MP, 0, 5, 3, 1, 1, 0,
         "CD-RW write", NULL},
     {"CD_R_W", MMCMS_MP, 0, 5, 3, 0, 1, 0,
@@ -672,7 +700,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"BUF", MMCMS_MP, 0, 5, 4, 7, 1, 0,
         "Buffer underrun free recording", NULL},
     {"MULT_S", MMCMS_MP, 0, 5, 4, 6, 1, 0,
-        "Multi session", NULL},       /* was MULTI_S but clashed with page 0x5 */
+        "Multi session", NULL},   /* was MULTI_S but clashed with page 0x5 */
     {"M2F2", MMCMS_MP, 0, 5, 4, 5, 1, 0,
         "Mode 2 form 2", NULL},
     {"M2F1", MMCMS_MP, 0, 5, 4, 4, 1, 0,
@@ -972,9 +1000,11 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"TLR", PROT_SPEC_LU_MP, 0, -1, 2, 4, 1, 0,
         "Transport layer retries (supported)", NULL},
 
-    /* protocol specific port control page [0x19] sas1 */
+    /* protocol specific port control page - short format [0x19] sas1 */
     {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, MF_COMMON,
         "Port's (transport) protocol identifier", NULL},
+    {"BAE", PROT_SPEC_PORT_MP, 0, -1, 2, 5, 1, MF_COMMON,
+        "Broadcast asynchronous event", NULL},
     {"RLM", PROT_SPEC_PORT_MP, 0, -1, 2, 4, 1, MF_COMMON, 
         "Ready LED meaning",
         "0: usually on, flash when command processing; off when stopped\t"
@@ -1164,7 +1194,7 @@ const char * sdparm_assoc_arr[] =
     "Reserved [0x3]",
 };
 
-const char * sdparm_id_type_arr[] =
+const char * sdparm_desig_type_arr[] =
 {
     "vendor specific [0x0]",
     "T10 vendor identification",

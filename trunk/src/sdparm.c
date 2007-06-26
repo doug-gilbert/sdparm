@@ -71,7 +71,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_lib.h"
 #include "sg_cmds.h"
 
-static char * version_str = "0.97 20060125";
+static char * version_str = "0.98 20060518";
 
 
 static struct option long_options[] = {
@@ -90,7 +90,7 @@ static struct option long_options[] = {
     {"inquiry", 0, 0, 'i'},
     {"long", 0, 0, 'l'},
     {"page", 1, 0, 'p'},
-    {"quiet", 1, 0, 'q'},
+    {"quiet", 0, 0, 'q'},
     {"set", 1, 0, 's'},
     {"save", 0, 0, 'S'},
     {"transport", 1, 0, 't'},
@@ -256,7 +256,7 @@ static void enumerate_mitems(int pn, int spn, int pdt, int transp_proto,
                 continue;
             sdp_get_mpage_name(t_pn, t_spn, t_pdt, transp_proto, 1, buff,
                                sizeof(buff));
-            if (long_out)
+            if (long_out && (transp_proto < 0))
                 printf("%s [%s] mode page:\n", buff,
                        sdp_get_pdt_doc_str(t_pdt, sizeof(b), b)); 
             else
@@ -429,7 +429,8 @@ static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
             else {
                 sdp_get_mpage_name(pn, spn, pdt, opts->transport, opts->hex,
                                    buff, sizeof(buff));
-                fprintf(stderr, "%s mode page, attributes not found\n", buff);
+                fprintf(stderr, "%s mode page, attributes not found, "
+                        "add '-H' to see page in hex\n", buff);
                 if ((0 == opts->flexible) && verbose)
                     fprintf(stderr, "    perhaps try '--flexible'\n");
             }
@@ -541,7 +542,12 @@ static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
                         else
                             fprintf(stderr, "[0x%x] ", pn);
                     }
-                    fprintf(stderr, "not supported\n");
+                    if (SG_LIB_CAT_ILLEGAL_REQ == res)
+                        fprintf(stderr, "not supported\n");
+                    else if (0 == res)
+                        fprintf(stderr, "some problem\n");
+                    else
+                        fprintf(stderr, "failed\n");
                 }
             }
         }
@@ -1001,14 +1007,19 @@ static int get_num(const char * buf)
 {
     int res, len, num;
     unsigned int unum;
+    const char * commap;
 
     if ((NULL == buf) || ('\0' == buf[0]))
         return -1;
     len = strlen(buf);
+    commap = strchr(buf + 1, ',');
     if (('0' == buf[0]) && (('x' == buf[1]) || ('X' == buf[1]))) {
         res = sscanf(buf + 2, "%x", &unum);
         num = unum;
-    } else if ('H' == toupper(buf[len - 1])) {
+    } else if (commap && ('H' == toupper(*(commap - 1)))) {
+        res = sscanf(buf, "%x", &unum);
+        num = unum;
+    } else if ((NULL == commap) && ('H' == toupper(buf[len - 1]))) {
         res = sscanf(buf, "%x", &unum);
         num = unum;
     } else
@@ -1168,13 +1179,15 @@ static int build_mp_settings(const char * arg,
                              &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
                 ivp->mpi.start_byte = u;
             } else {
-                if (strstr(buff, "h:"))
-                    num = sscanf(buff, "%xh:%d:%d=%s", &ivp->mpi.start_byte,
+                if (strstr(buff, "h:")) {
+                    num = sscanf(buff, "%xh:%d:%d=%s", &u,
                                  &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
-                else if (strstr(buff, "H:"))
-                    num = sscanf(buff, "%xH:%d:%d=%s", &ivp->mpi.start_byte,
+                    ivp->mpi.start_byte = u;
+                } else if (strstr(buff, "H:")) {
+                    num = sscanf(buff, "%xH:%d:%d=%s", &u,
                                  &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
-                else
+                    ivp->mpi.start_byte = u;
+                } else
                     num = sscanf(buff, "%d:%d:%d=%s", &ivp->mpi.start_byte,
                                  &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
             }
@@ -1248,8 +1261,8 @@ static int open_and_simple_inquiry(const char * device_name, int rw,
     verb = (verbose > 0) ? verbose - 1 : 0;
     sg_fd = sg_cmds_open_device(device_name, ! rw, 0);
     if (sg_fd < 0) {
-        fprintf(stderr, "open error: %s, rw=%d: %s\n", device_name,
-                rw, safe_strerror(-sg_fd));
+        fprintf(stderr, "open error: %s [%s]: %s\n", device_name,
+                (rw ? "read/write" : "read only"), safe_strerror(-sg_fd));
         return -1;
     } 
     res = sg_simple_inquiry(sg_fd, &sir, 0, verb);
@@ -1372,7 +1385,7 @@ static int process_mode_page(int sg_fd, struct sdparm_mode_page_settings * mps,
 
 int main(int argc, char * argv[])
 {
-    int sg_fd, res, c, pdt, k;
+    int sg_fd, res, c, pdt, req_pdt, k;
     struct sdparm_opt_coll opts;
     const char * clear_str = NULL;
     const char * cmd_str = NULL;
@@ -1583,7 +1596,7 @@ int main(int argc, char * argv[])
             if (cp) {
                 spn = get_num(cp + 1);
                 if ((spn < 0) || (spn > 255)) {
-                    fprintf(stderr, "Bad page code value after "
+                    fprintf(stderr, "Bad second value after "
                             "'-p' option\n");
                     return 1;
                 }
@@ -1749,26 +1762,47 @@ int main(int argc, char * argv[])
         return 1;
     }
 
+    req_pdt = pdt;
     pdt = -1;
     sg_fd = open_and_simple_inquiry(device_name, rw, &pdt, &opts, verbose);
     if (sg_fd < 0) 
         return 1;
 
-    if (opts.inquiry) {
+    if (opts.inquiry)
         res = sdp_process_vpd_page(sg_fd, pn, ((spn < 0) ? 0: spn), &opts,
-                                   verbose);
-        if (res)
-            goto err_out;
-    } else if (cmd_str && scmdp) {
-        res = sdp_process_cmd(sg_fd, scmdp, pdt, &opts, verbose);
-        if (res)
-            goto err_out;
+                                   req_pdt, verbose);
+    else {
+        unsigned char sbuff[64];
+        struct sg_scsi_sense_hdr ssh;
+        char b[512];
 
-    } else {    /* mode page */
-        res = process_mode_page(sg_fd, &mp_settings, pn, spn, rw,
-                                (NULL != get_str), &opts, pdt, verbose);
-        if (res)
-            goto err_out;
+        if (cmd_str && scmdp) { /* process command */
+            res = sdp_process_cmd(sg_fd, scmdp, pdt, &opts, verbose);
+            if (res)
+                goto err_out;
+        } else {                /* mode page */
+            /* flush out any pending Unit Attentions */
+            memset(sbuff, 0, sizeof(sbuff));
+            memset(b, 0, sizeof(b));
+            res = sg_ll_request_sense(sg_fd, 0, sbuff, sizeof(sbuff), 0,
+                                      verbose); 
+            if (res) {
+                fprintf(stderr, "REQUEST SENSE failed%s\n",
+                        (verbose ? "" : ", try again with '-v' option"));
+                goto err_out;
+            }
+            if (sg_scsi_normalize_sense(sbuff, sizeof(sbuff), &ssh) &&
+                (ssh.asc || ssh.ascq) && (0 == opts.quiet)) {
+                fprintf(stderr, "Request sense detected:  Sense key: %s\n",
+                        sg_get_sense_key_str(ssh.sense_key, sizeof(b), b));
+                fprintf(stderr, "  %s\n    continuing ...\n",
+                        sg_get_asc_ascq_str(ssh.asc, ssh.ascq, sizeof(b), b));
+            }
+            res = process_mode_page(sg_fd, &mp_settings, pn, spn, rw,
+                                    (NULL != get_str), &opts, pdt, verbose);
+            if (res)
+                goto err_out;
+        }
     }
     ret = 0;
 
