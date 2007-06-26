@@ -1,5 +1,5 @@
 %define	name	sdparm
-%define	version	0.95
+%define	version	0.96
 %define	release	1
 
 Summary:	List or change SCSI disk parameters
@@ -20,6 +20,9 @@ the SCSI command set) such as CD/DVD and tape drives may also find
 parts of sdparm useful. Requires the linux kernel 2.4 series or later.
 In the 2.6 series any device node the understands a SCSI command set
 may be used (e.g. /dev/sda). In the 2.4 series SCSI device node may be used.
+
+Fetches Vital Product Data pages. Can send commands to start or stop
+the media and load or unload removable media.
 
 Warning: It is possible (but unlikely) to change SCSI disk settings
 such that the disk stops operating or is slowed down. Use with care.
@@ -53,6 +56,9 @@ make install \
 %{_mandir}/man8/*
 
 %changelog
+* Fri Nov 18 2005 - dgilbert at interlog dot com
+- add capacity, ready and sync commands
+  * sdparm-0.96
 * Tue Sep 20 2005 - dgilbert at interlog dot com
 - add debian build directory, decode more VPD pages
   * sdparm-0.95

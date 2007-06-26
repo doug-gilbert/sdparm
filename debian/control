@@ -2,8 +2,8 @@ Source: sdparm
 Section: admin
 Priority: optional
 Maintainer: Tomas Fasth <tomfa@debian.org>
-Build-Depends: debhelper (>= 4.0.0), autotools-dev
-Standards-Version: 3.6.1
+Build-Depends: cdbs (>= 0.4.15), debhelper (>= 4.0.0), autotools-dev
+Standards-Version: 3.6.2
 
 Package: sdparm
 Architecture: any

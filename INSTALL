@@ -12,8 +12,6 @@ then ./autogen.sh should be run prior to the above sequence.
 An rpm spec file called sdparm.spec is included in the main
 directory. This spec file expects to find a tarball
 called "sdparm-<version_num>.tgz" in the appropriate place.
-The author uses the alien utility to convert the sdparm binary
-rpm into the equivalent debian package.
 
 To build a debian "deb" (binary) package, first untar the tarball, then
 change directory to the top level within the sdparm source. Then:
@@ -22,6 +20,6 @@ change directory to the top level within the sdparm source. Then:
 The binary deb packages will be placed in the parent directory (of
 the sdparm source directory) if all goes well.
 
-28th August 2005
+19th November 2005
 Douglas Gilbert
 

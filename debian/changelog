@@ -1,8 +1,26 @@
+sdparm (0.96-0.1) unstable; urgency=low
+
+  * restructure sdparm.c; add capacity, sense and sync commands
+
+ -- Douglas Gilbert <dgilbert@interlog.org>  Sat, 19 Nov 2005 15:00:00 +1000
+
+sdparm (0.95-1) unstable; urgency=low
+
+  * New upstream version.
+
+ -- Tomas Fasth <tomfa@debian.org>  Tue, 20 Sep 2005 17:17:39 +0000
+
 sdparm (0.95-0.1) unstable; urgency=low
 
   * Add debian directory in original sdparm-0.95
 
  -- Douglas Gilbert <dgilbert@interlog.org>  Tue, 20 Sep 2005 11:00:00 +1000
+
+sdparm (0.94-1) unstable; urgency=low
+
+  * New upstream version.
+
+ -- Tomas Fasth <tomfa@debian.org>  Fri, 29 Jul 2005 13:31:13 +0000
 
 sdparm (0.94-0.1) unstable; urgency=low
 

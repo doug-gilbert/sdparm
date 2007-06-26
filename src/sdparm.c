@@ -48,12 +48,12 @@
 
 /* sdparm is a utility program for the Linux OS SCSI subsystem.
  *
- * This utility fetches various parameters associated with a given
+ * This utility fetches various attributes associated with a given
  * SCSI disk (or a disk that uses, or translates the SCSI command
- * set). In some cases these parameters can be changed.
+ * set). In some cases these attributes can be changed.
  */
 
-static char * version_str = "0.95 20050920";
+static char * version_str = "0.96 20051119";
 
 #define MAP_TO_SG_NODE
 
@@ -76,6 +76,7 @@ static struct option long_options[] = {
     {"inquiry", 0, 0, 'i'},
     {"long", 0, 0, 'l'},
     {"page", 1, 0, 'p'},
+    {"quiet", 1, 0, 'q'},
     {"set", 1, 0, 's'},
     {"save", 0, 0, 'S'},
     {"transport", 1, 0, 't'},
@@ -91,50 +92,51 @@ static void usage()
           "                 [--defaults] [--dummy] [--flexible] "
           "[--get=<str>] [--help]\n"
           "                 [--hex] [--inquiry] [--long] "
-          "[--page=<pg[,spg]>] [--save]\n"
-          "                 [--set=<str>] [--six] [--transport=<tn>] "
-          "[--verbose]\n"
-          "                 [--version] <scsi_device>\n\n"
+          "[--page=<pg[,spg]>] [--quiet]\n"
+          "                 [--save] [--set=<str>] [--six] "
+          "[--transport=<tn>]\n"
+          "                 [--verbose] [--version] <scsi_device>\n\n"
           "       sdparm    --enumerate [--all] [--inquiry] [--long] "
           "[--page=<pg[,spg]>]\n"
           "                 [--transport=<tn>]\n"
           "  where:\n"
-          "      --all | -a            list all known parameters for given "
+          "      --all | -a            list all known attributes for given "
           "device\n"
-          "      --clear=<str> | -c <str>  clear (zero) parameter value(s)\n"
+          "      --clear=<str> | -c <str>  clear (zero) attribute value(s)\n"
           "      --command=<cmd> | -C <cmd>  perform <cmd> (e.g. 'eject')\n"
           "      --dbd | -B            set DBD bit in mode sense cdb\n"
           "      --defaults | -D       set a mode page to its default "
           "values\n"
           "      --dummy | -d          don't write back modified mode page\n"
-          "      --enumerate | -e      list known pages and parameters "
+          "      --enumerate | -e      list known pages and attributes "
           "(ignore device)\n"
-          "      --get=<str> | -g <str>  get (fetch) parameter value(s)\n"
+          "      --flexible | -f       compensate for common errors, "
+          "relax some checks\n"
+          "      --get=<str> | -g <str>  get (fetch) attribute value(s)\n"
           "      --help | -h           print out usage message\n"
           "      --hex | -H            output in hex rather than name/value "
           "pairs\n"
           "      --inquiry | -i        output INQUIRY VPD page(s) (def: mode "
           "page(s))\n"
-          "      --long | -l           add description to parameter output\n"
+          "      --long | -l           add description to attribute output\n"
           "      --page=<pg[,spg]> | -p <pg[,spg]>  page (and optionally "
           "subpage) number\n"
           "                            [or abbrev] to output, change or "
           "enumerate\n"
+          "      --quiet | -q          suppress device vendor/product/"
+          "revision string line\n"
           "      --save | -S           place mode changes in saved page as "
           "well\n"
-          "      --set=<str> | -s <str>  set parameter value(s)\n"
-          "      --six | -6            use 6 byte SCSI cdbs (def: 10 byte)\n"
+          "      --set=<str> | -s <str>  set attribute value(s)\n"
+          "      --six | -6            use 6 byte SCSI mode cdbs (def: 10 "
+          "byte)\n"
           "      --transport=<tn> | -t <tn>     transport protocol number "
           "[or abbrev]\n"
           "      --verbose | -v        increase verbosity\n"
           "      --version | -V        print version string and exit\n\n"
-          "View or change parameters of a SCSI disk (or other device)\n"
+          "View or change attributes of a SCSI device (e.g. disk or CD/DVD "
+          "drive)\n"
           );
-}
-
-static int get_mp_len(unsigned char * mp)
-{
-    return (mp[0] & 0x40) ? ((mp[2] << 8) + mp[3] + 4) : (mp[1] + 2);
 }
 
 static void enumerate_mps(int transp_proto)
@@ -167,112 +169,15 @@ static void enumerate_mps(int transp_proto)
     }
 }
 
-static const struct sdparm_values_name_t *
-        get_mode_detail(int page_num, int subpage_num, int pdt,
-                        int transp_proto)
-{
-    const struct sdparm_values_name_t * vnp;
-
-    if ((transp_proto < 0) || (transp_proto > 15)) {
-        for (vnp = sdparm_gen_mode_pg; vnp->acron; ++vnp) {
-            if ((page_num == vnp->value) && (subpage_num == vnp->subvalue)) {
-                if ((pdt < 0) || (vnp->pdt < 0) || (vnp->pdt == pdt))
-                    return vnp;
-            }
-        }
-        return NULL;
-    }
-    for (vnp = sdparm_transport_mp[transp_proto].mpage; vnp && vnp->acron;
-         ++vnp) {
-        if ((page_num == vnp->value) && (subpage_num == vnp->subvalue)) {
-            if ((pdt < 0) || (vnp->pdt < 0) || (vnp->pdt == pdt))
-                return vnp;
-        }
-    }
-    return NULL;
-}
-
-static void get_mode_page_name(int page_num, int subpage_num, int pdt,
-                               int transp_proto, int hex, char * bp,
-                               int max_b_len)
-{
-    int len = max_b_len - 1;
-    const struct sdparm_values_name_t * vnp;
-
-    if (len < 0)
-        return;
-    bp[len] = '\0';
-    vnp = get_mode_detail(page_num, subpage_num, pdt, transp_proto);
-    if (NULL == vnp)
-        vnp = get_mode_detail(page_num, subpage_num, -1, transp_proto);
-    if (vnp && vnp->name) {
-        if (hex) {
-            if (0 == subpage_num)
-                snprintf(bp, len, "%s [0x%x]", vnp->name, page_num);
-            else
-                snprintf(bp, len, "%s [0x%x,0x%x]", vnp->name, page_num,
-                         subpage_num);
-        } else
-            snprintf(bp, len, "%s", vnp->name);
-    } else {
-        if (0 == subpage_num)
-            snprintf(bp, len, "[0x%x]", page_num);
-        else
-            snprintf(bp, len, "[0x%x,0x%x]", page_num, subpage_num);
-    }
-}
-
-static const struct sdparm_values_name_t * find_mp_by_acron(const char * ap,
-                                                            int transp_proto)
-{
-    const struct sdparm_values_name_t * vnp;
-
-    if ((transp_proto < 0) || (transp_proto > 15)) {
-        for (vnp = sdparm_gen_mode_pg; vnp->acron; ++vnp) {
-            if (0 == strncmp(vnp->acron, ap, 4))
-                return vnp;
-        }
-        return NULL;
-    }
-    for (vnp = sdparm_transport_mp[transp_proto].mpage; vnp && vnp->acron;
-         ++vnp) {
-        if (0 == strncmp(vnp->acron, ap, 4))
-            return vnp;
-    }
-    return NULL;
-}
-
 static void enumerate_vpds()
 {
     const struct sdparm_values_name_t * vnp;
 
     for (vnp = sdparm_vpd_pg; vnp->acron; ++vnp) {
         if (vnp->name)
-            printf("  %-4s 0x%02x      %s\n", vnp->acron, vnp->value,
+            printf("  %-10s 0x%02x      %s\n", vnp->acron, vnp->value,
                    vnp->name);
     }
-}
-
-static const char * get_vpd_name(int page_num)
-{
-    const struct sdparm_values_name_t * vnp;
-
-    for (vnp = sdparm_vpd_pg; vnp->acron; ++vnp) {
-        if (page_num == vnp->value)
-            return vnp->name;
-    }
-    return NULL;
-}
-
-static const struct sdparm_values_name_t * find_vpd_by_acron(const char * ap)
-{
-    const struct sdparm_values_name_t * vnp;
-
-    for (vnp = sdparm_vpd_pg; vnp->acron; ++vnp) {
-        if (0 == strncmp(vnp->acron, ap, 3))
-            return vnp;
-    }
-    return NULL;
 }
 
 static void enumerate_transports()
@@ -286,31 +191,26 @@ static void enumerate_transports()
     }
 }
 
-static const char * get_transport_name(int proto_num)
+static void print_mp_extra(const char * extra)
 {
-    const struct sdparm_values_name_t * vnp;
+    int n;
+    char b[128];
+    char * cp;
+    char * p;
 
-    for (vnp = sdparm_transport_id; vnp->acron; ++vnp) {
-        if (proto_num == vnp->value)
-            return vnp->name;
+    for (p = (char *)extra; (cp = strchr(p, '\t')); p = cp + 1) {
+        n = cp - p;
+        if (n > (int)(sizeof(b) - 1))
+            n = (sizeof(b) - 1);
+        strncpy(b, p, n);
+        b[n] = '\0';
+        printf("\t%s\n", b);
     }
-    return NULL;
+    printf("\t%s\n", p);
 }
 
-static const struct sdparm_values_name_t *
-                 find_transport_by_acron(const char * ap)
-{
-    const struct sdparm_values_name_t * vnp;
-
-    for (vnp = sdparm_transport_id; vnp->acron; ++vnp) {
-        if (0 == strncmp(vnp->acron, ap, 3))
-            return vnp;
-    }
-    return NULL;
-}
-
-
-static void enumerate_mitems(int pn, int spn, int pdt, int transp_proto)
+static void enumerate_mitems(int pn, int spn, int pdt, int transp_proto,
+                             int long_out)
 {
     int t_pn, t_spn, t_pdt;
     const struct sdparm_mode_page_item * mpi;
@@ -339,7 +239,7 @@ static void enumerate_mitems(int pn, int spn, int pdt, int transp_proto)
                 continue;
             if ((pdt >= 0) && (pdt != t_pdt))
                 continue;
-            get_mode_page_name(t_pn, t_spn, t_pdt, transp_proto, 1, buff,
+            sdp_get_mpage_name(t_pn, t_spn, t_pdt, transp_proto, 1, buff,
                                sizeof(buff));
             printf("%s mode page:\n", buff); 
         } else {
@@ -348,43 +248,15 @@ static void enumerate_mitems(int pn, int spn, int pdt, int transp_proto)
         }
         printf("  %-10s [0x%02x:%d:%-2d]  %s\n", mpi->acron, mpi->start_byte,
                mpi->start_bit, mpi->num_bits, mpi->description);
+        if ((long_out > 1) && mpi->extra)
+            print_mp_extra(mpi->extra);
         found = 1;
     }
     if ((! found) && (pn >= 0)) {
-        get_mode_page_name(pn, spn, pdt, transp_proto, 1, buff,
+        sdp_get_mpage_name(pn, spn, pdt, transp_proto, 1, buff,
                            sizeof(buff));
         fprintf(stderr, "%s mode page: no items found\n", buff);
     }
-}
-
-static const struct sdparm_mode_page_item *
-                 find_mitem_by_acron(const char * ap, int * from,
-                                     int transp_proto)
-{
-    int k = 0;
-    const struct sdparm_mode_page_item * mpi;
-
-    if (from) {
-        k = *from;
-        if (k < 0)
-            k = 0;
-    }
-    if ((transp_proto < 0) || (transp_proto > 15))
-        mpi = sdparm_mitem_arr;
-    else {
-        mpi = sdparm_transport_mp[transp_proto].mitem;
-        if (NULL == mpi)
-            return NULL;
-    }
-    for (mpi += k; mpi->acron; ++k, ++mpi) {
-        if (0 == strcmp(mpi->acron, ap))
-            break;
-    }
-    if (NULL == mpi->acron)
-        mpi = NULL;
-    if (from)
-        *from = (mpi ? (k + 1) : k);
-    return mpi;
 }
 
 static void list_mp_settings(struct sdparm_mode_page_settings * mps, int get)
@@ -409,86 +281,6 @@ static void list_mp_settings(struct sdparm_mode_page_settings * mps, int get)
     }
 }
 
-static unsigned long long 
-        get_big_endian(const unsigned char * from, int start_bit,
-                       int num_bits)
-{
-    unsigned long long res;
-    int sbit_o1 = start_bit + 1;
-
-    res = (*from++ & ((1 << sbit_o1) - 1));
-    num_bits -= sbit_o1;
-    while (num_bits > 0) {
-        res <<= 8;
-        res |= *from++;
-        num_bits -= 8;
-    }
-    if (num_bits < 0)
-        res >>= (-num_bits);
-    return res;
-}
-
-static void set_big_endian(unsigned long long val, unsigned char * to,
-                           int start_bit, int num_bits)
-{
-    int sbit_o1 = start_bit + 1;
-    int mask, num, k, x;
-
-    mask = (8 != sbit_o1) ? ((1 << sbit_o1) - 1) : 0xff;
-    k = start_bit - ((num_bits - 1) % 8);
-    if (0 != k)
-        val <<= ((k > 0) ? k : (8 + k));
-    num = (num_bits + 15 - sbit_o1) / 8;
-    for (k = 0; k < num; ++k) {
-        if ((sbit_o1 - num_bits) > 0)
-            mask &= ~((1 << (sbit_o1 - num_bits)) - 1);
-        if (k < (num - 1))
-            x = (val >> ((num - k - 1) * 8)) & 0xff;
-        else
-            x = val & 0xff;
-        to[k] = (to[k] & ~mask) | (x & mask); 
-        mask = 0xff;
-        num_bits -= sbit_o1;
-        sbit_o1 = 8;
-    }
-}
-
-static unsigned long long
-        mp_get_value(const struct sdparm_mode_page_item *mpi,
-                     const unsigned char * mp)
-{
-    return get_big_endian(mp + mpi->start_byte, mpi->start_bit,
-                          mpi->num_bits);
-}
-
-static unsigned long long
-        mp_get_value_check(const struct sdparm_mode_page_item *mpi,
-                           const unsigned char * mp, int * all_set)
-{
-    unsigned long long res;
-
-    res = get_big_endian(mp + mpi->start_byte, mpi->start_bit,
-                         mpi->num_bits);
-    if (all_set) {
-        if ((16 == mpi->num_bits) && (0xffff == res))
-            *all_set = 1;
-        else if ((32 == mpi->num_bits) && (0xffffffff == res))
-            *all_set = 1;
-        else if ((64 == mpi->num_bits) && (0xffffffffffffffffULL == res))
-            *all_set = 1;
-        else
-            *all_set = 0;
-    }
-    return res;
-}
-
-static void mp_set_value(unsigned long long val,
-                         struct sdparm_mode_page_item *mpi,
-                         unsigned char * mp)
-{
-    set_big_endian(val, mp + mpi->start_byte, mpi->start_bit, mpi->num_bits);
-}
- 
 static void print_mp_entry(const char * pre, int smask,
                            const struct sdparm_mode_page_item *mpi,
                            const unsigned char * cur_mp,
@@ -504,7 +296,7 @@ static void print_mp_entry(const char * pre, int smask,
 
     all_set = 0;
     acron = (mpi->acron ? mpi->acron : "");
-    u = mp_get_value_check(mpi, cur_mp, &all_set);
+    u = sdp_mp_get_value_check(mpi, cur_mp, &all_set);
     printf("%s%-10s", pre, acron);
     if (force_decimal)
         printf("%lld", (long long)u);
@@ -518,12 +310,12 @@ static void print_mp_entry(const char * pre, int smask,
         printf("  [");
         if (cha_mp && (smask & 2)) {
             printf("cha: %s",
-                   (mp_get_value(mpi, cha_mp) ? "y" : "n"));
+                   (sdp_mp_get_value(mpi, cha_mp) ? "y" : "n"));
             sep = 1;
         }
         if (def_mp && (smask & 4)) {
             all_set = 0;
-            u = mp_get_value_check(mpi, def_mp, &all_set);
+            u = sdp_mp_get_value_check(mpi, def_mp, &all_set);
             printf("%sdef:", (sep ? ", " : " "));
             if (force_decimal)
                 printf("%lld", (long long)u);
@@ -537,7 +329,7 @@ static void print_mp_entry(const char * pre, int smask,
         }
         if (sav_mp && (smask & 8)) {
             all_set = 0;
-            u = mp_get_value_check(mpi, sav_mp, &all_set);
+            u = sdp_mp_get_value_check(mpi, sav_mp, &all_set);
             printf("%ssav:", (sep ? ", " : " "));
             if (force_decimal)
                 printf("%lld", (long long)u);
@@ -553,6 +345,20 @@ static void print_mp_entry(const char * pre, int smask,
     if (long_out && mpi->description)
         printf("  %s", mpi->description);
     printf("\n");
+    if ((long_out > 1) && mpi->extra)
+        print_mp_extra(mpi->extra);
+}
+
+static int ll_mode_sense(int fd, const struct sdparm_opt_coll * opts, int pn,
+                         int spn, unsigned char * resp, int mx_resp_len,
+                         int noisy, int verb)
+{
+    if (opts->mode_6)
+        return sg_ll_mode_sense6(fd, opts->dbd, 0 /*current */, pn, spn,
+                                 resp, mx_resp_len, noisy, verb);
+    else
+        return sg_ll_mode_sense10(fd, 0 /* llbaa */, opts->dbd, 0, pn,
+                                  spn, resp, mx_resp_len, noisy, verb);
 }
 
 static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
@@ -570,6 +376,15 @@ static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
     char buff[128];
 
     verb = (verbose > 0) ? verbose - 1 : 0;
+    if ((0 == pdt) && (opts->long_out > 0) && (0 == opts->quiet)) {
+        memset(cur_mp, 0, sizeof(cur_mp));
+        res = ll_mode_sense(sg_fd, opts, ALL_MPAGES, 0, cur_mp, 8, 0, verb);
+        if (0 == res) {
+            smask = cur_mp[opts->mode_6 ? 2 : 3];
+            printf("    Direct access device specific parameters: WP=%d  "
+                   "DPOFUA=%d\n", !!(smask & 0x80), !!(smask & 0x10));
+        }
+    }
     orig_pn = pn;
     if ((opts->transport < 0) || (opts->transport > 15))
         mpi = sdparm_mitem_arr;
@@ -593,7 +408,7 @@ static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
             if (opts->hex)
                 mpi = init_mpi;    /* trick to enter main loop once */
             else {
-                get_mode_page_name(pn, spn, pdt, opts->transport, opts->hex,
+                sdp_get_mpage_name(pn, spn, pdt, opts->transport, opts->hex,
                                    buff, sizeof(buff));
                 fprintf(stderr, "%s mode page, attributes not found\n", buff);
                 if ((0 == opts->flexible) && verbose)
@@ -643,8 +458,8 @@ static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
                 return;
             }
             if (smask & 1) {
-                len = get_mp_len(cur_mp);
-                get_mode_page_name(pn, spn, pdt, opts->transport, opts->hex,
+                len = sdp_get_mp_len(cur_mp);
+                sdp_get_mpage_name(pn, spn, pdt, opts->transport, opts->hex,
                                    buff, sizeof(buff));
                 printf("%s ", buff);
                 if (verbose) {
@@ -653,9 +468,11 @@ static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
                     else
                         printf("[0x%x] ", pn);
                 }
-                if (opts->long_out)
-                    printf("[PS=%d] ", !!(cur_mp[0] & 0x80));
-                printf("mode page:\n");
+                printf("mode page");
+                if ((opts->long_out > 1) || verbose)
+                    printf(" [PS=%d]:\n", !!(cur_mp[0] & 0x80));
+                else
+                    printf(":\n");
                 if (pn != (cur_mp[0] & 0x3f)) {
                     if (opts->flexible)
                         fprintf(stderr, ">>> warning: mode page seems "
@@ -695,11 +512,11 @@ static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
                 }
             } else {
                 if (verbose || single_pg) {
-                    get_mode_page_name(pn, spn, pdt, opts->transport,
+                    sdp_get_mpage_name(pn, spn, pdt, opts->transport,
                                        opts->hex, buff, sizeof(buff));
                     fprintf(stderr, ">> %s mode %spage ", buff,
                             (spn ? "sub" : ""));
-                    if (verbose > 1) {
+                    if (verbose) {
                         if (spn)
                             fprintf(stderr, "[0x%x,0x%x] ", pn, spn);
                         else
@@ -807,7 +624,7 @@ static void get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
                     fprintf(stderr, "not found in ");
                 else
                     fprintf(stderr, "error (res=%d) in ", res);
-                get_mode_page_name(pn, spn, mpi->pdt, opts->transport,
+                sdp_get_mpage_name(pn, spn, mpi->pdt, opts->transport,
                                    opts->hex, buff, sizeof(buff));
                 fprintf(stderr, "%s mode page\n", buff);
                 return;
@@ -838,7 +655,7 @@ static void get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
                     "0x%x but acronym %s\n   is associated with pdt 0x%x.\n",
                     pdt, ivp->mpi.acron, ivp->mpi.pdt);
         }
-        len = (smask & 1) ? get_mp_len(cur_mp) : 0;
+        len = (smask & 1) ? sdp_get_mp_len(cur_mp) : 0;
         if (mpi->start_byte >= len) {
             fprintf(stderr, ">> warning: ");
             if (mpi->acron)
@@ -854,22 +671,22 @@ static void get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
         if (0 == val) {
             if (opts->hex) {
                 if (smask & 1) {
-                    u = mp_get_value(mpi, cur_mp);
+                    u = sdp_mp_get_value(mpi, cur_mp);
                     printf("0x%02llx ", u);
                 } else
                     printf("-    ");
                 if (smask & 2) {
-                    u = mp_get_value(mpi, cha_mp);
+                    u = sdp_mp_get_value(mpi, cha_mp);
                     printf("0x%02llx ", u);
                 } else
                     printf("-    ");
                 if (smask & 4) {
-                    u = mp_get_value(mpi, def_mp);
+                    u = sdp_mp_get_value(mpi, def_mp);
                     printf("0x%02llx ", u);
                 } else
                     printf("-    ");
                 if (smask & 8) {
-                    u = mp_get_value(mpi, sav_mp);
+                    u = sdp_mp_get_value(mpi, sav_mp);
                     printf("0x%02llx ", u);
                 } else
                     printf("-    ");
@@ -880,7 +697,7 @@ static void get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
         } else if (1 == val) {
             if (opts->hex) {
                 if (smask & 1) {
-                    u = mp_get_value(mpi, cur_mp);
+                    u = sdp_mp_get_value(mpi, cur_mp);
                     printf("0x%02llx ", u);
                 } else
                     printf("-    ");
@@ -891,7 +708,7 @@ static void get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
         } else if (2 == val) {
             if (opts->hex) {
                 if (smask & 1) {
-                    u = mp_get_value(mpi, cur_mp);
+                    u = sdp_mp_get_value(mpi, cur_mp);
                     printf("%02lld ", (long long)u);
                 } else
                     printf("-    ");
@@ -931,16 +748,10 @@ static int change_mode_page(int sg_fd, int pdt,
         }
     }
     memset(mdpg, 0, sizeof(mdpg));
-    if (opts->mode_6)
-        res = sg_ll_mode_sense6(sg_fd, opts->dbd, 0 /*current */,
-                                mps->page_num, mps->subpage_num, mdpg,
-                                4, 1, verbose);
-    else
-        res = sg_ll_mode_sense10(sg_fd, 0 /* llbaa */, opts->dbd,
-                                 0 /* current */, mps->page_num,
-                                 mps->subpage_num, mdpg, 4, 1, verbose);
+    res = ll_mode_sense(sg_fd, opts, mps->page_num, mps->subpage_num, mdpg,
+                        4, 1, verbose);
     if (0 != res) {
-        get_mode_page_name(mps->page_num, mps->subpage_num, pdt,
+        sdp_get_mpage_name(mps->page_num, mps->subpage_num, pdt,
                            opts->transport, 0, buff, sizeof(buff));
         fprintf(stderr, "change_mode_page: failed fetching page: %s\n",
                 buff);
@@ -952,16 +763,10 @@ static int change_mode_page(int sg_fd, int pdt,
                 "allocation length=%d\n", md_len, (int)sizeof(mdpg));
         return -1;
     }
-    if (opts->mode_6)
-        res = sg_ll_mode_sense6(sg_fd, opts->dbd, 0 /*current */,
-                                mps->page_num, mps->subpage_num, mdpg,
-                                md_len, 1, verbose);
-    else
-        res = sg_ll_mode_sense10(sg_fd, 0 /* llbaa */, opts->dbd,
-                                 0 /* current */, mps->page_num,
-                                 mps->subpage_num, mdpg, md_len, 1, verbose);
+    res = ll_mode_sense(sg_fd, opts, mps->page_num, mps->subpage_num, mdpg,
+                        md_len, 1, verbose);
     if (0 != res) {
-        get_mode_page_name(mps->page_num, mps->subpage_num, pdt,
+        sdp_get_mpage_name(mps->page_num, mps->subpage_num, pdt,
                            opts->transport, 0, buff, sizeof(buff));
         fprintf(stderr, "change_mode_page: failed fetching page: %s\n",
                 buff);
@@ -972,7 +777,7 @@ static int change_mode_page(int sg_fd, int pdt,
         fprintf(stderr, "change_mode_page: page offset failed: %s\n", ebuff);
         return -1;
     }
-    len = get_mp_len(mdpg + off);
+    len = sdp_get_mp_len(mdpg + off);
     mdpg[0] = 0;        /* mode data length reserved for mode select */
     if (! opts->mode_6)
         mdpg[1] = 0;    /* mode data length reserved for mode select */
@@ -998,7 +803,7 @@ static int change_mode_page(int sg_fd, int pdt,
                 return -1;
             }
         }
-        mp_set_value(ivp->val, &ivp->mpi, mdpg + off);
+        sdp_mp_set_value(ivp->val, &ivp->mpi, mdpg + off);
     }
 
     if ((! (mdpg[off] & 0x80)) && opts->saved) {
@@ -1020,7 +825,7 @@ static int change_mode_page(int sg_fd, int pdt,
         res = sg_ll_mode_select10(sg_fd, 1, opts->saved, mdpg, md_len, 1,
                                   verbose);
     if (0 != res) {
-        get_mode_page_name(mps->page_num, mps->subpage_num, pdt,
+        sdp_get_mpage_name(mps->page_num, mps->subpage_num, pdt,
                            opts->transport, 0, buff, sizeof(buff));
         fprintf(stderr, "change_mode_page: failed setting page: %s\n", buff);
         return -1;
@@ -1048,15 +853,9 @@ static int set_def_mode_page(int sg_fd, int pn, int spn,
         return -1;
     }
     memset(mdp, 0, len);
-    if (opts->mode_6)
-        ret = sg_ll_mode_sense6(sg_fd, opts->dbd, 0 /*current */, pn,
-                                spn, mdp, 4, 1, verbose);
-    else
-        ret = sg_ll_mode_sense10(sg_fd, 0 /* llbaa */, opts->dbd,
-                                 0 /* current */, pn, spn, mdp, 4, 1,
-                                 verbose);
+    ret = ll_mode_sense(sg_fd, opts, pn, spn, mdp, 4, 1, verbose);
     if (0 != ret) {
-        get_mode_page_name(pn, spn, -1, opts->transport, 0, buff,
+        sdp_get_mpage_name(pn, spn, -1, opts->transport, 0, buff,
                            sizeof(buff));
         fprintf(stderr, "set_def_mode_page: failed fetching page: %s\n",
                 buff);
@@ -1069,15 +868,9 @@ static int set_def_mode_page(int sg_fd, int pn, int spn,
         ret = -1;
         goto err_out;
     }
-    if (opts->mode_6)
-        ret = sg_ll_mode_sense6(sg_fd, opts->dbd, 0 /*current */, pn,
-                                spn, mdp, md_len, 1, verbose);
-    else
-        ret = sg_ll_mode_sense10(sg_fd, 0 /* llbaa */, opts->dbd,
-                                 0 /* current */, pn, spn, mdp, md_len, 1,
-                                 verbose);
+    ret = ll_mode_sense(sg_fd, opts, pn, spn, mdp, md_len, 1, verbose);
     if (0 != ret) {
-        get_mode_page_name(pn, spn, -1, opts->transport, 0, buff,
+        sdp_get_mpage_name(pn, spn, -1, opts->transport, 0, buff,
                            sizeof(buff));
         fprintf(stderr, "set_def_mode_page: failed fetching page: %s\n",
                 buff);
@@ -1114,7 +907,7 @@ static int set_def_mode_page(int sg_fd, int pn, int spn,
         ret = sg_ll_mode_select10(sg_fd, 1, opts->saved, mdp, md_len, 1,
                                   verbose);
     if (0 != ret) {
-        get_mode_page_name(pn, spn, -1, opts->transport, 0, buff,
+        sdp_get_mpage_name(pn, spn, -1, opts->transport, 0, buff,
                            sizeof(buff));
         fprintf(stderr, "set_def_mode_page: failed setting page: %s\n",
                 buff);
@@ -1154,33 +947,33 @@ static int set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
         return -1;
     }
     if (verbose && (0 == opts->flexible) && (rep_len > 0xa00)) {
-        get_mode_page_name(pn, spn, pdt, opts->transport, 0, buff,
+        sdp_get_mpage_name(pn, spn, pdt, opts->transport, 0, buff,
                            sizeof(buff));
         fprintf(stderr, "%s mode page length=%d too long, perhaps "
                 "try '--flexible'\n", buff, rep_len);
     }
     if ((smask & 1)) {
-        len = get_mp_len(cur_mp);
+        len = sdp_get_mp_len(cur_mp);
         if ((smask & 4)) {
             return set_def_mode_page(sg_fd, pn, spn, def_mp, len, opts,
                                      verbose);
         }
         else {
-            get_mode_page_name(pn, spn, pdt, opts->transport, 0, buff,
+            sdp_get_mpage_name(pn, spn, pdt, opts->transport, 0, buff,
                                sizeof(buff));
             fprintf(stderr, ">> %s mode page (default) not supported\n",
                     buff);
             return -1;
         }
     } else {
-        get_mode_page_name(pn, spn, pdt, opts->transport, 0, buff,
+        sdp_get_mpage_name(pn, spn, pdt, opts->transport, 0, buff,
                            sizeof(buff));
         fprintf(stderr, ">> %s mode page not supported\n", buff);
         return -1;
     }
 }
 
-/* Trying to decode multipliers as sg_get_num() [in sg_libs does] would
+/* Trying to decode multipliers as sg_get_num() [as sg_libs does] would
  * only confuse things here, so use this local trimmed version */
 static int get_num(const char * buf)
 {
@@ -1277,7 +1070,7 @@ static int build_mp_settings(const char * arg,
             prev_mpi = NULL;
             if (get) {
                 do {
-                    mpi = find_mitem_by_acron(acron, &from, transp_proto);
+                    mpi = sdp_find_mitem_by_acron(acron, &from, transp_proto);
                     if (NULL == mpi) {
                         if (cont) {
                             mpi = prev_mpi;
@@ -1301,7 +1094,7 @@ static int build_mp_settings(const char * arg,
                          (mps->subpage_num != mpi->subpage_num));
             } else {
                 do {
-                    mpi = find_mitem_by_acron(acron, &from, transp_proto);
+                    mpi = sdp_find_mitem_by_acron(acron, &from, transp_proto);
                     if (NULL == mpi) {
                         if (cont) {
                             fprintf(stderr, "mode page of acronym: %s "
@@ -1311,7 +1104,7 @@ static int build_mp_settings(const char * arg,
                             fprintf(stderr, "    mode page: 0x%x,0x%x\n",
                                     mps->page_num, mps->subpage_num);
                             fprintf(stderr, "For '--set' and '--clear' all "
-                                    "parameters must be in the same mode "
+                                    "attributes must be in the same mode "
                                     "page\n");
                         } else {
                             fprintf(stderr, "couldn't find acronym: %s\n",
@@ -1403,773 +1196,6 @@ static int build_mp_settings(const char * arg,
     return 0;
 }
 
-/* These are target port, device server (i.e. target) and lu identifiers */
-static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
-                          int len, int match_assoc, int long_out)
-{
-    int k, j, m, id_len, p_id, c_set, piv, assoc, id_type, i_len;
-    int ci_off, c_id, d_id, naa, vsi, printed;
-    unsigned long long vsei;
-    unsigned long long id_ext;
-    const unsigned char * ucp;
-    const unsigned char * ip;
-
-    ucp = buff;
-    printed = 0;
-    for (k = 0, j = 1; k < len; k += id_len, ucp += id_len, ++j) {
-        i_len = ucp[3];
-        id_len = i_len + 4;
-        if (match_assoc < 0)
-            printf("  Descriptor number %d, "
-                   "descriptor length: %d\n", j, id_len);
-        if ((k + id_len) > len) {
-            fprintf(stderr, "    VPD page error: descriptor length longer "
-                    "than\n     remaining response length=%d\n", (len - k));
-            return -1;
-        }
-        ip = ucp + 4;
-        p_id = ((ucp[0] >> 4) & 0xf);
-        c_set = (ucp[0] & 0xf);
-        piv = ((ucp[1] & 0x80) ? 1 : 0);
-        assoc = ((ucp[1] >> 4) & 0x3);
-        id_type = (ucp[1] & 0xf);
-        if ((match_assoc >= 0) && (match_assoc != assoc))
-            continue;
-        else if (print_if_found && (0 == printed)) {
-            printed = 1;
-            printf("  %s:\n", print_if_found);
-        }
-        if (piv && ((1 == assoc) || (2 == assoc)))
-            printf("    transport: %s\n", sdparm_transport_proto_arr[p_id]);
-        printf("    id_type: %s,  code_set: %s\n", sdparm_id_type_arr[id_type],
-               sdparm_code_set_arr[c_set]);
-        /* printf("    associated with the %s\n", sdparm_assoc_arr[assoc]); */
-        switch (id_type) {
-        case 0: /* vendor specific */
-            dStrHex((const char *)ip, i_len, 0);
-            break;
-        case 1: /* T10 vendor identification */
-            printf("      vendor id: %.8s\n", ip);
-            if (i_len > 8)
-                printf("      vendor specific: %.*s\n", i_len - 8, ip + 8);
-            break;
-        case 2: /* EUI-64 based */
-            if (! long_out) {
-                if ((8 != i_len) && (12 != i_len) && (16 != i_len)) {
-                    printf("      << expect 8, 12 and 16 byte ids, got "
-                           "%d>>\n", i_len);
-                }
-                printf("      [0x");
-                for (m = 0; m < i_len; ++m)
-                    printf("%02x", (unsigned int)ip[m]);
-                printf("]\n");
-                break;
-            }
-            printf("      EUI-64 based %d byte identifier\n", i_len);
-            if (1 != c_set) {
-                printf("      << expected binary code_set (1)>>\n");
-                dStrHex((const char *)ip, i_len, 0);
-                break;
-            }
-            ci_off = 0;
-            if (16 == i_len) {
-                ci_off = 8;
-                id_ext = 0;
-                for (m = 0; m < 8; ++m) {
-                    if (m > 0)
-                        id_ext <<= 8;
-                    id_ext |= ip[m];
-                }
-                printf("      Identifier extension: 0x%llx\n", id_ext);
-            } else if ((8 != i_len) && (12 != i_len)) {
-                printf("      << can only decode 8, 12 and 16 byte ids>>\n");
-                dStrHex((const char *)ip, i_len, 0);
-                break;
-            }
-            c_id = ((ip[ci_off] << 16) | (ip[ci_off + 1] << 8) |
-                    ip[ci_off + 2]);
-            printf("      IEEE Company_id: 0x%x\n", c_id);
-            vsei = 0;
-            for (m = 0; m < 5; ++m) {
-                if (m > 0)
-                    vsei <<= 8;
-                vsei |= ip[ci_off + 3 + m];
-            }
-            printf("      Vendor Specific Extension Identifier: 0x%llx\n",
-                   vsei);
-            if (12 == i_len) {
-                d_id = ((ip[8] << 24) | (ip[9] << 16) | (ip[10] << 8) |
-                        ip[11]);
-                printf("      Directory ID: 0x%x\n", d_id);
-            }
-            break;
-        case 3: /* NAA */
-            if (1 != c_set) {
-                printf("      << expected binary code_set (1)>>\n");
-                dStrHex((const char *)ip, i_len, 0);
-                break;
-            }
-            naa = (ip[0] >> 4) & 0xff;
-            if (! ((2 == naa) || (5 == naa) || (6 == naa))) {
-                printf("      << expected naa [0x%x]>>\n", naa);
-                dStrHex((const char *)ip, i_len, 0);
-                break;
-            }
-            if (2 == naa) {
-                if (8 != i_len) {
-                    fprintf(stderr, "      << expected NAA 2 identifier "
-                            "length: 0x%x>>\n", i_len);
-                    dStrHex((const char *)ip, i_len, 0);
-                    break;
-                }
-                d_id = (((ip[0] & 0xf) << 8) | ip[1]);
-                c_id = ((ip[2] << 16) | (ip[3] << 8) | ip[4]);
-                vsi = ((ip[5] << 16) | (ip[6] << 8) | ip[7]);
-                if (long_out) {
-                    printf("      NAA 2, vendor specific identifier A: "
-                           "0x%x\n", d_id);
-                    printf("      IEEE Company_id: 0x%x\n", c_id);
-                    printf("      vendor specific identifier B: 0x%x\n", vsi);
-                }
-                printf("      [0x");
-                for (m = 0; m < 8; ++m)
-                    printf("%02x", (unsigned int)ip[m]);
-                printf("]\n");
-            } else if (5 == naa) {
-                if (8 != i_len) {
-                    fprintf(stderr, "      << expected NAA 5 identifier "
-                            "length: 0x%x>>\n", i_len);
-                    dStrHex((const char *)ip, i_len, 0);
-                    break;
-                }
-                c_id = (((ip[0] & 0xf) << 20) | (ip[1] << 12) | 
-                        (ip[2] << 4) | ((ip[3] & 0xf0) >> 4));
-                vsei = ip[3] & 0xf;
-                for (m = 1; m < 5; ++m) {
-                    vsei <<= 8;
-                    vsei |= ip[3 + m];
-                }
-                if (long_out) {
-                    printf("      NAA 5, IEEE Company_id: 0x%x\n", c_id);
-                    printf("      Vendor Specific Identifier: 0x%llx\n",
-                           vsei);
-                }
-                printf("      [0x");
-                for (m = 0; m < 8; ++m)
-                    printf("%02x", (unsigned int)ip[m]);
-                printf("]\n");
-            } else if (6 == naa) {
-                if (16 != i_len) {
-                    fprintf(stderr, "      << expected NAA 6 identifier "
-                            "length: 0x%x>>\n", i_len);
-                    dStrHex((const char *)ip, i_len, 0);
-                    break;
-                }
-                c_id = (((ip[0] & 0xf) << 20) | (ip[1] << 12) | 
-                        (ip[2] << 4) | ((ip[3] & 0xf0) >> 4));
-                vsei = ip[3] & 0xf;
-                for (m = 1; m < 5; ++m) {
-                    vsei <<= 8;
-                    vsei |= ip[3 + m];
-                }
-                if (long_out) {
-                    printf("      NAA 6, IEEE Company_id: 0x%x\n", c_id);
-                    printf("      Vendor Specific Identifier: 0x%llx\n",
-                           vsei);
-                    vsei = 0;
-                    for (m = 0; m < 8; ++m) {
-                        if (m > 0)
-                            vsei <<= 8;
-                        vsei |= ip[8 + m];
-                    }
-                    printf("      Vendor Specific Identifier Extension: "
-                           "0x%llx\n", vsei);
-                }
-                printf("      [0x");
-                for (m = 0; m < 16; ++m)
-                    printf("%02x", (unsigned int)ip[m]);
-                printf("]\n");
-            }
-            break;
-        case 4: /* Relative target port */
-            if ((1 != c_set) || (1 != assoc) || (4 != i_len)) {
-                fprintf(stderr, "      << expected binary code_set, target "
-                        "port association, length 4>>\n");
-                dStrHex((const char *)ip, i_len, 0);
-                break;
-            }
-            d_id = ((ip[2] << 8) | ip[3]);
-            printf("      Relative target port: 0x%x\n", d_id);
-            break;
-        case 5: /* Target port group */
-            if ((1 != c_set) || (1 != assoc) || (4 != i_len)) {
-                fprintf(stderr, "      << expected binary code_set, target "
-                        "port association, length 4>>\n");
-                dStrHex((const char *)ip, i_len, 0);
-                break;
-            }
-            d_id = ((ip[2] << 8) | ip[3]);
-            printf("      Target port group: 0x%x\n", d_id);
-            break;
-        case 6: /* Logical unit group */
-            if ((1 != c_set) || (0 != assoc) || (4 != i_len)) {
-                fprintf(stderr, "      << expected binary code_set, logical "
-                        "unit association, length 4>>\n");
-                dStrHex((const char *)ip, i_len, 0);
-                break;
-            }
-            d_id = ((ip[2] << 8) | ip[3]);
-            printf("      Logical unit group: 0x%x\n", d_id);
-            break;
-        case 7: /* MD5 logical unit identifier */
-            if ((1 != c_set) || (0 != assoc)) {
-                printf("      << expected binary code_set, logical "
-                       "unit association>>\n");
-                dStrHex((const char *)ip, i_len, 0);
-                break;
-            }
-            printf("      MD5 logical unit identifier:\n");
-            dStrHex((const char *)ip, i_len, 0);
-            break;
-        case 8: /* SCSI name string */
-            if (3 != c_set) {
-                printf("      << expected UTF-8 code_set>>\n");
-                dStrHex((const char *)ip, i_len, 0);
-                break;
-            }
-            printf("      MD5 logical unit identifier:\n");
-            /* does %s print out UTF-8 ok??
-             * Seems to depend on the locale. Looks ok here with my
-             * locale setting: en_AU.UTF-8
-             */
-            printf("      %s\n", (const char *)ip);
-            break;
-        default: /* reserved */
-            dStrHex((const char *)ip, i_len, 0);
-            break;
-        }
-    }
-    return 0;
-}
-
-static int decode_mode_policy_vpd(unsigned char * buff, int len)
-{
-    int k, bump;
-    unsigned char * ucp;
-
-    if (len < 4) {
-        fprintf(stderr, "Mode page policy VPD page length too short=%d\n",
-                len);
-        return -1;
-    }
-    len -= 4;
-    ucp = buff + 4;
-    for (k = 0; k < len; k += bump, ucp += bump) {
-        bump = 4;
-        if ((k + bump) > len) {
-            fprintf(stderr, "Mode page policy VPD page, short "
-                    "descriptor length=%d, left=%d\n", bump, (len - k));
-            return -1;
-        }
-        printf("  Policy page code: 0x%x", (ucp[0] & 0x3f));
-        if (ucp[1])
-            printf(",  subpage code: 0x%x\n", ucp[1]);
-        else
-            printf("\n");
-        printf("    MLUS=%d,  Policy: %s\n", !!(ucp[2] & 0x80),
-               sdparm_mode_page_policy_arr[ucp[2] & 0x3]);
-    }
-    return 0;
-}
-
-static int decode_man_net_vpd(unsigned char * buff, int len)
-{
-    int k, bump, na_len;
-    unsigned char * ucp;
-
-    if (len < 4) {
-        fprintf(stderr, "Management network addresses VPD page length too "
-                "short=%d\n", len);
-        return -1;
-    }
-    len -= 4;
-    ucp = buff + 4;
-    for (k = 0; k < len; k += bump, ucp += bump) {
-        printf("  %s, Service type: %s\n",
-               sdparm_assoc_arr[(ucp[0] >> 5) & 0x3],
-               sdparm_network_service_type_arr[ucp[0] & 0x1f]);
-        na_len = (ucp[2] << 8) + ucp[3];
-        bump = 4 + na_len;
-        if ((k + bump) > len) {
-            fprintf(stderr, "Management network addresses VPD page, short "
-                    "descriptor length=%d, left=%d\n", bump, (len - k));
-            return -1;
-        }
-        if (na_len > 0) {
-            printf("    %s\n", ucp + 4);
-        }
-    }
-    return 0;
-}
-
-static int decode_scsi_ports_vpd(unsigned char * buff, int len,
-                                 int long_out)
-{
-    int k, bump, rel_port, ip_tid_len, tpd_len, res;
-    unsigned char * ucp;
-
-    if (len < 4) {
-        fprintf(stderr, "SCSI Ports VPD page length too short=%d\n", len);
-        return -1;
-    }
-    len -= 4;
-    ucp = buff + 4;
-    for (k = 0; k < len; k += bump, ucp += bump) {
-        rel_port = (ucp[2] << 8) + ucp[3];
-        printf("Relative port=%d\n", rel_port);
-        ip_tid_len = (ucp[6] << 8) + ucp[7];
-        bump = 8 + ip_tid_len;
-        if ((k + bump) > len) {
-            fprintf(stderr, "SCSI Ports VPD page, short descriptor "
-                    "length=%d, left=%d\n", bump, (len - k));
-            return -1;
-        }
-        if (ip_tid_len > 0) {
-            /* 
-             * SCSI devices that are both target and initiator are rare.
-             * Only target devices can receive this command, so if they
-             * are also initiators then print out the "Initiator port
-             * transport id" in hex. sg_inq in sg3_utils decodes it.
-             */
-            printf(" Initiator port transport id:\n");
-            dStrHex((const char *)(ucp + 8), ip_tid_len, 1);
-        }
-        tpd_len = (ucp[bump + 2] << 8) + ucp[bump + 3];
-        if ((k + bump + tpd_len + 4) > len) {
-            fprintf(stderr, "SCSI Ports VPD page, short descriptor(tgt) "
-                    "length=%d, left=%d\n", bump, (len - k));
-            return -1;
-        }
-        if (tpd_len > 0) {
-            printf(" Target port descriptor(s):\n");
-            res = decode_dev_ids(NULL, ucp + bump + 4, tpd_len,
-                                 VPD_ASSOC_TPORT, long_out);
-            if (res)
-                return res;
-        }
-        bump += tpd_len + 4;
-    }
-    return 0;
-}
-
-static int decode_ext_inq_vpd(unsigned char * buff, int len)
-{
-    if (len < 7) {
-        fprintf(stderr, "Extended INQUIRY data VPD page length too "
-                "short=%d\n", len);
-        return -1;
-    }
-    printf("  RTO: %d  GRD_CHK: %d  APP_CHK: %d  REF_CHK: %d\n",
-           !!(buff[4] & 0x8), !!(buff[4] & 0x4), !!(buff[4] & 0x2),
-           !!(buff[4] & 0x1));
-    printf("  GRP_SUP: %d  PRIOR_SUP: %d  HEADSUP: %d  ORDSUP: %d  "
-           "SIMPSUP: %d\n", !!(buff[5] & 0x10), !!(buff[5] & 0x8),
-           !!(buff[5] & 0x4), !!(buff[5] & 0x2), !!(buff[5] & 0x1));
-    printf("  NV_SUP: %d  V_SUP: %d\n", !!(buff[6] & 0x2), !!(buff[6] & 0x1));
-    return 0;
-}
-
-static int decode_ata_info_vpd(unsigned char * buff, int len, int do_hex)
-{
-    char b[32];
-
-    if (len < 36) {
-        fprintf(stderr, "ATA information VPD page length too "
-                "short=%d\n", len);
-        return -1;
-    }
-    memcpy(b, buff + 8, 8);
-    b[8] = '\0';
-    printf("  SAT Vendor identification: %s\n", b);
-    memcpy(b, buff + 16, 16);
-    b[16] = '\0';
-    printf("  SAT Product identification: %s\n", b);
-    memcpy(b, buff + 32, 4);
-    b[4] = '\0';
-    printf("  SAT Product revision level: %s\n", b);
-    if (len < 56)
-        return -1;;
-    printf("  Signature (20 bytes):\n");
-    dStrHex((const char *)buff + 36, 20, 0);
-    if (len < 60)
-        return -1;;
-    if (0xec == buff[56])
-        printf("  ATA command IDENTIFY DEVICE got following response:\n");
-    else if (0xa1 == buff[56])
-        printf("  ATA command IDENTIFY PACKET DEVICE got following "
-               "response:\n");
-    else
-        printf("  ATA command 0x%x got following response:\n",
-               (unsigned int)buff[56]);
-    if (len < 572)
-        return -1;;
-    if (do_hex)	/* here for '-HH' option */
-        dStrHex((const char *)(buff + 60), 512, 0);
-    else
-        dWordHex((const unsigned short *)(buff + 60), 256, 0,
-                 sg_is_big_endian());
-    return 0;
-}
-
-static int decode_block_limits_vpd(unsigned char * buff, int len)
-{
-    unsigned int u;
-
-    if (len < 16) {
-        fprintf(stderr, "Block limits VPD page length too "
-                "short=%d\n", len);
-        return -1;
-    }
-    u = (buff[6] << 8) | buff[7];
-    printf("  Optimal transfer length granularity: %u blocks\n", u);
-    u = (buff[8] << 24) | (buff[9] << 16) | (buff[10] << 8) |
-        buff[11];
-    printf("  Maximum transfer length: %u blocks\n", u);
-    u = (buff[12] << 24) | (buff[13] << 16) | (buff[14] << 8) |
-        buff[15];
-    printf("  Optimal transfer length: %u blocks\n", u);
-    return 0;
-}
-
-static int process_vpd_page(int sg_fd, int pn,
-                            const struct sdparm_opt_coll * opts,
-                            int verbose)
-{
-    int res, len, k, verb;
-    unsigned char b[VPD_ATA_INFO_RESP_LEN];
-    int sz;
-    const char * cp;
-
-    verb = (verbose > 0) ? verbose - 1 : 0;
-    sz = sizeof(b);
-    memset(b, 0, sz);
-    if (pn < 0) {
-        if (opts->all)
-            pn = VPD_SUPPORTED_VPDS;  /* if '--all' list supported vpds */
-        else
-            pn = VPD_DEVICE_ID;  /* default to device identification page */
-    }
-    sz = (VPD_ATA_INFO == pn) ? VPD_ATA_INFO_RESP_LEN : DEF_INQ_RESP_LEN;
-    res = sg_ll_inquiry(sg_fd, 0, 1, pn, b, sz, 0, verb);
-    if (res) {
-        fprintf(stderr, "INQUIRY fetching VPD page=0x%x failed\n", pn);
-        return res;
-    }
-    switch (pn) {
-    case VPD_SUPPORTED_VPDS:
-        if (b[1] != pn)
-            goto dumb_inq;
-        len = b[3];
-        printf("Supported VPD pages VPD page:\n");
-        if (opts->hex) {
-            dStrHex((const char *)b, len + 4, 0);
-            return 0;
-        }
-        if (len > 0) {
-            for (k = 0; k < len; ++k) {
-                cp = get_vpd_name(b[4 + k]);
-                if (cp) {
-                    if (opts->long_out)
-                        printf("  [0x%02x] %s\n", b[4 + k], cp);
-                    else
-                        printf("  %s\n", cp);
-                } else
-                    printf("  0x%x\n", b[4 + k]);
-            }
-        } else
-            printf("  <empty>\n");
-        break;
-    case VPD_ATA_INFO:
-        if (b[1] != pn)
-            goto dumb_inq;
-        len = (b[2] << 8) + b[3];
-        if (len > sz) {
-            fprintf(stderr, "Response to ATA information VPD page "
-                    "truncated\n");
-            len = sz;
-        }
-        if (opts->long_out)
-            printf("ATA information [0x89] VPD page:\n");
-        else
-            printf("ATA information VPD page:\n");
-        if (opts->hex && (2 != opts->hex)) {
-            dStrHex((const char *)b, len + 4, 0);
-            return 0;
-        }
-        res = decode_ata_info_vpd(b, len + 4, opts->hex);
-        if (res)
-            return res;
-        break;
-    case VPD_BLOCK_LIMITS:
-        if (b[1] != pn)
-            goto dumb_inq;
-        len = (b[2] << 8) + b[3];
-        if (len > sz) {
-            fprintf(stderr, "Response to Blocks limits VPD page "
-                    "truncated\n");
-            len = sz;
-        }
-        if (opts->long_out)
-            printf("Block limits [0xb0] VPD page:\n");
-        else
-            printf("Block limits VPD page:\n");
-        if (opts->hex) {
-            dStrHex((const char *)b, len + 4, 0);
-            return 0;
-        }
-        res = decode_block_limits_vpd(b, len + 4);
-        if (res)
-            return res;
-        break;
-    case VPD_DEVICE_ID:
-        if (b[1] != pn)
-            goto dumb_inq;
-        len = (b[2] << 8) + b[3];
-        if (len > sz) {
-            fprintf(stderr, "Response to device identification VPD page "
-                    "truncated\n");
-            len = sz;
-        }
-        if (opts->long_out)
-            printf("Device identification [0x83] VPD page:\n");
-        else
-            printf("Device identification VPD page:\n");
-        if (opts->hex) {
-            dStrHex((const char *)b, len + 4, 0);
-            return 0;
-        }
-        res = decode_dev_ids(sdparm_assoc_arr[VPD_ASSOC_LU], b + 4, len,
-                             VPD_ASSOC_LU, opts->long_out);
-        if (res)
-            return res;
-        res = decode_dev_ids(sdparm_assoc_arr[VPD_ASSOC_TPORT], b + 4, len,
-                             VPD_ASSOC_TPORT, opts->long_out);
-        if (res)
-            return res;
-        res = decode_dev_ids(sdparm_assoc_arr[VPD_ASSOC_TDEVICE], b + 4, len,
-                             VPD_ASSOC_TDEVICE, opts->long_out);
-        if (res)
-            return res;
-        break;
-    case VPD_EXT_INQ:
-        if (b[1] != pn)
-            goto dumb_inq;
-        len = (b[2] << 8) + b[3];
-        if (len > sz) {
-            fprintf(stderr, "Response to Extended inquiry data VPD page "
-                    "truncated\n");
-            len = sz;
-        }
-        if (opts->long_out)
-            printf("Extended inquiry data [0x86] VPD page:\n");
-        else
-            printf("Extended inquiry data VPD page:\n");
-        if (opts->hex) {
-            dStrHex((const char *)b, len + 4, 0);
-            return 0;
-        }
-        res = decode_ext_inq_vpd(b, len + 4);
-        if (res)
-            return res;
-        break;
-    case VPD_MAN_NET_ADDR:
-        if (b[1] != pn)
-            goto dumb_inq;
-        len = (b[2] << 8) + b[3];
-        if (len > sz) {
-            fprintf(stderr, "Response to Management network addresses VPD "
-                    "page truncated\n");
-            len = sz;
-        }
-        if (opts->long_out)
-            printf("Management network addresses [0x85] VPD page:\n");
-        else
-            printf("Management network addresses VPD page:\n");
-        if (opts->hex) {
-            dStrHex((const char *)b, len + 4, 0);
-            return 0;
-        }
-        res = decode_man_net_vpd(b, len + 4);
-        if (res)
-            return res;
-        break;
-    case VPD_MODE_PG_POLICY:
-        if (b[1] != pn)
-            goto dumb_inq;
-        len = (b[2] << 8) + b[3];
-        if (len > sz) {
-            fprintf(stderr, "Response to Mode page policy VPD page "
-                    "truncated\n");
-            len = sz;
-        }
-        if (opts->long_out)
-            printf("Mode page policy [0x87] VPD page:\n");
-        else
-            printf("mode page policy VPD page:\n");
-        if (opts->hex) {
-            dStrHex((const char *)b, len + 4, 0);
-            return 0;
-        }
-        res = decode_mode_policy_vpd(b, len + 4);
-        if (res)
-            return res;
-        break;
-    case VPD_SCSI_PORTS:
-        if (b[1] != pn)
-            goto dumb_inq;
-        len = (b[2] << 8) + b[3];
-        if (len > sz) {
-            fprintf(stderr, "Response to SCSI Ports VPD page "
-                    "truncated\n");
-            len = sz;
-        }
-        if (opts->long_out)
-            printf("SCSI Ports [0x88] VPD page:\n");
-        else
-            printf("SCSI Ports VPD page:\n");
-        if (opts->hex) {
-            dStrHex((const char *)b, len + 4, 0);
-            return 0;
-        }
-        res = decode_scsi_ports_vpd(b, len + 4, opts->long_out);
-        if (res)
-            return res;
-        break;
-    case VPD_UNIT_SERIAL_NUM:
-        if (b[1] != pn)
-            goto dumb_inq;
-        len = b[3];
-        printf("Unit serial number VPD page:\n");
-        if (opts->hex) {
-            dStrHex((const char *)b, len + 4, 0);
-            return 0;
-        }
-        if (len > 0)
-            printf("  %s\n", b + 4);
-        else
-            printf("  <empty>\n");
-        break;
-    default:
-        if (b[1] != pn)
-            goto dumb_inq;
-        len = (b[2] << 8) + b[3] + 4;
-        cp = get_vpd_name(pn);
-        if (cp)
-            fprintf(stderr, "%s VPD page in hex:\n", cp);
-        else
-            fprintf(stderr, "VPD page 0x%x in hex:\n", pn);
-        if (len > (int)sizeof(b)) {
-            if (verbose)
-                fprintf(stderr, "page length=%d too long, trim\n", len);
-            len = sizeof(b);
-        }
-        dStrHex((const char *)b, len, 0);
-        break;
-    }
-    return 0;
-
-dumb_inq:
-    fprintf(stderr, "malformed VPD response, VPD pages probably not "
-            "supported\n");
-    return -1;
-}
-
-static const char * get_ansi_version_str(int version, char * buff,
-                                         int buff_len)
-{
-    version &= 0x7;
-    buff[buff_len - 1] = '\0';
-    strncpy(buff, sdparm_ansi_version_arr[version], buff_len - 1);
-    return buff;
-}
-
-static void enumerate_commands()
-{
-    const struct sdparm_command * scmdp;
-
-    for (scmdp = sdparm_command_arr; scmdp->name; ++scmdp)
-        printf("  %s\n", scmdp->name);
-}
-
-static const struct sdparm_command *
-        build_cmd(const char * cmd_str, int * rwp)
-{
-    const struct sdparm_command * scmdp;
-
-    for (scmdp = sdparm_command_arr; scmdp->name; ++scmdp) {
-        if (0 == strcmp(scmdp->name, cmd_str))
-            break;
-    }
-    if (scmdp->name) {
-        if (rwp) {
-            if (CMD_READY  == scmdp->cmd_num)
-                *rwp = 0;
-             else
-                *rwp = 1;
-        }
-        return scmdp;
-    } else
-        return NULL;
-}
-
-static int process_cmd(int sg_fd, const struct sdparm_command * scmdp,
-                       int pdt, const struct sdparm_opt_coll * opts,
-                       int verbose)
-{
-    int res;
-
-    if (! (opts->flexible ||
-          (CMD_READY == scmdp->cmd_num) ||
-          (0 == pdt) || (5 == pdt)) ) {
-        fprintf(stderr, "this command only valid on a disk or cd/dvd; "
-                "use '--flexible' to override\n");
-        return 1;
-
-    }
-
-    switch (scmdp->cmd_num)
-    {
-    case CMD_READY:
-        res = sg_ll_test_unit_ready(sg_fd, 0, 0, verbose);
-        if (0 == res)
-            printf("Ready\n");
-        else {
-            printf("Not ready\n");
-            res = 1;
-        }
-        break;
-    case CMD_START:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 1, 1, verbose);
-        break;
-    case CMD_STOP:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 1, verbose);
-        break;
-    case CMD_LOAD:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 1, 1, 1, verbose);
-        break;
-    case CMD_EJECT:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 1, 0, 1, verbose);
-        break;
-    case CMD_UNLOCK:
-        res = sg_ll_prevent_allow(sg_fd, 0, 1, verbose);
-        break;
-    default:
-        fprintf(stderr, "unknown cmd number [%d]\n", scmdp->cmd_num);
-        return 1;
-    }
-    return res;
-}
-
 static int open_and_simple_inquiry(const char * device_name, int flags,
                                    int * pdt,
                                    const struct sdparm_opt_coll * opts,
@@ -2204,7 +1230,7 @@ static int open_and_simple_inquiry(const char * device_name, int flags,
                 goto err_out;
             }
             if (! ((2 == two) && (4 == four))) {
-                fprintf(stderr, "unable to open %s (not lk 2.4)\n",
+                fprintf(stderr, "unable to access %s, ATA disk?\n",
                         device_name);
                 goto err_out;
             }
@@ -2227,19 +1253,19 @@ static int open_and_simple_inquiry(const char * device_name, int flags,
         *pdt = 0;       /* map disk like pdt's to zero */
     else
         *pdt = l_pdt;
-    if (0 == opts->hex) {
+    if ((0 == opts->hex) && (0 == opts->quiet)) {
         printf("    %s: %.8s  %.16s  %.4s",
                device_name, sir.vendor, sir.product, sir.revision);
         if (0 != l_pdt)
             printf("  [pdt=0x%x]", l_pdt);
         printf("\n");
-        if (opts->long_out > 1) {
+        if (verbose && opts->inquiry) {
             char buff[32];
 
             printf("  PQual=%d  Device_type=0x%x  RMB=%d  version=0x%02x ",
                    sir.peripheral_qualifier, l_pdt, sir.rmb, sir.version);
-            printf(" [%s]\n", get_ansi_version_str(sir.version, buff,
-                                                   sizeof(buff)));
+            printf(" [%s]\n", sdp_get_ansi_version_str(sir.version, buff,
+                                                       sizeof(buff)));
             printf("  [AERC=%d]  [TrmTsk=%d]  NormACA=%d  HiSUP=%d "
                    " Resp_data_format=%d\n  SCCS=%d  ",
                    !!(sir.byte_3 & 0x80), !!(sir.byte_3 & 0x40),
@@ -2261,11 +1287,6 @@ static int open_and_simple_inquiry(const char * device_name, int flags,
                    !!(sir.byte_7 & 0x20), !!(sir.byte_7 & 0x10),
                    !!(sir.byte_7 & 0x08), !!(sir.byte_7 & 0x04));
             printf("CmdQue=%d\n", !!(sir.byte_7 & 0x02));
-        }
-        if (opts->long_out || verbose) {
-            if ((0 != *pdt) && (5 != *pdt))
-                fprintf(stderr, "     note: given %s rather than disk "
-                        "or cd/dvd type\n", sdparm_scsi_ptype_strs[l_pdt]);
         }
     }
     return sg_fd;
@@ -2289,9 +1310,9 @@ static int process_mode_page(int sg_fd, struct sdparm_mode_page_settings * mps,
         return -1;
     }
     if ((pn > 0) && (pdt >= 0)) {
-        vnp = get_mode_detail(pn, spn, pdt, opts->transport);
+        vnp = sdp_get_mode_detail(pn, spn, pdt, opts->transport);
         if (NULL == vnp)
-            vnp = get_mode_detail(pn, spn, -1, opts->transport);
+            vnp = sdp_get_mode_detail(pn, spn, -1, opts->transport);
         if (vnp && vnp->name && (vnp->pdt >= 0) && (pdt != vnp->pdt)) {
             fprintf(stderr, ">> Warning: %s mode page associated with "
                     "peripheral\n", vnp->name);
@@ -2305,7 +1326,7 @@ static int process_mode_page(int sg_fd, struct sdparm_mode_page_settings * mps,
             return -1;
     } else if (rw) {
         if (mps->num_it_vals < 1) {
-            fprintf(stderr, "no parameters found to set or clear\n");
+            fprintf(stderr, "no attributes found to set or clear\n");
             return -1;
         }
         res = change_mode_page(sg_fd, pdt, mps, opts, verbose);
@@ -2313,7 +1334,7 @@ static int process_mode_page(int sg_fd, struct sdparm_mode_page_settings * mps,
             return -1;
     } else if (get) {
         if (mps->num_it_vals < 1) {
-            fprintf(stderr, "no parameters found to get\n");
+            fprintf(stderr, "no attributes found to get\n");
             return -1;
         }
         get_mode_info(sg_fd, mps, pdt, opts, verbose);
@@ -2465,7 +1486,7 @@ int main(int argc, char * argv[])
     while (1) {
         int option_index = 0;
 
-        c = getopt_long(argc, argv, "6aBc:C:dDefg:hHilp:s:St:vV",
+        c = getopt_long(argc, argv, "6aBc:C:dDefg:hHilp:qs:St:vV",
                         long_options, &option_index);
         if (c == -1)
             break;
@@ -2516,6 +1537,9 @@ int main(int argc, char * argv[])
         case 'l':
             ++opts.long_out;
             break;
+        case 'q':
+            opts.quiet = 1;
+            break;
         case 'p':
             if (page_str) {
                 fprintf(stderr, "only one '--page=' option permitted\n");
@@ -2534,7 +1558,7 @@ int main(int argc, char * argv[])
             break;
         case 't':
             if (isalpha(optarg[0])) {
-                vnp = find_transport_by_acron(optarg);
+                vnp = sdp_find_transport_by_acron(optarg);
                 if (NULL == vnp) {
                     fprintf(stderr, "abbreviation does not match a "
                             "transport protocol\n");
@@ -2584,9 +1608,9 @@ int main(int argc, char * argv[])
 
     if (page_str) {
         if (isalpha(page_str[0])) {
-            vnp = find_mp_by_acron(page_str, opts.transport);
+            vnp = sdp_find_mp_by_acron(page_str, opts.transport);
             if (NULL == vnp) {
-                vnp = find_vpd_by_acron(page_str);
+                vnp = sdp_find_vpd_by_acron(page_str);
                 if (NULL == vnp) {
                     fprintf(stderr, "abbreviation matches neither a mode "
                             "page nor a VPD page\n");
@@ -2609,6 +1633,7 @@ int main(int argc, char * argv[])
                     return 1;
                 } else {
                     pn = vnp->value;
+                    spn = vnp->subvalue;
                     opts.inquiry = 1;
                     pdt = vnp->pdt;
                 }
@@ -2662,9 +1687,8 @@ int main(int argc, char * argv[])
                     "inappropriate\n");
             return 1;
         }
-        if ((pn > 255) || (spn > 0)) {
-            fprintf(stderr, "VPD page numbers are from 0 to 255 with no "
-                    "subpages\n");
+        if (pn > 255) {
+            fprintf(stderr, "VPD page numbers are from 0 to 255\n");
             return 1;
         }
         if (opts.enumerate) {
@@ -2678,9 +1702,16 @@ int main(int argc, char * argv[])
                     "options that are\nconcerned with mode pages\n");
             return 1;
         }
-        scmdp = build_cmd(cmd_str, &rw);
+        if (opts.enumerate) {
+            printf("Available commands:\n");
+            sdp_enumerate_commands();
+            return 0;
+        }
+        scmdp = sdp_build_cmd(cmd_str, &rw);
         if (NULL == scmdp) {
             fprintf(stderr, "'--command=%s' not found\n", cmd_str);
+            printf("available commands\n");
+            sdp_enumerate_commands();
             return 1;
         }
     } else {
@@ -2719,19 +1750,21 @@ int main(int argc, char * argv[])
                         enumerate_transports();
                         if (opts.all) {
                             printf("\n");
-                            enumerate_mitems(pn, spn, pdt, opts.transport);
+                            enumerate_mitems(pn, spn, pdt, opts.transport,
+                                             opts.long_out);
                             for (k = 0; k < 16; ++k) {
-                                ccp = get_transport_name(k);
+                                ccp = sdp_get_transport_name(k);
                                 if (NULL == ccp)
                                     continue;
                                 printf("\n");
                                 printf("Mode pages for %s transport "
                                        "protocol:\n", ccp);
-                                enumerate_mitems(pn, spn, pdt, k);
+                                enumerate_mitems(pn, spn, pdt, k,
+                                                 opts.long_out);
                             }
                         } else {
                             for (k = 0; k < 16; ++k) {
-                                ccp = get_transport_name(k);
+                                ccp = sdp_get_transport_name(k);
                                 if (NULL == ccp)
                                     continue;
                                 printf("\n");
@@ -2742,15 +1775,16 @@ int main(int argc, char * argv[])
                         }
                         printf("\n");
                         printf("Commands:\n");
-                        enumerate_commands();
+                        sdp_enumerate_commands();
                     } else {
                         printf("Mode pages:\n");
                         enumerate_mps(-1);
                         if (opts.all)
-                            enumerate_mitems(pn, spn, pdt, opts.transport);
+                            enumerate_mitems(pn, spn, pdt, opts.transport,
+                                             opts.long_out);
                     }
                 } else {        /* given transport protocol */
-                    ccp = get_transport_name(opts.transport);
+                    ccp = sdp_get_transport_name(opts.transport);
                     if (ccp)
                         printf("Mode pages for %s transport protocol:\n",
                                ccp);
@@ -2758,13 +1792,14 @@ int main(int argc, char * argv[])
                         printf("Mode pages for transport protocol 0x%x:\n",
                                opts.transport);
                     if (opts.all)
-                        enumerate_mitems(pn, spn, pdt, opts.transport);
+                        enumerate_mitems(pn, spn, pdt, opts.transport,
+                                         opts.long_out);
                     else {
                         enumerate_mps(opts.transport);
                     }
                 }
             } else      /* given mode page number */ 
-                enumerate_mitems(pn, spn, pdt, opts.transport);
+                enumerate_mitems(pn, spn, pdt, opts.transport, opts.long_out);
             return 0;
         }
 
@@ -2808,11 +1843,12 @@ int main(int argc, char * argv[])
         return 1;
 
     if (opts.inquiry) {
-        res = process_vpd_page(sg_fd, pn, &opts, verbose);
+        res = sdp_process_vpd_page(sg_fd, pn, ((spn < 0) ? 0: spn), &opts,
+                                   verbose);
         if (res)
             goto err_out;
     } else if (cmd_str && scmdp) {
-        res = process_cmd(sg_fd, scmdp, pdt, &opts, verbose);
+        res = sdp_process_cmd(sg_fd, scmdp, pdt, &opts, verbose);
         if (res)
             goto err_out;
 
