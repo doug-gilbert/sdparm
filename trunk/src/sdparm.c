@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Douglas Gilbert.
+ * Copyright (c) 2005-2006 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,38 +27,52 @@
  *
  */
 
+/*
+ * sdparm is a utility program for getting and setting parameters on devices
+ * that use one of the SCSI command sets. In some cases commands can be sent
+ * to the device (e.g. eject removable media).
+ *
+ * Note that some devices, such as CD/DVD drives, use a SCSI command set
+ * (i.e. MMC-4 and SPC-3) but are not normally categorized as "SCSI" since
+ * most use the packet interface over the ATA transport (ATAPI).
+ */
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <getopt.h>
-#include <limits.h>
 #include <ctype.h>
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#ifdef HAVE_GETOPT_LONG
+#include <getopt.h>
+#else
+#include "port_getopt.h"
+#endif
+
+#ifdef SDPARM_LINUX
+#include <errno.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
+
 #include <scsi/scsi.h>
 #include <scsi/sg.h>
-#include <scsi/sg_lib.h>
-#include <scsi/sg_cmds.h>
+
+static int map_if_lk24(int sg_fd, const char * device_name, int rw,
+                       int verbose);
+#endif  /* SDPARM_LINUX */
 
 #include "sdparm.h"
+#include "sg_lib.h"
+#include "sg_cmds.h"
 
-/* sdparm is a utility program for the Linux OS SCSI subsystem.
- *
- * This utility fetches various attributes associated with a given
- * SCSI disk (or a disk that uses, or translates the SCSI command
- * set). In some cases these attributes can be changed.
- */
+static char * version_str = "0.97 20060125";
 
-static char * version_str = "0.96 20051119";
-
-#define MAP_TO_SG_NODE
-
-static int find_corresponding_sg_fd(int sg_fd, const char * device_name,
-                                    int flags, int verbose);
 
 static struct option long_options[] = {
     {"six", 0, 0, '6'},
@@ -215,6 +229,7 @@ static void enumerate_mitems(int pn, int spn, int pdt, int transp_proto,
     int t_pn, t_spn, t_pdt;
     const struct sdparm_mode_page_item * mpi;
     char buff[128];
+    char b[128];
     int found = 0;
 
     t_pn = -1;
@@ -241,7 +256,11 @@ static void enumerate_mitems(int pn, int spn, int pdt, int transp_proto,
                 continue;
             sdp_get_mpage_name(t_pn, t_spn, t_pdt, transp_proto, 1, buff,
                                sizeof(buff));
-            printf("%s mode page:\n", buff); 
+            if (long_out)
+                printf("%s [%s] mode page:\n", buff,
+                       sdp_get_pdt_doc_str(t_pdt, sizeof(b), b)); 
+            else
+                printf("%s mode page:\n", buff); 
         } else {
             if ((pn >= 0) && ((pn != t_pn) || (spn != t_spn)))
                 continue;
@@ -271,7 +290,7 @@ static void list_mp_settings(struct sdparm_mode_page_settings * mps, int get)
         if (get)
             printf("  [0x%x,0x%x]", mpip->page_num, mpip->subpage_num);
 
-        printf("  pdt=%d byte_off=0x%x bit_off=%d num_bits=%d  val=%lld",
+        printf("  pdt=%d start_byte=0x%x start_bit=%d num_bits=%d  val=%lld",
                mpip->pdt, mpip->start_byte, mpip->start_bit, mpip->num_bits,
                mps->it_vals[k].val);
         if (mpip->acron)
@@ -623,7 +642,8 @@ static void get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
                 if (SG_LIB_CAT_ILLEGAL_REQ == res)
                     fprintf(stderr, "not found in ");
                 else
-                    fprintf(stderr, "error (res=%d) in ", res);
+                    fprintf(stderr, "error %sin ",
+                            (verb ? "" : "(try adding '-vv') "));
                 sdp_get_mpage_name(pn, spn, mpi->pdt, opts->transport,
                                    opts->hex, buff, sizeof(buff));
                 fprintf(stderr, "%s mode page\n", buff);
@@ -781,6 +801,8 @@ static int change_mode_page(int sg_fd, int pdt,
     mdpg[0] = 0;        /* mode data length reserved for mode select */
     if (! opts->mode_6)
         mdpg[1] = 0;    /* mode data length reserved for mode select */
+    if (0 == pdt)       /* DPOFUA in disk specific parameters is ... */
+        mdpg[opts->mode_6 ? 2 : 3] &= 0xef;     /* reserved for mode select */
 
     for (k = 0; k < mps->num_it_vals; ++k) {
         ivp = &mps->it_vals[k];
@@ -977,14 +999,17 @@ static int set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
  * only confuse things here, so use this local trimmed version */
 static int get_num(const char * buf)
 {
-    int res;
-    int num;
+    int res, len, num;
     unsigned int unum;
 
     if ((NULL == buf) || ('\0' == buf[0]))
         return -1;
+    len = strlen(buf);
     if (('0' == buf[0]) && (('x' == buf[1]) || ('X' == buf[1]))) {
         res = sscanf(buf + 2, "%x", &unum);
+        num = unum;
+    } else if ('H' == toupper(buf[len - 1])) {
+        res = sscanf(buf, "%x", &unum);
         num = unum;
     } else
         res = sscanf(buf, "%d", &num);
@@ -996,14 +1021,18 @@ static int get_num(const char * buf)
 
 static long long get_llnum(const char * buf)
 {
-    int res;
+    int res, len;
     long long num;
     unsigned long long unum;
 
     if ((NULL == buf) || ('\0' == buf[0]))
         return -1;
+    len = strlen(buf);
     if (('0' == buf[0]) && (('x' == buf[1]) || ('X' == buf[1]))) {
         res = sscanf(buf + 2, "%llx", &unum);
+        num = unum;
+    } else if ('H' == toupper(buf[len - 1])) {
+        res = sscanf(buf, "%llx", &unum);
         num = unum;
     } else
         res = sscanf(buf, "%lld", &num);
@@ -1014,7 +1043,7 @@ static int build_mp_settings(const char * arg,
                              struct sdparm_mode_page_settings * mps,
                              int transp_proto, int clear, int get)
 {
-    int len, b_sz, num, from, cont;
+    int len, b_sz, num, from, cont, colon;
     unsigned int u;
     long long ll;
     char buff[64];
@@ -1044,7 +1073,9 @@ static int build_mp_settings(const char * arg,
             strncpy(buff, cp, (len < b_sz ? len : b_sz));
         } else
             strncpy(buff, cp, b_sz);
-        if (isalpha(buff[0]) || (isdigit(buff[0]) && ('_' == buff[1]))) {
+        colon = strchr(buff, ':') ? 1 : 0;
+        if ((isalpha(buff[0]) && (! colon)) ||
+            (isdigit(buff[0]) && ('_' == buff[1]))) {
             ecp = strchr(buff, '=');
             if (ecp) {
                 strncpy(acron, buff, ecp - buff);
@@ -1129,19 +1160,28 @@ static int build_mp_settings(const char * arg,
                 ivp->val &= (ll << mpi->num_bits) - 1;
             }
             ivp->mpi = *mpi;    /* struct assignment */
-        } else {    /* expect "byte_off:bit_off:num_bits[=<val>]" */
+        } else {    /* expect "start_byte:start_bit:num_bits[=<val>]" */
+            /* start_byte may be in hex ('0x' prefix or 'h' suffix) */
             if ((0 == strncmp("0x", buff, 2)) ||
                 (0 == strncmp("0X", buff, 2))) {
                 num = sscanf(buff + 2, "%x:%d:%d=%s", &u,
                              &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
                 ivp->mpi.start_byte = u;
-            } else
-                num = sscanf(buff, "%d:%d:%d=%s", &ivp->mpi.start_byte,
-                             &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
+            } else {
+                if (strstr(buff, "h:"))
+                    num = sscanf(buff, "%xh:%d:%d=%s", &ivp->mpi.start_byte,
+                                 &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
+                else if (strstr(buff, "H:"))
+                    num = sscanf(buff, "%xH:%d:%d=%s", &ivp->mpi.start_byte,
+                                 &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
+                else
+                    num = sscanf(buff, "%d:%d:%d=%s", &ivp->mpi.start_byte,
+                                 &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
+            }
             if (num < 3) {
                 fprintf(stderr, "unable to decode: %s\n", buff);
-                fprintf(stderr, "    expected: byte_off:bit_off:num_bits[="
-                        "<val>]\n");
+                fprintf(stderr, "    expected: start_byte:start_bit:num_bits"
+                        "[=<val>]\n");
                 return -1;
             }
             if (3 == num)
@@ -1153,7 +1193,7 @@ static int build_mp_settings(const char * arg,
                     ivp->val = get_llnum(vb);
                     if (-1 == ivp->val) {
                         fprintf(stderr, "unable to decode "
-                                "byte_off:bit_off:num_bits value\n");
+                                "start_byte:start_bit:num_bits value\n");
                         return -1;
                     }
                 }
@@ -1196,52 +1236,38 @@ static int build_mp_settings(const char * arg,
     return 0;
 }
 
-static int open_and_simple_inquiry(const char * device_name, int flags,
+static int open_and_simple_inquiry(const char * device_name, int rw,
                                    int * pdt,
                                    const struct sdparm_opt_coll * opts,
                                    int verbose)
 {
-    int res, verb, sg_fd, sg_sg_fd, l_pdt;
+    int res, verb, sg_fd, l_pdt;
     struct sg_simple_inquiry_resp sir;
+    char b[32];
 
     verb = (verbose > 0) ? verbose - 1 : 0;
-    sg_fd = open(device_name, flags);
+    sg_fd = sg_cmds_open_device(device_name, ! rw, 0);
     if (sg_fd < 0) {
-        fprintf(stderr, "open error: %s, flags=0x%x: ", device_name,
-                flags);
-        perror("");
+        fprintf(stderr, "open error: %s, rw=%d: %s\n", device_name,
+                rw, safe_strerror(-sg_fd));
         return -1;
     } 
     res = sg_simple_inquiry(sg_fd, &sir, 0, verb);
     if (res) {
-        if (res < 1) {
-            /* could be lk 2.4 and not using a sg device */
-            struct utsname a_uts;
-            int two, four;
+#ifdef SDPARM_LINUX
+        if (-1 == res) {
+            int sg_sg_fd;
 
-            if (uname(&a_uts) < 0) {
-                fprintf(stderr, "uname system call failed, couldn't send "
-                        "SG_IO ioctl to %s\n", device_name);
-                goto err_out;
-            }
-            res = sscanf(a_uts.release, "%d.%d", &two, &four);
-            if (2 != res) {
-                fprintf(stderr, "unable to read uname release\n");
-                goto err_out;
-            }
-            if (! ((2 == two) && (4 == four))) {
-                fprintf(stderr, "unable to access %s, ATA disk?\n",
-                        device_name);
-                goto err_out;
-            }
-            sg_sg_fd = find_corresponding_sg_fd(sg_fd, device_name, flags,
-                                                verbose);
+            sg_sg_fd = map_if_lk24(sg_fd, device_name, rw, verbose);
             if (sg_sg_fd < 0)
                 goto err_out;
-            close(sg_fd);
+            sg_cmds_close_device(sg_fd);
             sg_fd = sg_sg_fd;
             res = sg_simple_inquiry(sg_fd, &sir, 0, verb);
+            if (sg_sg_fd < 0)
+                goto err_out;
         }
+#endif  /* SDPARM_LINUX */
         if (res) {
             fprintf(stderr, "SCSI INQUIRY command failed on %s\n",
                     device_name);
@@ -1257,15 +1283,15 @@ static int open_and_simple_inquiry(const char * device_name, int flags,
         printf("    %s: %.8s  %.16s  %.4s",
                device_name, sir.vendor, sir.product, sir.revision);
         if (0 != l_pdt)
-            printf("  [pdt=0x%x]", l_pdt);
+            printf("  [%s]", sg_get_pdt_str(l_pdt, sizeof(b), b));
         printf("\n");
         if (verbose && opts->inquiry) {
             char buff[32];
 
             printf("  PQual=%d  Device_type=0x%x  RMB=%d  version=0x%02x ",
                    sir.peripheral_qualifier, l_pdt, sir.rmb, sir.version);
-            printf(" [%s]\n", sdp_get_ansi_version_str(sir.version, buff,
-                                                       sizeof(buff)));
+            printf(" [%s]\n", sdp_get_ansi_version_str(sir.version,
+                                                       sizeof(buff), buff));
             printf("  [AERC=%d]  [TrmTsk=%d]  NormACA=%d  HiSUP=%d "
                    " Resp_data_format=%d\n  SCCS=%d  ",
                    !!(sir.byte_3 & 0x80), !!(sir.byte_3 & 0x40),
@@ -1292,7 +1318,7 @@ static int open_and_simple_inquiry(const char * device_name, int flags,
     return sg_fd;
 
 err_out:
-    close(sg_fd);
+    sg_cmds_close_device(sg_fd);
     return -1;
 }
 
@@ -1314,10 +1340,10 @@ static int process_mode_page(int sg_fd, struct sdparm_mode_page_settings * mps,
         if (NULL == vnp)
             vnp = sdp_get_mode_detail(pn, spn, -1, opts->transport);
         if (vnp && vnp->name && (vnp->pdt >= 0) && (pdt != vnp->pdt)) {
-            fprintf(stderr, ">> Warning: %s mode page associated with "
-                    "peripheral\n", vnp->name);
-            fprintf(stderr, "   device type 0x%x but device pdt is "
-                    "0x%x\n", vnp->pdt, pdt);
+            fprintf(stderr, ">> Warning: %s mode page associated with\n",
+                    vnp->name);
+            fprintf(stderr, "   peripheral device type 0x%x but device "
+                    "pdt is 0x%x\n", vnp->pdt, pdt);
         }
     }
     if (opts->defaults) {
@@ -1344,122 +1370,9 @@ static int process_mode_page(int sg_fd, struct sdparm_mode_page_settings * mps,
 }
 
 
-#ifdef MAP_TO_SG_NODE
-typedef struct my_scsi_idlun
-{
-    int mux4;
-    int host_unique_id;
-
-} My_scsi_idlun;
-
-#define DEVNAME_SZ 256
-#define MAX_SG_DEVS 256
-#define MAX_NUM_NODEVS 4
-
-/* Given a file descriptor 'oth_fd' that refers to a linux SCSI device node
- * this function returns the open file descriptor of the corresponding sg
- * device node. Returns a value >= 0 on success, else -1 or -2. device_name
- * should correspond with oth_fd. If a corresponding sg device node is found
- * then it is opened with flags. The oth_fd is left as is (i.e. it is not
- * closed). sg device node scanning is done "O_RDONLY | O_NONBLOCK".
- * Assumes (and is currently only invoked for) lk 2.4.
- */
-static int find_corresponding_sg_fd(int oth_fd, const char * device_name,
-                                    int flags, int verbose)
-{
-    int fd, err, bus, bbus, k, v;
-    My_scsi_idlun m_idlun, mm_idlun;
-    char name[DEVNAME_SZ];
-    int num_nodevs = 0;
-
-    err = ioctl(oth_fd, SCSI_IOCTL_GET_BUS_NUMBER, &bus);
-    if (err < 0) {
-        fprintf(stderr, "%s does not understand SCSI commands; or "
-                "bypasses the linux SCSI\n",
-                device_name);
-        fprintf(stderr, " subsystem, need sd, scd, st, osst or sg "
-                "based device name\n For example: /dev/hdd is not "
-                "suitable.\n");
-        return -2;
-    }
-    err = ioctl(oth_fd, SCSI_IOCTL_GET_IDLUN, &m_idlun);
-    if (err < 0) {
-        if (verbose)
-            fprintf(stderr, "%s does not understand SCSI commands(2)\n",
-                    device_name);
-        return -2;
-    }
-
-    fd = -2;
-    for (k = 0; (k < MAX_SG_DEVS) && (num_nodevs < MAX_NUM_NODEVS); k++) {
-        snprintf(name, sizeof(name), "/dev/sg%d", k);
-        fd = open(name, O_RDONLY | O_NONBLOCK);
-        if (fd < 0) {
-            if ((ENODEV == errno) || (ENOENT == errno) ||
-                (ENXIO == errno)) {
-                ++num_nodevs;
-                continue;       /* step over MAX_NUM_NODEVS holes */
-            }
-            if (EBUSY == errno)
-                continue;   /* step over if O_EXCL already on it */
-            else
-                break;
-        }
-        err = ioctl(fd, SCSI_IOCTL_GET_BUS_NUMBER, &bbus);
-        if (err < 0) {
-            if (verbose)
-                perror("SCSI_IOCTL_GET_BUS_NUMBER failed");
-            return -2;
-        }
-        err = ioctl(fd, SCSI_IOCTL_GET_IDLUN, &mm_idlun);
-        if (err < 0) {
-            if (verbose)
-                perror("SCSI_IOCTL_GET_IDLUN failed");
-            return -2;
-        }
-        if ((bus == bbus) && 
-            ((m_idlun.mux4 & 0xff) == (mm_idlun.mux4 & 0xff)) &&
-            (((m_idlun.mux4 >> 8) & 0xff) == 
-                                    ((mm_idlun.mux4 >> 8) & 0xff)) &&
-            (((m_idlun.mux4 >> 16) & 0xff) == 
-                                    ((mm_idlun.mux4 >> 16) & 0xff)))
-            break;
-        else {
-            close(fd);
-            fd = -2;
-        }
-    }
-    if (fd >= 0) {
-        if ((ioctl(fd, SG_GET_VERSION_NUM, &v) < 0) || (v < 30000)) {
-            fprintf(stderr, "requires lk 2.4 (sg driver) or lk 2.6\n");
-            close(fd);
-            return -2;
-        }
-        close(fd);
-        if (verbose)
-            fprintf(stderr, ">> mapping %s to %s (in lk 2.4 series)\n",
-                    device_name, name);
-        /* re-opening corresponding sg device with given flags */
-        return open(name, flags);
-    }
-    else
-        return fd;
-}
-#else
-
-static int find_corresponding_sg_fd(int sg_fd, const char * device_name,
-                                    int flags, int verbose)
-{
-    fprintf(stderr, "Mapping %s to sg device name not supported\n",
-           device_name);
-    return -2;
-}
-#endif
-
-
 int main(int argc, char * argv[])
 {
-    int sg_fd, res, c, pdt, flags, k;
+    int sg_fd, res, c, pdt, k;
     struct sdparm_opt_coll opts;
     const char * clear_str = NULL;
     const char * cmd_str = NULL;
@@ -1837,8 +1750,7 @@ int main(int argc, char * argv[])
     }
 
     pdt = -1;
-    flags = (O_NONBLOCK | (rw ? O_RDWR : O_RDONLY));
-    sg_fd = open_and_simple_inquiry(device_name, flags, &pdt, &opts, verbose);
+    sg_fd = open_and_simple_inquiry(device_name, rw, &pdt, &opts, verbose);
     if (sg_fd < 0) 
         return 1;
 
@@ -1861,10 +1773,143 @@ int main(int argc, char * argv[])
     ret = 0;
 
 err_out:
-    res = close(sg_fd);
+    res = sg_cmds_close_device(sg_fd);
     if (res < 0) {
-        perror("close error");
+        fprintf(stderr, "close error: %s\n", safe_strerror(-sg_fd));
         return 1;
     }
     return ret;
 }
+
+#ifdef SDPARM_LINUX
+/*     ============ */
+
+typedef struct my_scsi_idlun
+{
+    int mux4;
+    int host_unique_id;
+
+} My_scsi_idlun;
+
+#define DEVNAME_SZ 256
+#define MAX_SG_DEVS 256
+#define MAX_NUM_NODEVS 4
+
+/* Given a file descriptor 'oth_fd' that refers to a linux SCSI device node
+ * this function returns the open file descriptor of the corresponding sg
+ * device node. Returns a value >= 0 on success, else -1 or -2. device_name
+ * should correspond with oth_fd. If a corresponding sg device node is found
+ * then it is opened with rw setting. The oth_fd is left as is (i.e. it is
+ * not closed). sg device node scanning is done "O_RDONLY | O_NONBLOCK".
+ * Assumes (and is currently only invoked for) lk 2.4.
+ */
+static int find_corresponding_sg_fd(int oth_fd, const char * device_name,
+                                    int rw, int verbose)
+{
+    int fd, err, bus, bbus, k, v;
+    My_scsi_idlun m_idlun, mm_idlun;
+    char name[DEVNAME_SZ];
+    int num_nodevs = 0;
+
+    err = ioctl(oth_fd, SCSI_IOCTL_GET_BUS_NUMBER, &bus);
+    if (err < 0) {
+        fprintf(stderr, "%s does not understand SCSI commands; or "
+                "bypasses the linux SCSI\n",
+                device_name);
+        fprintf(stderr, " subsystem, need sd, scd, st, osst or sg "
+                "based device name\n For example: /dev/hdd is not "
+                "suitable.\n");
+        return -2;
+    }
+    err = ioctl(oth_fd, SCSI_IOCTL_GET_IDLUN, &m_idlun);
+    if (err < 0) {
+        if (verbose)
+            fprintf(stderr, "%s does not understand SCSI commands(2)\n",
+                    device_name);
+        return -2;
+    }
+
+    fd = -2;
+    for (k = 0; (k < MAX_SG_DEVS) && (num_nodevs < MAX_NUM_NODEVS); k++) {
+        snprintf(name, sizeof(name), "/dev/sg%d", k);
+        fd = open(name, O_RDONLY | O_NONBLOCK);
+        if (fd < 0) {
+            if ((ENODEV == errno) || (ENOENT == errno) ||
+                (ENXIO == errno)) {
+                ++num_nodevs;
+                continue;       /* step over MAX_NUM_NODEVS holes */
+            }
+            if (EBUSY == errno)
+                continue;   /* step over if O_EXCL already on it */
+            else
+                break;
+        }
+        err = ioctl(fd, SCSI_IOCTL_GET_BUS_NUMBER, &bbus);
+        if (err < 0) {
+            if (verbose)
+                perror("SCSI_IOCTL_GET_BUS_NUMBER failed");
+            return -2;
+        }
+        err = ioctl(fd, SCSI_IOCTL_GET_IDLUN, &mm_idlun);
+        if (err < 0) {
+            if (verbose)
+                perror("SCSI_IOCTL_GET_IDLUN failed");
+            return -2;
+        }
+        if ((bus == bbus) && 
+            ((m_idlun.mux4 & 0xff) == (mm_idlun.mux4 & 0xff)) &&
+            (((m_idlun.mux4 >> 8) & 0xff) == 
+                                    ((mm_idlun.mux4 >> 8) & 0xff)) &&
+            (((m_idlun.mux4 >> 16) & 0xff) == 
+                                    ((mm_idlun.mux4 >> 16) & 0xff)))
+            break;
+        else {
+            close(fd);
+            fd = -2;
+        }
+    }
+    if (fd >= 0) {
+        if ((ioctl(fd, SG_GET_VERSION_NUM, &v) < 0) || (v < 30000)) {
+            fprintf(stderr, "requires lk 2.4 (sg driver) or lk 2.6\n");
+            close(fd);
+            return -2;
+        }
+        close(fd);
+        if (verbose)
+            fprintf(stderr, ">> mapping %s to %s (in lk 2.4 series)\n",
+                    device_name, name);
+        /* re-opening corresponding sg device with given rw setting */
+        return open(name, O_NONBLOCK | (rw ? O_RDWR : O_RDONLY));
+    }
+    else
+        return fd;
+}
+
+static int map_if_lk24(int sg_fd, const char * device_name, int rw,
+                       int verbose)
+{
+    /* could be lk 2.4 and not using a sg device */
+    struct utsname a_uts;
+    int two, four;
+    int res;
+
+    if (uname(&a_uts) < 0) {
+        fprintf(stderr, "uname system call failed, couldn't send "
+                "SG_IO ioctl to %s\n", device_name);
+        return -1;
+    }
+    res = sscanf(a_uts.release, "%d.%d", &two, &four);
+    if (2 != res) {
+        fprintf(stderr, "unable to read uname release\n");
+        return -1;
+    }
+    if (! ((2 == two) && (4 == four))) {
+        fprintf(stderr, "unable to access %s, ATA disk?\n",
+                device_name);
+        return -1;
+    }
+    return find_corresponding_sg_fd(sg_fd, device_name, rw, verbose);
+}
+
+#endif  /* SDPARM_LINUX */
+

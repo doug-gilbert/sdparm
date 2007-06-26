@@ -1,5 +1,5 @@
 %define	name	sdparm
-%define	version	0.96
+%define	version	0.97
 %define	release	1
 
 Summary:	List or change SCSI disk parameters
@@ -33,7 +33,8 @@ such that the disk stops operating or is slowed down. Use with care.
 
 %build
 
-./autogen.sh --prefix=%{_prefix} --mandir=%{_mandir}
+# ./autogen.sh --prefix=%{_prefix} --mandir=%{_mandir}
+./configure --prefix=%{_prefix} --mandir=%{_mandir}
 
 %install
 [ "%{buildroot}" != "/" ] && rm -rf %{buildroot}
@@ -56,6 +57,9 @@ make install \
 %{_mandir}/man8/*
 
 %changelog
+* Wed Jan 25 2006 - dgilbert at interlog dot com
+- add SAT pATA control and medium partition mode (sub)pages
+  * sdparm-0.97
 * Fri Nov 18 2005 - dgilbert at interlog dot com
 - add capacity, ready and sync commands
   * sdparm-0.96

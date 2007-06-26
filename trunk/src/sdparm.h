@@ -27,6 +27,7 @@
 #define DATA_COMPR_MP 0xf
 #define DEV_CONF_MP 0x10
 #define XOR_MP 0x10
+#define MED_PART_MP 0x11
 #define ES_MAN_MP 0x14
 #define PROT_SPEC_LU_MP 0x18
 #define PROT_SPEC_PORT_MP 0x19
@@ -46,6 +47,8 @@
 #define MSP_SAS_PCD 1
 #define MSP_SAS_SHA 2
 #define MSP_BACK_CTL 1
+#define MSP_SAT_PATA 0xf1       /* SAT PATA Control */
+#define MSP_DEV_CONF_EXT 1      /* device conf extension (ssc) */
 
 #define MODE_DATA_OVERHEAD 128
 #define EBUFF_SZ 256
@@ -171,7 +174,7 @@ extern struct sdparm_transport_pair sdparm_transport_mp[];
 extern struct sdparm_mode_page_item sdparm_mitem_arr[];
 extern struct sdparm_command sdparm_command_arr[];
 
-extern const char * sdparm_scsi_ptype_strs[];
+extern const char * sdparm_pdt_doc_strs[];
 extern const char * sdparm_transport_proto_arr[];
 extern const char * sdparm_code_set_arr[];
 extern const char * sdparm_assoc_arr[];
@@ -212,8 +215,10 @@ extern unsigned long long sdp_mp_get_value_check(
                 const unsigned char * mp, int * all_set);
 extern void sdp_mp_set_value(unsigned long long val,
                 struct sdparm_mode_page_item *mpi, unsigned char * mp);
-extern const char * sdp_get_ansi_version_str(int version, char * buff,
-                int buff_len);
+extern char * sdp_get_ansi_version_str(int version, int buff_len,
+                char * buff);
+extern char * sdp_get_pdt_doc_str(int version, int buff_len,
+                char * buff);
 
 /*
  * Declarations for functions found in sdparm_vpd.c

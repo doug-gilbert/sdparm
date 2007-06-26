@@ -14,7 +14,7 @@
 
 @SET_MAKE@
 
-SOURCES = $(sdparm_SOURCES)
+SOURCES = $(sdparm_SOURCES) $(EXTRA_sdparm_SOURCES)
 
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
@@ -36,6 +36,8 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
+build_triplet = @build@
+host_triplet = @host@
 bin_PROGRAMS = sdparm$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
@@ -53,7 +55,6 @@ am_sdparm_OBJECTS = sdparm.$(OBJEXT) sdparm_data.$(OBJEXT) \
 	sdparm_access.$(OBJEXT) sdparm_vpd.$(OBJEXT) \
 	sdparm_cmd.$(OBJEXT) sg_lib.$(OBJEXT) sg_cmds.$(OBJEXT)
 sdparm_OBJECTS = $(am_sdparm_OBJECTS)
-sdparm_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -61,8 +62,8 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(sdparm_SOURCES)
-DIST_SOURCES = $(sdparm_SOURCES)
+SOURCES = $(sdparm_SOURCES) $(EXTRA_sdparm_SOURCES)
+DIST_SOURCES = $(sdparm_SOURCES) $(EXTRA_sdparm_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -87,6 +88,7 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
+GETOPT_O_FILES = @GETOPT_O_FILES@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -118,10 +120,18 @@ am__quote = @am__quote@
 am__tar = @am__tar@
 am__untar = @am__untar@
 bindir = @bindir@
+build = @build@
 build_alias = @build_alias@
+build_cpu = @build_cpu@
+build_os = @build_os@
+build_vendor = @build_vendor@
 datadir = @datadir@
 exec_prefix = @exec_prefix@
+host = @host@
 host_alias = @host_alias@
+host_cpu = @host_cpu@
+host_os = @host_os@
+host_vendor = @host_vendor@
 includedir = @includedir@
 infodir = @infodir@
 install_sh = @install_sh@
@@ -131,16 +141,40 @@ localstatedir = @localstatedir@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
+os_deps = @os_deps@
+os_libs = @os_libs@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-INCLUDES = -I$(top_srcdir)/include
-AM_CFLAGS = -Wall -W
+
+# INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/include/scsi
+
+# AM_CFLAGS = -Wall -W
 # AM_CFLAGS = -Wall -W -pedantic -std=c99
-sdparm_SOURCES = sdparm.c sdparm_data.c sdparm_access.c sdparm_vpd.c sdparm_cmd.c sg_lib.c sg_cmds.c
+sdparm_SOURCES = sdparm.c	\
+			sdparm.h	\
+			sdparm_data.c	\
+			sdparm_access.c	\
+			sdparm_vpd.c	\
+			sdparm_cmd.c	\
+			sg_lib.c	\
+			sg_lib.h	\
+			sg_cmds.c	\
+			sg_cmds.h	\
+			sg_pt.h
+
+sdparm_LDADD = @os_deps@ @GETOPT_O_FILES@ @os_libs@
+sdparm_DEPENDENCIES = @os_deps@ @GETOPT_O_FILES@
+EXTRA_sdparm_SOURCES = sg_pt_linux.c	\
+			sg_linux_inc.h	\
+			sg_pt_freebsd.c	\
+			sg_pt_osf1.c	\
+			getopt_long.c	\
+			port_getopt.h
+
 all: all-am
 
 .SUFFIXES:
@@ -207,6 +241,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getopt_long.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sdparm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sdparm_access.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sdparm_cmd.Po@am__quote@
@@ -214,6 +249,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sdparm_vpd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sg_cmds.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sg_lib.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sg_pt_freebsd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sg_pt_linux.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sg_pt_osf1.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \

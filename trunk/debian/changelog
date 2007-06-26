@@ -1,3 +1,9 @@
+sdparm (0.97-0.1) unstable; urgency=low
+
+  * add SAT pATA control mode subpage
+
+ -- Douglas Gilbert <dgilbert@interlog.org>  Wed, 25 Jan 2006 20:00:00 +1000
+
 sdparm (0.96-0.1) unstable; urgency=low
 
   * restructure sdparm.c; add capacity, sense and sync commands
