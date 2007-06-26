@@ -1,4 +1,4 @@
-.TH SDPARM "8" "November 2005" "sdparm-0.96" SDPARM
+.TH SDPARM "8" "January 2006" "sdparm-0.97" SDPARM
 .SH NAME
 sdparm \- fetch and potentially change SCSI device attributes, send commands
 .SH SYNOPSIS
@@ -20,7 +20,7 @@ This utility fetches and potentially changes SCSI device (e.g.
 disk) mode pages. Inquiry data including Vital Product Data (VPD)
 pages can also be displayed. Commands associated with starting
 and stopping the medium; loading and unloading the medium; and
-othet housekeeping function may also be issued by this utility.
+other housekeeping function may also be issued by this utility.
 .PP
 If no options (other than <scsi_device>) are given then a selection of
 common mode page attributes for that device are listed. If the '--long'
@@ -165,7 +165,9 @@ the ENUMERATE section below.
 --quiet | -q
 suppress output of device name followed by the vendor, product and
 revision strings fetched from an INQUIRY response. Without this option
-such a line is typically the first line output by sdparm.
+such a line is typically the first line output by sdparm. Reduces
+output from the device identification VPD page, typically to one
+line (or none) for each of di_lu, di_port and di_target.
 .TP
 --save | -S
 when a mode page is being modified (by using the '--clear=' and/or '--set="
@@ -208,6 +210,11 @@ print the version string and then exit.
 A mode page for which no abbreviation is known (e.g. a vendor specific mode
 page) can be listed in hexadecimal by using the option
 combination '--page=<pn> --hex'.
+.PP
+Numbers input to sdparm (e.g. in the command line arguments) are assumed
+to be in decimal unless there is a hexadecimal indicator. A hexadecimal
+indicator is either a leading '0x' or '0X' (i.e. the C language convention)
+or a trailing 'h' or 'H' (i.e. the convention used at www.t10.org ).
 .SH PARAMETERS
 The '--clear=', '--get=' and '--set=" options can take a string argument
 which is a comma separated list of attributes. Each attribute can
@@ -219,7 +226,8 @@ to be changed can be described in terms of a <start_byte> (origin 0)
 within the mode page, a <start_bit> (0 to 7 inclusive) and <num_bits> (1
 to 64 inclusive). For example, the low level representation of the RCD
 bit (in the caching mode page) is "2:0:1". The <start_byte> and 
-the <val> can optionally be given in hex (e.g. '--set=0x2:0:1=0x1').
+the <val> can optionally be given in hex (e.g. '--set=0x2:0:1=0x1'
+or '--set=2h:0:1=1h').
 .PP
 When the attribute(s) following '--clear=' is not given an
 explicit '=<val>' then the value defaults to zero. When the attribute(s)
@@ -283,8 +291,8 @@ When known parameters (fields) of a mode page are listed, each line
 starts with an acronym (indented a few spaces). This will match (or
 be an acronym for) the description for that field found in the (draft)
 standards. Next are three numbers, separated by colons, surrounded by
-brackets. These are the byte offset (in hex, prefixed by "0x") of the
-start of the field within the mode page; the starting bit (0 through 7
+brackets. These are the start byte (in hex, prefixed by "0x") of the
+beginning of the field within the mode page; the starting bit (0 through 7
 inclusive) and then the number of bits. The descriptive name of the
 parameter (field) is then given. If appropriate the descriptive name
 includes units (e.g. "(ms)" means the units are milliseconds). Adding
@@ -414,6 +422,9 @@ mapped within this utility to their corresponding sg device nodes. So if
 there is a SCSI disk at /dev/sda then 'sdparm /dev/sda' will work in both
 the lk 2.6 and lk 2.4 series. However if there is an ATAPI cd/dvd drive
 at /dev/hdc then 'sdparm /dev/hdc' will only work in the lk 2.6 series.
+.PP
+In FreeBSD the "atapicam" device may need to be configured into the kernel
+in order that sdparm can access (s)ATAPI cd/dvd drives.
 .SH EXAMPLES
 To list the common (generic) mode parameters of a disk:
 .PP
@@ -495,7 +506,7 @@ Written by Douglas Gilbert.
 .SH "REPORTING BUGS"
 Report bugs to <dgilbert at interlog dot com>.
 .SH COPYRIGHT
-Copyright \(co 2005 Douglas Gilbert
+Copyright \(co 2005-2006 Douglas Gilbert
 .br
 This software is distributed under a FreeBSD license. There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
