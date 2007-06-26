@@ -1,6 +1,6 @@
-.TH SDPARM "8" "July 2005" "sdparm-0.94" SDPARM
+.TH SDPARM "8" "September 2005" "sdparm-0.95" SDPARM
 .SH NAME
-sdparm \- fetch and potentially change SCSI device parameters
+sdparm \- fetch and potentially change SCSI device parameters, send commands
 .SH SYNOPSIS
 .B sdparm
 [\fI--all\fR] [\fI--clear=<str>\fR] [\fI--command=<str>\fR] [\fI--dbd\fR]
@@ -18,7 +18,9 @@ sdparm \- fetch and potentially change SCSI device parameters
 .PP
 This utility fetches and potentially changes SCSI device (e.g.
 disk) mode pages. Inquiry data including Vital Product Data (VPD)
-pages can also be displayed.
+pages can also be displayed. Commands associated with starting
+and stopping the medium, as well as loading and unloading it may
+also be sent.
 .PP
 If no options (other than <scsi_device>) are given then a selection of
 common mode page parameters for that device are listed. If the '--long'
@@ -41,10 +43,15 @@ When the '--inquiry' option is given and there is no page number then
 the Device Identification VPD page (page number 0x83) is requested and
 if found it is decoded and output. If no page number is given and
 the '--all' option is given then all VPD page names (but not their
-contents) supported by the given device are listed.
+contents) supported by the given device are listed. When both
+the '--inquiry' and '--page=' options are given then the VPD page can be
+specified as an abbreviation (e.g. "sp" for the SCSI ports VPD page)
+or numerically (e.g. "0x88"). If a VPD page is returned by the device
+but sdparm cannot decode it or the '-H' option is given then it is
+output in hex.
 .TP
 --all | -a
-output all recognised parameters for the device type (e.g. disk)
+output all recognized parameters for the device type (e.g. disk)
 of the given device. Without this option (or the '--page=' option)
 the default action is to output a relatively small number of 
 commonly used parameters from different pages. When a
@@ -116,7 +123,10 @@ by "0x" and space separated. If a value of "1" is given with
 the '--get=' option (e.g. '--get=WCE=1') then only the current value
 is output in hex, prefixed by "0x". If a value of "2" is given with
 the '--get=' option then only the current value is output as 
-a (signed) integer.
+a (signed) integer. Can be used multiple times (e.g. '-HH'). Only use
+of this is the ATA Information VPD page which usually outputs its
+IDENTIFY (PACKET) DEVICE response in 16 bit hex words; with '-HH' outputs
+that response in hex bytes.
 .TP
 --inquiry | -i
 output INQUIRY VPD pages. In the absence of this option the default action
@@ -143,9 +153,11 @@ be given (see next entry).
 a two or three letter abbreviation for a page can be given. Known mode
 page abbreviations are checked first followed by known VPD page
 abbreviations.  For example '--page=ca' matches the caching
-mode page. If no match is found then an error is issued. If the <str>
-matches a known VPD page abbreviation then the '--inquiry' option is
-assumed. For usage with '--enumerate' see the ENUMERATE section below.
+mode page. If no match is found then an error is issued and a list of
+possibilities in the current context is given (so '-p x' can be quite
+useful). If the <str> matches a known VPD page abbreviation then
+the '--inquiry' option is assumed. For usage with '--enumerate' see
+the ENUMERATE section below.
 .TP
 --save | -S
 when a mode page is being modified (by using the '--clear=' and/or '--set="
@@ -176,9 +188,7 @@ Specifies the transport protocol where <tn> is either a number in
 the range 0 to 15 (inclusive) or an abbreviation (e.g. "fcp" for
 the Fibre Channel Protocol). One way to list available transport protocols
 numbers and their associated abbreviations is to give an invalid
-transport protocol number such as -1; a cleaner way is '-e -l'.
-The default action (in the absence of this option and '--inquiry')
-is to get, set or clear generic mode page parameters.
+transport protocol number such as '-t x'; another way is '-e -l'.
 .TP
 --verbose | -v
 increase the level of verbosity, (i.e. debug output).
@@ -256,7 +266,7 @@ When known mode pages are listed (via the '--enumerate' option) each
 line starts with a two or three letter abbreviation. This is followed by
 the page number (in hex prefixed by "0x") optionally followed by a
 comma and the subpage number. Finally the descriptive name of the mode
-page (e.g. as found in SPC-3) is output.
+page (e.g. as found in SPC-4) is output.
 .PP
 When known parameters (fields) of a mode page are listed, each line
 starts with an acronym (indented a few spaces). This will match (or
@@ -343,7 +353,7 @@ media.
 For loading and ejecting tapes the mt utility should be used (i.e. not
 these commands). The 'ready' command is valid for tape devices.
 .SH NOTES
-The SPC-3 draft (rev 23) says that devices that implement no
+The SPC-1 draft (rev 1a) says that devices that implement no
 distinction between current and saved pages can return an
 error (ILLEGAL REQUEST, invalid field in cdb) if the SP bit (which
 corresponds to the '--save' option) is _not_ set. In such cases
@@ -352,7 +362,15 @@ the '--save' option needs to be given.
 If the '--save' option is given but the existing mode page indicates (via
 its PS bit) that the page is not savable, then this utility generates
 an error message. That message suggests to try again without the '--save'
-option. 
+option.
+.PP
+The functionality of this utility overlaps, somewhat, with another
+utility called blktool. This utility can be considered as
+more "SCSI-centric". For example, with ATAPI CD/DVD drives this utility
+will concentrate on the command level as such drives use the Multi Media
+Command set (MMC) with is a SCSI command set. This utility ignores
+transport related settings at the ATA(PI) transport level. Such settings
+can be accessed with blktool (and viewed with "sg_inq -A").
 .PP
 In the linux kernel 2.6 series any device node that understands a SCSI
 command set (e.g. SCSI disks and CD/DVD drives) may be specified. More
@@ -449,5 +467,6 @@ Copyright \(co 2005 Douglas Gilbert
 This software is distributed under a FreeBSD license. There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 .SH "SEE ALSO"
-.B sg_modes(sg3_utils), sg_wr_mode(sg3_utils), sginfo(sg3_utils),
-.B sg_inq(sg3_utils), smartmontools(internet, sourceforge), mt, eject(eject)
+.B sg_modes, sg_wr_mode, sginfo, sg_inq(all in sg3_utils),
+.B smartmontools(smartmontools.sourceforge.net), mt, eject(eject),
+.B blktool(sourceforge.net/projects/gkernel)

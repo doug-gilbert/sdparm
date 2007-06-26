@@ -130,16 +130,25 @@ static struct sdparm_values_name_t sdparm_sas_mode_pg[] = {    /* SAS-1.1 */
 };
 
 struct sdparm_values_name_t sdparm_vpd_pg[] = {
+    {VPD_ATA_INFO, 0, -1, 1, "ai", "ATA information"},
+    {VPD_ASCII_OP_DEF, 0, -1, 1, "aod",
+     "ASCII implemented operating definition (obs)"},
+    {VPD_BLOCK_LIMITS, 0, 0, 1, "bl", "Block limits (SBC)"},
     {VPD_DEVICE_ID, 0, -1, 1, "di", "Device identification"},
-    {VPD_EXT_INQ, 0, -1, 1, "ei", "Extended inquiry"},
+    {VPD_EXT_INQ, 0, -1, 1, "ei", "Extended inquiry data"},
+    {VPD_IMP_OP_DEF, 0, -1, 1, "iod",
+     "Implemented operating definition (obs)"},
+    {VPD_MAN_NET_ADDR, 0, -1, 1, "mna", "Management network addresses"},
+    {VPD_MODE_PG_POLICY, 0, -1, 1, "mpp", "Mode page policy"},
     {VPD_UNIT_SERIAL_NUM, 0, -1, 1, "sn", "Unit serial number"},
+    {VPD_SOFTW_INF_ID, 0, -1, 1, "sii", "Software interface identification"},
     {VPD_SCSI_PORTS, 0, -1, 1, "sp", "SCSI ports"},
     {VPD_SUPPORTED_VPDS, 0, -1, 1, "sv", "Supported VPD pages"},
     {0, 0, 0, 0, NULL, NULL},
 };
 
 /* Generic (i.e. non-transport specific) mode page items follow, */
-/* sorted by mode page number in ascending order */
+/* sorted by mode page (then subpage) number in ascending order */
 struct sdparm_mode_page_item sdparm_mitem_arr[] = {
 
     /* Read write error recovery mode page [0x1] sbc2, mmc5, ssc3 */
@@ -153,7 +162,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"RC", RW_ERR_RECOVERY_MP, 0, -1, 2, 4, 1, 0,
         "Read continuous"},
     {"EER", RW_ERR_RECOVERY_MP, 0, -1, 2, 3, 1, 0,
-        "Enable early recover"},
+        "Enable early recovery"},
     {"PER", RW_ERR_RECOVERY_MP, 0, -1, 2, 2, 1, MF_COMMON,
         "Post error"},
     {"DTE", RW_ERR_RECOVERY_MP, 0, -1, 2, 1, 1, 0,
@@ -162,6 +171,12 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Disable correction"},
     {"RRC", RW_ERR_RECOVERY_MP, 0, -1, 3, 7, 8, 0,
         "Read retry count"},
+    {"COR_S", RW_ERR_RECOVERY_MP, 0, 0, 4, 7, 8, 0,
+        "Correction span (obsolete)"},
+    {"HOC", RW_ERR_RECOVERY_MP, 0, 0, 5, 7, 8, 0,
+        "Head offset count (obsolete)"},
+    {"DSOC", RW_ERR_RECOVERY_MP, 0, 0, 6, 7, 8, 0,
+        "Data strobe offset count (obsolete)"},
     {"EMCDR", RW_ERR_RECOVERY_MP, 0, 5, 7, 1, 2, 0, /* MMC only */
         "Enhanced media certification and defect reporting"},
     {"WRC", RW_ERR_RECOVERY_MP, 0, -1, 8, 7, 8, 0,
@@ -273,7 +288,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
 
     /* Verify error recovery mode page [0x7] sbc2 */
     {"V_EER", V_ERR_RECOVERY_MP, 0, 0, 2, 3, 1, 0,
-        "Enable early recover"},
+        "Enable early recovery"},
     {"V_PER", V_ERR_RECOVERY_MP, 0, 0, 2, 2, 1, 0,
         "Post error"},
     {"V_DTE", V_ERR_RECOVERY_MP, 0, 0, 2, 1, 1, 0,
@@ -282,6 +297,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Disable correction"},
     {"V_RC", V_ERR_RECOVERY_MP, 0, 0, 3, 7, 8, 0,
         "Verify retry count"},
+    {"V_COR_S", V_ERR_RECOVERY_MP, 0, 0, 4, 7, 8, 0,
+        "Verify correction span (obsolete)"},
     {"V_RTL", V_ERR_RECOVERY_MP, 0, 0, 10, 7, 16, 0,
         "Verify recovery time limit (ms)"},
 
@@ -316,9 +333,9 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Maximum pre-fetch ceiling"},
     {"FSW", CACHING_MP, 0, 0, 12, 7, 1, 0,
         "Force sequential write"},
-    {"LBCSS", CACHING_MP, 0, 0, 12, 5, 1, 0,
+    {"LBCSS", CACHING_MP, 0, 0, 12, 6, 1, 0,
         "Logical block cache segment size"},
-    {"DRA", CACHING_MP, 0, 0, 12, 4, 1, 0,
+    {"DRA", CACHING_MP, 0, 0, 12, 5, 1, 0,
         "Disable read ahead"},
     {"NV_DIS", CACHING_MP, 0, 0, 12, 0, 1, 0,
         "Non-volatile cache disable"},
@@ -437,7 +454,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Associated write protection"},
     {"PERSWP", DEV_CONF_MP, 0, 1, 15, 1, 1, 0,
         "Persistent write protection"},
-    {"PRMWP", DEV_CONF_MP, 0, 1, 15, 1, 0, 0,
+    {"PRMWP", DEV_CONF_MP, 0, 1, 15, 0, 1, 0,
         "Permanent write protection"},
 
     /* Enclosure services management mode page [0x14] ses2 */
@@ -476,6 +493,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Disable exceptions"},
     {"TEST", IEC_MP, 0, -1, 2, 2, 1, 0,
         "Test (simulate device failure)"},
+    {"EBACKERR", IEC_MP, 0, -1, 2, 1, 1, 0,
+        "Enable background error reporting"},
     {"LOGERR", IEC_MP, 0, -1, 2, 0, 1, 0,
         "Log informational exception errors"},
     {"MRIE", IEC_MP, 0, -1, 3, 3, 4, MF_COMMON,
@@ -525,18 +544,18 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "CD-R read"},
     {"D_RAM_W", MMCMS_MP, 0, 5, 3, 5, 1, 0,
         "DVD-RAM write"},
-    {"D_R_R", MMCMS_MP, 0, 5, 3, 4, 1, 0,
-        "DVD-R write"},
-    {"TST_W", MMCMS_MP, 0, 5, 3, 2, 1, 0,
-        "Test write"},
+    {"D_R_W", MMCMS_MP, 0, 5, 3, 4, 1, 0,
+        "DVD-R write"},         /* was D_R_R, wrong, clashed with above */
+    {"TST_WR", MMCMS_MP, 0, 5, 3, 2, 1, 0,
+        "Test write"},          /* was TST_W but clashed with page 0x5 */
     {"CD_RW_W", MMCMS_MP, 0, 5, 3, 1, 1, 0,
         "CD-RW write"},
     {"CD_R_W", MMCMS_MP, 0, 5, 3, 0, 1, 0,
         "CD-R write"},
     {"BUF", MMCMS_MP, 0, 5, 4, 7, 1, 0,
         "Buffer underrun free recording"},
-    {"MULTI_S", MMCMS_MP, 0, 5, 4, 6, 1, 0,
-        "Multi session"},
+    {"MULT_S", MMCMS_MP, 0, 5, 4, 6, 1, 0,
+        "Multi session"},       /* was MULTI_S but clashed with page 0x5 */
     {"M2F2", MMCMS_MP, 0, 5, 4, 5, 1, 0,
         "Mode 2 form 2"},
     {"M2F1", MMCMS_MP, 0, 5, 4, 4, 1, 0,
@@ -700,7 +719,7 @@ static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
     /* protocol specific port control page [0x19] spi4 */
     {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, MF_COMMON,
         "Port's (transport) protocol identifier"},
-    {"STT", PROT_SPEC_PORT_MP, 0, -1, 4, 6, 16, MF_COMMON,
+    {"STT", PROT_SPEC_PORT_MP, 0, -1, 4, 7, 16, MF_COMMON,
         "Synchronous transfer timeout (ms)"},
 
     /* margin control subpage  [0x19,0x1] spi4 */
@@ -710,13 +729,13 @@ static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
         "Driver strength"},
     {"DA", PROT_SPEC_PORT_MP, MSP_SPI_MC, -1, 8, 7, 4, 0,
         "Driver asymmetry"},
-    {"DA", PROT_SPEC_PORT_MP, MSP_SPI_MC, -1, 8, 3, 4, 0,
+    {"DP", PROT_SPEC_PORT_MP, MSP_SPI_MC, -1, 8, 3, 4, 0,
         "Driver precompensation"},
     {"DSR", PROT_SPEC_PORT_MP, MSP_SPI_MC, -1, 9, 7, 4, 0,
         "Driver slew rate"},
 
     /* saved training configuration subpage [0x19,0x2] spi4 */
-    {"PPID_2", PROT_SPEC_PORT_MP, MSP_SPI_NS, -1, 5, 3, 4, 0,
+    {"PPID_2", PROT_SPEC_PORT_MP, MSP_SPI_STC, -1, 5, 3, 4, 0,
         "Port's (transport) protocol identifier"},
     {"DB0", PROT_SPEC_PORT_MP, MSP_SPI_STC, -1, 10, 7, 32, MF_HEX,
         "DB(0) value"},
@@ -794,11 +813,13 @@ static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
     /* report transfer capabilities subpage [0x19,0x4] spi4 */
     {"PPID_4", PROT_SPEC_PORT_MP, MSP_SPI_RTC, -1, 5, 3, 4, 0,
         "Port's (transport) protocol identifier"},
-    {"MRAO", PROT_SPEC_PORT_MP, MSP_SPI_NS, -1, 8, 7, 8, 0,
+    {"MTPF", PROT_SPEC_PORT_MP, MSP_SPI_RTC, -1, 6, 7, 8, 0,
+        "Minimum transfer period factor"},
+    {"MRAO", PROT_SPEC_PORT_MP, MSP_SPI_RTC, -1, 8, 7, 8, 0,
         "Maximum REQ/ACK offset"},
-    {"MTWE", PROT_SPEC_PORT_MP, MSP_SPI_NS, -1, 9, 7, 8, 0,
+    {"MTWE", PROT_SPEC_PORT_MP, MSP_SPI_RTC, -1, 9, 7, 8, 0,
         "Maximum transfer width exponent"},
-    {"POBS", PROT_SPEC_PORT_MP, MSP_SPI_NS, -1, 10, 7, 8, 0,
+    {"POBS", PROT_SPEC_PORT_MP, MSP_SPI_RTC, -1, 10, 7, 8, 0,
         "Protocol option bits supported"},
 
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL},
@@ -837,7 +858,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"RLM", PROT_SPEC_PORT_MP, 0, -1, 2, 4, 1, MF_COMMON, 
         "Ready LED meaning"},
     {"ITNLT", PROT_SPEC_PORT_MP, 0, -1, 4, 7, 16, MF_COMMON, 
-        "I-T nexus loss time (ms)"},
+        "I_T nexus loss time (ms)"},
     {"IRT", PROT_SPEC_PORT_MP, 0, -1, 6, 7, 16, MF_COMMON, 
         "Initiator response timeout (ms)"},
 
@@ -918,7 +939,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
 
 /* fixed length, indexed by transport protocol number */
 struct sdparm_transport_pair sdparm_transport_mp[] = {
-    {sdparm_fcp_mode_pg, sdparm_mitem_fcp_arr},
+    {sdparm_fcp_mode_pg, sdparm_mitem_fcp_arr}, /* 0 */
     {sdparm_spi_mode_pg, sdparm_mitem_spi_arr},
     {NULL, NULL},
     {NULL, NULL},
@@ -926,14 +947,14 @@ struct sdparm_transport_pair sdparm_transport_mp[] = {
     {NULL, NULL},
     {sdparm_sas_mode_pg, sdparm_mitem_sas_arr},
     {NULL, NULL},
+    {NULL, NULL},       /* 8 */
     {NULL, NULL},
     {NULL, NULL},
     {NULL, NULL},
     {NULL, NULL},
     {NULL, NULL},
     {NULL, NULL},
-    {NULL, NULL},
-    {NULL, NULL},
+    {NULL, NULL},       /* 15 */
 };
 const char * sdparm_scsi_ptype_strs[] = {
     /* 0 */ "disk",
@@ -991,7 +1012,7 @@ const char * sdparm_code_set_arr[] =
 const char * sdparm_assoc_arr[] =
 {
     "Addressed logical unit",
-    "Target port that received request",
+    "Target port",      /* that received request; unless SCSI ports VPD */
     "Target device that contains addressed lu",
     "Reserved [0x3]",
 };
@@ -1021,6 +1042,31 @@ const char * sdparm_ansi_version_arr[] =
     "SPC-3",
     "SPC-4",
     "ANSI version: 7",
+};
+
+const char * sdparm_network_service_type_arr[] =
+{
+    "unspecified",
+    "storage configuration service",
+    "diagnostics",
+    "status",
+    "logging",
+    "code download",
+    "reserved[0x6]", "reserved[0x7]", "reserved[0x8]", "reserved[0x9]",
+    "reserved[0xa]", "reserved[0xb]", "reserved[0xc]", "reserved[0xd]",
+    "reserved[0xe]", "reserved[0xf]", "reserved[0x10]", "reserved[0x11]",
+    "reserved[0x12]", "reserved[0x13]", "reserved[0x14]", "reserved[0x15]",
+    "reserved[0x16]", "reserved[0x17]", "reserved[0x18]", "reserved[0x19]",
+    "reserved[0x1a]", "reserved[0x1b]", "reserved[0x1c]", "reserved[0x1d]",
+    "reserved[0x1e]", "reserved[0x1f]",
+};
+
+const char * sdparm_mode_page_policy_arr[] =
+{
+    "shared",
+    "per target port",
+    "per initiator port (obsolete)",    /* obsoleted in SPC-4 */
+    "per I_T nexus",
 };
 
 struct sdparm_command sdparm_command_arr[] =

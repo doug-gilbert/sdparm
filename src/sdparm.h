@@ -11,6 +11,7 @@
 
 #define DEF_MODE_RESP_LEN 252
 #define DEF_INQ_RESP_LEN 252
+#define VPD_ATA_INFO_RESP_LEN 572
 
 /* Mode page numbers */
 #define RW_ERR_RECOVERY_MP 1
@@ -52,10 +53,17 @@
 /* VPD pages (fetched by INQUIRY command) */
 #define VPD_SUPPORTED_VPDS 0x0
 #define VPD_UNIT_SERIAL_NUM 0x80
+#define VPD_IMP_OP_DEF 0x81     /* obsolete in SPC-2 */
+#define VPD_ASCII_OP_DEF 0x82   /* obsolete in SPC-2 */
 #define VPD_DEVICE_ID 0x83
+#define VPD_SOFTW_INF_ID 0x84
 #define VPD_MAN_NET_ADDR 0x85
 #define VPD_EXT_INQ 0x86
+#define VPD_MODE_PG_POLICY 0x87
 #define VPD_SCSI_PORTS 0x88
+#define VPD_ATA_INFO 0x89
+#define VPD_BLOCK_LIMITS 0xb0
+
 #define VPD_ASSOC_LU 0
 #define VPD_ASSOC_TPORT 1
 #define VPD_ASSOC_TDEVICE 2
@@ -158,5 +166,7 @@ extern const char * sdparm_code_set_arr[];
 extern const char * sdparm_assoc_arr[];
 extern const char * sdparm_id_type_arr[];
 extern const char * sdparm_ansi_version_arr[];
+extern const char * sdparm_network_service_type_arr[];
+extern const char * sdparm_mode_page_policy_arr[];
 
 #endif

@@ -30,7 +30,7 @@
  *
  */
 
-/* Version 1.10 [20050521]
+/* Version 1.13 [20050906]
  *
  * On 5th October 2004 a FreeBSD license was added to this file.
  * The intention is to keep this file and the related sg_lib.c file
@@ -167,6 +167,26 @@ extern char * safe_strerror(int errnum);
 */
 extern void dStrHex(const char* str, int len, int no_ascii);
 
+/* Returns 1 when executed on big endian machine; else returns 0.
+   Useful for displaying ATA identify words (which need swapping on a
+   big endian machine).
+*/
+extern int sg_is_big_endian();
+
+/* Print (to stdout) 16 bit 'words' in hex, 8 words per line optionally
+   followed at the right hand side of the line with an ASCII interpretation
+   (pairs of ASCII characters in big endian order (upper first)).
+   Each line is prefixed with an address, starting at 0.
+   All output numbers are in hex. 'no_ascii' allows for 3 output types:
+       > 0     each line has address then up to 8 ASCII-hex words
+       = 0     in addition, the words are listed in ASCII pairs to the right
+       < 0     only the ASCII-hex words are listed (i.e. without address)
+   If 'swapb' non-zero then bytes in each word swapped. Needs to be set
+   for ATA IDENTIFY DEVICE response on big-endian machines.
+*/
+extern void dWordHex(const unsigned short* words, int num, int no_ascii,
+                     int swapb);
+
 /* If the number in 'buf' can not be decoded or the multiplier is unknown
    then -1 is returned. Accepts a hex prefix (0x or 0X) or a decimal
    multiplier suffix (not both). Recognised multipliers: c C  *1;  w W  *2;
@@ -289,7 +309,8 @@ extern void sg_set_warnings_str(FILE * warnings_str);
    descriptor (default value is stderr) */
 extern void sg_print_command(const unsigned char * command);
 extern void sg_print_sense(const char * leadin,
-                           const unsigned char * sense_buffer, int sb_len);
+                           const unsigned char * sense_buffer, int sb_len,
+                           int raw_info);
 extern void sg_print_status(int masked_status);
 extern void sg_print_scsi_status(int scsi_status);
 extern void sg_print_host_status(int host_status);
@@ -300,14 +321,16 @@ extern void sg_print_driver_status(int driver_status);
    'sg_warnings_fd' and returns 0. */
 extern int sg_chk_n_print(const char * leadin, int masked_status,
                           int host_status, int driver_status,
-                          const unsigned char * sense_buffer, int sb_len);
+                          const unsigned char * sense_buffer, int sb_len,
+                          int raw_sinfo);
 
 /* The following function declaration is for the sg version 3 driver. */
 struct sg_io_hdr;
 /* sg_chk_n_print3() returns 1 quietly if there are no errors/warnings;
    else it prints errors/warnings (prefixed by 'leadin') to
    'sg_warnings_fd' and returns 0. */
-extern int sg_chk_n_print3(const char * leadin, struct sg_io_hdr * hp);
+extern int sg_chk_n_print3(const char * leadin, struct sg_io_hdr * hp,
+                           int raw_sinfo);
 
 /* Calls sg_scsi_normalize_sense() after obtaining the sense buffer and
    its length from the struct sg_io_hdr pointer. If these cannot be
