@@ -11,7 +11,7 @@ to FreeBSD and Tru64.
 
 Relationship to sg3_utils
 -------------------------
-This package shares code with sg3_utils (version 1.19).
+This package shares code with sg3_utils (version 1.21).
 sg3_utils is a package of utilities that typically act at the SCSI
 command level. sg3_utils is written by the same author. The shared code
 (sg_lib.[hc] and sg_cmds.[hc]) includes tables of SCSI command names
@@ -45,7 +45,8 @@ to be executed if one of the other generating files in the above list
 is changed.
 
 There is a rpm "spec" file in the main directory: sdparm.spec .
-There are debian build files in the "debian" directory.
+There are debian build files in the "debian" directory and a
+script called build_debian.sh in the main directory.
 
 License
 -------
@@ -74,4 +75,4 @@ The contents of COPYING is a FreeBSD license (rather than the GPL v2).
 
 
 Douglas Gilbert
-18th May 2006
+8th July 2006

@@ -2,6 +2,22 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
+ChangeLog for sdparm-0.99 [20060708]
+  - add old power condition page for disks only (0xd)
+  - zero whole device specific parameter field for disks (not
+    just the DPOFUA bit).
+  - revert REQUEST SENSE prior to mode page access change
+    added in sdparm-0.98 (libata doesn't support REQUEST SENSE)
+  - expand exit status values to be more expressive (and the
+    same as those used by the sg3_utils-1.21 package)
+  - use new SG_LIB_CAT_NOT_READY and other indications to give
+    more accurate error messages.
+  - warn if value to change a mode page field exceeds the
+    field size
+  - sync with spc4r05a
+  - for ATA information VPD page, decode IDENTIFY response strings
+  - add mode page acronym to first line when '--long' given
+
 ChangeLog for sdparm-0.98 [20060518]
   - add decode for Medium configuration mode page, "mco" (ssc)
   - sync with SPC-4 rev 04

@@ -71,7 +71,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_lib.h"
 #include "sg_cmds.h"
 
-static char * version_str = "0.98 20060518";
+static char * version_str = "0.99 20060708";
 
 
 static struct option long_options[] = {
@@ -254,8 +254,8 @@ static void enumerate_mitems(int pn, int spn, int pdt, int transp_proto,
                 continue;
             if ((pdt >= 0) && (pdt != t_pdt))
                 continue;
-            sdp_get_mpage_name(t_pn, t_spn, t_pdt, transp_proto, 1, buff,
-                               sizeof(buff));
+            sdp_get_mpage_name(t_pn, t_spn, t_pdt, transp_proto, long_out,
+                               1, buff, sizeof(buff));
             if (long_out && (transp_proto < 0))
                 printf("%s [%s] mode page:\n", buff,
                        sdp_get_pdt_doc_str(t_pdt, sizeof(b), b)); 
@@ -272,7 +272,7 @@ static void enumerate_mitems(int pn, int spn, int pdt, int transp_proto,
         found = 1;
     }
     if ((! found) && (pn >= 0)) {
-        sdp_get_mpage_name(pn, spn, pdt, transp_proto, 1, buff,
+        sdp_get_mpage_name(pn, spn, pdt, transp_proto, long_out, 1, buff,
                            sizeof(buff));
         fprintf(stderr, "%s mode page: no items found\n", buff);
     }
@@ -380,8 +380,37 @@ static int ll_mode_sense(int fd, const struct sdparm_opt_coll * opts, int pn,
                                   spn, resp, mx_resp_len, noisy, verb);
 }
 
-static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
-                            const struct sdparm_opt_coll * opts, int verbose)
+static void warn_invalid_mode_page(unsigned char * cur_mp, int pn,
+                                   int rep_len, int flexible, int verbose) 
+{
+    int const pn_in_page = cur_mp[0] & 0x3f;
+
+    if (pn != pn_in_page) {
+        if (pn == POWER_MP && pn_in_page == POWER_OLD_MP) {
+            /* Some devices, e.g. IBM DCHS disk, ca. 1997, in violation of
+             * SCSI, report the old block device power control page when
+             * asked for the new generic power control page.  The format
+             * is identical except for the page number, so we can ignore
+             * the mismatch. */
+        } else {
+            fprintf(stderr, ">>> warning: mode page seems malformed\n"
+                    "   The page number field should be 0x%02x, but is 0x%02x",
+                    pn, pn_in_page);
+            if (!flexible)
+                fprintf(stderr, "; try '--flexible'");
+            fprintf(stderr, "\n");
+        }
+    } else if (verbose && (rep_len > 0xa00)) {
+        fprintf(stderr, ">>> warning: mode page length=%d "
+                "too long", rep_len);
+        if (!flexible)
+            fprintf(stderr, ", perhaps try '--flexible'");
+        fprintf(stderr, "\n");
+    }
+}
+
+static int print_mode_info(int sg_fd, int pn, int spn, int pdt,
+                           const struct sdparm_opt_coll * opts, int verbose)
 {
     int res, len, verb, smask, single_pg, fetch_pg, rep_len, orig_pn, warned;
     const struct sdparm_mode_page_item * mpi;
@@ -402,6 +431,20 @@ static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
             smask = cur_mp[opts->mode_6 ? 2 : 3];
             printf("    Direct access device specific parameters: WP=%d  "
                    "DPOFUA=%d\n", !!(smask & 0x80), !!(smask & 0x10));
+        } else if (SG_LIB_CAT_NOT_READY == res) {
+            fprintf(stderr, "mode sense command failed, device not ready\n");
+            return res;
+        } else if (SG_LIB_CAT_INVALID_OP == res) {
+            if (opts->mode_6)
+                fprintf(stderr, "6 byte MODE SENSE cdb not supported, "
+                        "try again without '-6' option\n");
+            else
+                fprintf(stderr, "10 byte MODE SENSE cdb not supported, "
+                        "try again with '-6' option\n");
+            return res;
+        } else if (SG_LIB_CAT_UNIT_ATTENTION == res) {
+            fprintf(stderr, "mode sense command failed, unit attention\n");
+            return res;
         }
     }
     orig_pn = pn;
@@ -410,7 +453,7 @@ static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
     else {
         mpi = sdparm_transport_mp[opts->transport].mitem;
         if (NULL == mpi)
-            return;
+            return SG_LIB_CAT_OTHER;
     }
     init_mpi = mpi;
     if (pn >= 0) {
@@ -427,7 +470,7 @@ static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
             if (opts->hex)
                 mpi = init_mpi;    /* trick to enter main loop once */
             else {
-                sdp_get_mpage_name(pn, spn, pdt, opts->transport, opts->hex,
+                sdp_get_mpage_name(pn, spn, pdt, opts->transport, 0, 0,
                                    buff, sizeof(buff));
                 fprintf(stderr, "%s mode page, attributes not found, "
                         "add '-H' to see page in hex\n", buff);
@@ -475,11 +518,18 @@ static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
                 else
                     fprintf(stderr, "10 byte MODE SENSE cdb not supported, "
                             "try again with '-6' option\n");
-                return;
+                return res;
+            } else if (SG_LIB_CAT_NOT_READY == res) {
+                fprintf(stderr, "MODE SENSE failed, device not ready\n");
+                return res;
+            } else if (SG_LIB_CAT_UNIT_ATTENTION == res) {
+                fprintf(stderr, "mode sense command failed, unit attention\n");
+                return res;
             }
             if (smask & 1) {
                 len = sdp_get_mp_len(cur_mp);
-                sdp_get_mpage_name(pn, spn, pdt, opts->transport, opts->hex,
+                sdp_get_mpage_name(pn, spn, pdt, opts->transport,
+                                   opts->long_out, opts->hex,
                                    buff, sizeof(buff));
                 printf("%s ", buff);
                 if (verbose) {
@@ -493,22 +543,8 @@ static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
                     printf(" [PS=%d]:\n", !!(cur_mp[0] & 0x80));
                 else
                     printf(":\n");
-                if (pn != (cur_mp[0] & 0x3f)) {
-                    if (opts->flexible)
-                        fprintf(stderr, ">>> warning: mode page seems "
-                                "malformed\n");
-                    else
-                        fprintf(stderr, ">>> warning: mode page seems "
-                                "malformed, try '--flexible'\n");
-                } else if (verbose && (rep_len > 0xa00)) {
-                    if (opts->flexible)
-                        fprintf(stderr, ">>> warning: mode page length=%d "
-                                "too long,\n", rep_len);
-                    else
-                        fprintf(stderr, ">>> warning: mode page length=%d "
-                                "too long, perhaps try '--flexible'\n",
-                                rep_len);
-                }
+                warn_invalid_mode_page(cur_mp, pn, rep_len, opts->flexible,
+                                       verbose);
                 if (opts->hex) {
                     if (len > (int)sizeof(cur_mp)) {
                         fprintf(stderr, ">> decoded page length too "
@@ -533,7 +569,8 @@ static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
             } else {
                 if (verbose || single_pg) {
                     sdp_get_mpage_name(pn, spn, pdt, opts->transport,
-                                       opts->hex, buff, sizeof(buff));
+                                       opts->long_out, opts->hex, buff,
+                                       sizeof(buff));
                     fprintf(stderr, ">> %s mode %spage ", buff,
                             (spn ? "sub" : ""));
                     if (verbose) {
@@ -544,6 +581,8 @@ static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
                     }
                     if (SG_LIB_CAT_ILLEGAL_REQ == res)
                         fprintf(stderr, "not supported\n");
+                    else if (SG_LIB_CAT_NOT_READY == res)
+                        fprintf(stderr, "device not ready\n");
                     else if (0 == res)
                         fprintf(stderr, "some problem\n");
                     else
@@ -573,11 +612,12 @@ static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
                      def_mp, sav_mp, opts->long_out, 0);
         }
     }
+    return 0;
 }
 
-static void get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
-                          int pdt, const struct sdparm_opt_coll * opts,
-                          int verbose)
+static int get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
+                         int pdt, const struct sdparm_opt_coll * opts,
+                         int verbose)
 {
     int k, res, verb, smask, pn, spn, warned, rep_len, len;
     unsigned long long u;
@@ -601,6 +641,7 @@ static void get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
             pn = mpi->page_num;
             spn = mpi->subpage_num;
             smask = 0;
+            res = 0;
             switch (val) {
             case 0:
                 pc_arr[0] = cur_mp;
@@ -628,7 +669,7 @@ static void get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
                 else
                     fprintf(stderr, "bad value given to 0x%x:%d:%d\n",
                             mpi->start_byte, mpi->start_bit, mpi->num_bits);
-                return;
+                return SG_LIB_SYNTAX_ERROR;
             }
             if (SG_LIB_CAT_INVALID_OP == res) {
                 if (opts->mode_6)
@@ -637,7 +678,13 @@ static void get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
                 else
                     fprintf(stderr, "10 byte MODE SENSE cdb not supported, "
                             "try again with '-6' option\n");
-                return;
+                return res;
+            } else if (SG_LIB_CAT_NOT_READY == res) {
+                fprintf(stderr, "MODE SENSE failed, device not ready\n");
+                return res;
+            } else if (SG_LIB_CAT_UNIT_ATTENTION == res) {
+                fprintf(stderr, "MODE SENSE failed, unit attention\n");
+                return res;
             }
             if ((0 == smask) && res) {
                 if (mpi->acron)
@@ -651,28 +698,14 @@ static void get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
                     fprintf(stderr, "error %sin ",
                             (verb ? "" : "(try adding '-vv') "));
                 sdp_get_mpage_name(pn, spn, mpi->pdt, opts->transport,
-                                   opts->hex, buff, sizeof(buff));
+                                   opts->long_out, opts->hex, buff,
+                                   sizeof(buff));
                 fprintf(stderr, "%s mode page\n", buff);
-                return;
+                return res;
             }
-            if (smask & 1) {
-                if (pn != (cur_mp[0] & 0x3f)) {
-                    if (opts->flexible)
-                        fprintf(stderr, ">>> warning: mode page seems "
-                                "malformed\n");
-                    else
-                        fprintf(stderr, ">>> warning: mode page seems "
-                                "malformed, try '--flexible'\n");
-                } else if (verbose && (rep_len > 0xa00)) {
-                    if (opts->flexible)
-                        fprintf(stderr, ">>> warning: mode page length=%d "
-                                "too long,\n", rep_len);
-                    else
-                        fprintf(stderr, ">>> warning: mode page length=%d "
-                                "too long, perhaps try '--flexible'\n",
-                                rep_len);
-                }
-            }
+            if (smask & 1)
+                warn_invalid_mode_page(cur_mp, pn, rep_len, opts->flexible,
+                                       verbose);
         }
         if ((pdt >= 0) && (0 == warned) && mpi->acron &&
             (mpi->pdt >= 0) && (pdt != mpi->pdt)) {
@@ -744,11 +777,12 @@ static void get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
                                NULL, NULL, opts->long_out, 1);
         }
     }
+    return 0;
 }
 
 /* Return of 0 -> success,
  * SG_LIB_CAT_INVALID_OP -> invalid opcode, SG_LIB_CAT_ILLEGAL_REQ ->
- * bad field in cdb, -1 -> other failure */
+ * bad field in cdb, SG_LIB_CAT_NOT_READY, -1 -> other failure */
 static int change_mode_page(int sg_fd, int pdt,
                             struct sdparm_mode_page_settings * mps,
                             const struct sdparm_opt_coll * opts, int verbose)
@@ -769,7 +803,7 @@ static int change_mode_page(int sg_fd, int pdt,
                         "(pdt) is 0x%x but acronym %s\n  is associated with "
                         "pdt 0x%x. To bypass use numeric addressing mode.\n",
                         pdt, ivp->mpi.acron, ivp->mpi.pdt);
-                return -1;
+                return SG_LIB_SYNTAX_ERROR;
             }
         }
     }
@@ -777,38 +811,51 @@ static int change_mode_page(int sg_fd, int pdt,
     res = ll_mode_sense(sg_fd, opts, mps->page_num, mps->subpage_num, mdpg,
                         4, 1, verbose);
     if (0 != res) {
+        if (SG_LIB_CAT_NOT_READY == res) {
+            fprintf(stderr, "mode sense command failed, device not ready\n");
+            return res;
+        } else if (SG_LIB_CAT_INVALID_OP == res) {
+            if (opts->mode_6)
+                fprintf(stderr, "6 byte MODE SENSE cdb not supported, "
+                        "try again without '-6' option\n");
+            else
+                fprintf(stderr, "10 byte MODE SENSE cdb not supported, "
+                        "try again with '-6' option\n");
+        } else if (SG_LIB_CAT_UNIT_ATTENTION == res)
+            fprintf(stderr, "mode sense command failed, unit attention\n");
+        
         sdp_get_mpage_name(mps->page_num, mps->subpage_num, pdt,
-                           opts->transport, 0, buff, sizeof(buff));
+                           opts->transport, 0, 0, buff, sizeof(buff));
         fprintf(stderr, "change_mode_page: failed fetching page: %s\n",
                 buff);
-        return -1;
+        return res;
     }
     md_len = opts->mode_6 ? (mdpg[0] + 1) : ((mdpg[0] << 8) + mdpg[1] + 2);
     if (md_len > (int)sizeof(mdpg)) {
         fprintf(stderr, "change_mode_page: mode data length=%d exceeds "
                 "allocation length=%d\n", md_len, (int)sizeof(mdpg));
-        return -1;
+        return SG_LIB_CAT_MALFORMED;
     }
     res = ll_mode_sense(sg_fd, opts, mps->page_num, mps->subpage_num, mdpg,
                         md_len, 1, verbose);
     if (0 != res) {
         sdp_get_mpage_name(mps->page_num, mps->subpage_num, pdt,
-                           opts->transport, 0, buff, sizeof(buff));
+                           opts->transport, 0, 0, buff, sizeof(buff));
         fprintf(stderr, "change_mode_page: failed fetching page: %s\n",
                 buff);
-        return -1;
+        return res;
     }
     off = sg_mode_page_offset(mdpg, md_len, opts->mode_6, ebuff, EBUFF_SZ);
     if (off < 0) {
         fprintf(stderr, "change_mode_page: page offset failed: %s\n", ebuff);
-        return -1;
+        return SG_LIB_CAT_MALFORMED;
     }
     len = sdp_get_mp_len(mdpg + off);
     mdpg[0] = 0;        /* mode data length reserved for mode select */
     if (! opts->mode_6)
         mdpg[1] = 0;    /* mode data length reserved for mode select */
-    if (0 == pdt)       /* DPOFUA in disk specific parameters is ... */
-        mdpg[opts->mode_6 ? 2 : 3] &= 0xef;     /* reserved for mode select */
+    if (0 == pdt)       /* entire disk specific parameters is ... */
+        mdpg[opts->mode_6 ? 2 : 3] = 0x00;     /* reserved for mode select */
 
     for (k = 0; k < mps->num_it_vals; ++k) {
         ivp = &mps->it_vals[k];
@@ -828,8 +875,15 @@ static int change_mode_page(int sg_fd, int pdt,
             else {
                 fprintf(stderr, "    nothing modified, use '--flexible' to "
                         "override\n");
-                return -1;
+                return SG_LIB_CAT_MALFORMED;
             }
+        }
+        if ((ivp->val >= 0) && (ivp->orig_val > 0) &&
+            (ivp->orig_val > ivp->val) && (0 == opts->quiet)) {
+            fprintf(stderr, "warning: given value (%lld) truncated to %lld "
+                    "by field size [%d bits]\n", ivp->orig_val, ivp->val,
+                    ivp->mpi.num_bits);
+            fprintf(stderr, "    applying anyway\n");
         }
         sdp_mp_set_value(ivp->val, &ivp->mpi, mdpg + off);
     }
@@ -838,7 +892,7 @@ static int change_mode_page(int sg_fd, int pdt,
         fprintf(stderr, "change_mode_page: mode page indicates it is not "
                 "savable but\n    '--save' option given (try without "
                 "it)\n");
-        return -1;
+        return SG_LIB_CAT_MALFORMED;
     }
     mdpg[off] &= 0x7f;   /* mask out PS bit, reserved in mode select */
     if (opts->dummy) {
@@ -854,16 +908,16 @@ static int change_mode_page(int sg_fd, int pdt,
                                   verbose);
     if (0 != res) {
         sdp_get_mpage_name(mps->page_num, mps->subpage_num, pdt,
-                           opts->transport, 0, buff, sizeof(buff));
+                           opts->transport, 0, 0, buff, sizeof(buff));
         fprintf(stderr, "change_mode_page: failed setting page: %s\n", buff);
-        return -1;
+        return res;
     }
     return 0;
 }
 
 /* Return of 0 -> success,
  * SG_LIB_CAT_INVALID_OP -> invalid opcode, SG_LIB_CAT_ILLEGAL_REQ ->
- * bad field in cdb, -1 -> other failure */
+ * bad field in cdb, SG_LIB_CAT_NOT_READY, -1 -> other failure */
 static int set_def_mode_page(int sg_fd, int pn, int spn, 
                              unsigned char * mode_pg, int mode_pg_len,
                              const struct sdparm_opt_coll * opts, int verbose)
@@ -878,12 +932,12 @@ static int set_def_mode_page(int sg_fd, int pn, int spn,
     mdp = malloc(len);
     if (NULL ==mdp) {
         fprintf(stderr, "set_def_mode_page: malloc failed, out of memory\n");
-        return -1;
+        return SG_LIB_FILE_ERROR;
     }
     memset(mdp, 0, len);
     ret = ll_mode_sense(sg_fd, opts, pn, spn, mdp, 4, 1, verbose);
     if (0 != ret) {
-        sdp_get_mpage_name(pn, spn, -1, opts->transport, 0, buff,
+        sdp_get_mpage_name(pn, spn, -1, opts->transport, 0, 0, buff,
                            sizeof(buff));
         fprintf(stderr, "set_def_mode_page: failed fetching page: %s\n",
                 buff);
@@ -893,12 +947,12 @@ static int set_def_mode_page(int sg_fd, int pn, int spn,
     if (md_len > len) {
         fprintf(stderr, "set_def_mode_page: mode data length=%d exceeds "
                 "allocation length=%d\n", md_len, len);
-        ret = -1;
+        ret = SG_LIB_CAT_MALFORMED;
         goto err_out;
     }
     ret = ll_mode_sense(sg_fd, opts, pn, spn, mdp, md_len, 1, verbose);
     if (0 != ret) {
-        sdp_get_mpage_name(pn, spn, -1, opts->transport, 0, buff,
+        sdp_get_mpage_name(pn, spn, -1, opts->transport, 0, 0, buff,
                            sizeof(buff));
         fprintf(stderr, "set_def_mode_page: failed fetching page: %s\n",
                 buff);
@@ -908,7 +962,7 @@ static int set_def_mode_page(int sg_fd, int pn, int spn,
     if (off < 0) {
         fprintf(stderr, "set_def_mode_page: page offset failed: %s\n",
                 ebuff);
-        ret = -1;
+        ret = SG_LIB_CAT_MALFORMED;
         goto err_out;
     }
     mdp[0] = 0;        /* mode data length reserved for mode select */
@@ -917,7 +971,7 @@ static int set_def_mode_page(int sg_fd, int pn, int spn,
     if ((md_len - off) > mode_pg_len) {
         fprintf(stderr, "set_def_mode_page: mode length length=%d exceeds "
                 "new contents length=%d\n", md_len - off, mode_pg_len);
-        ret = -1;
+        ret = SG_LIB_CAT_MALFORMED;
         goto err_out;
     }
     memcpy(mdp + off, mode_pg, md_len - off);
@@ -935,7 +989,7 @@ static int set_def_mode_page(int sg_fd, int pn, int spn,
         ret = sg_ll_mode_select10(sg_fd, 1, opts->saved, mdp, md_len, 1,
                                   verbose);
     if (0 != ret) {
-        sdp_get_mpage_name(pn, spn, -1, opts->transport, 0, buff,
+        sdp_get_mpage_name(pn, spn, -1, opts->transport, 0, 0, buff,
                            sizeof(buff));
         fprintf(stderr, "set_def_mode_page: failed setting page: %s\n",
                 buff);
@@ -972,10 +1026,14 @@ static int set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
         else
             fprintf(stderr, "10 byte MODE SENSE cdb not supported, "
                     "try again with '-6' option\n");
-        return -1;
+        return res;
+    }
+    else if (SG_LIB_CAT_NOT_READY == res) {
+        fprintf(stderr, "MODE SENSE (10) failed, device not ready\n");
+        return res;
     }
     if (verbose && (0 == opts->flexible) && (rep_len > 0xa00)) {
-        sdp_get_mpage_name(pn, spn, pdt, opts->transport, 0, buff,
+        sdp_get_mpage_name(pn, spn, pdt, opts->transport, 0, 0, buff,
                            sizeof(buff));
         fprintf(stderr, "%s mode page length=%d too long, perhaps "
                 "try '--flexible'\n", buff, rep_len);
@@ -987,17 +1045,17 @@ static int set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
                                      verbose);
         }
         else {
-            sdp_get_mpage_name(pn, spn, pdt, opts->transport, 0, buff,
+            sdp_get_mpage_name(pn, spn, pdt, opts->transport, 0, 0, buff,
                                sizeof(buff));
             fprintf(stderr, ">> %s mode page (default) not supported\n",
                     buff);
-            return -1;
+            return SG_LIB_CAT_ILLEGAL_REQ;
         }
     } else {
-        sdp_get_mpage_name(pn, spn, pdt, opts->transport, 0, buff,
+        sdp_get_mpage_name(pn, spn, pdt, opts->transport, 0, 0, buff,
                            sizeof(buff));
         fprintf(stderr, ">> %s mode page not supported\n", buff);
-        return -1;
+        return SG_LIB_CAT_ILLEGAL_REQ;
     }
 }
 
@@ -1107,6 +1165,7 @@ static int build_mp_settings(const char * arg,
                 strcpy(acron, buff);
                 ivp->val = ((clear || get) ? 0 : -1);
             }
+            ivp->orig_val = ivp->val;
             from = 0;
             cont = 0;
             prev_mpi = NULL;
@@ -1234,6 +1293,7 @@ static int build_mp_settings(const char * arg,
                 ivp->mpi.page_num = mps->page_num;
                 ivp->mpi.subpage_num = mps->subpage_num;
             }
+            ivp->orig_val = ivp->val;
             if (ivp->mpi.num_bits < 64) {
                 long long ll = 1;
 
@@ -1346,7 +1406,7 @@ static int process_mode_page(int sg_fd, struct sdparm_mode_page_settings * mps,
     if ((pn > 0x3e) || (spn > 0xfe)) {
         fprintf(stderr, "Allowable mode page numbers are 0 to 62\n");
         fprintf(stderr, "  Allowable mode subpage numbers are 0 to 254\n");
-        return -1;
+        return SG_LIB_SYNTAX_ERROR;
     }
     if ((pn > 0) && (pdt >= 0)) {
         vnp = sdp_get_mode_detail(pn, spn, pdt, opts->transport);
@@ -1361,25 +1421,25 @@ static int process_mode_page(int sg_fd, struct sdparm_mode_page_settings * mps,
     }
     if (opts->defaults) {
         res = set_mp_defaults(sg_fd, pn, spn, pdt, opts, verbose);
-        if (0 != res)
-            return -1;
+        if (res)
+            return res;
     } else if (rw) {
         if (mps->num_it_vals < 1) {
             fprintf(stderr, "no attributes found to set or clear\n");
-            return -1;
+            return SG_LIB_CAT_OTHER;
         }
         res = change_mode_page(sg_fd, pdt, mps, opts, verbose);
-        if (0 != res)
-            return -1;
+        if (res)
+            return res;
     } else if (get) {
         if (mps->num_it_vals < 1) {
             fprintf(stderr, "no attributes found to get\n");
-            return -1;
+            return SG_LIB_CAT_OTHER;
         }
-        get_mode_info(sg_fd, mps, pdt, opts, verbose);
+        res = get_mode_info(sg_fd, mps, pdt, opts, verbose);
     } else
-        print_mode_info(sg_fd, pn, spn, pdt, opts, verbose);
-    return 0;
+        res = print_mode_info(sg_fd, pn, spn, pdt, opts, verbose);
+    return res;
 }
 
 
@@ -1402,7 +1462,7 @@ int main(int argc, char * argv[])
     char * cp;
     const char * ccp;
     const struct sdparm_command * scmdp = NULL;
-    int ret = 1;
+    int ret = 0;
 
     memset(&opts, 0, sizeof(opts));
     opts.transport = -1;
@@ -1470,7 +1530,7 @@ int main(int argc, char * argv[])
             if (page_str) {
                 fprintf(stderr, "only one '--page=' option permitted\n");
                 usage();
-                return 1;
+                return SG_LIB_SYNTAX_ERROR;
             } else
                 page_str = optarg;
             break;
@@ -1490,7 +1550,7 @@ int main(int argc, char * argv[])
                             "transport protocol\n");
                     printf("Available transport protocols:\n");
                     enumerate_transports();
-                    return 1;
+                    return SG_LIB_SYNTAX_ERROR;
                 } else
                     opts.transport = vnp->value;
             } else {
@@ -1500,7 +1560,7 @@ int main(int argc, char * argv[])
                             "option\n");
                     printf("Available transport protocols:\n");
                     enumerate_transports();
-                    return 1;
+                    return SG_LIB_SYNTAX_ERROR;
                 }
                 opts.transport = res;
             }
@@ -1514,7 +1574,7 @@ int main(int argc, char * argv[])
         default:
             fprintf(stderr, "unrecognised option code 0x%x ??\n", c);
             usage();
-            return 1;
+            return SG_LIB_SYNTAX_ERROR;
         }
     }
     if (optind < argc) {
@@ -1528,7 +1588,7 @@ int main(int argc, char * argv[])
                 fprintf(stderr, "Unexpected extra argument: %s\n",
                         argv[optind]);
             usage();
-            return 1;
+            return SG_LIB_SYNTAX_ERROR;
         }
     }
 
@@ -1546,7 +1606,7 @@ int main(int argc, char * argv[])
                     if (opts.inquiry) {
                         printf("available VPD pages:\n");
                         enumerate_vpds();
-                        return 1;
+                        return SG_LIB_SYNTAX_ERROR;
                     } else {
                         printf("available mode pages");
                         if (opts.transport < 0)
@@ -1554,9 +1614,9 @@ int main(int argc, char * argv[])
                         else
                             printf(" (for given transport):\n");
                         enumerate_mps(opts.transport);
-                        return 1;
+                        return SG_LIB_SYNTAX_ERROR;
                     }
-                    return 1;
+                    return SG_LIB_SYNTAX_ERROR;
                 } else {
                     pn = vnp->value;
                     spn = vnp->subvalue;
@@ -1567,7 +1627,7 @@ int main(int argc, char * argv[])
                 if (opts.inquiry) {
                     fprintf(stderr, "matched mode page acronym but given "
                             "'-i' so expecting a VPD page\n");
-                    return 1;
+                    return SG_LIB_SYNTAX_ERROR;
                 }
                 pn = vnp->value;
                 spn = vnp->subvalue;
@@ -1582,7 +1642,7 @@ int main(int argc, char * argv[])
                 if (opts.inquiry) {
                     printf("available VPD pages:\n");
                     enumerate_vpds();
-                    return 1;
+                    return SG_LIB_SYNTAX_ERROR;
                 } else {
                     printf("available mode pages");
                     if (opts.transport < 0)
@@ -1590,7 +1650,7 @@ int main(int argc, char * argv[])
                     else
                         printf(" (for given transport):\n");
                     enumerate_mps(opts.transport);
-                    return 1;
+                    return SG_LIB_SYNTAX_ERROR;
                 }
             }
             if (cp) {
@@ -1598,7 +1658,7 @@ int main(int argc, char * argv[])
                 if ((spn < 0) || (spn > 255)) {
                     fprintf(stderr, "Bad second value after "
                             "'-p' option\n");
-                    return 1;
+                    return SG_LIB_SYNTAX_ERROR;
                 }
             } else
                 spn = 0;
@@ -1611,11 +1671,11 @@ int main(int argc, char * argv[])
             fprintf(stderr, "'--inquiry' option lists VPD pages so other "
                     "options that are\nconcerned with mode pages are "
                     "inappropriate\n");
-            return 1;
+            return SG_LIB_SYNTAX_ERROR;
         }
         if (pn > 255) {
             fprintf(stderr, "VPD page numbers are from 0 to 255\n");
-            return 1;
+            return SG_LIB_SYNTAX_ERROR;
         }
         if (opts.enumerate) {
             printf("VPD pages:\n");
@@ -1626,7 +1686,7 @@ int main(int argc, char * argv[])
         if (set_str || clear_str || get_str || opts.defaults || opts.saved) {
             fprintf(stderr, "'--command=' option is not valid with other "
                     "options that are\nconcerned with mode pages\n");
-            return 1;
+            return SG_LIB_SYNTAX_ERROR;
         }
         if (opts.enumerate) {
             printf("Available commands:\n");
@@ -1638,7 +1698,7 @@ int main(int argc, char * argv[])
             fprintf(stderr, "'--command=%s' not found\n", cmd_str);
             printf("available commands\n");
             sdp_enumerate_commands();
-            return 1;
+            return SG_LIB_SYNTAX_ERROR;
         }
     } else {
         /* assume mode pages */
@@ -1653,11 +1713,11 @@ int main(int argc, char * argv[])
             if (set_str || clear_str) {
                 fprintf(stderr, "'--get=' can't be used with '--set=' "
                         "or " "'--clear='\n");
-                return 1;
+                return SG_LIB_SYNTAX_ERROR;
             }
             if (build_mp_settings(get_str, &mp_settings, opts.transport,
                                   0, 1))
-                return 1;
+                return SG_LIB_SYNTAX_ERROR;
         }
         if (opts.enumerate) {
             if (device_name[0] || set_str || clear_str || get_str ||
@@ -1732,18 +1792,18 @@ int main(int argc, char * argv[])
         if (opts.defaults && (set_str || clear_str || get_str)) {
             fprintf(stderr, "'--get=', '--set=' or '--clear=' "
                     "can't be used with '--defaults'\n");
-            return 1;
+            return SG_LIB_SYNTAX_ERROR;
         }
 
         if (set_str) {
             if (build_mp_settings(set_str, &mp_settings, opts.transport,
                                   0, 0))
-                return 1;
+                return SG_LIB_SYNTAX_ERROR;
         }
         if (clear_str) {
             if (build_mp_settings(clear_str, &mp_settings, opts.transport,
                                   1, 0))
-                return 1;
+                return SG_LIB_SYNTAX_ERROR;
         }
  
         if (verbose && (mp_settings.num_it_vals > 0))
@@ -1752,67 +1812,40 @@ int main(int argc, char * argv[])
         if (opts.defaults && (pn < 0)) {
             fprintf(stderr, "to set defaults, the '--page=' option must "
                     "be used\n");
-            return 1;
+            return SG_LIB_SYNTAX_ERROR;
         }
     }
 
     if (0 == device_name[0]) {
         fprintf(stderr, "missing device name!\n");
         usage();
-        return 1;
+        return SG_LIB_SYNTAX_ERROR;
     }
 
     req_pdt = pdt;
     pdt = -1;
     sg_fd = open_and_simple_inquiry(device_name, rw, &pdt, &opts, verbose);
     if (sg_fd < 0) 
-        return 1;
+        return SG_LIB_FILE_ERROR;
 
     if (opts.inquiry)
-        res = sdp_process_vpd_page(sg_fd, pn, ((spn < 0) ? 0: spn), &opts,
+        ret = sdp_process_vpd_page(sg_fd, pn, ((spn < 0) ? 0: spn), &opts,
                                    req_pdt, verbose);
     else {
-        unsigned char sbuff[64];
-        struct sg_scsi_sense_hdr ssh;
-        char b[512];
-
-        if (cmd_str && scmdp) { /* process command */
-            res = sdp_process_cmd(sg_fd, scmdp, pdt, &opts, verbose);
-            if (res)
-                goto err_out;
-        } else {                /* mode page */
-            /* flush out any pending Unit Attentions */
-            memset(sbuff, 0, sizeof(sbuff));
-            memset(b, 0, sizeof(b));
-            res = sg_ll_request_sense(sg_fd, 0, sbuff, sizeof(sbuff), 0,
-                                      verbose); 
-            if (res) {
-                fprintf(stderr, "REQUEST SENSE failed%s\n",
-                        (verbose ? "" : ", try again with '-v' option"));
-                goto err_out;
-            }
-            if (sg_scsi_normalize_sense(sbuff, sizeof(sbuff), &ssh) &&
-                (ssh.asc || ssh.ascq) && (0 == opts.quiet)) {
-                fprintf(stderr, "Request sense detected:  Sense key: %s\n",
-                        sg_get_sense_key_str(ssh.sense_key, sizeof(b), b));
-                fprintf(stderr, "  %s\n    continuing ...\n",
-                        sg_get_asc_ascq_str(ssh.asc, ssh.ascq, sizeof(b), b));
-            }
-            res = process_mode_page(sg_fd, &mp_settings, pn, spn, rw,
+        if (cmd_str && scmdp)   /* process command */
+            ret = sdp_process_cmd(sg_fd, scmdp, pdt, &opts, verbose);
+        else                    /* mode page */
+            ret = process_mode_page(sg_fd, &mp_settings, pn, spn, rw,
                                     (NULL != get_str), &opts, pdt, verbose);
-            if (res)
-                goto err_out;
-        }
     }
-    ret = 0;
 
-err_out:
     res = sg_cmds_close_device(sg_fd);
     if (res < 0) {
         fprintf(stderr, "close error: %s\n", safe_strerror(-sg_fd));
-        return 1;
+        if (0 == ret)
+            return SG_LIB_FILE_ERROR;
     }
-    return ret;
+    return (ret >= 0) ? ret : SG_LIB_CAT_OTHER;
 }
 
 #ifdef SDPARM_LINUX

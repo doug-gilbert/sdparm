@@ -26,6 +26,7 @@ sdparm utility</a>
       <li><a href="#mozTocId968100">VPD pages</a></li>
       <li><a href="#mozTocId592219">sdparm commands</a></li>
       <li><a href="#mozTocId683013">sdparm syntax</a></li>
+      <li><a href="#mozTocId675268">Exit status</a></li>
       <li><a href="#mozTocId808937">Transports</a></li>
       <li><a href="#mozTocId926648">USB</a></li>
       <li><a href="#mozTocId28143">IEEE 1394</a></li>
@@ -59,7 +60,7 @@ other housekeeping functions can also
 be sent with this utility.<br>
 <br>
 The information in this page corresponds to <span
- style="font-weight: bold;">sdparm</span> version 0.98 .<br>
+ style="font-weight: bold;">sdparm</span> version 0.99 .<br>
 <h2><a class="mozTocH2" name="mozTocId783733"></a>SCSI mode pages</h2>
 Mode pages hold meta data about a SCSI device which can, in some cases,
 be changed by the user. In SCSI parlance the "device" is a <span
@@ -84,9 +85,10 @@ while those specific to block devices
 in MMC-5. This <a href="http://www.t10.org/scsi-3.htm">diagram</a>
 shows how various SCSI and associated standards interrelate. Often
 device product manuals detail precisely which mode pages (and parts
-thereof) are supported by a particular model and describe the way the
-device will react (if the generic description in the SCSI (draft)
-standard needs amplification). There are also transport protocol
+thereof) are supported by a particular model and describe the way that
+the
+device will react if the generic description in the SCSI (draft)
+standard needs amplification. There are also transport protocol
 specific mode pages for transports such as "spi" (the 20 year old SCSI
 Parallel Interface), "fcp" (Fibre Channel Protocol) and "sas" (Serial
 Attached SCSI). Mode pages
@@ -103,14 +105,14 @@ use (for example) 'sdparm -e -t sas'. Both lists are sorted
 alphabetically by mode page abbreviation.<br>
 <br>
 Mode pages are not the only mechanism in SCSI devices for holding
-metadata. Information which seldom if ever changes for a particular
+meta data. Information which seldom if ever changes for a particular
 device may be found in the Vital Product Data (VPD) pages which are
 obtained via the SCSI INQUIRY command. Performance statistics are held
 in log pages which are obtained via the SCSI LOG SENSE command. Recent
 CD/DVD drives hold a lot of information in feature and profile
 descriptors (see MMC-4 and MMC-5) which are accessed via the SCSI GET
 CONFIGURATION command (see the sg_get_config utility in the <a
- href="u_index.html">sg3_utils</a>
+ href="sg3_utils.html">sg3_utils</a>
 package).<br>
 <br>
 Each mode page has up to four tables associated with it. These can be
@@ -136,12 +138,16 @@ changeable
 values mask indicates the corresponding bit in the current values (and
 saved values) may be changed. At the point when a current value is
 changed, the user may also choose to change the corresponding saved
-value.&nbsp; <br>
+value. <br>
 <br>
 The manufacturer obviously knows a lot about the characteristics of its
 devices. Hence if a current field value (and saved field value) is
 different from the default field value then there should be some
 rationale.<br>
+<br>
+Some current values represent a state within the target device or
+logical unit. If that state changes so does the current value. Such
+values are not usually changeable by the user.<br>
 <br>
 The <span style="font-weight: bold;">sdparm</span> utility has a
 '--get', '--set', '--clear' type of command
@@ -149,7 +155,7 @@ line interface in which mode page fields are identified by an acronym.
 In many cases these acronyms will correspond precisely to the standard
 (e.g. "WCE" for Writeback Cache Enable in the caching mode page of
 SBC-3).
-For some longer fields the standards "spell out" their names (e.g.
+For some longer fields the standards "spell out" a field name (e.g.
 "Write Retention Priority" in the caching mode page of SBC-3). In such
 cases the <span style="font-weight: bold;">sdparm</span> utility uses
 an acronym (e.g. "WRP"). In <span style="font-weight: bold;">sdparm</span>,
@@ -159,9 +165,9 @@ generic mode pages are unique
 one generic mode page). Each transport protocol has its own namespace
 of acronyms so that an acronym is unique within a transport protocol.
 By default, saved values are
-not changed by '--set' and '--clear'. To change saved values as well
-the '--save' option
-additionally needs to be given. All the current values in a mode page
+not changed by '--set' and '--clear'. When changing the current values,
+the saved values can be changed as well by adding
+the '--save'. All the current values in a mode page
 can be changed back
 to the manufacturer's defaults with the '--defaults' option (and the
 '--save' option here will additionally change the saved values back to
@@ -177,14 +183,22 @@ added.<br>
 <h2><a class="mozTocH2" name="mozTocId968100"></a>VPD pages</h2>
 Vital Product Data (VPD) pages are fetched with the SCSI INQUIRY
 command. While support for a "standard" INQUIRY response is mandatory,
-support for VPD page has been optional in the past. SPC-3 makes support
+support for VPD page has been optional in the past. SPC-2 (became a
+standard in 2001) and SPC-3 made support
 for the "Device Identification" and the "Supported
-VPD pages" VPD pages mandatory.<br>
+VPD pages" VPD pages mandatory. A utility like sdparm should be able to
+send an INQUIRY command and get a valid response when the target device
+or logical unit is in almost any state. SCSI devices are not required
+to respond to mode pages accesses when the device is in any state, so
+often disks will not allow mode pages to be accessed or changed when
+the disk is spun down.<br>
 <br>
 VPD pages are read only and in some situations may not be available
-(e.g. if the media is spun down). They tend to have a variable number
-of descriptors (rather than a predictable size with parameters in known
-positions such as most mode pages). A VPD page number can be selected
+(e.g. if the media is spun down or not present). Even in such cases the
+INQUIRY command should still respond with perhaps zero in the affected
+fields. VPD pages tend to have a variable number
+of descriptors rather than a predictable size with parameters in known
+positions such as most mode pages. A VPD page number can be selected
 with the '--page=' option. If only the '--inquiry' option is given
 (without a '--page=' option) then the Device Identification
 VPD
@@ -215,7 +229,7 @@ another acronym: "di_asis" which outputs designators in the order they
 are found in the device
 identification page.<br>
 <br>
-VPD pages that are currently decoded:<br>
+VPD pages that are currently decoded (listed in page number order):<br>
 <ul>
   <li>Supported VPD pages [page 0x0]; page abbreviation: "sv". Contains
 a list of VPD pages supported by given device.<br>
@@ -227,7 +241,8 @@ a vendor specific (vendor format) serial number.<br>
 "di". Contains designators for the addressed logical unit, target
 device and target port. These can be listed individually with the
 "di_lu", "di_port" and "di_target" acronyms. Use "di_asis" to show all
-designators in the order they are found.<br>
+designators in the order they are found. Add '--quiet' option to reduce
+the amount of output, leaving mainly naa-5 and EUI identifiers.<br>
   </li>
   <li>Software Interface Identification; [page 0x84], one or more
 EUI-48 identifiers that can be used to define more precisely the
@@ -265,6 +280,11 @@ requested (e.g. '--page=82h') and the device gives a response then that
 response it output
 in ASCII hex. VPD page abbreviations can be listed with 'sdparm
 --enumerate --inquiry'.<br>
+<br>
+The sg3_utils package (from version 1.21 onwards) contains a utility
+called <span style="font-weight: bold;">sg_vpd</span> that overlaps
+with sdparm's VPD capabilities. Additionally sg_vpd decodes various
+vendor specific VPD pages.<br>
 <h2><a class="mozTocH2" name="mozTocId592219"></a>sdparm commands</h2>
 The '--command=' option allows a command to be sent to the given
 device. The currently supported commands are:
@@ -279,7 +299,11 @@ the drive. Note that this may be prevented by software in which case
 use the 'unlock' command first.</li>
   <li>load: loads the medium and then spins it up</li>
   <li>ready: reports whether the medium is ready for IO. Ready usually
-means that it is present and spun up.</li>
+means that it is present and spun up. If the device is not ready then
+the exit status will be 2 (see <a href="sdparm.html#mozTocId675268">exit
+status</a>
+section below).<br>
+  </li>
   <li>sense: reports sense data (from a REQUEST SENSE SCSI command);
 can include power condition information, a progress indication for a
 time consuming command (e.g. format) or a report an informational
@@ -584,15 +608,16 @@ If <span style="font-weight: bold;">sdparm</span> is used to change
 parameters and that operation succeeds (or at least no error is
 reported) then only standard INQUIRY response information (i.e. vendor,
 model and revision) is output
-and the <span style="font-weight: bold;">sdparm</span> process exits
-with a value of 0. If required the standard INQUIRY response
+and the <span style="font-weight: bold;">sdparm</span> completes with
+an exit status value of 0. If required the standard INQUIRY response
 information (i.e. vendor,
 model and revision) output can be suppressed with the '--quiet' option.
 If <span style="font-weight: bold;">sdparm</span>
 is used to change parameters and that operation fails then error
 information is output (usually to stderr) and the <span
- style="font-weight: bold;">sdparm</span> process exits with a value of
-1.<br>
+ style="font-weight: bold;">sdparm</span> completes with a non-zero
+exit status value(see <a href="#mozTocId675268">exit status</a>
+section).<br>
 <br>
 For '--get=' the "&lt;value&gt;" is not normally given. If given then
 it is interpreted as a formatting instruction for which the value of 0
@@ -612,6 +637,67 @@ abbreviations followed by their full names are output. If the
 '--enumerate --page=' options are given then within the selected mode
 page, the name of each known acronym, its numeric descriptor and its
 full name is output.<br>
+<br>
+<h2><a class="mozTocH2" name="mozTocId675268"></a>Exit status</h2>
+Each process containing the sdparm utility completes
+with an exit status 0 when
+successful. Prior to version 0.99 all errors yielded an exit status of
+1. From version 0.99 the non zero exit status values are:<br>
+<ul>
+  <li><span style="font-weight: bold;">1</span>&nbsp;&nbsp; syntax
+error in command line options or their arguments, or an illegal
+combination of options.</li>
+  <li><span style="font-weight: bold;">2</span>&nbsp;&nbsp; the device
+reports that it is not ready for the operation requested. The device
+may be in the process of becoming ready (e.g. spinning up but not at
+speed) so sdparm may work after a wait.</li>
+  <li><span style="font-weight: bold;">3</span>&nbsp;&nbsp; the device
+reports a medium or hardware error (or a blank check).<br>
+  </li>
+  <li><span style="font-weight: bold;">5</span>&nbsp;&nbsp; the device
+reports an "illegal request" with an additional sense code other than
+"invalid operation code". This is often a supported command with a
+field set requesting an unsupported capability. <br>
+  </li>
+  <li><span style="font-weight: bold;">6</span>&nbsp;&nbsp; the device
+reports a "unit attention" condition. This usually indicates that
+something unrelated to the requested command has occurred (e.g. a
+device reset) potentially before the current SCSI command was sent. The
+requested command has not been executed by the device. Note that unit
+attention conditions are usually only reported once by a device.</li>
+  <li><span style="font-weight: bold;">9</span>&nbsp;&nbsp; the device
+reports an illegal request with an additional sense code of "invalid
+operation code" which means that it doesn't support the requested
+command.</li>
+  <li><span style="font-weight: bold;">10</span>&nbsp;&nbsp; the
+&lt;scsi_device&gt; reports it has a check condition but "no sense".
+Some polling commands (e.g. REQUEST SENSE) can react this way. It is
+unlikely that this value will occur as an exit status.</li>
+  <li><span style="font-weight: bold;">11</span>&nbsp;&nbsp; the device
+reports a "recovered error". The requested command was successful.<br>
+  </li>
+  <li><span style="font-weight: bold;">15</span> &nbsp; sdparm is
+unable to open, close or use the given device. The given file name
+could be incorrect or there may be permission problems. Adding the '-v'
+option may give more information.</li>
+  <li><span style="font-weight: bold;">33</span>&nbsp;&nbsp; the
+command sent to the device has timed out.</li>
+  <li><span style="font-weight: bold;">97</span>&nbsp;&nbsp; the
+response to a SCSI command failed sanity checks.</li>
+  <li><span style="font-weight: bold;">98</span>&nbsp;&nbsp; the device
+reports it has a check condition but the error doesn't fit into any of
+the above categories.</li>
+  <li><span style="font-weight: bold;">99</span>&nbsp;&nbsp; any errors
+that can't be categorized into values 1 to 98 may yield this value.
+This includes transport and operating system errors after the command
+has been sent to the device.<br>
+  </li>
+</ul>
+Many of the above exit statuses will be repeatable so executing sdparm
+again with one or more '-v' options may yield more information.
+Unit attentions (exit status 6) are only reported once per condition.
+Notice that some of the lower exit status values correspond to the SCSI
+sense key values that they correspond to.<br>
 <h2><a class="mozTocH2" name="mozTocId808937"></a>Transports</h2>
 There are a basically two command set families of interest for storage
 devices: those defined at <a href="http://www.t10.org">www.t10.org</a>
@@ -673,7 +759,7 @@ listed in
 SPC-4. See the following sections.<br>
 <h2><a class="mozTocH2" name="mozTocId926648"></a>USB</h2>
 USB is an important transport for mass storage but little is said about
-in the "SCSI" standards at t10.org . Specifications
+it in the "SCSI" standards at t10.org . Specifications
 can be found at <a href="http://www.usb.org/developers/devclass_docs">www.usb.org/developers/devclass_docs</a>
 under "Mass storage". There are no transport specific mode pages
 defined for the USB
@@ -686,7 +772,7 @@ SCSI to ATA translation and in the author's experience the translation
 is minimal. There are also USB memory keys (containing flash ram) and
 USB Compact Flash (CF), Secure Digital (SD), etc, card readers. CF
 cards use the ATA interface&nbsp; between the card and the reader,
-while most other card types use proprietary interfaces. Multi card USB
+while many other card types use proprietary interfaces. Multi card USB
 readers tend to use SCSI LUNs for
 sub-addressing within the multi card reader (which is exactly what LUNs
 are designed to do).<br>
@@ -741,8 +827,8 @@ that include a SATL). [One reason for doing this is that the SCSI
 protocols scale better in multi-initiator, multi-port environments
 (e.g. SATA NCQ assumes one host).] Recent versions of hdparm may work
 on device attributes; since it tries to use the ATA PASS THROUGH SCSI
-commands defined by SAT. Those commands have been added to libata in lk
-2.6.15-rc1 and thus have become available in lk 2.6.15 .<br>
+commands defined by SAT. Those ATA PASS THROUGH SCSI commands have been
+added to libata in&nbsp; lk 2.6.15 .<br>
 <br>
 The SAT draft defines a Vital Product Data page for fetching
 information about ATA devices which includes the response to the
@@ -750,8 +836,10 @@ IDENTIFY (PACKET) DEVICE ATA command. That VPD page is called "ATA
 Information" and has the acronym "ai" in sdparm. This may soon be
 supported by libata. If present, it can be viewed with <span
  style="font-family: monospace;">'sdparm --page=ai /dev/sda</span>'.&nbsp;
-The sdparm utility does not decode the IDENTIFY (PACKET) DEVICE
-response but hdparm does (as long as it is in the format the hdparm
+The sdparm utility only decodes the device identification strings from
+the IDENTIFY (PACKET) DEVICE
+response.&nbsp; hdparm decodes are lot more from the response (as long
+as it is in the format the hdparm
 requires). The following contortion glues the two utilities together so
 that hdparm can decode ATA information that sdparm has fetched: '<span
  style="font-family: monospace;">sdparm --page=ai -HHH /dev/sda |
@@ -850,14 +938,15 @@ support it yet.<br>
       <td style="vertical-align: top;">--set AWRE=0,ARRE=0<br>
       </td>
       <td style="vertical-align: top;">disable defect management [SCSI:
-Automatic Write/Read Reallocation Enabled]<br>
+Automatic Write/Read Reallocation Enabled fields]<br>
       </td>
     </tr>
     <tr>
       <td style="vertical-align: top;">-D1</td>
       <td style="vertical-align: top;">--set AWRE=1,ARRE=1</td>
       <td style="vertical-align: top;">enable defect management [SCSI:
-Automatic Write/Read Reallocation Enabled]. This is usually enabled by
+Automatic Write/Read Reallocation Enabled fields]. This is usually
+enabled by
 default but is sometimes disabled on disks found in RAIDs.<br>
       </td>
     </tr>
@@ -952,9 +1041,10 @@ drive, in standby mode<br>
 <br>
 As noted in an earlier section, even though sdparm can fetch the
 response to an IDENTIFY (PACKET) DEVICE ATA command (with '--page=ai'
-to get the ATA information VPD page), it doesn't decode it; just dumps
+to get the ATA information VPD page), it dumps
 it
-in hex. The hdparm utility does decode it when its '-I' option is used.
+in hex, only decoding the device identification strings. The hdparm
+utility does decode it when its '-I' option is used.
 The hdparm utility can also accept response data from stdin as long
 as it has a specific format (which is the format seen with 'cat
 /proc/ide/hd&lt;x&gt;/identify') when the '--Istdin' option is given.
@@ -997,7 +1087,7 @@ device may also be accessed via the "pass" device. To see the mapping
 between the "pass" device name and the corresponding higher level
 device node try "camcontrol devlist".<br>
 <h2><a class="mozTocH2" name="mozTocId997981"></a>Tru64 port</h2>
-An experimental port has just been added.<br>
+An experimental port to Tru64 (OSF) was added in version 0.97 .<br>
 <h2><a class="mozTocH2" name="mozTocId786906"></a>Examples</h2>
 List the common (mode) parameters of a disk:<br>
 <span style="font-family: monospace;"># sdparm /dev/sda</span><br
@@ -1215,7 +1305,7 @@ REPC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x08:7:32]&nbsp; Report count</span><b
 <br>
 The short option form of the above invocation would be 'sdparm -ell -p
 ie'. Notice that the MRIE field has its possible values listed on
-the following, tab indented, lines. Only fields with non-obvious values
+the next, tab indented, lines. Only fields with non-obvious values
 supply this extra information.<br>
 <br>
 To get the
@@ -1245,7 +1335,7 @@ mode page in hex:<br>
 Set the "write cache enable" current value in the caching control mode
 page. Note that only INQUIRY identification information is output; if
 an error occurs then more information is output (and the sdparm process
-exits with a non-zero status):<br>
+completes with a non-zero exit status):<br>
 <span style="font-family: monospace;"># sdparm --set=WCE /dev/sdd</span><br
  style="font-family: monospace;">
 <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp; /dev/sdd:
@@ -1479,12 +1569,23 @@ package</span><br>
       <td style="vertical-align: top;"><span style="font-weight: bold;">0.98</span><br>
       </td>
       <td style="vertical-align: top;"><a href="p/sdparm-0.98.tgz">sdparm-0.98.tgz</a></td>
-      <td style="vertical-align: top;"><a href="p/sdparm-0.97-1.src.rpm">sdparm-0.98-1.src.rpm</a>
+      <td style="vertical-align: top;"><a href="p/sdparm-0.98-1.src.rpm">sdparm-0.98-1.src.rpm</a>
       </td>
       <td style="vertical-align: top;"><a
- href="p/sdparm-0.97-1.i386.rpm">sdparm-0.98-1.i386.rpm</a> </td>
+ href="p/sdparm-0.98-1.i386.rpm">sdparm-0.98-1.i386.rpm</a> </td>
       <td style="vertical-align: top;"><a
- href="p/sdparm_0.97-0.1_i386.deb">sdparm_0.98-0.1_i386.deb</a> </td>
+ href="p/sdparm_0.98-0.1_i386.deb">sdparm_0.98-0.1_i386.deb</a> </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">0.99<br>
+      </td>
+      <td style="vertical-align: top;"><a href="p/sdparm-0.99.tgz">sdparm-0.99.tgz</a></td>
+      <td style="vertical-align: top;"><a href="p/sdparm-0.99-1.src.rpm">sdparm-0.99-1.src.rpm</a>
+      </td>
+      <td style="vertical-align: top;"><a
+ href="p/sdparm-0.99-1.i386.rpm">sdparm-0.99-1.i386.rpm</a> </td>
+      <td style="vertical-align: top;"><a
+ href="p/sdparm_0.99-0.1_i386.deb">sdparm_0.99-0.1_i386.deb</a> </td>
     </tr>
   </tbody>
 </table>
@@ -1516,7 +1617,7 @@ representation similar to the table representations found in the SCSI
 <br>
 <p>Return to <a href="index.html">main</a> page. </p>
 <center>
-<p>Last updated: 18th May 2006<br>
+<p>Last updated: 8th July 2006<br>
 <br>
 </p>
 </center>

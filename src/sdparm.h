@@ -24,6 +24,8 @@
 #define V_ERR_RECOVERY_MP 7
 #define CACHING_MP 8
 #define CONTROL_MP 0xa
+#define POWER_OLD_MP 0xd
+/* #define CD_DEV_PARAMS 0xd */
 #define DATA_COMPR_MP 0xf
 #define DEV_CONF_MP 0x10
 #define XOR_MP 0x10
@@ -154,6 +156,7 @@ struct sdparm_mode_page_item {
 struct sdparm_mode_page_it_val {
     struct sdparm_mode_page_item mpi;
     long long val;
+    long long orig_val;
 };
 
 struct sdparm_mode_page_settings {
@@ -198,7 +201,8 @@ extern int sdp_get_mp_len(unsigned char * mp);
 extern const struct sdparm_values_name_t * sdp_get_mode_detail(
                 int page_num, int subpage_num, int pdt, int transp_proto);
 extern void sdp_get_mpage_name(int page_num, int subpage_num, int pdt,
-                int transp_proto, int hex, char * bp, int max_b_len);
+                int transp_proto, int plus_acron, int hex, char * bp,
+                int max_b_len);
 extern const struct sdparm_values_name_t * sdp_find_mp_by_acron(
                 const char * ap, int transp_proto);
 const struct sdparm_values_name_t *
