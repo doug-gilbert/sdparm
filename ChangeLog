@@ -1,0 +1,5 @@
+The version number is hardcoded into sdparm.c (in a C string) and
+the rpm spec file: sdparm.spec
+
+ChangeLog for sdparm-0.90 [20050418]
+  - initial version
