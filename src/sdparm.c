@@ -53,7 +53,7 @@
  * set). In some cases these parameters can be changed.
  */
 
-static char * version_str = "0.94 20050728";
+static char * version_str = "0.95 20050920";
 
 #define MAP_TO_SG_NODE
 
@@ -63,11 +63,11 @@ static int find_corresponding_sg_fd(int sg_fd, const char * device_name,
 static struct option long_options[] = {
     {"six", 0, 0, '6'},
     {"all", 0, 0, 'a'},
-    {"dbd", 1, 0, 'B'},
+    {"dbd", 0, 0, 'B'},
     {"clear", 1, 0, 'c'},
     {"command", 1, 0, 'C'},
-    {"defaults", 1, 0, 'D'},
-    {"dummy", 1, 0, 'd'},
+    {"defaults", 0, 0, 'D'},
+    {"dummy", 0, 0, 'd'},
     {"enumerate", 0, 0, 'e'},
     {"flexible", 0, 0, 'f'},
     {"get", 1, 0, 'g'},
@@ -269,7 +269,7 @@ static const struct sdparm_values_name_t * find_vpd_by_acron(const char * ap)
     const struct sdparm_values_name_t * vnp;
 
     for (vnp = sdparm_vpd_pg; vnp->acron; ++vnp) {
-        if (0 == strncmp(vnp->acron, ap, 2))
+        if (0 == strncmp(vnp->acron, ap, 3))
             return vnp;
     }
     return NULL;
@@ -646,11 +646,16 @@ static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
                 len = get_mp_len(cur_mp);
                 get_mode_page_name(pn, spn, pdt, opts->transport, opts->hex,
                                    buff, sizeof(buff));
+                printf("%s ", buff);
+                if (verbose) {
+                    if (spn)
+                        printf("[0x%x,0x%x] ", pn, spn);
+                    else
+                        printf("[0x%x] ", pn);
+                }
                 if (opts->long_out)
-                    printf("%s [PS=%d] mode page:\n", buff,
-                           !!(cur_mp[0] & 0x80));
-                else
-                    printf("%s mode page:\n", buff);
+                    printf("[PS=%d] ", !!(cur_mp[0] & 0x80));
+                printf("mode page:\n");
                 if (pn != (cur_mp[0] & 0x3f)) {
                     if (opts->flexible)
                         fprintf(stderr, ">>> warning: mode page seems "
@@ -974,7 +979,25 @@ static int change_mode_page(int sg_fd, int pdt,
 
     for (k = 0; k < mps->num_it_vals; ++k) {
         ivp = &mps->it_vals[k];
-// xxxxxxxxxx guard that mpi.start_byte < len
+        if (ivp->mpi.start_byte >= len) {
+            /* mpi.start_byte is too large for actual mpage length */
+            fprintf(stderr, "The start_byte of ");
+            if (ivp->mpi.acron)
+                fprintf(stderr, "%s ", ivp->mpi.acron);
+            else
+                fprintf(stderr, "0x%x:%d:%d ",
+                        ivp->mpi.start_byte, ivp->mpi.start_bit,
+                        ivp->mpi.num_bits);
+            fprintf(stderr, "exceeds length of this mode page: %d [0x%x]\n",
+                    len, len);
+            if (opts->flexible)
+                fprintf(stderr, "    applying anyway\n");
+            else {
+                fprintf(stderr, "    nothing modified, use '--flexible' to "
+                        "override\n");
+                return -1;
+            }
+        }
         mp_set_value(ivp->val, &ivp->mpi, mdpg + off);
     }
 
@@ -1239,8 +1262,8 @@ static int build_mp_settings(const char * arg,
                 else {
                     ivp->val = get_llnum(vb);
                     if (-1 == ivp->val) {
-                        fprintf(stderr, "build_mp_settings: unable to "
-                                "decode: %s value\n", buff);
+                        fprintf(stderr, "unable to decode: %s value\n",
+                                buff);
                         fprintf(stderr, "    expected: <acronym>[=<val>]\n");
                         return -1;
                     }
@@ -1259,9 +1282,12 @@ static int build_mp_settings(const char * arg,
                         if (cont) {
                             mpi = prev_mpi;
                             break;
-                        } else
-                            fprintf(stderr, "build_mp_settings: couldn't "
-                                    "find acronym: %s\n", acron);
+                        } else {
+                            fprintf(stderr, "couldn't find acronym: %s\n",
+                                    acron);
+                            fprintf(stderr, "    [perhaps a '--transport="
+                                    "<tn>' option is needed]\n");
+                        }
                         return -1;
                     }
                     if (mps->page_num < 0) {
@@ -1278,19 +1304,21 @@ static int build_mp_settings(const char * arg,
                     mpi = find_mitem_by_acron(acron, &from, transp_proto);
                     if (NULL == mpi) {
                         if (cont) {
-                            fprintf(stderr, "build_mp_settings: mode page "
-                                    "of acronym: %s [0x%x,0x%x] doesn't "
-                                    "match prior\n", acron,
-                                    prev_mpi->page_num,
+                            fprintf(stderr, "mode page of acronym: %s "
+                                    "[0x%x,0x%x] doesn't match prior\n",
+                                    acron, prev_mpi->page_num,
                                     prev_mpi->subpage_num);
                             fprintf(stderr, "    mode page: 0x%x,0x%x\n",
                                     mps->page_num, mps->subpage_num);
                             fprintf(stderr, "For '--set' and '--clear' all "
                                     "parameters must be in the same mode "
                                     "page\n");
-                        } else
-                            fprintf(stderr, "build_mp_settings: couldn't "
-                                    "find acronym: %s\n", acron);
+                        } else {
+                            fprintf(stderr, "couldn't find acronym: %s\n",
+                                    acron);
+                            fprintf(stderr, "    [perhaps a '--transport="
+                                    "<tn>' option is needed]\n");
+                        }
                         return -1;
                     }
                     if (mps->page_num < 0) {
@@ -1318,8 +1346,7 @@ static int build_mp_settings(const char * arg,
                 num = sscanf(buff, "%d:%d:%d=%s", &ivp->mpi.start_byte,
                              &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
             if (num < 3) {
-                fprintf(stderr, "build_mp_settings: unable to decode: %s\n",
-                        buff);
+                fprintf(stderr, "unable to decode: %s\n", buff);
                 fprintf(stderr, "    expected: byte_off:bit_off:num_bits[="
                         "<val>]\n");
                 return -1;
@@ -1332,31 +1359,30 @@ static int build_mp_settings(const char * arg,
                 else {
                     ivp->val = get_llnum(vb);
                     if (-1 == ivp->val) {
-                        fprintf(stderr, "build_mp_settings: unable to "
-                                "decode byte_off:bit_off:num_bits value\n");
+                        fprintf(stderr, "unable to decode "
+                                "byte_off:bit_off:num_bits value\n");
                         return -1;
                     }
                 }
             }
             ivp->mpi.pdt = -1;  /* don't known pdt now, so don't restrict */
             if (ivp->mpi.start_byte < 0) {
-                fprintf(stderr, "build_mp_settings: need positive start "
-                        "byte offset\n");
+                fprintf(stderr, "need positive start byte offset\n");
                 return -1;
             }
             if ((ivp->mpi.start_bit < 0) || (ivp->mpi.start_bit > 7)) {
-                fprintf(stderr, "build_mp_settings: need start bit in "
-                        "0..7 range (inclusive)\n");
+                fprintf(stderr, "need start bit in 0..7 range "
+                        "(inclusive)\n");
                 return -1;
             }
             if ((ivp->mpi.num_bits < 1) || (ivp->mpi.num_bits > 64)) {
-                fprintf(stderr, "build_mp_settings: need number of bits in "
-                        "1..64 range (inclusive)\n");
+                fprintf(stderr, "need number of bits in 1..64 range "
+                        "(inclusive)\n");
                 return -1;
             }
             if (mps->page_num < 0) {
-                fprintf(stderr, "build_mp_settings: need '--page=' option "
-                        "for mode page number\n");
+                fprintf(stderr, "need '--page=' option for mode page "
+                        "name or number\n");
                 return -1;
             } else if (get) {
                 ivp->mpi.page_num = mps->page_num;
@@ -1379,7 +1405,7 @@ static int build_mp_settings(const char * arg,
 
 /* These are target port, device server (i.e. target) and lu identifiers */
 static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
-                          int len, int match_assoc, int long_out, int do_hex)
+                          int len, int match_assoc, int long_out)
 {
     int k, j, m, id_len, p_id, c_set, piv, assoc, id_type, i_len;
     int ci_off, c_id, d_id, naa, vsi, printed;
@@ -1418,13 +1444,6 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
         printf("    id_type: %s,  code_set: %s\n", sdparm_id_type_arr[id_type],
                sdparm_code_set_arr[c_set]);
         /* printf("    associated with the %s\n", sdparm_assoc_arr[assoc]); */
-        if (do_hex) {
-            printf("    descriptor header(hex): %.2x %.2x %.2x %.2x\n",
-                   ucp[0], ucp[1], ucp[2], ucp[3]);
-            printf("    identifier:\n");
-            dStrHex((const char *)ip, i_len, 0);
-            continue;
-        }
         switch (id_type) {
         case 0: /* vendor specific */
             dStrHex((const char *)ip, i_len, 0);
@@ -1633,8 +1652,68 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
     return 0;
 }
 
+static int decode_mode_policy_vpd(unsigned char * buff, int len)
+{
+    int k, bump;
+    unsigned char * ucp;
+
+    if (len < 4) {
+        fprintf(stderr, "Mode page policy VPD page length too short=%d\n",
+                len);
+        return -1;
+    }
+    len -= 4;
+    ucp = buff + 4;
+    for (k = 0; k < len; k += bump, ucp += bump) {
+        bump = 4;
+        if ((k + bump) > len) {
+            fprintf(stderr, "Mode page policy VPD page, short "
+                    "descriptor length=%d, left=%d\n", bump, (len - k));
+            return -1;
+        }
+        printf("  Policy page code: 0x%x", (ucp[0] & 0x3f));
+        if (ucp[1])
+            printf(",  subpage code: 0x%x\n", ucp[1]);
+        else
+            printf("\n");
+        printf("    MLUS=%d,  Policy: %s\n", !!(ucp[2] & 0x80),
+               sdparm_mode_page_policy_arr[ucp[2] & 0x3]);
+    }
+    return 0;
+}
+
+static int decode_man_net_vpd(unsigned char * buff, int len)
+{
+    int k, bump, na_len;
+    unsigned char * ucp;
+
+    if (len < 4) {
+        fprintf(stderr, "Management network addresses VPD page length too "
+                "short=%d\n", len);
+        return -1;
+    }
+    len -= 4;
+    ucp = buff + 4;
+    for (k = 0; k < len; k += bump, ucp += bump) {
+        printf("  %s, Service type: %s\n",
+               sdparm_assoc_arr[(ucp[0] >> 5) & 0x3],
+               sdparm_network_service_type_arr[ucp[0] & 0x1f]);
+        na_len = (ucp[2] << 8) + ucp[3];
+        bump = 4 + na_len;
+        if ((k + bump) > len) {
+            fprintf(stderr, "Management network addresses VPD page, short "
+                    "descriptor length=%d, left=%d\n", bump, (len - k));
+            return -1;
+        }
+        if (na_len > 0) {
+            printf("    %s\n", ucp + 4);
+        }
+    }
+    return 0;
+}
+
 static int decode_scsi_ports_vpd(unsigned char * buff, int len,
-                                 int long_out, int do_hex)
+                                 int long_out)
 {
     int k, bump, rel_port, ip_tid_len, tpd_len, res;
     unsigned char * ucp;
@@ -1672,18 +1751,93 @@ static int decode_scsi_ports_vpd(unsigned char * buff, int len,
             return -1;
         }
         if (tpd_len > 0) {
-            printf(" Target ports:\n");
-            if (do_hex)
-                dStrHex((const char *)(ucp + bump + 4), tpd_len, 1);
-            else {
-                res = decode_dev_ids(NULL, ucp + bump + 4, tpd_len,
-                                     VPD_ASSOC_TPORT, long_out, do_hex);
-                if (res)
-                    return res;
-            }
+            printf(" Target port descriptor(s):\n");
+            res = decode_dev_ids(NULL, ucp + bump + 4, tpd_len,
+                                 VPD_ASSOC_TPORT, long_out);
+            if (res)
+                return res;
         }
         bump += tpd_len + 4;
     }
+    return 0;
+}
+
+static int decode_ext_inq_vpd(unsigned char * buff, int len)
+{
+    if (len < 7) {
+        fprintf(stderr, "Extended INQUIRY data VPD page length too "
+                "short=%d\n", len);
+        return -1;
+    }
+    printf("  RTO: %d  GRD_CHK: %d  APP_CHK: %d  REF_CHK: %d\n",
+           !!(buff[4] & 0x8), !!(buff[4] & 0x4), !!(buff[4] & 0x2),
+           !!(buff[4] & 0x1));
+    printf("  GRP_SUP: %d  PRIOR_SUP: %d  HEADSUP: %d  ORDSUP: %d  "
+           "SIMPSUP: %d\n", !!(buff[5] & 0x10), !!(buff[5] & 0x8),
+           !!(buff[5] & 0x4), !!(buff[5] & 0x2), !!(buff[5] & 0x1));
+    printf("  NV_SUP: %d  V_SUP: %d\n", !!(buff[6] & 0x2), !!(buff[6] & 0x1));
+    return 0;
+}
+
+static int decode_ata_info_vpd(unsigned char * buff, int len, int do_hex)
+{
+    char b[32];
+
+    if (len < 36) {
+        fprintf(stderr, "ATA information VPD page length too "
+                "short=%d\n", len);
+        return -1;
+    }
+    memcpy(b, buff + 8, 8);
+    b[8] = '\0';
+    printf("  SAT Vendor identification: %s\n", b);
+    memcpy(b, buff + 16, 16);
+    b[16] = '\0';
+    printf("  SAT Product identification: %s\n", b);
+    memcpy(b, buff + 32, 4);
+    b[4] = '\0';
+    printf("  SAT Product revision level: %s\n", b);
+    if (len < 56)
+        return -1;;
+    printf("  Signature (20 bytes):\n");
+    dStrHex((const char *)buff + 36, 20, 0);
+    if (len < 60)
+        return -1;;
+    if (0xec == buff[56])
+        printf("  ATA command IDENTIFY DEVICE got following response:\n");
+    else if (0xa1 == buff[56])
+        printf("  ATA command IDENTIFY PACKET DEVICE got following "
+               "response:\n");
+    else
+        printf("  ATA command 0x%x got following response:\n",
+               (unsigned int)buff[56]);
+    if (len < 572)
+        return -1;;
+    if (do_hex)	/* here for '-HH' option */
+        dStrHex((const char *)(buff + 60), 512, 0);
+    else
+        dWordHex((const unsigned short *)(buff + 60), 256, 0,
+                 sg_is_big_endian());
+    return 0;
+}
+
+static int decode_block_limits_vpd(unsigned char * buff, int len)
+{
+    unsigned int u;
+
+    if (len < 16) {
+        fprintf(stderr, "Block limits VPD page length too "
+                "short=%d\n", len);
+        return -1;
+    }
+    u = (buff[6] << 8) | buff[7];
+    printf("  Optimal transfer length granularity: %u blocks\n", u);
+    u = (buff[8] << 24) | (buff[9] << 16) | (buff[10] << 8) |
+        buff[11];
+    printf("  Maximum transfer length: %u blocks\n", u);
+    u = (buff[12] << 24) | (buff[13] << 16) | (buff[14] << 8) |
+        buff[15];
+    printf("  Optimal transfer length: %u blocks\n", u);
     return 0;
 }
 
@@ -1691,11 +1845,12 @@ static int process_vpd_page(int sg_fd, int pn,
                             const struct sdparm_opt_coll * opts,
                             int verbose)
 {
-    int res, len, k;
-    unsigned char b[DEF_INQ_RESP_LEN];
+    int res, len, k, verb;
+    unsigned char b[VPD_ATA_INFO_RESP_LEN];
     int sz;
     const char * cp;
 
+    verb = (verbose > 0) ? verbose - 1 : 0;
     sz = sizeof(b);
     memset(b, 0, sz);
     if (pn < 0) {
@@ -1704,7 +1859,8 @@ static int process_vpd_page(int sg_fd, int pn,
         else
             pn = VPD_DEVICE_ID;  /* default to device identification page */
     }
-    res = sg_ll_inquiry(sg_fd, 0, 1, pn, b, sz, 0, verbose);
+    sz = (VPD_ATA_INFO == pn) ? VPD_ATA_INFO_RESP_LEN : DEF_INQ_RESP_LEN;
+    res = sg_ll_inquiry(sg_fd, 0, 1, pn, b, sz, 0, verb);
     if (res) {
         fprintf(stderr, "INQUIRY fetching VPD page=0x%x failed\n", pn);
         return res;
@@ -1733,6 +1889,48 @@ static int process_vpd_page(int sg_fd, int pn,
         } else
             printf("  <empty>\n");
         break;
+    case VPD_ATA_INFO:
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = (b[2] << 8) + b[3];
+        if (len > sz) {
+            fprintf(stderr, "Response to ATA information VPD page "
+                    "truncated\n");
+            len = sz;
+        }
+        if (opts->long_out)
+            printf("ATA information [0x89] VPD page:\n");
+        else
+            printf("ATA information VPD page:\n");
+        if (opts->hex && (2 != opts->hex)) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        res = decode_ata_info_vpd(b, len + 4, opts->hex);
+        if (res)
+            return res;
+        break;
+    case VPD_BLOCK_LIMITS:
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = (b[2] << 8) + b[3];
+        if (len > sz) {
+            fprintf(stderr, "Response to Blocks limits VPD page "
+                    "truncated\n");
+            len = sz;
+        }
+        if (opts->long_out)
+            printf("Block limits [0xb0] VPD page:\n");
+        else
+            printf("Block limits VPD page:\n");
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        res = decode_block_limits_vpd(b, len + 4);
+        if (res)
+            return res;
+        break;
     case VPD_DEVICE_ID:
         if (b[1] != pn)
             goto dumb_inq;
@@ -1751,15 +1949,78 @@ static int process_vpd_page(int sg_fd, int pn,
             return 0;
         }
         res = decode_dev_ids(sdparm_assoc_arr[VPD_ASSOC_LU], b + 4, len,
-                             VPD_ASSOC_LU, opts->long_out, opts->hex);
+                             VPD_ASSOC_LU, opts->long_out);
         if (res)
             return res;
         res = decode_dev_ids(sdparm_assoc_arr[VPD_ASSOC_TPORT], b + 4, len,
-                             VPD_ASSOC_TPORT, opts->long_out, opts->hex);
+                             VPD_ASSOC_TPORT, opts->long_out);
         if (res)
             return res;
         res = decode_dev_ids(sdparm_assoc_arr[VPD_ASSOC_TDEVICE], b + 4, len,
-                             VPD_ASSOC_TDEVICE, opts->long_out, opts->hex);
+                             VPD_ASSOC_TDEVICE, opts->long_out);
+        if (res)
+            return res;
+        break;
+    case VPD_EXT_INQ:
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = (b[2] << 8) + b[3];
+        if (len > sz) {
+            fprintf(stderr, "Response to Extended inquiry data VPD page "
+                    "truncated\n");
+            len = sz;
+        }
+        if (opts->long_out)
+            printf("Extended inquiry data [0x86] VPD page:\n");
+        else
+            printf("Extended inquiry data VPD page:\n");
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        res = decode_ext_inq_vpd(b, len + 4);
+        if (res)
+            return res;
+        break;
+    case VPD_MAN_NET_ADDR:
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = (b[2] << 8) + b[3];
+        if (len > sz) {
+            fprintf(stderr, "Response to Management network addresses VPD "
+                    "page truncated\n");
+            len = sz;
+        }
+        if (opts->long_out)
+            printf("Management network addresses [0x85] VPD page:\n");
+        else
+            printf("Management network addresses VPD page:\n");
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        res = decode_man_net_vpd(b, len + 4);
+        if (res)
+            return res;
+        break;
+    case VPD_MODE_PG_POLICY:
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = (b[2] << 8) + b[3];
+        if (len > sz) {
+            fprintf(stderr, "Response to Mode page policy VPD page "
+                    "truncated\n");
+            len = sz;
+        }
+        if (opts->long_out)
+            printf("Mode page policy [0x87] VPD page:\n");
+        else
+            printf("mode page policy VPD page:\n");
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        res = decode_mode_policy_vpd(b, len + 4);
         if (res)
             return res;
         break;
@@ -1780,7 +2041,7 @@ static int process_vpd_page(int sg_fd, int pn,
             dStrHex((const char *)b, len + 4, 0);
             return 0;
         }
-        res = decode_scsi_ports_vpd(b, len + 4, opts->long_out, opts->hex);
+        res = decode_scsi_ports_vpd(b, len + 4, opts->long_out);
         if (res)
             return res;
         break;
@@ -1888,19 +2149,19 @@ static int process_cmd(int sg_fd, const struct sdparm_command * scmdp,
         }
         break;
     case CMD_START:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 1, verbose);
+        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 1, 1, verbose);
         break;
     case CMD_STOP:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, verbose);
+        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 1, verbose);
         break;
     case CMD_LOAD:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 1, 1, verbose);
+        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 1, 1, 1, verbose);
         break;
     case CMD_EJECT:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 1, 0, verbose);
+        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 1, 0, 1, verbose);
         break;
     case CMD_UNLOCK:
-        res = sg_ll_prevent_allow(sg_fd, 0, verbose);
+        res = sg_ll_prevent_allow(sg_fd, 0, 1, verbose);
         break;
     default:
         fprintf(stderr, "unknown cmd number [%d]\n", scmdp->cmd_num);
@@ -2183,6 +2444,7 @@ int main(int argc, char * argv[])
     const char * cmd_str = NULL;
     const char * get_str = NULL;
     const char * set_str = NULL;
+    const char * page_str = NULL;
     int verbose = 0;
     char device_name[256];
     int pn = -1;
@@ -2246,7 +2508,7 @@ int main(int argc, char * argv[])
             usage();
             return 0;
         case 'H':
-            opts.hex = 1;
+            ++opts.hex;
             break;
         case 'i':
             opts.inquiry = 1;
@@ -2255,41 +2517,12 @@ int main(int argc, char * argv[])
             ++opts.long_out;
             break;
         case 'p':
-            if (isalpha(optarg[0])) {
-                vnp = find_mp_by_acron(optarg, opts.transport);
-                if (NULL == vnp) {
-                    vnp = find_vpd_by_acron(optarg);
-                    if (NULL == vnp) {
-                        fprintf(stderr, "abbreviation matches neither a mode "
-                                " page nor a VPD page\n");
-                        return 1;
-                    } else {
-                        pn = vnp->value;
-                        opts.inquiry = 1;
-                    }
-                } else {
-                    pn = vnp->value;
-                    spn = vnp->subvalue;
-                    pdt = vnp->pdt;
-                }
-            } else {
-                cp = strchr(optarg, ',');
-                pn = get_num(optarg);
-                if ((pn < 0) || (pn > 255)) {
-                    fprintf(stderr, "Bad page code value after '-p' "
-                            "option\n");
-                    return 1;
-                }
-                if (cp) {
-                    spn = get_num(cp + 1);
-                    if ((spn < 0) || (spn > 255)) {
-                        fprintf(stderr, "Bad page code value after "
-                                "'-p' option\n");
-                        return 1;
-                    }
-                } else
-                    spn = 0;
-            }
+            if (page_str) {
+                fprintf(stderr, "only one '--page=' option permitted\n");
+                usage();
+                return 1;
+            } else
+                page_str = optarg;
             break;
         case 's':
             set_str = optarg;
@@ -2346,6 +2579,78 @@ int main(int argc, char * argv[])
                         argv[optind]);
             usage();
             return 1;
+        }
+    }
+
+    if (page_str) {
+        if (isalpha(page_str[0])) {
+            vnp = find_mp_by_acron(page_str, opts.transport);
+            if (NULL == vnp) {
+                vnp = find_vpd_by_acron(page_str);
+                if (NULL == vnp) {
+                    fprintf(stderr, "abbreviation matches neither a mode "
+                            "page nor a VPD page\n");
+                    if (opts.transport < 0)
+                        fprintf(stderr, "    perhaps a '--transport=<tn>' "
+                                "option is needed\n");
+                    if (opts.inquiry) {
+                        printf("available VPD pages:\n");
+                        enumerate_vpds();
+                        return 1;
+                    } else {
+                        printf("available mode pages");
+                        if (opts.transport < 0)
+                            printf(":\n");
+                        else
+                            printf(" (for given transport):\n");
+                        enumerate_mps(opts.transport);
+                        return 1;
+                    }
+                    return 1;
+                } else {
+                    pn = vnp->value;
+                    opts.inquiry = 1;
+                    pdt = vnp->pdt;
+                }
+            } else {
+                if (opts.inquiry) {
+                    fprintf(stderr, "matched mode page acronym but given "
+                            "'-i' so expecting a VPD page\n");
+                    return 1;
+                }
+                pn = vnp->value;
+                spn = vnp->subvalue;
+                pdt = vnp->pdt;
+            }
+        } else {
+            cp = strchr(page_str, ',');
+            pn = get_num(page_str);
+            if ((pn < 0) || (pn > 255)) {
+                fprintf(stderr, "Bad page code value after '-p' "
+                        "option\n");
+                if (opts.inquiry) {
+                    printf("available VPD pages:\n");
+                    enumerate_vpds();
+                    return 1;
+                } else {
+                    printf("available mode pages");
+                    if (opts.transport < 0)
+                        printf(":\n");
+                    else
+                        printf(" (for given transport):\n");
+                    enumerate_mps(opts.transport);
+                    return 1;
+                }
+            }
+            if (cp) {
+                spn = get_num(cp + 1);
+                if ((spn < 0) || (spn > 255)) {
+                    fprintf(stderr, "Bad page code value after "
+                            "'-p' option\n");
+                    return 1;
+                }
+            } else
+                spn = 0;
         }
     }
 

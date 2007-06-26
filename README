@@ -8,9 +8,9 @@ drives and SCSI enclosures.
 
 Relationship to sg3_utils
 -------------------------
-This package shares code with sg3_utils (version 1.16).
+This package shares code with sg3_utils (version 1.17).
 sg3_utils is a package of utilities that typically act at the SCSI
-command level and is written by the same author. The shared code
+command level. sg3_utils is written by the same author. The shared code
 (sg_lib.[hc] and sg_cmds.[hc]) includes tables of SCSI command names
 and additional sense code descriptions as well as functions for
 issuing common SCSI commands.
@@ -22,14 +22,15 @@ will depend on at some point in the future.
 
 Documentation
 -------------
-The executable outputs a usage message when the "--help" option is
-given. Many syntax errors also result in the usage message being
-printed. There is also a man page which is in chapter 8. It can be
-accessed with "man sdparm" once this package is installed. Prior
+The executable outputs a usage message when the "--help" (or '-h)
+option is given. Many syntax errors also result in the usage message
+being printed. There is also a man page which is in chapter 8. It
+can be accessed with "man sdparm" once this package is installed. Prior
 to installation the man page can be viewed from this package's
 main directory with "man ./sdparm.8".
 
-There is a web page at http://www.torque.net/sg/sdparm.html
+There is a web page at http://www.torque.net/sg/sdparm.html and
+a copy of that html file is placed in the "doc" directory.
 
 Build infrastructure
 --------------------
@@ -41,6 +42,17 @@ to be executed if one of the other generating files in the above list
 is changed.
 
 There is a rpm "spec" file in the main directory: sdparm.spec .
+There are debian build files in the "debian" directory.
+
+License
+-------
+This utility is covered by a FreeBSD license. The intention of the author
+is that both open source and commercial entities can re-use this code.
+Naturally credit and improvement/bug feedback are encouraged. The part
+of this code that others may be able to re-use is the information in
+the tables in sdparm_data.c and sg_lib.c . This is information garnered
+from "SCSI" drafts and standards at http://www.t10.org (plus some
+information from the ATA drafts and standards at http://www.t13.org ).
 
 Notes
 -----
@@ -53,10 +65,10 @@ a tarball so versions were copied. Former symlinks:
    - install-sh
    - missing
 The above file copies have been updated to match with automake version
-1.9.5 as found in Fedora core 4.
+1.9.5 as found in Fedora Core 4.
 The contents of INSTALL have been replaced by more specific instructions.
 The contents of COPYING is a FreeBSD license (rather than the GPL v2).
 
 
 Douglas Gilbert
-28th July 2005
+20th September 2005

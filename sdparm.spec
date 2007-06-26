@@ -1,5 +1,5 @@
 %define	name	sdparm
-%define	version	0.94
+%define	version	0.95
 %define	release	1
 
 Summary:	List or change SCSI disk parameters
@@ -30,7 +30,7 @@ such that the disk stops operating or is slowed down. Use with care.
 
 %build
 
-./configure --prefix=%{_prefix} --mandir=%{_mandir}
+./autogen.sh --prefix=%{_prefix} --mandir=%{_mandir}
 
 %install
 [ "%{buildroot}" != "/" ] && rm -rf %{buildroot}
@@ -53,6 +53,9 @@ make install \
 %{_mandir}/man8/*
 
 %changelog
+* Tue Sep 20 2005 - dgilbert at interlog dot com
+- add debian build directory, decode more VPD pages
+  * sdparm-0.95
 * Thu Jul 28 2005 - dgilbert at interlog dot com
 - add '--command=<cmd>' option
   * sdparm-0.94

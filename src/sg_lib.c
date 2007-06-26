@@ -41,7 +41,7 @@
  *    and a GPL notice.
  *
  *    Much of the data in this file is derived from SCSI draft standards
- *    found at http://www.t10.org with the "SCSI Primary Commands-3" (SPC-3)
+ *    found at http://www.t10.org with the "SCSI Primary Commands-3" (SPC-4)
  *    being the central point of reference.
  *
  *    Other contributions:
@@ -69,7 +69,7 @@
 #include <scsi/sg.h>
 #include <scsi/sg_lib.h>
 
-static char * version_str = "1.10 20050521";    /* spc-3 rev 23+ */
+static char * version_str = "1.13 20050906";    /* spc-4 rev 01a */
 
 FILE * sg_warnings_str = NULL;        /* would like to default to stderr */
 
@@ -496,6 +496,7 @@ static struct error_info additional[] =
     {0x00,0x1a,"Rewind operation in progress"},
     {0x00,0x1b,"Set capacity operation in progress"},
     {0x00,0x1c,"Verify operation in progress"},
+    {0x00,0x1d,"ATA pass through information available"},
     {0x01,0x00,"No index/sector signal"},
     {0x02,0x00,"No seek complete"},
     {0x03,0x00,"Peripheral device write fault"},
@@ -541,6 +542,9 @@ static struct error_info additional[] =
     {0x0B,0x00,"Warning"},
     {0x0B,0x01,"Warning - specified temperature exceeded"},
     {0x0B,0x02,"Warning - enclosure degraded"},
+    {0x0B,0x03,"Warning - background self-test failed"},
+    {0x0B,0x04,"Warning - background pre-scan failed"},
+    {0x0B,0x05,"Warning - background medium scan failed"},
     {0x0C,0x00,"Write error"},
     {0x0C,0x01,"Write error - recovered with auto reallocation"},
     {0x0C,0x02,"Write error - auto reallocation failed"},
@@ -820,6 +824,7 @@ static struct error_info additional[] =
 
     {0x43,0x00,"Message error"},
     {0x44,0x00,"Internal target failure"},
+    {0x44,0x71,"ATA device failed Set Features"}, /* was 0x44,0xf1 in rev1 */
     {0x45,0x00,"Select or reselect failure"},
     {0x46,0x00,"Unsuccessful soft reset"},
     {0x47,0x00,"SCSI parity error"},
@@ -1041,7 +1046,9 @@ static struct error_info additional[] =
 };
 
 static const char *sense_key_desc[] = {
-    "No Sense",                 /* There is no sense information */
+    "No Sense",                 /* Filemark, ILI and/or EOM; progress
+                                   indication (during FORMAT); power
+                                   condition sensing (REQUEST SENSE) */
     "Recovered Error",          /* The last command completed successfully
                                    but used error correction */
     "Not Ready",                /* The addressed target is not ready */
@@ -1411,7 +1418,7 @@ static void sg_print_sense_descriptors(const unsigned char * sense_buffer,
 
 /* Print sense information */
 void sg_print_sense(const char * leadin, const unsigned char * sense_buffer,
-                    int sb_len)
+                    int sb_len, int raw_sinfo)
 {
     int len, valid, progress;
     unsigned int info;
@@ -1483,7 +1490,8 @@ void sg_print_sense(const char * leadin, const unsigned char * sense_buffer,
                 else if (info > 0)
                     fprintf(sg_warnings_str, "  Valid=0, Info fld=0x%x [%u] ",
                             info, info);
-            }
+            } else
+                info = 0;
             if (sense_buffer[2] & 0xe0) {
                 if (sense_buffer[2] & 0x80)
                    fprintf(sg_warnings_str, " FMK");
@@ -1495,7 +1503,8 @@ void sg_print_sense(const char * leadin, const unsigned char * sense_buffer,
                    fprintf(sg_warnings_str, " ILI");
                             /* incorrect block length requested */
                 fprintf(sg_warnings_str, "\n");
-            }
+            } else if (valid || (info > 0))
+                fprintf(sg_warnings_str, "\n");
             if ((len >= 14) && sense_buffer[14])
                 fprintf(sg_warnings_str, "  Field replaceable unit code: "
                         "%d\n", sense_buffer[14]);
@@ -1550,7 +1559,7 @@ void sg_print_sense(const char * leadin, const unsigned char * sense_buffer,
     } else {    /* non-extended sense data */
 
          /*
-          * Standard says:
+          * A (very old) Standard says:
           *    sense_buffer[0] & 0200 : address valid
           *    sense_buffer[0] & 0177 : vendor-specific error code
           *    sense_buffer[1] & 0340 : vendor-specific
@@ -1575,9 +1584,10 @@ void sg_print_sense(const char * leadin, const unsigned char * sense_buffer,
                 (sense_buffer[0] >> 4) & 0x07, sense_buffer[0] & 0xf);
         len = 4;
     }
-
-    fprintf(sg_warnings_str, " Raw sense data (in hex):\n");
-    dStrHexErr((const char *)sense_buffer, len);
+    if (raw_sinfo) {
+        fprintf(sg_warnings_str, " Raw sense data (in hex):\n");
+        dStrHexErr((const char *)sense_buffer, len);
+    }
 }
 
 static const char * linux_host_bytes[] = {
@@ -1640,9 +1650,10 @@ void sg_print_driver_status(int driver_status)
 
 /* Returns 1 if no errors found and thus nothing printed; otherwise
    prints error/warning (prefix by 'leadin') and returns 0. */
-static int sg_sense_print(const char * leadin, int scsi_status,
-                          int host_status, int driver_status,
-                          const unsigned char * sense_buffer, int sb_len)
+static int sg_linux_sense_print(const char * leadin, int scsi_status,
+                                int host_status, int driver_status,
+                                const unsigned char * sense_buffer,
+                                int sb_len, int raw_sinfo)
 {
     int done_leadin = 0;
     int done_sense = 0;
@@ -1662,7 +1673,7 @@ static int sg_sense_print(const char * leadin, int scsi_status,
         if (sense_buffer && ((scsi_status == SCSI_CHECK_CONDITION) ||
                              (scsi_status == SCSI_COMMAND_TERMINATED))) {
             /* SCSI_COMMAND_TERMINATED is obsolete */
-            sg_print_sense(0, sense_buffer, sb_len);
+            sg_print_sense(0, sense_buffer, sb_len, raw_sinfo);
             done_sense = 1;
         }
     }
@@ -1687,7 +1698,7 @@ static int sg_sense_print(const char * leadin, int scsi_status,
         fprintf(sg_warnings_str, "\n");
         if (sense_buffer && (! done_sense) &&
             (SG_LIB_DRIVER_SENSE == (SG_LIB_DRIVER_MASK & driver_status)))
-            sg_print_sense(0, sense_buffer, sb_len);
+            sg_print_sense(0, sense_buffer, sb_len, raw_sinfo);
     }
     return 0;
 }
@@ -1741,10 +1752,12 @@ int sg_normalize_sense(const struct sg_io_hdr * hp,
 
 /* Returns 1 if no errors found and thus nothing printed; otherwise
    returns 0. */
-int sg_chk_n_print3(const char * leadin, struct sg_io_hdr * hp)
+int sg_chk_n_print3(const char * leadin, struct sg_io_hdr * hp,
+                    int raw_sinfo)
 {
-    return sg_sense_print(leadin, hp->status, hp->host_status,
-                          hp->driver_status, hp->sbp, hp->sb_len_wr);
+    return sg_linux_sense_print(leadin, hp->status, hp->host_status,
+                                hp->driver_status, hp->sbp, hp->sb_len_wr,
+                                raw_sinfo);
 }
 #endif
 
@@ -1752,12 +1765,14 @@ int sg_chk_n_print3(const char * leadin, struct sg_io_hdr * hp)
    returns 0. */
 int sg_chk_n_print(const char * leadin, int masked_status,
                    int host_status, int driver_status,
-                   const unsigned char * sense_buffer, int sb_len)
+                   const unsigned char * sense_buffer, int sb_len,
+                   int raw_sinfo)
 {
     int scsi_status = (masked_status << 1) & 0x7e;
 
-    return sg_sense_print(leadin, scsi_status, host_status, driver_status,
-                          sense_buffer, sb_len);
+    return sg_linux_sense_print(leadin, scsi_status, host_status,
+                                driver_status, sense_buffer, sb_len,
+                                raw_sinfo);
 }
 
 #ifdef SG_IO
@@ -2003,7 +2018,7 @@ char * safe_strerror(int errnum)
 }
 
 
-/* Note the ASCII-hex output goes to stdout. [All other output from functions
+/* Note the ASCII-hex output goes to stdout. [Most other output from functions
    in this file go to sg_warnings_str (default stderr).] 
    'no_ascii' allows for 3 output types:
        > 0     each line has address then up to 16 ASCII-hex bytes
@@ -2046,8 +2061,6 @@ void dStrHex(const char* str, int len, int no_ascii)
     /* no_ascii>=0, start each line with address (offset) */
     k = sprintf(buff + 1, "%.2x", a);
     buff[k + 1] = ' ';
-    if (bpos >= ((bpstart + (9 * 3))))
-        bpos++;
 
     for (i = 0; i < len; i++) {
         c = *p++;
@@ -2060,10 +2073,10 @@ void dStrHex(const char* str, int len, int no_ascii)
             buff[cpos++] = ' ';
         else {
             if ((c < ' ') || (c >= 0x7f))
-                c='.';
+                c = '.';
             buff[cpos++] = c;
         }
-        if (cpos > (cpstart+15)) {
+        if (cpos > (cpstart + 15)) {
             printf("%.76s\n", buff);
             bpos = bpstart;
             cpos = cpstart;
@@ -2108,6 +2121,114 @@ static void dStrHexErr(const char* str, int len)
     if (bpos > bpstart)
         fprintf(sg_warnings_str, "%.60s\n", buff);
     return;
+}
+
+/* Returns 1 when executed on big endian machine; else returns 0.
+   Useful for displaying ATA identify words (which need swapping on a
+   big endian machine). */
+int sg_is_big_endian()
+{
+    union u_t {
+        unsigned short s;
+        unsigned char c[sizeof(unsigned short)];
+    } u;
+
+    u.s = 0x0102;
+    return (u.c[0] == 0x01);     /* The lowest address contains
+                                    the most significant byte */
+}
+
+static unsigned short swapb_ushort(unsigned short u)
+{
+    unsigned short r;
+
+    r = (u >> 8) & 0xff;
+    r |= ((u & 0xff) << 8);
+    return r;
+}
+
+/* Note the ASCII-hex output goes to stdout. [Most other output from functions
+   in this file go to sg_warnings_str (default stderr).] 
+   'no_ascii' allows for 3 output types:
+       > 0     each line has address then up to 8 ASCII-hex 16 bit words
+       = 0     in addition, the ASCI bytes pairs are listed to the right
+       < 0     only the ASCII-hex words are listed (i.e. without address)
+   If 'swapb' non-zero then bytes in each word swapped. Needs to be set
+   for ATA IDENTIFY DEVICE response on big-endian machines. */
+void dWordHex(const unsigned short* words, int num, int no_ascii,
+              int swapb)
+{
+    const unsigned short * p = words;
+    unsigned short c;
+    char buff[82];
+    unsigned char upp, low;
+    int a = 0;
+    const int bpstart = 3;
+    const int cpstart = 52;
+    int cpos = cpstart;
+    int bpos = bpstart;
+    int i, k;
+
+    if (num <= 0)
+        return;
+    memset(buff, ' ', 80);
+    buff[80] = '\0';
+    if (no_ascii < 0) {
+        for (k = 0; k < num; k++) {
+            c = *p++;
+            if (swapb)
+                c = swapb_ushort(c);
+            bpos += 5;
+            sprintf(&buff[bpos], "%.4x", (unsigned int)c);
+            buff[bpos + 4] = ' ';
+            if ((k > 0) && (0 == ((k + 1) % 8))) {
+                printf("%.60s\n", buff);
+                bpos = bpstart;
+                memset(buff, ' ', 80);
+            }
+        }
+        if (bpos > bpstart)
+            printf("%.60s\n", buff);
+        return;
+    }
+    /* no_ascii>=0, start each line with address (offset) */
+    k = sprintf(buff + 1, "%.2x", a);
+    buff[k + 1] = ' ';
+
+    for (i = 0; i < num; i++) {
+        c = *p++;
+        if (swapb)
+            c = swapb_ushort(c);
+        bpos += 5;
+        sprintf(&buff[bpos], "%.4x", (unsigned int)c);
+        buff[bpos + 4] = ' ';
+        if (no_ascii) {
+            buff[cpos++] = ' ';
+            buff[cpos++] = ' ';
+            buff[cpos++] = ' ';
+        } else {
+            upp = (c >> 8) & 0xff;
+            low = c & 0xff;
+            if ((upp < 0x20) || (upp >= 0x7f))
+                upp = '.';
+            buff[cpos++] = upp;
+            if ((low < 0x20) || (low >= 0x7f))
+                low = '.';
+            buff[cpos++] = low;
+            buff[cpos++] = ' ';
+        }
+        if (cpos > (cpstart + 23)) {
+            printf("%.76s\n", buff);
+            bpos = bpstart;
+            cpos = cpstart;
+            a += 8;
+            memset(buff, ' ', 80);
+            k = sprintf(buff + 1, "%.2x", a);
+            buff[k + 1] = ' ';
+        }
+    }
+    if (cpos > cpstart)
+        printf("%.76s\n", buff);
 }
 
 /* If the number in 'buf' can be decoded or the multiplier is unknown

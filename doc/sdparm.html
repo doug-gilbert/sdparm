@@ -1,12 +1,13 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
+  <title>Linux sdparm utility</title>
   <meta http-equiv="Content-Type"
  content="text/html; charset=iso-8859-1">
-  <meta name="keywords" content="Linux, SCSI, sdparm, hdparm variant">
+  <meta name="keywords"
+ content="Linux, SCSI, sdparm, hdparm variant, mode page">
   <meta name="GENERATOR"
  content="Mozilla/4.79 [en] (X11; U; Linux 2.5.31 i686) [Netscape]">
-  <title>Linux sdparm utility</title>
 </head>
 <body alink="#ff0000" background="paper.jpg" bgcolor="#ffffff"
  link="#0000ff" text="#000000" vlink="#000080">
@@ -19,6 +20,7 @@
 <a href="#VPD_pages">VPD pages</a><br>
 <a href="#sdparm_commands">sdparm commands</a><br>
 <a href="#sdparm_syntax">sdparm syntax</a><br>
+<a href="#Transports">Transports</a><br>
 <a href="#linux_kernel_series">linux kernel series</a><br>
 <a href="#Examples">Examples</a><br>
 <a href="#Downloads">Downloads</a><br>
@@ -36,19 +38,26 @@ More generally <span style="font-weight: bold;">sdparm</span> can be
 used to output and modify parameters on any device that uses a SCSI
 command set. Apart from SCSI disks, such devices include CD/DVD drives
 (irrespective of transport), SCSI and ATAPI tape drives and SCSI
-enclosures.<br>
+enclosures. A small set of commands associated with starting and
+stopping the media, and loading and unloading removable media can also
+be sent by this utility.<br>
 <br>
 The information in this page corresponds to <span
- style="font-weight: bold;">sdparm</span> version 0.94 .<br>
+ style="font-weight: bold;">sdparm</span> version 0.95 .<br>
 <h2><a name="SCSI_mode_pages"></a>SCSI mode pages</h2>
 Mode pages hold meta data about a SCSI device which can, in some cases,
-be changed by the user. In SCSI parlance the "device" is a logical unit
-of which their may be several in a SCSI target. In the case of a SCSI
+be changed by the user. In SCSI parlance the "device" is a <span
+ style="font-style: italic;">logical unit</span>
+of which their may be several in a SCSI <span
+ style="font-style: italic;">target</span>. In the case of a SCSI
 disk connected directly to a Host Bus Adapter (HBA) the disk is both a
 SCSI target and a logical unit. The "user" in this case is the person
 using <span style="font-weight: bold;">sdparm</span> which is a SCSI
 "application client" and it feeds commands into a SCSI initiator. The
-SCSI initiator is found in the HBA.<br>
+SCSI initiator is found in the HBA. SCSI at the command level is a
+client server protocol with the logical unit (or target device) being
+the server that responds to commands sent by the application client via
+the SCSI initiator.<br>
 <br>
 Mode pages are defined in SCSI (draft) standards found at <a
  href="http://www.t10.org">www.t10.org</a> . Mode pages common to all
@@ -59,7 +68,8 @@ thereof) are supported by a particular model and describe the way the
 device will react (if the generic description in the SCSI (draft)
 standard needs amplification). There are also transport protocol
 specific mode pages for transports such as "spi" (the 20 year old SCSI
-Parallel Interface), "fcp" and "sas" (Serial Attached SCSI). Mode pages
+Parallel Interface), "fcp" (Fibre Channel Protocol) and "sas" (Serial
+Attached SCSI). Mode pages
 that are <span style="font-style: italic;">not</span> transport
 protocol specific are sometimes referred to as "generic" in sdparm's
 documentation.<br>
@@ -76,7 +86,7 @@ package).<br>
 <br>
 Each mode page has up to four tables associated with it. These can be
 thought of as tabs on a spreadsheet, with each tab containing the same
-size table. The four are:<br>
+size table. The four tables are:<br>
 <ul>
   <li>current values: those values that are active at this time</li>
   <li>changeable values: bit masks showing those values that the user
@@ -117,10 +127,11 @@ generic mode pages are unique
 (i.e. an acronym matches one field of
 one generic mode page). Each transport protocol has its own namespace
 of acronyms so that an acronym is unique within a transport protocol.
-By default saved values are
+By default, saved values are
 not changed by "--set" and "--clear" (since saved values may not be
 supported). To change saved values as well the "--save" option
-additionally needs to be given. The current values can be changed back
+additionally needs to be given. All the current values in a mode page
+can be changed back
 to the manufacturer's defaults with the "--defaults" option (and the
 "--save" option here will additionally change the saved values back to
 the manufacturer's defaults).<br>
@@ -135,27 +146,37 @@ then the command can be re-executed with the "--save" option added.<br>
 Vital Product Data (VPD) pages are associated with the SCSI INQUIRY
 command. While support for a "standard" INQUIRY response is mandatory,
 support for VPD page has been optional in the past. The current SPC-3
-draft makes support for the Device Identification VPD page mandatory.<br>
+draft makes support for the "Device Identification" and the "Supported
+VPD pages" VPD pages mandatory.<br>
 <br>
 VPD pages are read only and in some situations may not be available
 (e.g. if the media is spun down). They tend to have a variable number
 of descriptors (rather than a predictable size with parameters in known
 positions such as most mode pages). A VPD page number can be selected
-with the '--page=' option; if not given then the Device Identification
+with the '--page=' option; if only the '--inquiry' option is given
+(without a '--page=' option) then the Device Identification
 VPD
-page (page number 0x83 or abbreviation "di") is assumed. The device
+page (page number 0x83 or abbreviation "di") is assumed. If both the
+'--inquiry' and '-all' options are given (without a '--page=' option)
+then the Support VPD pages VPD page (page number 0x0 or abbreviation
+"sv") is assumed.<br>
+<br>
+The device
 identification page has three associations. The SCSI Architectural
 Model (see SAM-3 at <a href="http://www.t10.org/">www.t10.org</a>) may
 help in explaining these associations. Each device identification
 descriptor belongs to one (and only one) of these associations:<br>
 <ul>
-  <li>addressed logical unit</li>
-  <li>target device port that received request</li>
-  <li>target device containing addressed logical unit</li>
+  <li>addressed <span style="font-style: italic;">logical unit</span></li>
+  <li><span style="font-style: italic;">target device port</span>
+(that, in most cases,
+received the request)</li>
+  <li><span style="font-style: italic;">target device</span> containing
+addressed logical unit</li>
 </ul>
 Any descriptors found are grouped in the order of the above list. If
 there are no descriptors of a given type of association then the
-heading is not output.<br>
+heading for that association is not output.<br>
 <br>
 VPD pages that are currently decoded:<br>
 <ul>
@@ -163,35 +184,45 @@ VPD pages that are currently decoded:<br>
   <li>Unit serial number [page 0x80]; page abbreviation: "sn"</li>
   <li>Device identification [page 0x83]; default, page abbreviation:
 "di"</li>
+  <li>Management network addresses: [page 0x85], page abbreviation:
+"mna"</li>
+  <li>Extended inquiry: [page 0x86], page abbreviation:
+"ei"</li>
+  <li>Mode page policy: [page 0x87], page abbreviation:
+"mpp"</li>
   <li>SCSI Ports [page 0x88]; page abbreviation: "sp"</li>
+  <li>ATA Information [page 0x89]; page abbreviation: "ai"<br>
+  </li>
+  <li>Block limits [page 0xb0 (SBC)]; page abbreviation: "bl"</li>
 </ul>
-Currently no other VPD pages are decoded. If another VPD page is
+If another VPD page is
 requested and the device gives a response then that response it output
 in ASCII hex. VPD page abbreviations can be listed with "sdparm
 --enumerate --inquiry".<br>
 <h2><a name="sdparm_commands"></a>sdparm commands</h2>
 The "--command=" option allows a command to be sent to the given
-device. Currently the supported commands may be useful for devices with
+device. The currently supported commands may be useful for controlling
+power conditions and for devices with
 removable media. Those commands are:<br>
 <ul>
   <li>eject: stops the medium (if it is spinning) and ejects it from
-the medium. Note that this may be prevented by software in which case
+the drive. Note that this may be prevented by software in which case
 use the 'unlock' command first.</li>
   <li>load: loads the medium and then spins it up</li>
   <li>ready: reports whether the medium is ready for IO. This usually
 means that it is present and spun up.</li>
   <li>start: spin up the medium</li>
   <li>stop: spin down the medium</li>
-  <li>unload: instructs the device to allow medium removal (i.e. an
+  <li>unlock: instructs the device to allow medium removal (i.e. an
 eject). Beware, the OS may have had a good reason for preventing
-removal of the medium (e.g. it contains a mounted file system); use at
+removal of the medium (e.g. it contains a mounted file system). Use at
 your own risk.<br>
   </li>
 </ul>
 These sdparm commands send SCSI commands to the given device. If they
 don't seem to work, adding a verbose flag (i.e. "-v" or "-vv") may
 provide more information. The "ready" command needs read permissions on
-the given device, the other commands need both read and write
+the given device while the other commands need both read and write
 permissions.<br>
 <h2><a name="sdparm_syntax"></a>sdparm syntax</h2>
 <span style="font-weight: bold;">sdparm</span> is a command line
@@ -200,12 +231,13 @@ name. Only invocations that use the '--enumerate' option do not need a
 device name. Invocations with a device name and no options will check
 that device for mode pages in which there are "common" parameters (mode
 page fields). Common parameters are a somewhat arbitrary subset of the
-hundreds of parameters available (chosen by the author).<br>
+hundreds of parameters available.<br>
 <br>
 Options have either a long format, as shown in the first column below,
 or a short format, as shown in the second column. Either format can be
 used. Note that long options that take an argument (e.g. "--get=WCE")
-use an equal sign ("=") as a separator while short options use a space
+use an equal sign ("=") as a separator while the corresponsing short
+options use a space
 as a separator (e.g. "-g WCE").<br>
 &nbsp;<br>
 <table style="width: 100%; text-align: left;" border="1" cellpadding="2"
@@ -228,9 +260,10 @@ option format</span><br>
       </td>
       <td style="vertical-align: top;">-a<br>
       </td>
-      <td style="vertical-align: top;">list all known parameters for
+      <td style="vertical-align: top;">list all known (generic or
+transport) parameters for
 given device. When this utility is invoked with no options then only
-common parameters are output.<br>
+common generic mode parameters are output.<br>
       </td>
     </tr>
     <tr>
@@ -278,7 +311,8 @@ given.<br>
       </td>
       <td style="vertical-align: top;">when used with '--set' or
 '--clear' does all the preparation and checks but bypasses the final
-stage of sending the changes to the device. [It skips the MODE SELECT
+stage of sending the changes to the device. [That is, it skips the MODE
+SELECT
 command.]<br>
       </td>
     </tr>
@@ -289,8 +323,9 @@ command.]<br>
       </td>
       <td style="vertical-align: top;">fetch information from the
 sdparm's internal tables. If a SCSI device name is given then it will
-be ignored. May be used in conjunction with '-all', '--inquiry' and/or
-'--page='.<br>
+be ignored. May be used in conjunction with '-all', '--inquiry',
+'--long',&nbsp;
+'--page=', and/or '--transport='.<br>
       </td>
     </tr>
     <tr>
@@ -326,7 +361,7 @@ pages whose peripheral type mismatches the given device to be listed.<br>
       </td>
       <td style="vertical-align: top;">rather than decode a (mode or
 VPD) page, it is output in ASCII hex. If used with the '--get' option
-then the parameter is output in hexadecimal.<br>
+then the parameter is output in hexadecimal. May be invoked twice.<br>
       </td>
     </tr>
     <tr>
@@ -336,8 +371,7 @@ then the parameter is output in hexadecimal.<br>
       </td>
       <td style="vertical-align: top;">fetch a VPD page, decode and
 output it. If no '--page=' is given then the device identification VPD
-page is fetched. If this option is not given then this utility defaults
-to mode page(s).<br>
+page is fetched. <br>
       </td>
     </tr>
     <tr>
@@ -358,8 +392,12 @@ will have "Write cache enable" appended to it.<br>
       <td style="vertical-align: top;">page (and optionally subpage) to
 output or change. Argument may be either a number (assumed to be
 decimal) or two numbers separated by a comma. If the number are
-prefixed by "0x" they are assumed to be hexadecimal). Alternatively a
-two letter (lower case) abbreviation can be given.<br>
+prefixed by "0x" they are assumed to be hexadecimal). When a muneric
+argument is give, it is assumed to be for a mode page unless the
+'--inquiry' option is also given. Alternatively a
+two or three letter (lower case) abbreviation can be given. This
+abbreviation may be for a mode page (e.g. "ca")&nbsp; or a VPD page
+(e.g. "sp").<br>
       </td>
     </tr>
     <tr>
@@ -368,8 +406,9 @@ two letter (lower case) abbreviation can be given.<br>
       <td style="vertical-align: top;">-S<br>
       </td>
       <td style="vertical-align: top;">also write changes to
-corresponding "saved" mode page. The default action is to only make
-changes to the current mode page.<br>
+corresponding "saved" values mode page. The default action is to only
+make
+changes to the current values mode page.<br>
       </td>
     </tr>
     <tr>
@@ -406,7 +445,7 @@ either a number or an abbreviation (e.g. "fcp", "spi" or "sas")<br>
       <td style="vertical-align: top;">-v<br>
       </td>
       <td style="vertical-align: top;">increase verbosity of output.
-May be used multiple times to increase verbosity further.<br>
+May be used multiple times to further increase verbosity.<br>
       </td>
     </tr>
     <tr>
@@ -436,14 +475,15 @@ most significant bit (msb) and 0 for the lsb; while the
 For "--clear=" and "--set=" the "&lt;value&gt;" is the unsigned integer
 value to set that parameter to. The "&lt;value&gt;" of -1 is a special
 case in which all the bits in the parameter are set to one. For a
-'"--set=" option the default action (in the absence of
+"--set=" option the default action (in the absence of
 "=&lt;value&gt;") is the same as "=-1". For a '"--clear=" option the
 default action (in the absence of "=&lt;value&gt;") is the same as
 "=0". <br>
 <br>
 If <span style="font-weight: bold;">sdparm</span> is used to change
 parameters and that operation succeeds (or at least no error is
-reported) then only INQUIRY device identification information is output
+reported) then only standard INQUIRY response information (i.e. vendor,
+model and revision) is output
 and the <span style="font-weight: bold;">sdparm</span> process exits
 with a value of 0. If <span style="font-weight: bold;">sdparm</span>
 is used to change parameters and that operation fails then error
@@ -458,15 +498,33 @@ acronym followed by the current value and then the changeable, default
 and saved values in brackets. If a value of 1 is given then only the
 acronym followed by the current value are output.<br>
 <br>
-The "--enumerate" option ignores the given device name (if given) and
+The "--enumerate" option ignores the given device name (if provided)
+and
 outputs information from the tables within the <span
  style="font-weight: bold;">sdparm</span> utility. With no other
-options, mode page abbreviations followed by their full names are
+options provided, mode page abbreviations followed by their full names
+are
 output. If the "--inquiry" option is also given the VPD page
 abbreviations followed by their full names are output. If the
 "--enumerate --page=" options are given then within the selected mode
 page, the name of each known acronym, its numeric descriptor and its
-full name is output. <br>
+full name is output.<br>
+<h2><a name="Transports"></a>Transports</h2>
+Of the 9 transports define in SCSI (SPC-3) only the following have
+transport (protocol) specific mode pages (according to current drafts):<br>
+<ul>
+  <li>Fibre channel [abbreviation "fcp"]</li>
+  <li>SCSI parallel interface [abbreviation "spi"]</li>
+  <li>SCSI Remote DMA [abbreviation "srp"]</li>
+  <li>Serial attached SCSI [abbreviation "sas"]</li>
+</ul>
+These transports all have a protocol specific Disconnect/reconnect mode
+page, and most have more mode pages. All supported protocol specific
+modes pages can be listed (enumerated) with the "--enumerate --long"
+option. Mode pages for a given transport can be listed with, for
+example, the "--enumerate --transport=sas" option. All parameters of
+mode pages for a given transport can be listed with, for example, the
+"--enumerate --transport=sas --all" option.
 <h2><a name="linux_kernel_series"></a>linux kernel series</h2>
 <span style="font-weight: bold;">sdparm</span> is designed for both the
 linux kernel 2.6 and 2.4 series. There are some slight differences
@@ -765,7 +823,7 @@ The initial version of sdparm was 0.90 .<br>
   <caption><b>Table 2. sdparm tarballs, rpm + deb packages</b></caption>
   <tbody>
     <tr>
-      <td><br>
+      <td><span style="font-weight: bold;">version</span><br>
       </td>
       <td valign="top">&nbsp; <b>tarball</b> <br>
       </td>
@@ -776,8 +834,7 @@ package</span><br>
       </td>
     </tr>
     <tr>
-      <td style="vertical-align: top;"><span style="font-weight: bold;">version
-0.90</span><br>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">0.90</span><br>
       </td>
       <td style="vertical-align: top;"><a href="p/sdparm-0.90.tgz">sdparm-0.90.tgz</a><br>
       </td>
@@ -789,8 +846,7 @@ package</span><br>
  href="p/sdparm_0.90-2_i386.deb">sdparm_0.90-2_i386.deb</a></td>
     </tr>
     <tr>
-      <td style="vertical-align: top;"><span style="font-weight: bold;">version
-0.91</span><br>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">0.91</span><br>
       </td>
       <td style="vertical-align: top;"><a href="p/sdparm-0.91.tgz">sdparm-0.91.tgz</a></td>
       <td style="vertical-align: top;"><a href="p/sdparm-0.91-1.src.rpm">sdparm-0.91-1.src.rpm</a>
@@ -801,8 +857,7 @@ package</span><br>
  href="p/sdparm_0.91-2_i386.deb">sdparm_0.91-2_i386.deb</a> </td>
     </tr>
     <tr>
-      <td style="vertical-align: top;"><span style="font-weight: bold;">version
-0.92</span><br>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">0.92</span><br>
       </td>
       <td style="vertical-align: top;"><a href="p/sdparm-0.92.tgz">sdparm-0.92.tgz</a></td>
       <td style="vertical-align: top;"><a href="p/sdparm-0.92-1.src.rpm">sdparm-0.92-1.src.rpm</a></td>
@@ -812,8 +867,7 @@ package</span><br>
  href="p/sdparm_0.92-2_i386.deb">sdparm_0.92-2_i386.deb</a></td>
     </tr>
     <tr>
-      <td style="vertical-align: top;"><span style="font-weight: bold;">version
-0.93</span><br>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">0.93</span><br>
       </td>
       <td style="vertical-align: top;"><a href="p/sdparm-0.93.tgz">sdparm-0.93.tgz</a></td>
       <td style="vertical-align: top;"><a href="p/sdparm-0.93-1.src.rpm">sdparm-0.93-1.src.rpm</a>
@@ -824,8 +878,7 @@ package</span><br>
  href="p/sdparm_0.93-2_i386.deb">sdparm_0.93-2_i386.deb</a> </td>
     </tr>
     <tr>
-      <td style="vertical-align: top;"><span style="font-weight: bold;">version
-0.94</span></td>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">0.94</span></td>
       <td style="vertical-align: top;"><a href="p/sdparm-0.94.tgz">sdparm-0.94.tgz</a></td>
       <td style="vertical-align: top;"><a href="p/sdparm-0.94-1.src.rpm">sdparm-0.94-1.src.rpm</a></td>
       <td style="vertical-align: top;"><a
@@ -833,13 +886,24 @@ package</span><br>
       <td style="vertical-align: top;"><a
  href="p/sdparm_0.94-2_i386.deb">sdparm_0.94-2_i386.deb</a></td>
     </tr>
+    <tr>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">0.95</span><br>
+      </td>
+      <td style="vertical-align: top;"><a href="p/sdparm-0.95.tgz">sdparm-0.95.tgz</a></td>
+      <td style="vertical-align: top;"><a href="p/sdparm-0.95-1.src.rpm">sdparm-0.95-1.src.rpm</a>
+      </td>
+      <td style="vertical-align: top;"><a
+ href="p/sdparm-0.95-1.i386.rpm">sdparm-0.95-1.i386.rpm</a> </td>
+      <td style="vertical-align: top;"><a
+ href="p/sdparm_0.95-0.1_i386.deb">sdparm_0.95-0.1_i386.deb</a> </td>
+    </tr>
   </tbody>
 </table>
 <br>
 The tarball contains an "rpm" spec file which is used to build source
 rpm and the i386 binary rpm. The alien utility is used to build the
-"deb" package from the i386 binary rpm. Here is the <a
- href="p/sdparm.ChangeLog">ChangeLog</a> .<br>
+"deb" package from the i386 binary rpm up till version 0.94 . Here is
+the <a href="p/sdparm.ChangeLog">ChangeLog</a> .<br>
 <h2><a name="Conclusion"></a>Conclusion</h2>
 This command line utility attempts to simplify getting and in some
 cases setting device parameters. These device parameters number more
@@ -855,7 +919,7 @@ representation similar to the table representations found in the SCSI
 <br>
 <p>Return to <a href="index.html">main</a> page. </p>
 <center>
-<p>Last updated: 28th July 2005<br>
+<p>Last updated: 20th September 2005<br>
 <br>
 </p>
 </center>

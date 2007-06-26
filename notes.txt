@@ -4,18 +4,18 @@ non-root user. Since hdparm is mainly used on disks, this is an appropriate
 place.
 
 Currently sdparm is placed in the /usr/bin directory (by the sdparm.spec
-file). This allows both root and non-root users to access sdparm.
-Permissions on SCSI disks devices should be sufficient to stop a non-root
-user changing parameters unless they have both read and write permissions.
-Non-root users should be able read SCSI disk (or other device) parameters
-if they have read permissions on the appropriate device. A typical SCSI
-disk has permissions like this:
+file) or /usr/local bin (by 'make install'). This allows both root and
+non-root users to access sdparm. Permissions on SCSI disks devices should
+be sufficient to stop a non-root user changing parameters unless they have
+both read and write permissions. Non-root users should be able read SCSI
+disk (or other device) parameters if they have read permissions on the
+appropriate device. A typical SCSI disk has permissions like this:
   # ls -l /dev/sda
   brw-r-----  1 root disk 8, 0 Jul 28  2005 /dev/sda
 
 There are also CD/DVD drives to consider. Many distributions give non-root
 (GUI) users permissions (and indeed ownership) of these devices. This
-allows users to "burn" CDs and DVDs. Almost all CD/DVD drives use the
+allows users to "burn" CDs and DVDs. Almost all CD/DVD drives use
 MMC which is a SCSI command set. Hence sdparm is appropriate to read
 and change parameters on CD/DVD drives. A typical (ATAPI transport)
 CD/DVD drive has permissions like this (when "dougg" is the GUI user):
@@ -34,10 +34,16 @@ in the sg3_utils package. Earlier versions of MMC put information in
 the "CD/DVD (MM) capabilities and mechanical status" mode page that is
 now found in the GET CONFIGURATION feature and profile pages. The
 sdparm utility shows the CD/DVD capabilities and mechanical status
-mode page which has information up to about "DVD-R" vintage. Thereafter
+mode page which has information up to about "DVD-R" vintage. Thereafter,
 (MMC-4 and MMC-5) information about "DVD+R" and later (e.g. BD and
 HD-DVD) are in feature and profile pages fetched with the GET
 CONFIGURATION command.
 
+There is a C program called chk_sdparm_data.c in the src directory
+for checking the integrity of the mode items in the sdparm_data.c
+file. A simple example for building chk_sdparm_data is given inside
+the source file. The sdparm_data.c file only needs to be checked for
+integrity after a lot of new mode page items are added or changed.
+
 Doug Gilbert
-28th July 2005
+20th September 2005
