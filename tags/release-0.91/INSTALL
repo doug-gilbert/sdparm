@@ -1,0 +1,7 @@
+Build
+===== 
+
+    ./configure
+    make
+    make install (you may need to be root to do this)
+
