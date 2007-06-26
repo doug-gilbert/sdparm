@@ -1,13 +1,16 @@
-.TH SDPARM "8" "April 2005" "sdparm-0.90" SDPARM
+.TH SDPARM "8" "May 2005" "sdparm-0.91" SDPARM
 .SH NAME
 sdparm \- fetch and potentially change SCSI disk parameters
 .SH SYNOPSIS
 .B sdparm
 [\fI--all\fR] [\fI--clear=<str>\fR] [\fI--defaults\fR] [\fI--dummy\fR]
-[\fI--enumerate\fR] [\fI--get=<str>\fR] [\fI--help\fR] [\fI--hex\fR]
+[\fI--get=<str>\fR] [\fI--help\fR] [\fI--hex\fR]
 [\fI--inquiry\fR] [\fI--long\fR] [\fI--page=<pg>[,<spg>]\fR]
 [\fI--save\fR] [\fI--set=<str>\fR] [\fI--six\fR] [\fI--verbose\fR]
 [\fI--version\fR] \fI<scsi_disk>\fR
+.PP
+.B sdparm
+[\fI--all\fR] \fI--enumerate\fR [\fI--inquiry\fR] [\fI--page=<pg>[,<spg>]\fR]
 .SH DESCRIPTION
 .\" Add any additional description here
 .PP
@@ -25,45 +28,50 @@ Although this utility is primarily designed for SCSI disks (or storage
 devices that appear to the OS as SCSI disks) many of the mode pages
 are in common with other SCSI devices. These include CD/DVD players
 that use the ATAPI transport, SCSI tapes drives and SCSI enclosures.
+.PP
+When the '--inquiry' option is given and there is no page number then
+the Device Identification VPD page (page number 0x83) is requested and
+if found it is decoded and output.
 .TP
 --all | -a
-by default when mode pages are being displayed only a small number of
-parameters are shown. When this option is given, all recognised parameters
-are output. The default action is to output a relatively small number
-of parameters from different pages. When a specific (mode) page number
-is given with the "--page=" option the all the parameters of that
-page are output (irrespective of the setting of this option).
+output all recognised parameters. The default action is to output a
+relatively small number of parameters from different pages. When a
+specific (mode) page number is given with the '--page=' option then
+all the parameters of that page are output (irrespective of the
+setting of this option).
 .TP
 --clear=<str> | -c <str>
-The <str> contains a comma separated list of parameter acronyms whose
-values are to be set to zero. See the parameters section below.
+The <str> contains a comma separated list of parameter acronyms. In
+the absence of an explicit value, each acronym has it value set to
+zero. See the parameters section below.
 .TP
 --defaults | -D
-sets the given mode page (via '--page=' option) to its default values.
-To make the default mode page values also the saved mode page values
-use the '--save' option as well.
+sets the given mode page to its default values. Requires the '--page='
+option to be given to specify the mode page. To make the default mode
+page values also the saved mode page values use the '--save' option as
+well.
 .TP
 --dummy | -d
-when set inhibits changes being written back to a mode page. Instead
-the mode data that would have been sent to a MODE SELECT command,
-is output in ASCII hex to the console.
+when set inhibits changes being placed in the device's mode page.
+Instead the mode data that would have been sent to a MODE SELECT
+command, is output in ASCII hex to the console.
 .TP
 --enumerate | -e
-lists out the mode pages and parameters known by this utility. Ignores
-the <scsi_device> argument and most other options apart from the '--page='
-and '-all' options. If '--enumerate' is given without other options
-then the known mode pages are listed. If it is given with a page
-number then all known parameters (fields) in that mode page are
-listed. If '--enumerate' is given with the '-all' option then all
-mode pages followed by all parameters within those mode pages are
-listed. See listings section below.
+lists out the pages and parameters known by this utility. Ignores
+the <scsi_device> argument and most other options apart from 
+the '--page=', '--inquiry' and '-all' options. If '--enumerate' is
+given without other options then the known mode pages are listed.
+If it is given with a page number then all known parameters (fields) in
+that mode page are listed. If '--enumerate' is given with the '-all'
+option then all mode pages followed by all parameters within those mode
+pages are listed. If '--enumerate' is given with the '--inquiry' option
+then known VPD pages are listed. See listings section below.
 .TP
 --get=<str> | -g <str>
 The <str> contains a comma separated list of parameter acronyms whose
-values are to be fetched to zero. See the parameters section below.
-The '--long' and '--hex' options effect the output format. Also if
-a value of "1" is given (e.g. '--get=WCE=1') only the current value
-is output.
+values are to be fetched. See the parameters section below. The '--long'
+and '--hex' options effect the output format. Also if a value of "1" is
+given (e.g. '--get=WCE=1') only the current value is output.
 .TP
 --help | -h
 output the usage message then exit.
@@ -77,38 +85,47 @@ the '--get=' option (e.g. '--get=WCE=1') then only the current value
 is output in hex, prefixed by "0x".
 .TP
 --inquiry | -i
-output INQUIRY VPD pages. The default is to output mode pages.
+output INQUIRY VPD pages. In the absence of this option the default action
+is to output mode pages. If the '--inquiry' option is given without
+the '--page=' option then the device identification VPD page is decoded
+and output.
 .TP
 --long | -l
 output extra information. In the case of mode page parameters a
-description (with units if applicable) is output to the right if
-it is known.
+description (with units if applicable) is output to the right.
 .TP
 --page=<pg>[,<spg>] | -p <pg>[,<spg>]
-supply the page number and optionally the sub page number of the mode
-page to output. These numbers re interpreted as decimal unless
-prefixed with "0x". Alternatively a two letter abbreviation for
-a (mode) page can be given (e.g. "--page=ca" for the caching control
-mode page). See the '--enumerate' option for available abbreviations.
+supply the page number and optionally the sub page number of the
+mode (or VPD) page to output. These numbers are interpreted as decimal
+unless prefixed with "0x". Sub page numbers are only valid for mode
+pages (not VPD pages). Alternatively a two letter abbreviation for
+a page can be given (see next entry).
 .TP
 --page=<str> | -p <str>
-alternatively a two letter acronym for a mode page can be given.
-The '--enumerate' option can be used to list the mode page
-acronyms.
+a two letter abbreviation for a page can be given. First, known mode
+page abbreviations are checked followed by known VPD page abbreviations.
+For example '--page=ca' matches the caching control mode page.
+If no match is found then an error is issued. If the <str> matches a
+known VPD page abbreviation then the '--inquiry' option is turned
+on (internally). The '--enumerate' option can be used to list
+the mode page abbreviations. When both the '--enumerate' and '--inquiry'
+options are given then a list of VPD page abbreviations is produced.
 .TP
 --save | -S
 when a mode page is being modified (by using the '--clear=' and/or '--set="
-options) then the default action is to only modify the current mode page.
-When this option is given the corresponding value(s) in the saved mode
-page is also changed. The next time the device is power cycled (or reset)
-the saved mode page values become (i.e. are copied to) the current mode
-page. See notes section below.
+options) then the default action is to only modify the current values
+mode page. When this option is given then the corresponding value(s) in
+the saved values mode page is also changed. The next time the device is
+power cycled (or reset) the saved values mode page becomes (i.e. is
+copied to) the current values mode page. See notes section below.
 .TP
 --set=<str> | -s <str>
-The <str> contains a comma separated list of parameter acronyms whose
-values are to be set to (all) ones. Alternatively each acronym may be
-followed by "=<n>" where <n> is the value to set that parameter to.
-See the parameters section below.
+The <str> contains a comma separated list of parameter acronyms. In
+the absence of an explicit value, each acronym has it value set
+to (all) ones. This means a 16 bit field will be set to 0xffff which
+is 65535 in decimal. Alternatively each acronym may be followed by "=<n>"
+where <n> is the value to set that parameter to. See the parameters
+section below.
 .TP
 --six | -6
 The default action of this utility is to issue MODE SENSE and MODE
@@ -123,15 +140,15 @@ print the version string and then exit.
 .SH PARAMETERS
 The '--clear=', '--get=' and '--set=" options can take a string argument
 which is a comma separated list of parameters. Each parameter can
-be either an acronym name or a <start_byte>:<start_bit>:<num_bits> triple
+be either an acronym name or a <start_byte>:<start_bit>:<num_bits> tuple.
 Either form can optionally be followed by "=<val>". Acronyms (e.g.
-WCE for "write cache enable") that this utility supports can be viewed
+WCE for "write cache enable") that this utility supports can be listed
 with the '--enumerate' option.  Alternatively the mode page parameters
 to be changed can be described in terms of a <start_byte> (origin 0)
 within the mode page, a <start_bit> (0 to 7 inclusive) and <num_bits> (1
-to 32 inclusive). The low level representation of the WCE bit (in
-the caching control mode page) is 2:2:1 . The <start_byte> and 
-the <val>  can optionally be given in hex (prefixed with "0x").
+to 32 inclusive). For example, the low level representation of the RCD
+bit (in the caching control mode page) is 2:0:1 . The <start_byte> and 
+the <val> can optionally be given in hex (prefixed with "0x").
 .PP
 Both '--clear=' and '--set=" parameter lists can be given. The only
 difference is the value set in the absence of "=<val>". For '--clear='
@@ -148,7 +165,7 @@ When known mode pages are listed (via the '--enumerate' option) each
 line starts with a two letter acronym. This is followed by the page
 number (in hex prefixed by "0x") optionally followed by a comma and
 the subpage number. Finally the descriptive name of the mode
-page (i.e. as found in spc-3 or sbc-2) is output.
+page (i.e. as found in SPC-3 or SBC-2) is output.
 .PP
 When known parameters (fields) of a mode page are listed each line
 starts with an acronym. This will match (or be an acronym for) the
@@ -165,9 +182,10 @@ viewed as unsigned integers. Often 16 and 32 bit fields are set
 to 0xffff and 0xffffffff respectively (all ones) which usually
 has a special meaning (see drafts). In listings such values are
 represented by "-1" to save space (rather than their unsigned
-integer equivalents).
+integer equivalents). "-1" can also be given as the value to
+a mode page field acronym.
 .SH NOTES
-The SPC-3 draft (rev 22a) says that devices that implement no
+The SPC-3 draft (rev 23) says that devices that implement no
 distinction between current and saved pages can return an
 error (ILLEGAL REQUEST, invalid field in cdb) if the SP bit (which
 corresponds to the '--save' option) is _not_ set. In such cases
@@ -178,17 +196,24 @@ its PS bit) that the page is not savable, then this utility generates
 an error message. That message suggests to try again without the '--save'
 option. 
 .PP
-In the 2.4 series of Linux kernels the given device must be
-a SCSI generic (sg) device. In the 2.6 series block devices (e.g. disks
-and SCSI DVDs) can also be specified. For example "sdparm /dev/sda"
-will work in the 2.6 series kernels. From lk 2.6.6 other SCSI "char"
-device names may be used as well (e.g. "/dev/st0m").
+In the linux kernel 2.6 series any device node that understands a SCSI
+command set (e.g. SCSI disks and CD/DVD drives) may be specified. More
+precisely the driver that "owns" the device node must support the SG_IO
+ioctl. In the lk 2.4 series only SCSI generic (sg) device nodes support
+the SG_IO ioctl. However in the lk 2.4 series other SCSI device nodes are
+mapped within this utility to their corresponding sg device nodes. So if
+there is a SCSI disk at /dev/sda then "sdparm /dev/sda" will work in both
+the lk 2.6 and lk 2.4 series. However if there is an ATAPI disk at /dev/hdc
+then "sdparm /dev/hdc" will only work in the lk 2.6 series.
 .SH EXAMPLES
-These examples assume a 2.6 series linux kernel. For the 2.4 series
-scsi generic (i.e. sg) device names would need to be used.
 To list the common (mode) parameters of a disk:
 .PP
    sdparm /dev/sda
+.PP
+To list the descriptors within the device identification VPD page
+of a disk:
+.PP
+   sdparm --inquiry /dev/sda
 .PP
 To see all parameters for the caching control mode page:
 .PP
@@ -206,11 +231,11 @@ To get the WCE current value in hex:
 .br
 0x01
 .PP
-To set the "write cache enable" bit in the current page:
+To set the "write cache enable" bit in the current values page:
 .PP
    sdparm --set=WCE /dev/sda
 .PP
-To set the "write cache enable" bit in the current and saved page:
+To set the "write cache enable" bit in the current and saved values page:
 .PP
    sdparm --set=WCE --save /dev/sda
 .PP
@@ -223,19 +248,19 @@ The previous example can also by written as:
    sdparm -s WCE=1,RCD=0 -S /dev/sda
 .PP
 To re-establish the manufacturer's defaults in the current and saved
-caching control mode page:
+values caching control mode page:
 .PP
-   sdparm --page=ca --defaults -save /dev/sda
+   sdparm --page=ca --defaults --save /dev/sda
 .PP
 If an ATAPI cd/dvd player is at /dev/hdc then its common (mode) parameters
-could be listed with:
+could be listed in the lk 2.6 series with:
 .PP
    sdparm /dev/hdc
 .PP
 One disk vendor has a "performance mode" bit (PM) in the vendor specific
 unit attention mode page [0x0,0x0]. PM=0 is server mode (the default)
 while PM=1 is desktop mode. Desktop mode can be set (both current and
-saved) with: 
+saved values) with: 
 .PP
    sdparm --page=0 --set=2:7:1=1 --save /dev/sda
 .PP
@@ -251,5 +276,6 @@ Copyright \(co 2005 Douglas Gilbert
 This software is distributed under a FreeBSD license. There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 .SH "SEE ALSO"
-.B sg_modes(sg3_utils), sg_wr_mode(sg3_utils), sginfo(sg3_utils)
-.B sg_senddiag(sg3_utils), smartmontools(internet, sourceforge)
+.B sg_modes(sg3_utils), sg_wr_mode(sg3_utils), sginfo(sg3_utils),
+.B sg_senddiag(sg3_utils), sg_inq(sg3_utils),
+.B smartmontools(internet, sourceforge)

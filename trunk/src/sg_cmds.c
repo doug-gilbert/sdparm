@@ -50,13 +50,12 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/ioctl.h>
-// #include "sg_include.h"
 #include <scsi/scsi.h>
 #include <scsi/sg.h>
 #include <scsi/sg_lib.h>
 #include <scsi/sg_cmds.h>
 
-static char * version_str = "1.08 20050403";
+static char * version_str = "1.09 20050419";
 
 
 #define SENSE_BUFF_LEN 32       /* Arbitrary, could be larger */
@@ -226,8 +225,9 @@ int sg_simple_inquiry(int sg_fd, struct sg_simple_inquiry_resp * inq_data,
     io_hdr.timeout = DEF_TIMEOUT;
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "SG_IO (inquiry) error: %s\n",
-                safe_strerror(errno));
+        if (noisy || verbose)
+            fprintf(sg_warnings_str, "SG_IO (inquiry) error: %s\n",
+                    safe_strerror(errno));
         return -1;
     }
     if (verbose > 2)
@@ -298,8 +298,9 @@ int sg_ll_test_unit_ready(int sg_fd, int pack_id, int noisy, int verbose)
     io_hdr.pack_id = pack_id;   /* diagnostic: safe to set to 0 */
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "test_unit_ready (SG_IO) error: %s\n",
-                safe_strerror(errno));
+        if (noisy || verbose)
+            fprintf(sg_warnings_str, "test_unit_ready (SG_IO) error: %s\n",
+                    safe_strerror(errno));
         return -1;
     }
     if (verbose > 2)
@@ -365,8 +366,9 @@ int sg_ll_sync_cache_10(int sg_fd, int sync_nv, int immed, int group,
     io_hdr.timeout = DEF_TIMEOUT;
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "synchronize_cache (SG_IO) error: %s\n",
-                safe_strerror(errno));
+        if (noisy || verbose)
+            fprintf(sg_warnings_str, "synchronize_cache (SG_IO) error: %s\n",
+                    safe_strerror(errno));
         return -1;
     }
     if (verbose > 2)
@@ -440,8 +442,9 @@ int sg_ll_readcap_16(int sg_fd, int pmi, unsigned long long llba,
     io_hdr.timeout = DEF_TIMEOUT;
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "read_capacity16 (SG_IO) error: %s\n",
-                safe_strerror(errno));
+        if (verbose)
+            fprintf(sg_warnings_str, "read_capacity16 (SG_IO) error: %s\n",
+                    safe_strerror(errno));
         return -1;
     }
     if (verbose > 2)
@@ -510,8 +513,9 @@ int sg_ll_readcap_10(int sg_fd, int pmi, unsigned int lba,
     io_hdr.timeout = DEF_TIMEOUT;
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "read_capacity (10) (SG_IO) error: %s\n",
-                safe_strerror(errno));
+        if (verbose)
+            fprintf(sg_warnings_str, "read_capacity (10) (SG_IO) error: %s\n",
+                    safe_strerror(errno));
         return -1;
     }
     if (verbose > 2)
@@ -581,8 +585,9 @@ int sg_ll_mode_sense6(int sg_fd, int dbd, int pc, int pg_code, int sub_pg_code,
     io_hdr.timeout = DEF_TIMEOUT;
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "mode sense (6) SG_IO error: %s\n",
-                safe_strerror(errno));
+        if (noisy || verbose)
+            fprintf(sg_warnings_str, "mode sense (6) SG_IO error: %s\n",
+                    safe_strerror(errno));
         return -1;
     }
     if (verbose > 2)
@@ -668,8 +673,9 @@ int sg_ll_mode_sense10(int sg_fd, int llbaa, int dbd, int pc, int pg_code,
     io_hdr.timeout = DEF_TIMEOUT;
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "mode sense (10) SG_IO error: %s\n",
-                safe_strerror(errno));
+        if (noisy || verbose)
+            fprintf(sg_warnings_str, "mode sense (10) SG_IO error: %s\n",
+                    safe_strerror(errno));
         return -1;
     }
     if (verbose > 2)
@@ -755,8 +761,9 @@ int sg_ll_mode_select6(int sg_fd, int pf, int sp, void * paramp,
     io_hdr.timeout = DEF_TIMEOUT;
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "mode select (6) SG_IO error: %s\n",
-                safe_strerror(errno));
+        if (noisy || verbose)
+            fprintf(sg_warnings_str, "mode select (6) SG_IO error: %s\n",
+                    safe_strerror(errno));
         return -1;
     }
     if (verbose > 2)
@@ -831,8 +838,9 @@ int sg_ll_mode_select10(int sg_fd, int pf, int sp, void * paramp,
     io_hdr.timeout = DEF_TIMEOUT;
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "mode select (10) SG_IO error: %s\n",
-                safe_strerror(errno));
+        if (noisy || verbose)
+            fprintf(sg_warnings_str, "mode select (10) SG_IO error: %s\n",
+                    safe_strerror(errno));
         return -1;
     }
     if (verbose > 2)
@@ -1024,8 +1032,9 @@ int sg_ll_request_sense(int sg_fd, int desc, void * resp, int mx_resp_len,
     io_hdr.timeout = DEF_TIMEOUT;
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "request sense SG_IO error: %s\n",
-                safe_strerror(errno));
+        if (verbose)
+            fprintf(sg_warnings_str, "request sense SG_IO error: %s\n",
+                    safe_strerror(errno));
         return -1;
     }
 
@@ -1096,8 +1105,9 @@ int sg_ll_report_luns(int sg_fd, int select_report, void * resp,
     io_hdr.timeout = DEF_TIMEOUT;
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "report_luns (SG_IO) error: %s\n",
-                safe_strerror(errno));
+        if (noisy || verbose)
+            fprintf(sg_warnings_str, "report_luns (SG_IO) error: %s\n",
+                    safe_strerror(errno));
         return -1;
     }
     if (verbose > 2)
@@ -1172,8 +1182,9 @@ int sg_ll_log_sense(int sg_fd, int ppc, int sp, int pc, int pg_code,
     io_hdr.timeout = DEF_TIMEOUT;
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "log sense (SG_IO) error: %s\n",
-                safe_strerror(errno));
+        if (noisy || verbose)
+            fprintf(sg_warnings_str, "log sense (SG_IO) error: %s\n",
+                    safe_strerror(errno));
         return -1;
     }
     if (verbose > 2)
@@ -1254,8 +1265,9 @@ int sg_ll_log_select(int sg_fd, int pcr, int sp, int pc,
     io_hdr.timeout = DEF_TIMEOUT;
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "log select (SG_IO) error: %s\n",
-                safe_strerror(errno));
+        if (noisy || verbose)
+            fprintf(sg_warnings_str, "log select (SG_IO) error: %s\n",
+                    safe_strerror(errno));
         return -1;
     }
     if (verbose > 2)
@@ -1325,8 +1337,9 @@ int sg_ll_report_tgt_prt_grp(int sg_fd, void * resp,
     io_hdr.timeout = DEF_TIMEOUT;
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "report_tgt_prt_grp (SG_IO) error: %s\n",
-                safe_strerror(errno));
+        if (noisy || verbose)
+            fprintf(sg_warnings_str, "report_tgt_prt_grp (SG_IO) error: "
+                    "%s\n", safe_strerror(errno));
         return -1;
     }
     if (verbose > 2)
@@ -1400,8 +1413,9 @@ int sg_ll_send_diag(int sg_fd, int sf_code, int pf_bit, int sf_bit,
     io_hdr.timeout = long_duration ? LONG_TIMEOUT : DEF_TIMEOUT;
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "send diagnostic (SG_IO) error: %s\n",
-                safe_strerror(errno));
+        if (noisy || verbose)
+            fprintf(sg_warnings_str, "send diagnostic (SG_IO) error: %s\n",
+                    safe_strerror(errno));
         return -1;
     }
     if (verbose > 2)
@@ -1468,8 +1482,9 @@ int sg_ll_receive_diag(int sg_fd, int pcv, int pg_code, void * resp,
     io_hdr.timeout = DEF_TIMEOUT;
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "receive diagnostics results (SG_IO) "
-                "error: %s\n", safe_strerror(errno));
+        if (noisy || verbose)
+            fprintf(sg_warnings_str, "receive diagnostics results (SG_IO) "
+                    "error: %s\n", safe_strerror(errno));
         return -1;
     }
     if (verbose > 2)
@@ -1542,8 +1557,9 @@ int sg_ll_read_defect10(int sg_fd, int req_plist, int req_glist,
     io_hdr.timeout = DEF_TIMEOUT;
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "read defect (10) SG_IO error: %s\n",
-                safe_strerror(errno));
+        if (noisy || verbose)
+            fprintf(sg_warnings_str, "read defect (10) SG_IO error: %s\n",
+                    safe_strerror(errno));
         return -1;
     }
     if (verbose > 2)
@@ -1623,8 +1639,9 @@ int sg_ll_read_media_serial_num(int sg_fd, void * resp,
     io_hdr.timeout = DEF_TIMEOUT;
 
     if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
-        fprintf(sg_warnings_str, "read_media_serial_num (SG_IO) error: %s\n",
-                safe_strerror(errno));
+        if (noisy || verbose)
+            fprintf(sg_warnings_str, "read_media_serial_num (SG_IO) error:"
+                    " %s\n", safe_strerror(errno));
         return -1;
     }
     if (verbose > 2)
