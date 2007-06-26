@@ -1,5 +1,5 @@
 %define	name	sdparm
-%define	version	0.97
+%define	version	0.98
 %define	release	1
 
 Summary:	List or change SCSI disk parameters
@@ -57,6 +57,9 @@ make install \
 %{_mandir}/man8/*
 
 %changelog
+* Thu May 18 2006 - dgilbert at interlog dot com
+- add medium configuration mode page
+  * sdparm-0.98
 * Wed Jan 25 2006 - dgilbert at interlog dot com
 - add SAT pATA control and medium partition mode (sub)pages
   * sdparm-0.97

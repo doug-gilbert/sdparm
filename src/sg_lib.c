@@ -68,7 +68,7 @@
 #include "sg_lib.h"
 
 
-static char * version_str = "1.18 20060124";    /* spc-4 rev 03 */
+static char * version_str = "1.21 20060510";    /* spc-4 rev 04 */
 
 FILE * sg_warnings_strm = NULL;        /* would like to default to stderr */
 
@@ -244,12 +244,13 @@ static const struct value_name_t normal_opcodes[] = {
     {0xaf, 0, "Verify(12)"},
     {0xb0, 0, "Search data high(12)"},
     {0xb1, 0, "Search data equal(12)"},
+    {0xb1, 8, "Open/close import/export element"},
     {0xb2, 0, "Search data low(12)"},
     {0xb3, 0, "Set limits(12)"},
     {0xb4, 0, "Read element status attached"},
     {0xb5, 0, "Security protocol out"},
     {0xb5, 8, "Request volume element address"},
-    {0xb6, 0, "Set volume tag"},
+    {0xb6, 0, "Send volume tag"},
     {0xb6, 5, "Set streaming"},
     {0xb7, 0, "Read defect data(12)"},
     {0xb8, 0, "Read element status"},
@@ -573,9 +574,9 @@ static struct error_info additional[] =
     {0x0E,0x02,"Information unit too long"},
     {0x0E,0x03,"Invalid field in command information unit"},
     {0x10,0x00,"Id CRC or ECC error"},
-    {0x10,0x01,"Data block guard check failed"},
-    {0x10,0x02,"Data block application tag check failed"},
-    {0x10,0x03,"Data block reference tag check failed"},
+    {0x10,0x01,"Logical block guard check failed"},
+    {0x10,0x02,"Logical block application tag check failed"},
+    {0x10,0x03,"Logical block reference tag check failed"},
     {0x11,0x00,"Unrecovered read error"},
     {0x11,0x01,"Read retries exhausted"},
     {0x11,0x02,"Error too long to correct"},
@@ -1429,24 +1430,20 @@ static void sg_get_sense_descriptors_str(const unsigned char * sense_buffer,
         case 9:
             n += sprintf(b + n, "ATA return\n");
             if (add_len >= 12) {
-                int extended, sector_count, lba_low, lba_mid, lba_high;
+                int extended, sector_count;
 
                 extended = descp[2] & 1;
-                sector_count = descp[5];
-                lba_low = descp[7];
-                lba_mid = descp[9];
-                lba_high = descp[11];
-                if (extended) {
-                    sector_count += (descp[4] << 8);
-                    lba_low += (descp[6] << 8);
-                    lba_mid += (descp[8] << 8);
-                    lba_high += (descp[10] << 8);
-                }
+                sector_count = descp[5] + (extended ? (descp[4] << 8) : 0);
                 n += sprintf(b + n, "    extended=%d  error=0x%x "
                         " sector_count=0x%x\n", extended, descp[3],
                         sector_count);
-                n += sprintf(b + n, "    lba_low=0x%x  lba_mid=0x%x "
-                        " lba_high=0x%x\n", lba_low, lba_mid, lba_high);
+                if (extended)
+                    n += sprintf(b + n, "    lba=0x%02x%02x%02x%02x%02x%02x\n",
+                                 descp[10], descp[8], descp[6],
+                                 descp[11], descp[9], descp[7]);
+                else
+                    n += sprintf(b + n, "    lba=0x%02x%02x%02x\n",
+                                 descp[11], descp[9], descp[7]);
                 n += sprintf(b + n, "    device=0x%x  status=0x%x\n",
                         descp[12], descp[13]);
             } else
@@ -1676,7 +1673,7 @@ void sg_get_sense_str(const char * leadin,
 
         r += sprintf(b + r, "Non-extended sense class %d code 0x%0x ", 
                      (sense_buffer[0] >> 4) & 0x07, sense_buffer[0] & 0xf);
-        n += snprintf(buff + n, buff_len - n, "%s", b);
+        n += snprintf(buff + n, buff_len - n, "%s\n", b);
         if (n >= buff_len)
             return;
         len = 4;
@@ -1748,6 +1745,7 @@ int sg_err_category_sense(const unsigned char * sense_buffer, int sb_len)
             return SG_LIB_CAT_RECOVERED;
         case SPC_SK_MEDIUM_ERROR: 
         case SPC_SK_HARDWARE_ERROR: 
+        case SPC_SK_BLANK_CHECK: 
             return SG_LIB_CAT_MEDIUM_HARD;
         case SPC_SK_UNIT_ATTENTION:
             if (0x28 == ssh.asc)
@@ -1913,6 +1911,32 @@ void sg_get_opcode_name(unsigned char cmd_byte0, int peri_type,
         snprintf(buff, buff_len, "Opcode=0x%x", (int)cmd_byte0);
         break;
     }
+}
+
+int sg_vpd_dev_id_iter(const unsigned char * initial_desig_desc,
+                       int page_len, int * off, int m_assoc,
+                       int m_desig_type, int m_code_set)
+{
+    const unsigned char * ucp;
+    int k, c_set, assoc, desig_type;
+
+    for (k = *off, ucp = initial_desig_desc ; (k + 3) < page_len; ) {
+        k = (k < 0) ? 0 : (k + ucp[k + 3] + 4);
+        if ((k + 4) > page_len)
+            break;
+        c_set = (ucp[k] & 0xf);
+        if ((m_code_set >= 0) && (m_code_set != c_set))
+            continue;
+        assoc = ((ucp[k + 1] >> 4) & 0x3);
+        if ((m_assoc >= 0) && (m_assoc != assoc))
+            continue;
+        desig_type = (ucp[k + 1] & 0xf);
+        if ((m_desig_type >= 0) && (m_desig_type != desig_type))
+            continue;
+        *off = k;
+        return 0;
+    }
+    return (k == page_len) ? -1 : -2;
 }
 
 

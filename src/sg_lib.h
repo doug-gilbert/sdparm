@@ -30,7 +30,7 @@
  *
  */
 
-/* Version 1.18 [20050124]
+/* Version 1.21 [20050510]
  *
  * On 5th October 2004 a FreeBSD license was added to this file.
  * The intention is to keep this file and the related sg_lib.c file
@@ -162,10 +162,11 @@ extern int sg_get_sense_progress_fld(const unsigned char * sensep,
                                      int sb_len, int * progress_outp);
 
 /* Closely related to sg_print_sense(). Puts decode sense data in 'buff'.
-   Usually multiline with multiple '\n' including one trailing. */
+   Usually multiline with multiple '\n' including one trailing. If
+   'raw_sinfo' set appends sense buffer in hex. */
 extern void sg_get_sense_str(const char * leadin,
                              const unsigned char * sense_buffer, int sb_len,
-                             int raw_info, int buff_len, char * buff);
+                             int raw_sinfo, int buff_len, char * buff);
 
 /* Yield string associated with peripheral device type (pdt). Returns
    'buff'. If 'pdt' out of range yields "bad pdt" string. */
@@ -191,8 +192,8 @@ extern void sg_print_scsi_status(int scsi_status);
                                 /*       [sk,asc,ascq: 0x1,*,*] */
 #define SG_LIB_CAT_INVALID_OP 5 /* Invalid operation code: */
                                 /*       [sk,asc,ascq: 0x5,0x20,0x0] */
-#define SG_LIB_CAT_MEDIUM_HARD 6 /* medium or hardware error sense key */
-                                /*       [sk,asc,ascq: 0x3/0x4,*,*] */
+#define SG_LIB_CAT_MEDIUM_HARD 6 /* medium or hardware error, blank check */
+                                /*       [sk,asc,ascq: 0x3/0x4/0x8,*,*] */
 #define SG_LIB_CAT_ILLEGAL_REQ 7 /* Illegal request (other than invalid */
                                 /* opcode):   [sk,asc,ascq: 0x5,*,*] */
 #define SG_LIB_CAT_NO_SENSE 8   /* sense data with key of "no sense" */
@@ -201,6 +202,19 @@ extern void sg_print_scsi_status(int scsi_status);
 
 extern int sg_err_category_sense(const unsigned char * sense_buffer,
                                  int sb_len);
+
+/* Iterates to next designation descriptor in the device identification
+   VPD page. The 'initial_desig_desc' should point to start of first
+   descriptor with 'page_len' being the number of valid bytes in that
+   and following descriptors. To start, 'off' should point to a negative
+   value, thereafter it should point to the value yielded by the previous
+   call. If 0 returned then 'initial_desig_desc + *off' should be a valid
+   descriptor; returns -1 if normal end condition and -2 for an abnormal
+   termination. Matches association, designator_type and/or code_set when
+   any of those values are greater than or equal to zero. */
+extern int sg_vpd_dev_id_iter(const unsigned char * initial_desig_desc,
+                              int page_len, int * off, int m_assoc,
+                              int m_desig_type, int m_code_set);
 
 
 /* <<< General purpose (i.e. not SCSI specific) utility functions >>> */
