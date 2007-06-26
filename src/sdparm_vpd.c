@@ -60,7 +60,7 @@ static int decode_dev_ids_quiet(unsigned char * buff, int len,
         if ((off + i_len + 4) > len) {
             fprintf(stderr, "    VPD page error: designator length longer "
                     "than\n     remaining response length=%d\n", (len - off));
-            return -1;
+            return SG_LIB_CAT_MALFORMED;
         }
         ip = ucp + 4;
         p_id = ((ucp[0] >> 4) & 0xf);
@@ -159,7 +159,7 @@ static int decode_dev_ids_quiet(unsigned char * buff, int len,
     if (-2 == u) {
         fprintf(stderr, "VPD page error: short designator around "
                 "offset %d\n", off);
-        return -1;
+        return SG_LIB_CAT_MALFORMED;
     }
     return 0;
 }
@@ -189,7 +189,7 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
         if ((off + i_len + 4) > len) {
             fprintf(stderr, "    VPD page error: designator length longer "
                     "than\n     remaining response length=%d\n", (len - off));
-            return -1;
+            return SG_LIB_CAT_MALFORMED;
         }
         ip = ucp + 4;
         p_id = ((ucp[0] >> 4) & 0xf);
@@ -433,7 +433,7 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
     if (-2 == u) {
         fprintf(stderr, "VPD page error: short designator around "
                 "offset %d\n", off);
-        return -1;
+        return SG_LIB_CAT_MALFORMED;
     }
     return 0;
 }
@@ -446,7 +446,7 @@ static int decode_mode_policy_vpd(unsigned char * buff, int len)
     if (len < 4) {
         fprintf(stderr, "Mode page policy VPD page length too short=%d\n",
                 len);
-        return -1;
+        return SG_LIB_CAT_MALFORMED;
     }
     len -= 4;
     ucp = buff + 4;
@@ -455,7 +455,7 @@ static int decode_mode_policy_vpd(unsigned char * buff, int len)
         if ((k + bump) > len) {
             fprintf(stderr, "Mode page policy VPD page, short "
                     "descriptor length=%d, left=%d\n", bump, (len - k));
-            return -1;
+            return SG_LIB_CAT_MALFORMED;
         }
         printf("  Policy page code: 0x%x", (ucp[0] & 0x3f));
         if (ucp[1])
@@ -476,7 +476,7 @@ static int decode_man_net_vpd(unsigned char * buff, int len)
     if (len < 4) {
         fprintf(stderr, "Management network addresses VPD page length too "
                 "short=%d\n", len);
-        return -1;
+        return SG_LIB_CAT_MALFORMED;
     }
     len -= 4;
     ucp = buff + 4;
@@ -489,7 +489,7 @@ static int decode_man_net_vpd(unsigned char * buff, int len)
         if ((k + bump) > len) {
             fprintf(stderr, "Management network addresses VPD page, short "
                     "descriptor length=%d, left=%d\n", bump, (len - k));
-            return -1;
+            return SG_LIB_CAT_MALFORMED;
         }
         if (na_len > 0) {
             printf("    %s\n", ucp + 4);
@@ -506,7 +506,7 @@ static int decode_scsi_ports_vpd(unsigned char * buff, int len,
 
     if (len < 4) {
         fprintf(stderr, "SCSI Ports VPD page length too short=%d\n", len);
-        return -1;
+        return SG_LIB_CAT_MALFORMED;
     }
     len -= 4;
     ucp = buff + 4;
@@ -518,7 +518,7 @@ static int decode_scsi_ports_vpd(unsigned char * buff, int len,
         if ((k + bump) > len) {
             fprintf(stderr, "SCSI Ports VPD page, short descriptor "
                     "length=%d, left=%d\n", bump, (len - k));
-            return -1;
+            return SG_LIB_CAT_MALFORMED;
         }
         if (ip_tid_len > 0) {
             /* 
@@ -534,7 +534,7 @@ static int decode_scsi_ports_vpd(unsigned char * buff, int len,
         if ((k + bump + tpd_len + 4) > len) {
             fprintf(stderr, "SCSI Ports VPD page, short descriptor(tgt) "
                     "length=%d, left=%d\n", bump, (len - k));
-            return -1;
+            return SG_LIB_CAT_MALFORMED;
         }
         if (tpd_len > 0) {
             res = decode_dev_ids(" Target port descriptor(s)",
@@ -553,7 +553,7 @@ static int decode_ext_inq_vpd(unsigned char * buff, int len)
     if (len < 7) {
         fprintf(stderr, "Extended INQUIRY data VPD page length too "
                 "short=%d\n", len);
-        return -1;
+        return SG_LIB_CAT_MALFORMED;
     }
     printf("  SPT: %d  GRD_CHK: %d  APP_CHK: %d  REF_CHK: %d\n",
            ((buff[4] >> 3) & 0x7), !!(buff[4] & 0x4), !!(buff[4] & 0x2),
@@ -566,14 +566,17 @@ static int decode_ext_inq_vpd(unsigned char * buff, int len)
     return 0;
 }
 
-static int decode_ata_info_vpd(unsigned char * buff, int len, int do_hex)
+static int decode_ata_info_vpd(unsigned char * buff, int len, int long_out,
+                               int do_hex)
 {
-    char b[32];
+    char b[80];
+    int num, is_be;
+    const char * cp;
 
     if (len < 36) {
         fprintf(stderr, "ATA information VPD page length too "
                 "short=%d\n", len);
-        return -1;
+        return SG_LIB_CAT_MALFORMED;
     }
     memcpy(b, buff + 8, 8);
     b[8] = '\0';
@@ -585,26 +588,40 @@ static int decode_ata_info_vpd(unsigned char * buff, int len, int do_hex)
     b[4] = '\0';
     printf("  SAT Product revision level: %s\n", b);
     if (len < 56)
-        return -1;
-    printf("  Signature (20 bytes):\n");
-    dStrHex((const char *)buff + 36, 20, 0);
+        return SG_LIB_CAT_MALFORMED;
+    if (long_out) {
+        printf("  Signature (Device to host FIS):\n");
+        dStrHex((const char *)buff + 36, 20, 1);
+    }
     if (len < 60)
-        return -1;
-    if (0xec == buff[56])
-        printf("  ATA command IDENTIFY DEVICE got following response:\n");
-    else if (0xa1 == buff[56])
-        printf("  ATA command IDENTIFY PACKET DEVICE got following "
-               "response:\n");
-    else
+        return SG_LIB_CAT_MALFORMED;
+    is_be = sg_is_big_endian();
+    if ((0xec == buff[56]) || (0xa1 == buff[56])) {
+        cp = (0xa1 == buff[56]) ? "PACKET " : "";
+        printf("  ATA command IDENTIFY %sDEVICE response summary:\n", cp);
+        num = sg_ata_get_chars((const unsigned short *)(buff + 60), 27, 20,
+                               is_be, b);
+        b[num] = '\0';
+        printf("    model: %s\n", b);
+        num = sg_ata_get_chars((const unsigned short *)(buff + 60), 10, 10,
+                               is_be, b);
+        b[num] = '\0';
+        printf("    serial number: %s\n", b);
+        num = sg_ata_get_chars((const unsigned short *)(buff + 60), 23, 4,
+                               is_be, b);
+        b[num] = '\0';
+        printf("    firmware revision: %s\n", b);
+        if (long_out)
+            printf("  ATA command IDENTIFY %sDEVICE response in hex:\n", cp);
+    } else if (long_out)
         printf("  ATA command 0x%x got following response:\n",
                (unsigned int)buff[56]);
     if (len < 572)
-        return -1;
-    if (do_hex) /* here for '-HH' option */
+        return SG_LIB_CAT_MALFORMED;
+    if (do_hex)
         dStrHex((const char *)(buff + 60), 512, 0);
-    else
-        dWordHex((const unsigned short *)(buff + 60), 256, 0,
-                 sg_is_big_endian());
+    else if (long_out)
+        dWordHex((const unsigned short *)(buff + 60), 256, 0, is_be);
     return 0;
 }
 
@@ -615,7 +632,7 @@ static int decode_block_limits_vpd(unsigned char * buff, int len)
     if (len < 16) {
         fprintf(stderr, "Block limits VPD page length too "
                 "short=%d\n", len);
-        return -1;
+        return SG_LIB_CAT_MALFORMED;
     }
     u = (buff[6] << 8) | buff[7];
     printf("  Optimal transfer length granularity: %u blocks\n", u);
@@ -633,7 +650,7 @@ static int decode_tape_dev_caps_vpd(unsigned char * buff, int len)
     if (len < 6) {
         fprintf(stderr, "Sequential access device capabilities VPD page "
                 "length too short=%d\n", len);
-        return -1;
+        return SG_LIB_CAT_MALFORMED;
     }
     printf("  Worm: %d\n", !!(buff[4] & 0x1));
     return 0;
@@ -644,7 +661,7 @@ static int decode_tapealert_supported_vpd(unsigned char * b, int len)
     if (len < 12) {
         fprintf(stderr, "TapeAlert supported flags length too short=%d\n",
                 len);
-        return -1;
+        return SG_LIB_CAT_MALFORMED;
     }
     printf("  Flag01h: %d  02h: %d  03h: %d  04h: %d  05h: %d  06h: %d  "
            "07h: %d  08h: %d\n", !!(b[4] & 0x80), !!(b[4] & 0x40),
@@ -762,7 +779,7 @@ int sdp_process_vpd_page(int sg_fd, int pn, int spn,
             dStrHex((const char *)b, len + 4, 0);
             return 0;
         }
-        res = decode_ata_info_vpd(b, len + 4, opts->hex);
+        res = decode_ata_info_vpd(b, len + 4, opts->long_out, opts->hex);
         if (res)
             return res;
         break;
@@ -1000,5 +1017,5 @@ int sdp_process_vpd_page(int sg_fd, int pn, int spn,
 dumb_inq:
     fprintf(stderr, "malformed VPD response, VPD pages probably not "
             "supported\n");
-    return -1;
+    return SG_LIB_CAT_MALFORMED;
 }

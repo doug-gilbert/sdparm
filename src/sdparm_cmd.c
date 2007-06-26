@@ -93,18 +93,25 @@ static int do_cmd_read_capacity(int sg_fd, int verbose)
     return 0;
 }
 
-static int do_cmd_sense(int sg_fd, int verbose)
+static int do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
 {
     int res, resp_len, sk, asc, ascq, progress, something;
     unsigned char buff[32];
     char b[128];
 
     memset(buff, 0, sizeof(buff));
-    res = sg_ll_request_sense(sg_fd, 0, buff, sizeof(buff), 1, verbose);
+    res = sg_ll_request_sense(sg_fd, 0 /* fixed format */,
+                              buff, sizeof(buff), 1, verbose);
     if (0 == res) {
         resp_len = buff[7] + 8;
         if (resp_len > (int)sizeof(buff))
             resp_len = sizeof(buff);
+        sk = (0xf & buff[2]);
+        if (hex) {
+            dStrHex((const char *)buff, resp_len, 1);
+            return 0;
+        }
+        something = 0;
         if (verbose) {
             fprintf(stderr, "Decode response as sense data:\n");
             sg_print_sense(NULL, buff, resp_len, 0);
@@ -112,11 +119,10 @@ static int do_cmd_sense(int sg_fd, int verbose)
                 fprintf(stderr, "\nOutput response in hex\n");
                 dStrHex((const char *)buff, resp_len, 1);
             }
+            something = 1;
         }
-        sk = (0xf & buff[2]);
         asc = (resp_len > 12) ? buff[12] : 0;
         ascq = (resp_len > 13) ? buff[13] : 0;
-        something = 0;
         if (sg_get_sense_progress_fld(buff, resp_len, &progress)) {
             printf("Operation in progress, %d%% done\n",
                    progress * 100 / 65536);
@@ -132,21 +138,26 @@ static int do_cmd_sense(int sg_fd, int verbose)
                 printf("%s\n", sg_get_asc_ascq_str(asc, ascq,
                                                    (int)sizeof(b), b));
             return 0;
-        } else if (! (something || verbose))
-            fprintf(stderr, "Something detected, try again with '-v' for "
-                    "more details\n");
-        return 0;
+        } else {
+            if (! (something || verbose || quiet)) {
+                fprintf(stderr, "Decode response as sense data:\n");
+                sg_print_sense(NULL, buff, resp_len, 0);
+            }
+            return 0;
+        }
     } else if (SG_LIB_CAT_INVALID_OP == res)
         fprintf(stderr, "Request Sense command not supported\n");
     else if (SG_LIB_CAT_ILLEGAL_REQ == res)
         fprintf(stderr, "bad field in Request Sense cdb\n");
+    else if (SG_LIB_CAT_NOT_READY == res)
+        fprintf(stderr, "Request Sense failed, device not ready\n");
     else {
         fprintf(stderr, "Request Sense command failed\n");
         if (0 == verbose)
             fprintf(stderr, "    try the '-v' option for "
                     "more information\n");
     }
-    return 1;
+    return res;
 }
 
 const struct sdparm_command * sdp_build_cmd(const char * cmd_str, int * rwp)
@@ -192,7 +203,7 @@ int sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp,
           (0 == pdt) || (5 == pdt)) ) {
         fprintf(stderr, "this command only valid on a disk or cd/dvd; "
                 "use '--flexible' to override\n");
-        return 1;
+        return SG_LIB_SYNTAX_ERROR;
 
     }
 
@@ -222,11 +233,10 @@ int sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp,
                        (progress * 100) / 65536);
             else
                 printf("Not ready\n");
-            res = 1;
         }
         break;
     case CMD_SENSE:
-        res = do_cmd_sense(sg_fd, verbose);
+        res = do_cmd_sense(sg_fd, opts->hex, opts->quiet, verbose);
         break;
     case CMD_START:
         res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 0, 1, 1, verbose);
@@ -242,7 +252,7 @@ int sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp,
         break;
     default:
         fprintf(stderr, "unknown cmd number [%d]\n", scmdp->cmd_num);
-        return 1;
+        return SG_LIB_SYNTAX_ERROR;
     }
     return res;
 }

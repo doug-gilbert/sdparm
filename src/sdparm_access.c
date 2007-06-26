@@ -70,10 +70,12 @@ const struct sdparm_values_name_t *
 }
 
 void sdp_get_mpage_name(int page_num, int subpage_num, int pdt,
-                        int transp_proto, int hex, char * bp, int max_b_len)
+                        int transp_proto, int plus_acron, int hex,
+                        char * bp, int max_b_len)
 {
     int len = max_b_len - 1;
     const struct sdparm_values_name_t * vnp;
+    const char * cp;
 
     if (len < 0)
         return;
@@ -82,14 +84,30 @@ void sdp_get_mpage_name(int page_num, int subpage_num, int pdt,
     if (NULL == vnp)
         vnp = sdp_get_mode_detail(page_num, subpage_num, -1, transp_proto);
     if (vnp && vnp->name) {
+        cp = vnp->acron;
+        if (NULL == cp)
+            cp = "";
         if (hex) {
-            if (0 == subpage_num)
-                snprintf(bp, len, "%s [0x%x]", vnp->name, page_num);
+            if (0 == subpage_num) {
+                if (plus_acron)
+                    snprintf(bp, len, "%s [%s: 0x%x]", vnp->name, cp,
+                             page_num);
+                else
+                    snprintf(bp, len, "%s [0x%x]", vnp->name, page_num);
+            } else {
+                if (plus_acron)
+                    snprintf(bp, len, "%s [%s: 0x%x,0x%x]", vnp->name, cp,
+                             page_num, subpage_num);
+                else
+                    snprintf(bp, len, "%s [0x%x,0x%x]", vnp->name, page_num,
+                             subpage_num);
+            }
+        } else {
+            if (plus_acron)
+                snprintf(bp, len, "%s [%s]", vnp->name, cp);
             else
-                snprintf(bp, len, "%s [0x%x,0x%x]", vnp->name, page_num,
-                         subpage_num);
-        } else
-            snprintf(bp, len, "%s", vnp->name);
+                snprintf(bp, len, "%s", vnp->name);
+        }
     } else {
         if (0 == subpage_num)
             snprintf(bp, len, "[0x%x]", page_num);

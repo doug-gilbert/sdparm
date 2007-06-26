@@ -19,14 +19,15 @@ To build a linux debian "deb" (binary) package, first untar the tarball,
 then change directory to the top level within the sdparm source. Then:
  # chmod +x debian/rules
  # dpkg-buildpackage -b -rfakeroot
-The binary deb packages will be placed in the parent directory (of
-the sdparm source directory) if all goes well.
+A script file called build_debian.sh in the main directory contains
+these lines. The binary deb packages will be placed in the parent
+directory (of the sdparm source directory) if all goes well.
 
 In FreeBSD, the configure/make/make_install method should work.
 
 With Tru64 this invocation can be used:
     "./autogen.sh && CC=cc ./configure && gmake"
 
-25th January 2006
+8th July 2006
 Douglas Gilbert
 
