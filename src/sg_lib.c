@@ -65,12 +65,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-// #include "sg_include.h"
 #include <scsi/scsi.h>
 #include <scsi/sg.h>
 #include <scsi/sg_lib.h>
 
-static char * version_str = "1.08 20050329";    /* spc-3 rev 22a */
+static char * version_str = "1.09 20050504";    /* spc-3 rev 22a */
 
 FILE * sg_warnings_str = NULL;        /* would like to default to stderr */
 
@@ -1582,7 +1581,8 @@ void sg_print_sense(const char * leadin, const unsigned char * sense_buffer,
 static const char * linux_host_bytes[] = {
     "DID_OK", "DID_NO_CONNECT", "DID_BUS_BUSY", "DID_TIME_OUT",
     "DID_BAD_TARGET", "DID_ABORT", "DID_PARITY", "DID_ERROR",
-    "DID_RESET", "DID_BAD_INTR", "DID_PASSTHROUGH", "DID_SOFT_ERROR"
+    "DID_RESET", "DID_BAD_INTR", "DID_PASSTHROUGH", "DID_SOFT_ERROR",
+    "DID_IMM_RETRY", "DID_REQUEUE"
 };
 
 #define LINUX_HOST_BYTES_SZ \
