@@ -53,7 +53,7 @@
  * set). In some cases these parameters can be changed.
  */
 
-static char * version_str = "0.93 20050602";
+static char * version_str = "0.94 20050728";
 
 #define MAP_TO_SG_NODE
 
@@ -63,8 +63,9 @@ static int find_corresponding_sg_fd(int sg_fd, const char * device_name,
 static struct option long_options[] = {
     {"six", 0, 0, '6'},
     {"all", 0, 0, 'a'},
-    {"clear", 1, 0, 'c'},
     {"dbd", 1, 0, 'B'},
+    {"clear", 1, 0, 'c'},
+    {"command", 1, 0, 'C'},
     {"defaults", 1, 0, 'D'},
     {"dummy", 1, 0, 'd'},
     {"enumerate", 0, 0, 'e'},
@@ -86,32 +87,33 @@ static struct option long_options[] = {
 static void usage()
 {
     fprintf(stderr, "Usage: "
-          "sdparm    [--all] [--clear=<str>] [--dbd] [--defaults] [--dummy]\n"
-          "                 [--flexible] [--get=<str>] [--help] [--hex] "
-          "[--inquiry]\n"
-          "                 [--long] [--page=<pg[,spg]>] [--save] "
-          "[--set=<str>] "
-          "[--six]\n"
-          "                 [--transport=<tn>] [--verbose] [--version] "
-          "<scsi_device>\n\n"
+          "sdparm    [--all] [--clear=<str>] [--command=<cmd>] [--dbd]\n"
+          "                 [--defaults] [--dummy] [--flexible] "
+          "[--get=<str>] [--help]\n"
+          "                 [--hex] [--inquiry] [--long] "
+          "[--page=<pg[,spg]>] [--save]\n"
+          "                 [--set=<str>] [--six] [--transport=<tn>] "
+          "[--verbose]\n"
+          "                 [--version] <scsi_device>\n\n"
           "       sdparm    --enumerate [--all] [--inquiry] [--long] "
           "[--page=<pg[,spg]>]\n"
           "                 [--transport=<tn>]\n"
           "  where:\n"
           "      --all | -a            list all known parameters for given "
-          "disk\n"
+          "device\n"
           "      --clear=<str> | -c <str>  clear (zero) parameter value(s)\n"
+          "      --command=<cmd> | -C <cmd>  perform <cmd> (e.g. 'eject')\n"
           "      --dbd | -B            set DBD bit in mode sense cdb\n"
           "      --defaults | -D       set a mode page to its default "
           "values\n"
           "      --dummy | -d          don't write back modified mode page\n"
           "      --enumerate | -e      list known pages and parameters "
-          "(ignore disk)\n"
+          "(ignore device)\n"
           "      --get=<str> | -g <str>  get (fetch) parameter value(s)\n"
           "      --help | -h           print out usage message\n"
           "      --hex | -H            output in hex rather than name/value "
           "pairs\n"
-          "      --inquiry | -i        output INQUIRY VPD page(s) (def mode "
+          "      --inquiry | -i        output INQUIRY VPD page(s) (def: mode "
           "page(s))\n"
           "      --long | -l           add description to parameter output\n"
           "      --page=<pg[,spg]> | -p <pg[,spg]>  page (and optionally "
@@ -121,7 +123,7 @@ static void usage()
           "      --save | -S           place mode changes in saved page as "
           "well\n"
           "      --set=<str> | -s <str>  set parameter value(s)\n"
-          "      --six | -6            use 6 byte SCSI cdbs (def 10 byte)\n"
+          "      --six | -6            use 6 byte SCSI cdbs (def: 10 byte)\n"
           "      --transport=<tn> | -t <tn>     transport protocol number "
           "[or abbrev]\n"
           "      --verbose | -v        increase verbosity\n"
@@ -690,7 +692,15 @@ static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
                 if (verbose || single_pg) {
                     get_mode_page_name(pn, spn, pdt, opts->transport,
                                        opts->hex, buff, sizeof(buff));
-                    fprintf(stderr, ">> %s mode page not supported\n", buff);
+                    fprintf(stderr, ">> %s mode %spage ", buff,
+                            (spn ? "sub" : ""));
+                    if (verbose > 1) {
+                        if (spn)
+                            fprintf(stderr, "[0x%x,0x%x] ", pn, spn);
+                        else
+                            fprintf(stderr, "[0x%x] ", pn);
+                    }
+                    fprintf(stderr, "not supported\n");
                 }
             }
         }
@@ -1384,7 +1394,7 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
         i_len = ucp[3];
         id_len = i_len + 4;
         if (match_assoc < 0)
-            printf("  Identification descriptor number %d, "
+            printf("  Descriptor number %d, "
                    "descriptor length: %d\n", j, id_len);
         if ((k + id_len) > len) {
             fprintf(stderr, "    VPD page error: descriptor length longer "
@@ -1623,6 +1633,60 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
     return 0;
 }
 
+static int decode_scsi_ports_vpd(unsigned char * buff, int len,
+                                 int long_out, int do_hex)
+{
+    int k, bump, rel_port, ip_tid_len, tpd_len, res;
+    unsigned char * ucp;
+
+    if (len < 4) {
+        fprintf(stderr, "SCSI Ports VPD page length too short=%d\n", len);
+        return -1;
+    }
+    len -= 4;
+    ucp = buff + 4;
+    for (k = 0; k < len; k += bump, ucp += bump) {
+        rel_port = (ucp[2] << 8) + ucp[3];
+        printf("Relative port=%d\n", rel_port);
+        ip_tid_len = (ucp[6] << 8) + ucp[7];
+        bump = 8 + ip_tid_len;
+        if ((k + bump) > len) {
+            fprintf(stderr, "SCSI Ports VPD page, short descriptor "
+                    "length=%d, left=%d\n", bump, (len - k));
+            return -1;
+        }
+        if (ip_tid_len > 0) {
+            /* 
+             * SCSI devices that are both target and initiator are rare.
+             * Only target devices can receive this command, so if they
+             * are also initiators then print out the "Initiator port
+             * transport id" in hex. sg_inq in sg3_utils decodes it.
+             */
+            printf(" Initiator port transport id:\n");
+            dStrHex((const char *)(ucp + 8), ip_tid_len, 1);
+        }
+        tpd_len = (ucp[bump + 2] << 8) + ucp[bump + 3];
+        if ((k + bump + tpd_len + 4) > len) {
+            fprintf(stderr, "SCSI Ports VPD page, short descriptor(tgt) "
+                    "length=%d, left=%d\n", bump, (len - k));
+            return -1;
+        }
+        if (tpd_len > 0) {
+            printf(" Target ports:\n");
+            if (do_hex)
+                dStrHex((const char *)(ucp + bump + 4), tpd_len, 1);
+            else {
+                res = decode_dev_ids(NULL, ucp + bump + 4, tpd_len,
+                                     VPD_ASSOC_TPORT, long_out, do_hex);
+                if (res)
+                    return res;
+            }
+        }
+        bump += tpd_len + 4;
+    }
+    return 0;
+}
+
 static int process_vpd_page(int sg_fd, int pn,
                             const struct sdparm_opt_coll * opts,
                             int verbose)
@@ -1699,6 +1763,27 @@ static int process_vpd_page(int sg_fd, int pn,
         if (res)
             return res;
         break;
+    case VPD_SCSI_PORTS:
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = (b[2] << 8) + b[3];
+        if (len > sz) {
+            fprintf(stderr, "Response to SCSI Ports VPD page "
+                    "truncated\n");
+            len = sz;
+        }
+        if (opts->long_out)
+            printf("SCSI Ports [0x88] VPD page:\n");
+        else
+            printf("SCSI Ports VPD page:\n");
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        res = decode_scsi_ports_vpd(b, len + 4, opts->long_out, opts->hex);
+        if (res)
+            return res;
+        break;
     case VPD_UNIT_SERIAL_NUM:
         if (b[1] != pn)
             goto dumb_inq;
@@ -1745,6 +1830,83 @@ static const char * get_ansi_version_str(int version, char * buff,
     buff[buff_len - 1] = '\0';
     strncpy(buff, sdparm_ansi_version_arr[version], buff_len - 1);
     return buff;
+}
+
+static void enumerate_commands()
+{
+    const struct sdparm_command * scmdp;
+
+    for (scmdp = sdparm_command_arr; scmdp->name; ++scmdp)
+        printf("  %s\n", scmdp->name);
+}
+
+static const struct sdparm_command *
+        build_cmd(const char * cmd_str, int * rwp)
+{
+    const struct sdparm_command * scmdp;
+
+    for (scmdp = sdparm_command_arr; scmdp->name; ++scmdp) {
+        if (0 == strcmp(scmdp->name, cmd_str))
+            break;
+    }
+    if (scmdp->name) {
+        if (rwp) {
+            if (CMD_READY  == scmdp->cmd_num)
+                *rwp = 0;
+             else
+                *rwp = 1;
+        }
+        return scmdp;
+    } else
+        return NULL;
+}
+
+static int process_cmd(int sg_fd, const struct sdparm_command * scmdp,
+                       int pdt, const struct sdparm_opt_coll * opts,
+                       int verbose)
+{
+    int res;
+
+    if (! (opts->flexible ||
+          (CMD_READY == scmdp->cmd_num) ||
+          (0 == pdt) || (5 == pdt)) ) {
+        fprintf(stderr, "this command only valid on a disk or cd/dvd; "
+                "use '--flexible' to override\n");
+        return 1;
+
+    }
+
+    switch (scmdp->cmd_num)
+    {
+    case CMD_READY:
+        res = sg_ll_test_unit_ready(sg_fd, 0, 0, verbose);
+        if (0 == res)
+            printf("Ready\n");
+        else {
+            printf("Not ready\n");
+            res = 1;
+        }
+        break;
+    case CMD_START:
+        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 1, verbose);
+        break;
+    case CMD_STOP:
+        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, verbose);
+        break;
+    case CMD_LOAD:
+        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 1, 1, verbose);
+        break;
+    case CMD_EJECT:
+        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 1, 0, verbose);
+        break;
+    case CMD_UNLOCK:
+        res = sg_ll_prevent_allow(sg_fd, 0, verbose);
+        break;
+    default:
+        fprintf(stderr, "unknown cmd number [%d]\n", scmdp->cmd_num);
+        return 1;
+    }
+    return res;
 }
 
 static int open_and_simple_inquiry(const char * device_name, int flags,
@@ -1840,9 +2002,9 @@ static int open_and_simple_inquiry(const char * device_name, int flags,
             printf("CmdQue=%d\n", !!(sir.byte_7 & 0x02));
         }
         if (opts->long_out || verbose) {
-            if (0 != *pdt)
+            if ((0 != *pdt) && (5 != *pdt))
                 fprintf(stderr, "     note: given %s rather than disk "
-                        "type\n", sdparm_scsi_ptype_strs[l_pdt]);
+                        "or cd/dvd type\n", sdparm_scsi_ptype_strs[l_pdt]);
         }
     }
     return sg_fd;
@@ -2018,6 +2180,7 @@ int main(int argc, char * argv[])
     int sg_fd, res, c, pdt, flags, k;
     struct sdparm_opt_coll opts;
     const char * clear_str = NULL;
+    const char * cmd_str = NULL;
     const char * get_str = NULL;
     const char * set_str = NULL;
     int verbose = 0;
@@ -2029,6 +2192,7 @@ int main(int argc, char * argv[])
     struct sdparm_mode_page_settings mp_settings; 
     char * cp;
     const char * ccp;
+    const struct sdparm_command * scmdp = NULL;
     int ret = 1;
 
     memset(&opts, 0, sizeof(opts));
@@ -2039,7 +2203,7 @@ int main(int argc, char * argv[])
     while (1) {
         int option_index = 0;
 
-        c = getopt_long(argc, argv, "6aBc:dDefg:hHilp:s:St:vV",
+        c = getopt_long(argc, argv, "6aBc:C:dDefg:hHilp:s:St:vV",
                         long_options, &option_index);
         if (c == -1)
             break;
@@ -2057,6 +2221,9 @@ int main(int argc, char * argv[])
         case 'c':
             clear_str = optarg;
             rw = 1;
+            break;
+        case 'C':
+            cmd_str = optarg;
             break;
         case 'd':
             opts.dummy = 1;
@@ -2183,7 +2350,8 @@ int main(int argc, char * argv[])
     }
 
     if (opts.inquiry) {
-        if (set_str || clear_str || get_str || opts.defaults || opts.saved) {
+        if (set_str || clear_str || get_str || cmd_str || opts.defaults ||
+            opts.saved) {
             fprintf(stderr, "'--inquiry' option lists VPD pages so other "
                     "options that are\nconcerned with mode pages are "
                     "inappropriate\n");
@@ -2199,6 +2367,17 @@ int main(int argc, char * argv[])
             enumerate_vpds();
             return 0;
         }
+    } else if (cmd_str) {
+        if (set_str || clear_str || get_str || opts.defaults || opts.saved) {
+            fprintf(stderr, "'--command=' option is not valid with other "
+                    "options that are\nconcerned with mode pages\n");
+            return 1;
+        }
+        scmdp = build_cmd(cmd_str, &rw);
+        if (NULL == scmdp) {
+            fprintf(stderr, "'--command=%s' not found\n", cmd_str);
+            return 1;
+        }
     } else {
         /* assume mode pages */
         if (pn < 0) {
@@ -2210,8 +2389,8 @@ int main(int argc, char * argv[])
         }
         if (get_str) {
             if (set_str || clear_str) {
-                fprintf(stderr, "'--get=' can't be used with '--set=' or "
-                        "'--clear='\n");
+                fprintf(stderr, "'--get=' can't be used with '--set=' "
+                        "or " "'--clear='\n");
                 return 1;
             }
             if (build_mp_settings(get_str, &mp_settings, opts.transport,
@@ -2256,6 +2435,9 @@ int main(int argc, char * argv[])
                                 enumerate_mps(k);
                             }
                         }
+                        printf("\n");
+                        printf("Commands:\n");
+                        enumerate_commands();
                     } else {
                         printf("Mode pages:\n");
                         enumerate_mps(-1);
@@ -2282,8 +2464,8 @@ int main(int argc, char * argv[])
         }
 
         if (opts.defaults && (set_str || clear_str || get_str)) {
-            fprintf(stderr, "'--get=', '--set=' or '--clear=' can't be used "
-                    "with '--defaults'\n");
+            fprintf(stderr, "'--get=', '--set=' or '--clear=' "
+                    "can't be used with '--defaults'\n");
             return 1;
         }
 
@@ -2324,6 +2506,11 @@ int main(int argc, char * argv[])
         res = process_vpd_page(sg_fd, pn, &opts, verbose);
         if (res)
             goto err_out;
+    } else if (cmd_str && scmdp) {
+        res = process_cmd(sg_fd, scmdp, pdt, &opts, verbose);
+        if (res)
+            goto err_out;
+
     } else {    /* mode page */
         res = process_mode_page(sg_fd, &mp_settings, pn, spn, rw,
                                 (NULL != get_str), &opts, pdt, verbose);

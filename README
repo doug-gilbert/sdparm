@@ -8,7 +8,7 @@ drives and SCSI enclosures.
 
 Relationship to sg3_utils
 -------------------------
-This package shares code with sg3_utils (version 1.15).
+This package shares code with sg3_utils (version 1.16).
 sg3_utils is a package of utilities that typically act at the SCSI
 command level and is written by the same author. The shared code
 (sg_lib.[hc] and sg_cmds.[hc]) includes tables of SCSI command names
@@ -35,7 +35,7 @@ Build infrastructure
 --------------------
 This is the first time the author has used the automake and autoconf
 tools. So anybody who has problems or suggestions please contact the
-author. The generating files (scripts) are configure.in, Makefile.am,
+author. The generating files (scripts) are configure.ac, Makefile.am,
 src/Makefile.am and autogen.sh . The autogen.sh script only needs
 to be executed if one of the other generating files in the above list
 is changed.
@@ -49,13 +49,14 @@ files on the author's system. That doesn't seem useful to put in
 a tarball so versions were copied. Former symlinks:
    - config.guess
    - config.sub
-   - COPYING
    - depcomp
-   - INSTALL
    - install-sh
    - missing
+The above file copies have been updated to match with automake version
+1.9.5 as found in Fedora core 4.
 The contents of INSTALL have been replaced by more specific instructions.
+The contents of COPYING is a FreeBSD license (rather than the GPL v2).
 
 
 Douglas Gilbert
-2nd June 2005
+28th July 2005

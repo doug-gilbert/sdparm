@@ -6,7 +6,7 @@ Build
     make install (you may need to be root to do this)
 
 
-If configure.in, Makefile.am or src/Makefile.am are changed
+If configure.ac, Makefile.am or src/Makefile.am are changed
 then ./autogen.sh should be run prior to the above sequence.
 
 An rpm spec file called sdparm.spec is included in the main

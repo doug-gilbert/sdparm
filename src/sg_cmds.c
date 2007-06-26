@@ -55,11 +55,12 @@
 #include <scsi/sg_lib.h>
 #include <scsi/sg_cmds.h>
 
-static char * version_str = "1.13 20050523";
+static char * version_str = "1.17 20050719";
 
 
 #define SENSE_BUFF_LEN 32       /* Arbitrary, could be larger */
 #define DEF_TIMEOUT 60000       /* 60,000 millisecs == 60 seconds */
+#define START_TIMEOUT 120000    /* 120,000 millisecs == 2 minutes */
 #define LONG_TIMEOUT 7200000    /* 7,200,000 millisecs == 120 minutes */
 #define EBUFF_SZ 256
 
@@ -102,10 +103,16 @@ static char * version_str = "1.13 20050523";
 #define SERVICE_ACTION_IN_12_CMD 0xab
 #define SERVICE_ACTION_IN_12_CMDLEN 12
 #define READ_MEDIA_SERIAL_NUM_SA 0x1
+#define START_STOP_CMD          0x1b
+#define START_STOP_CMDLEN       6
+#define PREVENT_ALLOW_CMD    0x1e
+#define PREVENT_ALLOW_CMDLEN   6
 
 #define MODE6_RESP_HDR_LEN 4
 #define MODE10_RESP_HDR_LEN 8
 #define MODE_RESP_ARB_LEN 1024
+
+#define INQUIRY_RESP_INITIAL_LEN 36
 
 
 const char * sg_cmds_version()
@@ -196,7 +203,7 @@ int sg_simple_inquiry(int sg_fd, struct sg_simple_inquiry_resp * inq_data,
     unsigned char inqCmdBlk[INQUIRY_CMDLEN] = {INQUIRY_CMD, 0, 0, 0, 0, 0};
     unsigned char sense_b[SENSE_BUFF_LEN];
     struct sg_io_hdr io_hdr;
-    unsigned char inq_resp[36];
+    unsigned char inq_resp[INQUIRY_RESP_INITIAL_LEN];
 
     if (inq_data) {
         memset(inq_data, 0, sizeof(* inq_data));
@@ -467,7 +474,8 @@ int sg_ll_readcap_16(int sg_fd, int pmi, unsigned long long llba,
             sg_chk_n_print3("READ CAPACITY 16 command error", &io_hdr);
         return res;
     default:
-        sg_chk_n_print3("READ CAPACITY 16 command error", &io_hdr);
+        if (verbose)
+            sg_chk_n_print3("READ CAPACITY 16 command error", &io_hdr);
         return -1;
     }
 }
@@ -538,7 +546,8 @@ int sg_ll_readcap_10(int sg_fd, int pmi, unsigned int lba,
             sg_chk_n_print3("READ CAPACITY 10 command error", &io_hdr);
         return res;
     default:
-        sg_chk_n_print3("READ CAPACITY 10 command error", &io_hdr);
+        if (verbose)
+            sg_chk_n_print3("READ CAPACITY 10 command error", &io_hdr);
         return -1;
     }
 }
@@ -1102,7 +1111,8 @@ int sg_ll_request_sense(int sg_fd, int desc, void * resp, int mx_resp_len,
             sg_chk_n_print3("REQUEST SENSE command problem", &io_hdr);
         return res;
     default:
-        sg_chk_n_print3("REQUEST SENSE command problem", &io_hdr);
+        if (verbose)
+            sg_chk_n_print3("REQUEST SENSE command problem", &io_hdr);
         return -1;
     }
 }
@@ -1709,3 +1719,133 @@ int sg_ll_read_media_serial_num(int sg_fd, void * resp,
         return -1;
     }
 }
+
+/* Invokes a SCSI START STOP UNIT command (MMC + SBC).
+ * Return of 0 -> success,
+ * SG_LIB_CAT_INVALID_OP -> Start stop unit not supported,
+ * SG_LIB_CAT_ILLEGAL_REQ -> bad field in cdb, -1 -> other failure */
+int sg_ll_start_stop_unit(int sg_fd, int immed, int power_cond,
+                          int loej, int start, int verbose)
+{
+    unsigned char ssuBlk[START_STOP_CMDLEN] = {START_STOP_CMD, 0, 0, 0, 0, 0};
+    unsigned char sense_b[SENSE_BUFF_LEN];
+    struct sg_io_hdr io_hdr;
+    int k, res;
+
+    memset(&io_hdr, 0, sizeof(struct sg_io_hdr));
+    ssuBlk[1] = immed & 1;
+    ssuBlk[4] = ((power_cond & 0xf) << 4) | ((loej & 1) << 1) |
+                (start & 1);
+    if (NULL == sg_warnings_str)
+        sg_warnings_str = stderr;
+    if (verbose) {
+        fprintf(sg_warnings_str, "    Start stop unit command:");
+        for (k = 0; k < (int)sizeof(ssuBlk); ++k)
+                fprintf (stderr, " %02x", ssuBlk[k]);
+        fprintf(stderr, "\n");
+    }
+    io_hdr.interface_id = 'S';
+    io_hdr.cmd_len = sizeof(ssuBlk);
+    io_hdr.mx_sb_len = sizeof(sense_b);
+    io_hdr.dxfer_direction = SG_DXFER_NONE;
+    io_hdr.dxfer_len = 0;
+    io_hdr.dxferp = NULL;
+    io_hdr.cmdp = ssuBlk;
+    io_hdr.sbp = sense_b;
+    io_hdr.timeout = START_TIMEOUT;
+
+    if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
+        if (verbose)
+            fprintf(sg_warnings_str, "start_stop_unit (SG_IO) error:"
+                    " %s\n", safe_strerror(errno));
+        return -1;
+    }
+    if (verbose > 2)
+        fprintf(sg_warnings_str, "      duration=%u ms\n", io_hdr.duration);
+    res = sg_err_category3(&io_hdr);
+    switch (res) {
+    case SG_LIB_CAT_RECOVERED:
+        if (verbose)
+            sg_chk_n_print3("Start stop unit", &io_hdr);
+        /* fall through */
+    case SG_LIB_CAT_CLEAN:
+        if (verbose && io_hdr.resid)
+            fprintf(sg_warnings_str, "    Start stop unit: resid=%d\n",
+                    io_hdr.resid);
+        return 0;
+    case SG_LIB_CAT_INVALID_OP:
+    case SG_LIB_CAT_ILLEGAL_REQ:
+        if (verbose > 1)
+            sg_chk_n_print3("START STOP UNIT", &io_hdr);
+        return res;
+    default:
+        if (verbose)
+            sg_chk_n_print3("START STOP UNIT command error", &io_hdr);
+        return -1;
+    }
+}
+
+/* Invokes a SCSI PREVENT ALLOW MEDIUM REMOVAL command (SPC-3) 
+ * prevent==0 allows removal, prevent==1 prevents removal ...
+ * Return of 0 -> success,
+ * SG_LIB_CAT_INVALID_OP -> command not supported 
+ * SG_LIB_CAT_ILLEGAL_REQ -> bad field in cdb, -1 -> other failure */
+int sg_ll_prevent_allow(int sg_fd, int prevent, int verbose)
+{
+    int k, res;
+    unsigned char pCmdBlk[PREVENT_ALLOW_CMDLEN] = 
+                {PREVENT_ALLOW_CMD, 0, 0, 0, 0, 0};
+    unsigned char sense_b[SENSE_BUFF_LEN];
+    struct sg_io_hdr io_hdr;
+
+    if (NULL == sg_warnings_str)
+        sg_warnings_str = stderr;
+    if ((prevent < 0) || (prevent > 3)) {
+        fprintf(sg_warnings_str, "prevent argument should be 0, 1, 2 or 3\n");
+        return -1;
+    }
+    pCmdBlk[4] |= (prevent & 0x3);
+    if (verbose) {
+        fprintf(sg_warnings_str, "    Prevent allow medium removal cdb: ");
+        for (k = 0; k < PREVENT_ALLOW_CMDLEN; ++k)
+            fprintf(sg_warnings_str, "%02x ", pCmdBlk[k]);
+        fprintf(sg_warnings_str, "\n");
+    }
+
+    memset(&io_hdr, 0, sizeof(struct sg_io_hdr));
+    io_hdr.interface_id = 'S';
+    io_hdr.cmd_len = PREVENT_ALLOW_CMDLEN;
+    io_hdr.mx_sb_len = sizeof(sense_b);
+    io_hdr.dxfer_direction = SG_DXFER_NONE;
+    io_hdr.dxfer_len = 0;
+    io_hdr.dxferp = NULL;
+    io_hdr.cmdp = pCmdBlk;
+    io_hdr.sbp = sense_b;
+    io_hdr.timeout = DEF_TIMEOUT;
+
+    if (ioctl(sg_fd, SG_IO, &io_hdr) < 0) {
+        fprintf(sg_warnings_str, "prevent allow medium removal SG_IO "
+                "error: %s\n", safe_strerror(errno));
+        return -1;
+    }
+    res = sg_err_category3(&io_hdr);
+    switch (res) {
+    case SG_LIB_CAT_RECOVERED:
+        sg_chk_n_print3("Prevent allow medium removal", &io_hdr);
+        /* fall through */
+    case SG_LIB_CAT_CLEAN:
+        return 0;
+    case SG_LIB_CAT_INVALID_OP:
+    case SG_LIB_CAT_ILLEGAL_REQ:
+        if (verbose > 1)
+            sg_chk_n_print3("Prevent allow medium removal command problem",
+                            &io_hdr);
+        return res;
+    default:
+        if (verbose)
+            sg_chk_n_print3("Prevent allow medium removal command problem",
+                            &io_hdr);
+        return -1;
+    }
+}
+

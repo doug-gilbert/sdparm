@@ -16,6 +16,7 @@
 #define RW_ERR_RECOVERY_MP 1
 #define DISCONNECT_MP 2
 #define FORMAT_MP 3
+#define MRW_MP 3
 #define RIGID_DISK_MP 4
 #define WRITE_PARAM_MP 5
 #define RBC_DEV_PARAM_MP 6
@@ -24,21 +25,24 @@
 #define CONTROL_MP 0xa
 #define DATA_COMPR_MP 0xf
 #define DEV_CONF_MP 0x10
+#define XOR_MP 0x10
 #define ES_MAN_MP 0x14
 #define PROT_SPEC_LU_MP 0x18
 #define PROT_SPEC_PORT_MP 0x19
 #define POWER_MP 0x1a
 #define IEC_MP 0x1c
 #define TIMEOUT_PROT_MP 0x1d
-#define XOR_MP 0x10
+#define MMCMS_MP 0x2a
 
 /* Mode subpage numbers */
+#define MSP_CONTROL_EXT 1       /* unused */
 #define MSP_SPC_CE 1
 #define MSP_SPI_MC 1
 #define MSP_SPI_STC 2
 #define MSP_SPI_NS 3
 #define MSP_SPI_RTC 4
 #define MSP_SAS_PCD 1
+#define MSP_BACK_CTL 1
 
 #define MODE_DATA_OVERHEAD 128
 #define EBUFF_SZ 256
@@ -71,6 +75,14 @@
 /* bit flag settings for sdparm_mode_page_item::flags */
 #define MF_COMMON 0x1   /* output in summary mode */
 #define MF_HEX 0x2
+
+/* enumerations for commands */
+#define CMD_READY 1
+#define CMD_START 2
+#define CMD_STOP 3
+#define CMD_LOAD 4
+#define CMD_EJECT 5
+#define CMD_UNLOCK 6
 
 
 struct sdparm_opt_coll {
@@ -128,11 +140,18 @@ struct sdparm_transport_pair {
     struct sdparm_mode_page_item * mitem;
 };
 
+struct sdparm_command {
+    int cmd_num;
+    const char * name;
+};
+
 extern struct sdparm_values_name_t sdparm_gen_mode_pg[];
 extern struct sdparm_values_name_t sdparm_vpd_pg[];
 extern struct sdparm_values_name_t sdparm_transport_id[];
 extern struct sdparm_transport_pair sdparm_transport_mp[];
 extern struct sdparm_mode_page_item sdparm_mitem_arr[];
+extern struct sdparm_command sdparm_command_arr[];
+
 extern const char * sdparm_scsi_ptype_strs[];
 extern const char * sdparm_transport_proto_arr[];
 extern const char * sdparm_code_set_arr[];
