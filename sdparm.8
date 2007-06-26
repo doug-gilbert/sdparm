@@ -1,10 +1,10 @@
-.TH SDPARM "8" "May 2005" "sdparm-0.91" SDPARM
+.TH SDPARM "8" "May 2005" "sdparm-0.92" SDPARM
 .SH NAME
 sdparm \- fetch and potentially change SCSI disk parameters
 .SH SYNOPSIS
 .B sdparm
 [\fI--all\fR] [\fI--clear=<str>\fR] [\fI--defaults\fR] [\fI--dummy\fR]
-[\fI--get=<str>\fR] [\fI--help\fR] [\fI--hex\fR]
+[\fI--flexible\fR] [\fI--get=<str>\fR] [\fI--help\fR] [\fI--hex\fR]
 [\fI--inquiry\fR] [\fI--long\fR] [\fI--page=<pg>[,<spg>]\fR]
 [\fI--save\fR] [\fI--set=<str>\fR] [\fI--six\fR] [\fI--verbose\fR]
 [\fI--version\fR] \fI<scsi_disk>\fR
@@ -31,19 +31,24 @@ that use the ATAPI transport, SCSI tapes drives and SCSI enclosures.
 .PP
 When the '--inquiry' option is given and there is no page number then
 the Device Identification VPD page (page number 0x83) is requested and
-if found it is decoded and output.
+if found it is decoded and output. If no page number is given and
+the '--all' option is given then all VPD page names (but not their
+contents) supported by the given device are listed.
 .TP
 --all | -a
-output all recognised parameters. The default action is to output a
+output all recognised parameters for the device type (e.g. disk)
+of the given device. The default action is to output a
 relatively small number of parameters from different pages. When a
 specific (mode) page number is given with the '--page=' option then
 all the parameters of that page are output (irrespective of the
-setting of this option).
+setting of this option). May also be used with the '--enumerate'
+option.
 .TP
 --clear=<str> | -c <str>
 The <str> contains a comma separated list of parameter acronyms. In
-the absence of an explicit value, each acronym has it value set to
-zero. See the parameters section below.
+the absence of an explicit value, each acronym has its value set to
+zero. Utility exits with process status 0 if successful, else 1.
+See the parameters section below.
 .TP
 --defaults | -D
 sets the given mode page to its default values. Requires the '--page='
@@ -66,6 +71,15 @@ that mode page are listed. If '--enumerate' is given with the '-all'
 option then all mode pages followed by all parameters within those mode
 pages are listed. If '--enumerate' is given with the '--inquiry' option
 then known VPD pages are listed. See listings section below.
+.TP
+--flexible | -f
+Some devices, bridges and/or drivers attempt crude switches between
+mode sense 6 and 10 byte commands without correcting the response.
+This will cause the response to be mis-interpreted (usually with an
+error saying the response is malformed). With this option, the length
+of the response is checked, and if it looks wrong, various corrections
+are attempted. This option will also allow mode pages that don't belong
+to the current device's peripheral type to be listed.
 .TP
 --get=<str> | -g <str>
 The <str> contains a comma separated list of parameter acronyms whose
@@ -93,6 +107,8 @@ and output.
 --long | -l
 output extra information. In the case of mode page parameters a
 description (with units if applicable) is output to the right.
+If used twice, more information from the given device's standard
+INQUIRY response is decoded.
 .TP
 --page=<pg>[,<spg>] | -p <pg>[,<spg>]
 supply the page number and optionally the sub page number of the
@@ -102,8 +118,9 @@ pages (not VPD pages). Alternatively a two letter abbreviation for
 a page can be given (see next entry).
 .TP
 --page=<str> | -p <str>
-a two letter abbreviation for a page can be given. First, known mode
-page abbreviations are checked followed by known VPD page abbreviations.
+a two or three letter abbreviation for a page can be given. Known mode
+page abbreviations are checked first followed by known VPD page
+abbreviations.
 For example '--page=ca' matches the caching control mode page.
 If no match is found then an error is issued. If the <str> matches a
 known VPD page abbreviation then the '--inquiry' option is turned
@@ -121,22 +138,30 @@ copied to) the current values mode page. See notes section below.
 .TP
 --set=<str> | -s <str>
 The <str> contains a comma separated list of parameter acronyms. In
-the absence of an explicit value, each acronym has it value set
+the absence of an explicit value, each acronym has its value set
 to (all) ones. This means a 16 bit field will be set to 0xffff which
 is 65535 in decimal. Alternatively each acronym may be followed by "=<n>"
-where <n> is the value to set that parameter to. See the parameters
-section below.
+where <n> is the value to set that parameter to. Utility exits with
+process status 0 if successful, else 1. See the parameters section below.
 .TP
 --six | -6
 The default action of this utility is to issue MODE SENSE and MODE
 SELECT SCSI commands with 10 byte cdbs. When this option is given the
-6 byte cdb variants are used.
+6 byte cdb variants are used. Only old SCSI devices should need this
+option. This utility outputs a suggestion to use this option if
+the SCSI status indicates that the 10 byte cdb variant is not
+supported.
 .TP
 --verbose | -v
 increase the level of verbosity, (i.e. debug output).
 .TP
 --version | -V
 print the version string and then exit.
+.PP
+A mode page for which no acronym is known (e.g. a vendor specific mode
+page) can be listed in hexadecimal by using the option
+combination "--page=<pn> --hex". The same applies for a mode page field
+for which no acronym is known.
 .SH PARAMETERS
 The '--clear=', '--get=' and '--set=" options can take a string argument
 which is a comma separated list of parameters. Each parameter can
