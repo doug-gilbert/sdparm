@@ -1,13 +1,14 @@
-.TH SDPARM "8" "June 2005" "sdparm-0.93" SDPARM
+.TH SDPARM "8" "July 2005" "sdparm-0.94" SDPARM
 .SH NAME
 sdparm \- fetch and potentially change SCSI device parameters
 .SH SYNOPSIS
 .B sdparm
-[\fI--all\fR] [\fI--clear=<str>\fR] [\fI--dbd\fR] [\fI--defaults\fR]
-[\fI--dummy\fR] [\fI--flexible\fR] [\fI--get=<str>\fR] [\fI--help\fR]
-[\fI--hex\fR] [\fI--inquiry\fR] [\fI--long\fR] [\fI--page=<pg>[,<spg>]\fR]
-[\fI--save\fR] [\fI--set=<str>\fR] [\fI--six\fR] [\fI--transport=<tn>\fR]
-[\fI--verbose\fR] [\fI--version\fR] \fI<scsi_device>\fR
+[\fI--all\fR] [\fI--clear=<str>\fR] [\fI--command=<str>\fR] [\fI--dbd\fR]
+[\fI--defaults\fR] [\fI--dummy\fR] [\fI--flexible\fR] [\fI--get=<str>\fR]
+[\fI--help\fR] [\fI--hex\fR] [\fI--inquiry\fR] [\fI--long\fR]
+[\fI--page=<pg>[,<spg>]\fR] [\fI--save\fR] [\fI--set=<str>\fR] [\fI--six\fR]
+[\fI--transport=<tn>\fR] [\fI--verbose\fR] [\fI--version\fR]
+\fI<scsi_device>\fR
 .PP
 .B sdparm
 \fI--enumerate\fR [\fI--all\fR] [\fI--inquiry\fR] [\fI--long\fR]
@@ -24,7 +25,7 @@ common mode page parameters for that device are listed. If the '--long'
 option is also given then a description of the parameters is placed
 on the right of each line. If the '--all' option is given then all
 known mode page parameters for that device are listed. Individual
-parameters can be displayed with the '--get' option (e.g. '--get WCE').
+parameters can be displayed with the '--get' option (e.g. '--get=WCE').
 .PP
 By default this utility shows mode pages that a common to all
 transport protocols. These are termed here as "generic" mode pages.
@@ -58,6 +59,11 @@ the absence of an explicit value, each acronym has its value cleared to
 zero. Utility exits with process status 0 if successful, else 1.
 See the PARAMETERS section below.
 .TP
+--command=<cmd> | -C <cmd>
+Perform given command. See section below on commands. If successful then
+the exit status is 0, else 1. To enumerate supported commands
+use '-el'.
+.TP
 --dbd | -B
 disable block descriptors. This is a bit in MODE SENSE cdbs that
 rarely needs to be set. The one known case is a MODE SENSE 6
@@ -79,7 +85,8 @@ for testing.
 --enumerate | -e
 lists out descriptive information about the pages and parameters known
 to this utility. Ignores the <scsi_device> argument and other options
-apart from the '--page=', '--inquiry', '--long' and '--all' options.
+apart from the '--all', '--inquiry', '--long', '--page='
+and '--transport=' options.
 If '--enumerate' is given without other options then the known (generic)
 mode pages are listed. See the ENUMERATE section below.
 .TP
@@ -227,9 +234,11 @@ shorter form.
 .br
     -e --long            list generic mode pages, transport
 .br
-                         protocols and mode pages for each
+                         protocols, mode pages for each
 .br
-                         supported transport protocol
+                         supported transport protocol and
+.br
+                         supported commands
 .br
     -e -l --all          additionally list the contents of
 .br
@@ -295,6 +304,44 @@ namespace. This becomes difficult if a mode page has multiple
 descriptors each of which has the same set of acronyms. The SAS phy
 control and discover page is an example of this. The current
 solution is to prepend "2_" to the second set of acronyms.
+.SH COMMANDS
+The command option sends a SCSI command to the given device. If the
+command fails then this is reflected in the process exit status of 1.
+To obtain more information about the error use the '-v' option.
+.PP
+The 'eject' command stops the medium and ejects it from the device.
+Note that ejection (by command or button) may be prevented in which case
+the 'unlock' command may be useful in extreme cases.
+Typically only appropriate for cd/dvd drives and disk drives with removable
+media. Objects if sent to another device type (but objection can be
+overridden with '-f' option).
+.PP
+The 'load' command loads the medium and and starts it (i.e. spins it up).
+See 'eject' command for supported device types.
+.PP
+The 'ready' command sends the "Test Unit Ready" SCSI command to the
+given device. No error is reported if the device will respond to data
+requests (e.g. READ) in a reasonable timescale. For example, if a disk
+is stopped then it will report "not ready". All devices should respond
+to this command.
+.PP
+The 'start' command starts the medium (i.e. spins it up). Harmless if
+medium has already been started. See 'eject' command for supported device
+types.
+.PP
+The 'stop' command stops the medium (i.e. spins it down). Harmless if
+medium has already been stopped. See 'eject' command for supported device
+types.
+.PP
+The 'unlock' command tells a device to allow medium removal. It uses
+the SCSI "prevent allow medium removal" command. This is desperation stuff,
+possibly overriding a prevention applied by the OS on a mounted file system.
+The "eject" utility (from the "eject" package) is more graceful and should be
+tried first. This command is only appropriate for devices with removable
+media.
+.PP
+For loading and ejecting tapes the mt utility should be used (i.e. not
+these commands). The 'ready' command is valid for tape devices.
 .SH NOTES
 The SPC-3 draft (rev 23) says that devices that implement no
 distinction between current and saved pages can return an
@@ -368,10 +415,20 @@ values of the caching mode page:
 .PP
    sdparm --page=ca --defaults --save /dev/sda
 .PP
-If an ATAPI cd/dvd player is at /dev/hdc then its common (mode) parameters
+If an ATAPI cd/dvd drive is at /dev/hdc then its common (mode) parameters
 could be listed in the lk 2.6 series with:
 .PP
    sdparm /dev/hdc
+.PP
+If there is a DVD in the drive at /dev/hdc then it could be ejected in the
+lk 2.6 series with:
+.PP
+   sdparm --command=eject /dev/hdc
+.PP
+If the ejection is being prevented by software then that can be
+overridden with:
+.PP
+   sdparm --command=unlock /dev/hdc
 .PP
 One disk vendor has a "Performance Mode" bit (PM) in the vendor specific
 unit attention mode page [0x0,0x0]. PM=0 is server mode (the default)
@@ -393,4 +450,4 @@ This software is distributed under a FreeBSD license. There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 .SH "SEE ALSO"
 .B sg_modes(sg3_utils), sg_wr_mode(sg3_utils), sginfo(sg3_utils),
-.B sg_inq(sg3_utils), smartmontools(internet, sourceforge)
+.B sg_inq(sg3_utils), smartmontools(internet, sourceforge), mt, eject(eject)

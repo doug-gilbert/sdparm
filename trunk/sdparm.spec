@@ -1,5 +1,5 @@
 %define	name	sdparm
-%define	version	0.93
+%define	version	0.94
 %define	release	1
 
 Summary:	List or change SCSI disk parameters
@@ -47,11 +47,15 @@ make install \
 
 %files
 %defattr(-,root,root)
-%doc ChangeLog INSTALL README CREDITS AUTHORS COPYING
+%doc ChangeLog INSTALL README CREDITS AUTHORS COPYING notes.txt
 %attr(0755,root,root) %{_bindir}/*
+# >> should that be %attr(0755,root,root) %{_sbindir}/*   ??
 %{_mandir}/man8/*
 
 %changelog
+* Thu Jul 28 2005 - dgilbert at interlog dot com
+- add '--command=<cmd>' option
+  * sdparm-0.94
 * Thu Jun 02 2005 - dgilbert at interlog dot com
 - add '--transport=' and '--dbd' options
   * sdparm-0.93
