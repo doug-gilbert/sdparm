@@ -1,9 +1,10 @@
-AC_INIT(sdparm, 1.00, dgilbert@interlog.com)
+AC_INIT(sdparm, 1.01, dgilbert@interlog.com)
 
 AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER(config.h)
 
 AC_PROG_CC
+# AC_PROG_CXX
 AC_PROG_INSTALL
 
 # check for headers
@@ -35,6 +36,10 @@ case "${host}" in
 		AC_DEFINE_UNQUOTED(SDPARM_OSF1, 1, [sdparm on Tru64 UNIX])
                 AC_SUBST([os_libs], ['']) ;;
         *-*-cygwin*)
+                AC_SUBST([os_deps], ['sdparm_wscan.o sg_pt_win32.o'])
+		AC_DEFINE_UNQUOTED(SDPARM_WIN32, 1, [sdparm on Win32])
+                AC_SUBST([os_libs], ['']) ;;
+        *-*-mingw*)
                 AC_SUBST([os_deps], ['sdparm_wscan.o sg_pt_win32.o'])
 		AC_DEFINE_UNQUOTED(SDPARM_WIN32, 1, [sdparm on Win32])
                 AC_SUBST([os_libs], ['']) ;;

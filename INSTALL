@@ -1,5 +1,7 @@
 Building from source
 ====================
+Linux
+-----
 Once the source tarball has been untarred move to its top
 level directory and issue these commands: 
 
@@ -23,12 +25,18 @@ A script file called build_debian.sh in the main directory contains
 these lines. The binary deb packages will be placed in the parent
 directory (of the sdparm source directory) if all goes well.
 
+FreeBSD
+-------
 In FreeBSD, the configure/make/make_install method should work.
 
+Tru64 (OSF)
+-----------
 With Tru64 this invocation can be used:
     "./autogen.sh && CC=cc ./configure && gmake"
 
-On Windows (win2k or later) download cygwin plus gcc, makefile
+Windows
+-------
+On Windows (NT or later) download cygwin plus gcc, makefile
 and binutils (if they are not in the minimal cygwin distribution).
 Then from within a cygwin (bash) shell issue these commands:
     ./configure
@@ -37,8 +45,18 @@ A 'make install' can also be done. The executable is called
 sdparm.exe and is in the 'src' subdirectory. It can be executed
 in a DOS ("cmd") shell as long as the cygwin1.dll file that it
 depends on is placed in an appropriate place.
+
+Alternatively the MinGW/MSYS environment can be used: first
+download and install MinGW (the gcc compiler and tools), then
+download and install MSYS (bash like shell that supports
+automake). From the MSYS shell, in the top level of the sdparm
+source issue these commands:
+    ./configure
+    make
+The executable is called sdparm.exe and is in the 'src' subdirectory.
+It can be executed in a MSYS or DOS ("cmd") shell.
    
 
-12th October 2006
+21st January 2007
 Douglas Gilbert
 

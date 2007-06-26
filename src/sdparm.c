@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2006 Douglas Gilbert.
+ * Copyright (c) 2005-2007 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#define __STDC_FORMAT_MACROS 1
+#include <inttypes.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -57,6 +59,7 @@
 #ifdef SDPARM_LINUX
 #include <errno.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
 
@@ -71,7 +74,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
 
-static char * version_str = "1.00 20061016";
+static char * version_str = "1.01 20070124";
 
 
 static struct option long_options[] = {
@@ -106,61 +109,61 @@ static struct option long_options[] = {
 static void usage()
 {
     fprintf(stderr, "Usage: "
-          "sdparm    [--all] [--clear=<str>] [--command=<cmd>] [--dbd]\n"
-          "                 [--defaults] [--dummy] [--flexible] "
-          "[--get=<str>] [--help]\n"
-          "                 [--hex] [--inquiry] [--long] "
-          "[--page=<pg[,spg]>] [--quiet]\n"
-          "                 [--save] [--set=<str>] [--six] "
-          "[--transport=<tn>]\n"
-          "                 [--vendor=<vn>] [--verbose] [--version] "
-          "<scsi_device>\n\n"
-          "       sdparm    --enumerate [--all] [--inquiry] [--long] "
-          "[--page=<pg[,spg]>]\n"
-          "                 [--transport=<tn>] [--vendor=<vn>]\n"
+          "sdparm [--all] [--clear=STR] [--command=CMD] [--dbd] "
+          "[--defaults]\n"
+          "              [--dummy] [--flexible] [--get=STR] [--help] "
+          "[--hex] [--inquiry]\n"
+          "              [--long] [--page=PG[,SPG]] [--quiet] "
+          "[--save] [--set=STR]\n"
+          "              [--six] [--transport=TN] [--vendor=VN] "
+          "[--verbose] [--version]\n"
+          "              DEVICE\n\n"
+          "       sdparm --enumerate [--all] [--inquiry] [--long] "
+          "[--page=PG[,SPG]]\n"
+          "              [--transport=TN] [--vendor=VN]\n"
           "  where:\n"
-          "      --all | -a            list all known attributes for given "
+          "    --all | -a            list all known attributes for given "
           "device\n"
-          "      --clear=<str> | -c <str>  clear (zero) attribute value(s)\n"
-          "      --command=<cmd> | -C <cmd>  perform <cmd> (e.g. 'eject')\n"
-          "      --dbd | -B            set DBD bit in mode sense cdb\n"
-          "      --defaults | -D       set a mode page to its default "
+          "    --clear=STR | -c STR    clear (zero) attribute value(s)\n"
+          "    --command=CMD | -C CMD    perform CMD (e.g. 'eject')\n"
+          "    --dbd | -B            set DBD bit in mode sense cdb\n"
+          "    --defaults | -D       set a mode page to its default "
           "values\n"
-          "      --dummy | -d          don't write back modified mode page\n"
-          "      --enumerate | -e      list known pages and attributes "
+          "    --dummy | -d          don't write back modified mode page\n"
+          "    --enumerate | -e      list known pages and attributes "
           "(ignore device)\n"
-          "      --flexible | -f       compensate for common errors, "
+          "    --flexible | -f       compensate for common errors, "
           "relax some checks\n"
-          "      --get=<str> | -g <str>  get (fetch) attribute value(s)\n"
-          "      --help | -h           print out usage message\n"
-          "      --hex | -H            output in hex rather than name/value "
+          "    --get=STR | -g STR    get (fetch) attribute value(s)\n"
+          "    --help | -h           print out usage message\n"
+          "    --hex | -H            output in hex rather than name/value "
           "pairs\n"
-          "      --inquiry | -i        output INQUIRY VPD page(s) (def: mode "
+          "    --inquiry | -i        output INQUIRY VPD page(s) (def: mode "
           "page(s))\n"
-          "      --long | -l           add description to attribute output\n"
-          "      --page=<pg[,spg]> | -p <pg[,spg]>  page (and optionally "
+          "    --long | -l           add description to attribute output\n"
+          "    --page=PG[,SPG] | -p PG[,SPG]    page (and optionally "
           "subpage) number\n"
-          "                            [or abbrev] to output, change or "
+          "                          [or abbrev] to output, change or "
           "enumerate\n"
-          "      --quiet | -q          suppress device vendor/product/"
+          "    --quiet | -q          suppress device vendor/product/"
           "revision string line\n"
-          "      --save | -S           place mode changes in saved page as "
+          "    --save | -S           place mode changes in saved page as "
           "well\n"
-          "      --set=<str> | -s <str>  set attribute value(s)\n"
-          "      --six | -6            use 6 byte SCSI mode cdbs (def: 10 "
+          "    --set=STR | -s STR    set attribute value(s)\n"
+          "    --six | -6            use 6 byte SCSI mode cdbs (def: 10 "
           "byte)\n"
-          "      --transport=<tn> | -t <tn>     transport protocol number "
+          "    --transport=TN | -t TN    transport protocol number "
           "[or abbrev]\n"
-          "      --vendor=<vn> | -M <vn>   vendor (manufacturer) number "
+          "    --vendor=VN | -M VN    vendor (manufacturer) number "
           "[or abbrev]\n"
-          "      --verbose | -v        increase verbosity\n"
+          "    --verbose | -v        increase verbosity\n"
 #ifdef SDPARM_WIN32
-          "      --version | -V        print version string and exit\n"
-          "      --wscan | -w          windows scan for device names\n\n"
+          "    --version | -V        print version string and exit\n"
+          "    --wscan | -w          windows scan for device names\n\n"
 #else
-          "      --version | -V        print version string and exit\n\n"
+          "    --version | -V        print version string and exit\n\n"
 #endif
-          "View or change attributes of a SCSI device (e.g. disk or CD/DVD "
+          "View or change SCSI attributes of a device (e.g. disk or CD/DVD "
           "drive)\n"
           );
 }
@@ -339,9 +342,9 @@ static void list_mp_settings(struct sdparm_mode_page_settings * mps, int get)
         if (get)
             printf("  [0x%x,0x%x]", mpip->page_num, mpip->subpage_num);
 
-        printf("  pdt=%d start_byte=0x%x start_bit=%d num_bits=%d  val=%lld",
-               mpip->pdt, mpip->start_byte, mpip->start_bit, mpip->num_bits,
-               mps->it_vals[k].val);
+        printf("  pdt=%d start_byte=0x%x start_bit=%d num_bits=%d  val=%"
+               PRId64 "", mpip->pdt, mpip->start_byte, mpip->start_bit,
+               mpip->num_bits, mps->it_vals[k].val);
         if (mpip->acron)
             printf("  acronym: %s\n", mpip->acron);
         else
@@ -367,13 +370,13 @@ static void print_mp_entry(const char * pre, int smask,
     u = sdp_mp_get_value_check(mpi, cur_mp, &all_set);
     printf("%s%-10s", pre, acron);
     if (force_decimal)
-        printf("%lld", (long long)u);
+        printf("%" PRId64 "", (long long)u);
     else if (mpi->flags & MF_HEX)
-        printf("0x%llx", u);
+        printf("0x%" PRIx64 "", u);
     else if (all_set)
         printf(" -1");
     else
-        printf("%3llu", u);
+        printf("%3" PRIu64 "", u);
     if (smask & 0xe) {
         printf("  [");
         if (cha_mp && (smask & 2)) {
@@ -386,13 +389,13 @@ static void print_mp_entry(const char * pre, int smask,
             u = sdp_mp_get_value_check(mpi, def_mp, &all_set);
             printf("%sdef:", (sep ? ", " : " "));
             if (force_decimal)
-                printf("%lld", (long long)u);
+                printf("%" PRId64 "", (long long)u);
             else if (mpi->flags & MF_HEX)
-                printf("0x%llx", u);
+                printf("0x%" PRIx64 "", u);
             else if (all_set)
                 printf(" -1");
             else
-                printf("%3llu", u);
+                printf("%3" PRIu64 "", u);
             sep = 1;
         }
         if (sav_mp && (smask & 8)) {
@@ -400,13 +403,13 @@ static void print_mp_entry(const char * pre, int smask,
             u = sdp_mp_get_value_check(mpi, sav_mp, &all_set);
             printf("%ssav:", (sep ? ", " : " "));
             if (force_decimal)
-                printf("%lld", (long long)u);
+                printf("%" PRId64 "", (long long)u);
             else if (mpi->flags & MF_HEX)
-                printf("0x%llx", u);
+                printf("0x%" PRIx64 "", u);
             else if (all_set)
                 printf(" -1");
             else
-                printf("%3llu", u);
+                printf("%3" PRIu64 "", u);
         }
         printf("]");
     }
@@ -794,22 +797,22 @@ static int get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
             if (opts->hex) {
                 if (smask & 1) {
                     u = sdp_mp_get_value(mpi, cur_mp);
-                    printf("0x%02llx ", u);
+                    printf("0x%02" PRIx64 " ", u);
                 } else
                     printf("-    ");
                 if (smask & 2) {
                     u = sdp_mp_get_value(mpi, cha_mp);
-                    printf("0x%02llx ", u);
+                    printf("0x%02" PRIx64 " ", u);
                 } else
                     printf("-    ");
                 if (smask & 4) {
                     u = sdp_mp_get_value(mpi, def_mp);
-                    printf("0x%02llx ", u);
+                    printf("0x%02" PRIx64 " ", u);
                 } else
                     printf("-    ");
                 if (smask & 8) {
                     u = sdp_mp_get_value(mpi, sav_mp);
-                    printf("0x%02llx ", u);
+                    printf("0x%02" PRIx64 " ", u);
                 } else
                     printf("-    ");
                 printf("\n");
@@ -820,7 +823,7 @@ static int get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
             if (opts->hex) {
                 if (smask & 1) {
                     u = sdp_mp_get_value(mpi, cur_mp);
-                    printf("0x%02llx ", u);
+                    printf("0x%02" PRIx64 " ", u);
                 } else
                     printf("-    ");
                 printf("\n");
@@ -831,7 +834,7 @@ static int get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
             if (opts->hex) {
                 if (smask & 1) {
                     u = sdp_mp_get_value(mpi, cur_mp);
-                    printf("%02lld ", (long long)u);
+                    printf("%02" PRId64 " ", (long long)u);
                 } else
                     printf("-    ");
                 printf("\n");
@@ -947,9 +950,9 @@ static int change_mode_page(int sg_fd, int pdt,
         }
         if ((ivp->val >= 0) && (ivp->orig_val > 0) &&
             (ivp->orig_val > ivp->val) && (0 == opts->quiet)) {
-            fprintf(stderr, "warning: given value (%lld) truncated to %lld "
-                    "by field size [%d bits]\n", ivp->orig_val, ivp->val,
-                    ivp->mpi.num_bits);
+            fprintf(stderr, "warning: given value (%" PRId64 ") truncated "
+                    "to %" PRId64 " by field size [%d bits]\n", ivp->orig_val,
+                    ivp->val, ivp->mpi.num_bits);
             fprintf(stderr, "    applying anyway\n");
         }
         sdp_mp_set_value(ivp->val, &ivp->mpi, mdpg + off);
@@ -998,7 +1001,7 @@ static int set_def_mode_page(int sg_fd, int pn, int spn,
     char buff[128];
 
     len = mode_pg_len + MODE_DATA_OVERHEAD;
-    mdp = malloc(len);
+    mdp = (unsigned char *)malloc(len);
     if (NULL ==mdp) {
         fprintf(stderr, "set_def_mode_page: malloc failed, out of memory\n");
         return SG_LIB_FILE_ERROR;
@@ -1170,13 +1173,13 @@ static long long get_llnum(const char * buf)
         return -1;
     len = strlen(buf);
     if (('0' == buf[0]) && (('x' == buf[1]) || ('X' == buf[1]))) {
-        res = sscanf(buf + 2, "%llx", &unum);
+        res = sscanf(buf + 2, "%" SCNx64 "", &unum);
         num = unum;
     } else if ('H' == toupper(buf[len - 1])) {
-        res = sscanf(buf, "%llx", &unum);
+        res = sscanf(buf, "%" SCNx64 "", &unum);
         num = unum;
     } else
-        res = sscanf(buf, "%lld", &num);
+        res = sscanf(buf, "%" SCNd64 "", &num);
     return (1 == res) ? num : -1;
 }
 
@@ -2045,15 +2048,16 @@ static int find_corresponding_sg_fd(int oth_fd, const char * device_name,
     My_scsi_idlun m_idlun, mm_idlun;
     char name[DEVNAME_SZ];
     int num_nodevs = 0;
+    int num_sgdevs = 0;
 
     err = ioctl(oth_fd, SCSI_IOCTL_GET_BUS_NUMBER, &bus);
     if (err < 0) {
-        fprintf(stderr, "%s does not understand SCSI commands; or "
-                "bypasses the linux SCSI\n",
-                device_name);
-        fprintf(stderr, " subsystem, need sd, scd, st, osst or sg "
-                "based device name\n For example: /dev/hdd is not "
-                "suitable.\n");
+        fprintf(stderr, "%s does not present a standard Linux SCSI device "
+                "interface (a\nSCSI_IOCTL_GET_BUS_NUMBER ioctl to it "
+                "failed). Examples of typical\n", device_name);
+        fprintf(stderr, "names of devices that do are /dev/sda, /dev/scd0, "
+                "dev/st0, /dev/osst0,\nand /dev/sg0. An example of a "
+                "typical non-SCSI device name is /dev/hdd.\n");
         return -2;
     }
     err = ioctl(oth_fd, SCSI_IOCTL_GET_IDLUN, &m_idlun);
@@ -2069,6 +2073,8 @@ static int find_corresponding_sg_fd(int oth_fd, const char * device_name,
         snprintf(name, sizeof(name), "/dev/sg%d", k);
         fd = open(name, O_RDONLY | O_NONBLOCK);
         if (fd < 0) {
+            if (ENODEV != errno)
+                ++num_sgdevs;
             if ((ENODEV == errno) || (ENOENT == errno) ||
                 (ENXIO == errno)) {
                 ++num_nodevs;
@@ -2078,7 +2084,8 @@ static int find_corresponding_sg_fd(int oth_fd, const char * device_name,
                 continue;   /* step over if O_EXCL already on it */
             else
                 break;
-        }
+        } else
+            ++num_sgdevs;
         err = ioctl(fd, SCSI_IOCTL_GET_BUS_NUMBER, &bbus);
         if (err < 0) {
             if (verbose)
@@ -2102,6 +2109,11 @@ static int find_corresponding_sg_fd(int oth_fd, const char * device_name,
             close(fd);
             fd = -2;
         }
+    }
+    if (0 == num_sgdevs) {
+        fprintf(stderr, "No /dev/sg* devices found; is the sg driver "
+                "loaded?\n");
+        return -2;
     }
     if (fd >= 0) {
         if ((ioctl(fd, SG_GET_VERSION_NUM, &v) < 0) || (v < 30000)) {
@@ -2127,7 +2139,19 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
     struct utsname a_uts;
     int two, four;
     int res;
+    struct stat a_stat;
 
+    if (stat(device_name, &a_stat) < 0) {
+        fprintf(stderr, "unable to 'stat' %s, errno=%d\n", device_name,
+                errno);
+        perror("stat failed");
+        return -1;
+    }
+    if ((! S_ISBLK(a_stat.st_mode)) && (! S_ISCHR(a_stat.st_mode))) {
+        fprintf(stderr, "expected %s to be a block or char device\n",
+                device_name);
+        return -1;
+    }
     if (uname(&a_uts) < 0) {
         fprintf(stderr, "uname system call failed, couldn't send "
                 "SG_IO ioctl to %s\n", device_name);

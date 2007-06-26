@@ -2,7 +2,8 @@ The author of sdparm would like to thank the following people who
 have made contributions:
 
 Bryan Henderson < bryanh at giraffe-data dot com >
-	add old power condition page (0xd) plus other fixes
+	add old power condition page (0xd); sg device mapping in
+        lk 2.4 series fixes [20061113]
 
 Hayashi Naoyuki <titan at culzean dot org>
         port to Tru64 [20060127]
@@ -14,4 +15,4 @@ Luben Tuikov <ltuikov at yahoo dot com>
         help with documentation and other suggestions [20061014]
 
 Doug Gilbert
-14th October 2006
+13th November 2006

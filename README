@@ -105,11 +105,15 @@ Tru64 (osf) port
 
 Win32 port
 ----------
-This port only supports Windows 2000, 2003 and XP (not 95, 98, ME or earlier).
-It uses the Microsoft SCSI Pass Through "Direct" (SPTD) rather than ASPI32
-which requires a dll from Adaptec. The source is built in a cygwin
-environment and can run in a cygwin bash shell. It can also run in a DOS shell
-if the cygwin1.dll is put in an appropriate place.
+This port only supports Windows NT, 2000, 2003 and XP (not 95, 98, ME or
+earlier). It uses the Microsoft SCSI Pass Through "Direct" (SPTD) rather
+than ASPI32 which requires a dll from Adaptec.
+
+The source can be built in a cygwin environment and can run in a cygwin
+bash shell. It can also run in a DOS shell if the cygwin1.dll is put in an
+appropriate place.
+Alternatively the source can be built with the MinGW compiler using its
+MSYS shell. This removes the dependence on the cygwin1.dll file.
 
 The device naming schemes attempt to follow what DOS does, with a few short
 cuts. If volume "D:" is an ATAPI DVD drive then the actual file opened
@@ -160,4 +164,4 @@ may be used but "PD" is obviously quicker to type.
 
 
 Douglas Gilbert
-16th October 2006
+24th January 2007

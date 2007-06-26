@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2006 Douglas Gilbert.
+ * Copyright (c) 2005-2007 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,8 @@
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
+#define __STDC_FORMAT_MACROS 1
+#include <inttypes.h>
 
 #include "sdparm.h"
 #include "sg_lib.h"
@@ -66,7 +68,11 @@ static int do_cmd_read_capacity(int sg_fd, int verbose)
             printf("block_length: %u\n", block_size);
             sz_mib = ((double)(last_blk_addr + 1) * block_size) / 
                       (double)(1048576);
+#ifdef SG3_UTILS_MINGW
+            printf("capacity_mib: %g\n", sz_mib);
+#else
             printf("capacity_mib: %.1f\n", sz_mib);
+#endif
         } else
             do16 = 1;
     } else
@@ -82,11 +88,15 @@ static int do_cmd_read_capacity(int sg_fd, int verbose)
             }
             block_size = ((resp_buff[8] << 24) | (resp_buff[9] << 16) |
                           (resp_buff[10] << 8) | resp_buff[11]);
-            printf("blocks: %llu\n", llast_blk_addr + 1);
+            printf("blocks: %" PRIu64 "\n", llast_blk_addr + 1);
             printf("block_length: %u\n", block_size);
             sz_mib = ((double)(llast_blk_addr + 1) * block_size) / 
                       (double)(1048576);
+#ifdef SG3_UTILS_MINGW
+            printf("capacity_mib: %g\n", sz_mib);
+#else
             printf("capacity_mib: %.1f\n", sz_mib);
+#endif
         } else
             return res;
     }

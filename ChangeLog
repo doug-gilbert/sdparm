@@ -2,6 +2,16 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
+ChangeLog for sdparm-1.01 [20070124]
+  - add element address assignment mode page (smc)
+  - improve error handling in lk 2.4 series mapping to
+    sg devices
+  - add configure.ac rule for mingw (Windows)
+    - include <inttypes.h> to use PRIx64 instead of %llx
+  - add LUICLR bit to extended inquiry VPD page
+  - correct some headers for C++ inclusion
+    - fix most C code to compile under C++
+
 ChangeLog for sdparm-1.00 [20061016]
   - update Background control mode subpage (SBC-3)
     - fix EN_BMS and EN_PS swap

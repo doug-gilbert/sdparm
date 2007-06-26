@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2006 Douglas Gilbert.
+ * Copyright (c) 2005-2007 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,8 @@
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
+#define __STDC_FORMAT_MACROS 1
+#include <inttypes.h>
 
 #include "sdparm.h"
 #include "sg_lib.h"
@@ -246,7 +248,7 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
                         id_ext <<= 8;
                     id_ext |= ip[m];
                 }
-                printf("      Identifier extension: 0x%llx\n", id_ext);
+                printf("      Identifier extension: 0x%" PRIx64 "\n", id_ext);
             } else if ((8 != i_len) && (12 != i_len)) {
                 fprintf(stderr, "      << can only decode 8, 12 and 16 "
                         "byte ids>>\n");
@@ -262,8 +264,8 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
                     vsei <<= 8;
                 vsei |= ip[ci_off + 3 + m];
             }
-            printf("      Vendor Specific Extension Identifier: 0x%llx\n",
-                   vsei);
+            printf("      Vendor Specific Extension Identifier: 0x%" PRIx64
+                   "\n", vsei);
             if (12 == i_len) {
                 d_id = ((ip[8] << 24) | (ip[9] << 16) | (ip[10] << 8) |
                         ip[11]);
@@ -322,8 +324,8 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
                 }
                 if (long_out) {
                     printf("      NAA 5, IEEE Company_id: 0x%x\n", c_id);
-                    printf("      Vendor Specific Identifier: 0x%llx\n",
-                           vsei);
+                    printf("      Vendor Specific Identifier: 0x%" PRIx64
+                           "\n", vsei);
                     printf("      [0x");
                     for (m = 0; m < 8; ++m)
                         printf("%02x", (unsigned int)ip[m]);
@@ -350,8 +352,8 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
                 }
                 if (long_out) {
                     printf("      NAA 6, IEEE Company_id: 0x%x\n", c_id);
-                    printf("      Vendor Specific Identifier: 0x%llx\n",
-                           vsei);
+                    printf("      Vendor Specific Identifier: 0x%" PRIx64
+                           "\n", vsei);
                     vsei = 0;
                     for (m = 0; m < 8; ++m) {
                         if (m > 0)
@@ -359,7 +361,7 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
                         vsei |= ip[8 + m];
                     }
                     printf("      Vendor Specific Identifier Extension: "
-                           "0x%llx\n", vsei);
+                           "0x%" PRIx64 "\n", vsei);
                     printf("      [0x");
                     for (m = 0; m < 16; ++m)
                         printf("%02x", (unsigned int)ip[m]);
@@ -561,8 +563,9 @@ static int decode_ext_inq_vpd(unsigned char * buff, int len)
     printf("  GRP_SUP: %d  PRIOR_SUP: %d  HEADSUP: %d  ORDSUP: %d  "
            "SIMPSUP: %d\n", !!(buff[5] & 0x10), !!(buff[5] & 0x8),
            !!(buff[5] & 0x4), !!(buff[5] & 0x2), !!(buff[5] & 0x1));
-    printf("  CORR_D_SUP=%d NV_SUP=%d V_SUP=%d\n", !!(buff[6] & 0x80),
-           !!(buff[6] & 0x2), !!(buff[6] & 0x1));
+    printf("  CORR_D_SUP=%d NV_SUP=%d V_SUP=%d LUICLR=%d\n",
+           !!(buff[6] & 0x4), !!(buff[6] & 0x2), !!(buff[6] & 0x1),
+           !!(buff[7] & 0x1));
     return 0;
 }
 
