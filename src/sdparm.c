@@ -51,7 +51,7 @@
  * set). In some cases these parameters can be changed.
  */
 
-static char * version_str = "0.91 20050506";
+static char * version_str = "0.92 20050520";
 
 #define ME "sdparm: "
 
@@ -63,13 +63,20 @@ static char * version_str = "0.91 20050506";
 #define DISCONNECT_MP 2
 #define FORMAT_MP 3
 #define RIGID_DISK_MP 4
+#define WRITE_PARAM_MP 5
+#define RBC_DEV_PARAM_MP 6
 #define V_ERR_RECOVERY_MP 7
 #define CACHING_MP 8
 #define CONTROL_MP 0xa
-#define POWER_MP 0x1a
-#define IEC_MP 0x1c
+#define DATA_COMPR_MP 0xf
+#define DEV_CONF_MP 0x10
+#define ES_MAN_MP 0x14
 #define PROT_SPEC_LU_MP 0x18
 #define PROT_SPEC_PORT_MP 0x19
+#define POWER_MP 0x1a
+#define IEC_MP 0x1c
+#define TIMEOUT_PROT_MP 0x1d
+#define XOR_MP 0x10
 
 #define MODE_DATA_OVERHEAD 128
 #define EBUFF_SZ 256
@@ -79,6 +86,8 @@ static char * version_str = "0.91 20050506";
 #define VPD_SUPPORTED_VPDS 0x0
 #define VPD_UNIT_SERIAL_NUM 0x80
 #define VPD_DEVICE_ID 0x83
+#define VPD_MAN_NET_ADDR 0x85
+#define VPD_EXT_INQ 0x86
 #define VPD_SCSI_PORTS 0x88
 #define VPD_ASSOC_LU 0
 #define VPD_ASSOC_TPORT 1
@@ -94,6 +103,7 @@ static struct option long_options[] = {
         {"defaults", 1, 0, 'D'},
         {"dummy", 1, 0, 'd'},
         {"enumerate", 0, 0, 'e'},
+        {"flexible", 0, 0, 'f'},
         {"get", 1, 0, 'g'},
         {"help", 0, 0, 'h'},
         {"hex", 0, 0, 'H'},
@@ -111,7 +121,7 @@ static void usage()
 {
     fprintf(stderr, "Usage: "
           "sdparm    [-all] [--clear=<str>] [--defaults] [--dummy] "
-          "[--get=<str>]\n"
+          "[--flexible] [--get=<str>]\n"
           "                 [--help] [--hex] [--inquiry] [--long] "
           "[--page=<pg[,spg]>]\n"
           "                 [--save] [--set=<str>] [--six] [--verbose] "
@@ -151,24 +161,32 @@ static void usage()
 struct values_name_t {
     int value;
     int subvalue;
-    int pdt;    /* -1 for SPC-3, else primary device type */
+    int pdt;  /* -1 for SPC-3 mode pages, else primary device type; */
+              /* -1 for VPD pages */
     const char * acron;
     const char * name;
 };
 
 static struct values_name_t mode_nums_name[] = {
-    {CACHING_MP, 0, 0, "ca", "Caching"},
+    {CACHING_MP, 0, 0, "ca", "Caching (SBC)"},
     {CONTROL_MP, 0, -1, "co", "Control"},
+    {DATA_COMPR_MP, 0, 1, "dac", "Data compression (SSC)"},
+    {DEV_CONF_MP, 0, 1, "dc", "Device configuration (SSC)"},
+    {ES_MAN_MP, 0, 0xd, "esm", "Enclosure services management (SES)"},
     {DISCONNECT_MP, 0, -1, "dr", "Disconnect-reconnect"},
-    {FORMAT_MP, 0, 0, "fo", "Format"},
+    {FORMAT_MP, 0, 0, "fo", "Format (SBC)"},
     {IEC_MP, 0, -1, "ie", "Informational exception control"},
     {PROT_SPEC_LU_MP, 0, -1, "pl", "Protocol specific logical unit"},
     {POWER_MP, 0, -1, "po", "Power condition"},
     {PROT_SPEC_PORT_MP, 0, -1, "pp", "Protocol specific port"},
-    {RIGID_DISK_MP, 0, 0, "rd", "Rigid disk"},
+    {RBC_DEV_PARAM_MP, 0, 0xe, "rbc", "RBC device parameters (RBC)"},
+    {RIGID_DISK_MP, 0, 0, "rd", "Rigid disk (SBC)"},
+    {TIMEOUT_PROT_MP, 0, 5, "rp", "Timeout and protect (MMC)"},
     {RW_ERR_RECOVERY_MP, 0, -1, "rw", "Read write error recovery"},
         /* since in SBC, SSC and MMC treat as if in SPC */
-    {V_ERR_RECOVERY_MP, 0, 0, "ve", "Verify error recovery"},
+    {V_ERR_RECOVERY_MP, 0, 0, "ve", "Verify error recovery (SBC)"},
+    {WRITE_PARAM_MP, 0, 5, "wp", "Write parameters (MMC)"},
+    {XOR_MP, 0, 0, "xo", "XOR control (SBC)"},
 };
 
 static int mode_nums_name_len =
@@ -190,16 +208,47 @@ static void list_mps()
 }
 
 static const struct values_name_t * get_mode_detail(int page_num,
-                                                    int subpage_num)
+                                                    int subpage_num, int pdt)
 {
     int k;
     const struct values_name_t * vnp;
 
     for (k = 0, vnp = mode_nums_name; k < mode_nums_name_len; ++k, ++vnp) {
-        if ((page_num == vnp->value) && (subpage_num == vnp->subvalue))
-            return vnp;
+        if ((page_num == vnp->value) && (subpage_num == vnp->subvalue)) {
+            if ((pdt < 0) || (vnp->pdt < 0) || (vnp->pdt == pdt))
+                return vnp;
+        }
     }
     return NULL;
+}
+
+static void get_mode_page_name(int page_num, int subpage_num, int pdt,
+                               int hex, char * bp, int max_b_len)
+{
+    int len = max_b_len - 1;
+    const struct values_name_t * vnp;
+
+    if (len < 0)
+        return;
+    bp[len] = '\0';
+    vnp = get_mode_detail(page_num, subpage_num, pdt);
+    if (NULL == vnp)
+        vnp = get_mode_detail(page_num, subpage_num, -1);
+    if (vnp && vnp->name) {
+        if (hex) {
+            if (0 == subpage_num)
+                snprintf(bp, len, "%s [0x%x]", vnp->name, page_num);
+            else
+                snprintf(bp, len, "%s [0x%x,0x%x]", vnp->name, page_num,
+                         subpage_num);
+        } else
+            snprintf(bp, len, "%s", vnp->name);
+    } else {
+        if (0 == subpage_num)
+            snprintf(bp, len, "[0x%x]", page_num);
+        else
+            snprintf(bp, len, "[0x%x,0x%x]", page_num, subpage_num);
+    }
 }
 
 static const struct values_name_t * find_mp_by_acron(const char * ap)
@@ -208,7 +257,7 @@ static const struct values_name_t * find_mp_by_acron(const char * ap)
     const struct values_name_t * vnp;
 
     for (k = 0, vnp = mode_nums_name; k < mode_nums_name_len; ++k, ++vnp) {
-        if (0 == strncmp(vnp->acron, ap, 2))
+        if (0 == strncmp(vnp->acron, ap, 3))
             return vnp;
     }
     return NULL;
@@ -259,7 +308,7 @@ static const struct values_name_t * find_vpd_by_acron(const char * ap)
 
 struct opt_coll {
     int all;
-    int six_byte_cdb;
+    int mode_6;
     int defaults;
     int dummy;
     int enumerate;
@@ -267,16 +316,18 @@ struct opt_coll {
     int inquiry;
     int long_out;
     int saved;
+    int flexible;
 };
 
 struct mode_page_item {
     const char * acron;
     int page_num;
     int subpage_num;
+    int pdt;            /* -1 if in SPC or multiple sets */
     int start_byte;
     int start_bit;
     int num_bits;
-    int common;
+    int common;         /* set to list out in summary */
     const char * description;
 };
 
@@ -294,232 +345,372 @@ struct mode_page_settings {
 
 
 static struct mode_page_item mitem_arr[] = {
-    {"AWRE", RW_ERR_RECOVERY_MP, 0, 2, 7, 1, 1,   /* [0x1] sbc2 */
+    /* treat as spc since various command sets implement variants */
+    {"AWRE", RW_ERR_RECOVERY_MP, 0, -1, 2, 7, 1, 1,   /* [0x1] sbc2 */
         "Automatic write reallocation enabled"},
-    {"ARRE", RW_ERR_RECOVERY_MP, 0, 2, 6, 1, 1,
+    {"ARRE", RW_ERR_RECOVERY_MP, 0, -1, 2, 6, 1, 1,
         "Automatic read reallocation enabled"},
-    {"TB", RW_ERR_RECOVERY_MP, 0, 2, 5, 1, 0,
+    {"TB", RW_ERR_RECOVERY_MP, 0, -1, 2, 5, 1, 0,
         "Transfer block"},
-    {"RC", RW_ERR_RECOVERY_MP, 0, 2, 4, 1, 0,
+    {"RC", RW_ERR_RECOVERY_MP, 0, -1, 2, 4, 1, 0,
         "Read continuous"},
-    {"EER", RW_ERR_RECOVERY_MP, 0, 2, 3, 1, 0,
+    {"EER", RW_ERR_RECOVERY_MP, 0, -1, 2, 3, 1, 0,
         "Enable early recover"},
-    {"PER", RW_ERR_RECOVERY_MP, 0, 2, 2, 1, 1,
+    {"PER", RW_ERR_RECOVERY_MP, 0, -1, 2, 2, 1, 1,
         "Post error"},
-    {"DTE", RW_ERR_RECOVERY_MP, 0, 2, 1, 1, 0,
+    {"DTE", RW_ERR_RECOVERY_MP, 0, -1, 2, 1, 1, 0,
         "Data terminate on error"},
-    {"DCR", RW_ERR_RECOVERY_MP, 0, 2, 0, 1, 0,
+    {"DCR", RW_ERR_RECOVERY_MP, 0, -1, 2, 0, 1, 0,
         "Disable correction"},
-    {"RRC", RW_ERR_RECOVERY_MP, 0, 3, 7, 8, 0,
+    {"RRC", RW_ERR_RECOVERY_MP, 0, -1, 3, 7, 8, 0,
         "Read retry count"},
-    {"WRC", RW_ERR_RECOVERY_MP, 0, 8, 7, 8, 0,
+    {"EMCDR", RW_ERR_RECOVERY_MP, 0, -1, 7, 1, 2, 0,
+        "Enhanced media certification and defect reporting (mmc only)"},
+    {"WRC", RW_ERR_RECOVERY_MP, 0, -1, 8, 7, 8, 0,
         "Write retry count"},
-    {"RTL", RW_ERR_RECOVERY_MP, 0, 10, 7, 16, 0,
+    {"RTL", RW_ERR_RECOVERY_MP, 0, -1, 10, 7, 16, 0,
         "Recovery time limit (ms)"},
 
-    {"BITL", DISCONNECT_MP, 0, 4, 7, 16, 0,     /* [0x2] spc3,sas1 */
+    {"BITL", DISCONNECT_MP, 0, -1, 4, 7, 16, 0,  /* [0x2] spc3,sas1 */
         "Bus inactivity time limit (sas: 100us)"},
-    {"MCTL", DISCONNECT_MP, 0, 8, 7, 16, 0,
+    {"MCTL", DISCONNECT_MP, 0, -1, 8, 7, 16, 0,
         "Maximum connect time limit (sas: 100us)"},
-    {"MBS", DISCONNECT_MP, 0, 10, 7, 16, 0,
+    {"MBS", DISCONNECT_MP, 0, -1, 10, 7, 16, 0,
         "Maximum burst size"},
-    {"FBS", DISCONNECT_MP, 0, 14, 7, 16, 0,
+    {"FBS", DISCONNECT_MP, 0, -1, 14, 7, 16, 0,
         "First burst size"},
 
-    {"TPZ", FORMAT_MP, 0, 2, 7, 16, 0,          /* [0x3] sbc2 (obsolete) */
+    {"TPZ", FORMAT_MP, 0, 0, 2, 7, 16, 0,        /* [0x3] sbc2 (obsolete) */
         "Tracks per zone"},
-    {"ASPZ", FORMAT_MP, 0, 4, 7, 16, 0,
+    {"ASPZ", FORMAT_MP, 0, 0, 4, 7, 16, 0,
         "Alternate sectors per zone"},
-    {"ATPZ", FORMAT_MP, 0, 6, 7, 16, 0,
+    {"ATPZ", FORMAT_MP, 0, 0, 6, 7, 16, 0,
         "Alternate tracks per zone"},
-    {"ATPLU", FORMAT_MP, 0, 8, 7, 16, 0,
+    {"ATPLU", FORMAT_MP, 0, 0, 8, 7, 16, 0,
         "Alternate tracks per logical unit"},
-    {"SPT", FORMAT_MP, 0, 10, 7, 16, 0,
+    {"SPT", FORMAT_MP, 0, 0, 10, 7, 16, 0,
         "Sectors per track"},
-    {"DBPPS", FORMAT_MP, 0, 12, 7, 16, 0,
+    {"DBPPS", FORMAT_MP, 0, 0, 12, 7, 16, 0,
         "Data bytes per physical sector"},
-    {"INTLV", FORMAT_MP, 0, 14, 7, 16, 0,
+    {"INTLV", FORMAT_MP, 0, 0, 14, 7, 16, 0,
         "Interleave"},
-    {"TSF", FORMAT_MP, 0, 16, 7, 16, 0,
+    {"TSF", FORMAT_MP, 0, 0, 16, 7, 16, 0,
         "Track skew factor"},
-    {"CSF", FORMAT_MP, 0, 18, 7, 16, 0,
+    {"CSF", FORMAT_MP, 0, 0, 18, 7, 16, 0,
         "Cylinder skew factor"},
-    {"SSEC", FORMAT_MP, 0, 20, 7, 1, 0,
+    {"SSEC", FORMAT_MP, 0, 0, 20, 7, 1, 0,
         "Soft sector"},
-    {"HSEC", FORMAT_MP, 0, 20, 6, 1, 0,
+    {"HSEC", FORMAT_MP, 0, 0, 20, 6, 1, 0,
         "Hard sector"},
-    {"RMB", FORMAT_MP, 0, 20, 5, 1, 0,
+    {"RMB", FORMAT_MP, 0, 0, 20, 5, 1, 0,
         "Removable"},
-    {"SURF", FORMAT_MP, 0, 20, 4, 1, 0,
+    {"SURF", FORMAT_MP, 0, 0, 20, 4, 1, 0,
         "Surface"},
 
-    {"NOC", RIGID_DISK_MP, 0, 2, 7, 24, 0,      /* [0x4] sbc2 (obsolete) */
+    {"NOC", RIGID_DISK_MP, 0, 0, 2, 7, 24, 0,   /* [0x4] sbc2 (obsolete) */
         "Number of cylinders"},
-    {"NOH", RIGID_DISK_MP, 0, 5, 7, 8, 0,
+    {"NOH", RIGID_DISK_MP, 0, 0, 5, 7, 8, 0,
         "Number of heads"},
-    {"SCWP", RIGID_DISK_MP, 0, 6, 7, 24, 0,
+    {"SCWP", RIGID_DISK_MP, 0, 0, 6, 7, 24, 0,
         "Starting cylinder for write precompensation"},
-    {"SCRWC", RIGID_DISK_MP, 0, 9, 7, 24, 0,
+    {"SCRWC", RIGID_DISK_MP, 0, 0, 9, 7, 24, 0,
         "Starting cylinder for reduced write current"},
-    {"DSR", RIGID_DISK_MP, 0, 12, 7, 16, 0,
+    {"DSR", RIGID_DISK_MP, 0, 0, 12, 7, 16, 0,
         "Device step rate"},
-    {"LZC", RIGID_DISK_MP, 0, 14, 7, 24, 0,
+    {"LZC", RIGID_DISK_MP, 0, 0, 14, 7, 24, 0,
         "Landing zone cylinder"},
-    {"RPL", RIGID_DISK_MP, 0, 17, 1, 2, 0,
+    {"RPL", RIGID_DISK_MP, 0, 0, 17, 1, 2, 0,
         "Rotational position locking"},
-    {"ROTO", RIGID_DISK_MP, 0, 18, 7, 8, 0,
+    {"ROTO", RIGID_DISK_MP, 0, 0, 18, 7, 8, 0,
         "Rotational offset"},
-    {"MRR", RIGID_DISK_MP, 0, 20, 7, 16, 0,
+    {"MRR", RIGID_DISK_MP, 0, 0, 20, 7, 16, 0,
         "Medium rotation rate (rpm)"},
 
-    {"V_EER", V_ERR_RECOVERY_MP, 0, 2, 3, 1, 0,   /* [0x8] sbc2 */
+    {"BUFE", WRITE_PARAM_MP, 0, 5, 2, 6, 1, 1,      /* [0x5] mmc5 */
+        "Buffer underrun free recording enable"},
+    {"LS_V", WRITE_PARAM_MP, 0, 5, 2, 5, 1, 0,
+        "Link size valid"},
+    {"TST_W", WRITE_PARAM_MP, 0, 5, 2, 4, 1, 0,
+        "Test write"},
+    {"WR_T", WRITE_PARAM_MP, 0, 5, 2, 3, 4, 1,
+        "Write type"},
+    {"MULTI_S", WRITE_PARAM_MP, 0, 5, 3, 7, 2, 1,
+        "Multi session"},
+    {"FP", WRITE_PARAM_MP, 0, 5, 3, 5, 1, 1,
+        "Fixed packet type"},
+    {"COPY", WRITE_PARAM_MP, 0, 5, 3, 4, 1, 0,
+        "Serial copy management system (SCMS) enable"},
+    {"TRACK_M", WRITE_PARAM_MP, 0, 5, 3, 3, 4, 1,
+        "Track mode"},
+    {"DBT", WRITE_PARAM_MP, 0, 5, 4, 3, 4, 0,
+        "Data block type"},
+    {"LINK_S", WRITE_PARAM_MP, 0, 5, 5, 7, 8, 0,
+        "Link size"},
+    {"IAC", WRITE_PARAM_MP, 0, 5, 7, 5, 6, 0,
+        "Initiator application code"},
+    {"SESS_F", WRITE_PARAM_MP, 0, 5, 8, 7, 8, 0,
+        "Session format"},
+    {"PACK_S", WRITE_PARAM_MP, 0, 5, 10, 7, 32, 0,
+        "Packet size"},
+    {"APL", WRITE_PARAM_MP, 0, 5, 14, 7, 16, 0,
+        "Audio pause length (blocks)"},
+
+    {"WCD", RBC_DEV_PARAM_MP, 0, 0xe, 2, 0, 1, 1, /* [0x6] rbc */
+        "Write cache disable"},
+    {"LBS", RBC_DEV_PARAM_MP, 0, 0xe, 3, 7, 16, 1,
+        "Logical block size"},
+    {"NLBS", RBC_DEV_PARAM_MP, 0, 0xe, 6, 7, 32, 1,
+        "Number of logical blocks (ignore MSB)"},
+    {"P_P", RBC_DEV_PARAM_MP, 0, 0xe, 10, 7, 8, 0,
+        "Power/performance"},
+    {"READD", RBC_DEV_PARAM_MP, 0, 0xe, 11, 3, 1, 0,
+        "Read disable"},
+    {"WRITED", RBC_DEV_PARAM_MP, 0, 0xe, 11, 2, 1, 0,
+        "Write disable"},
+    {"FORMATD", RBC_DEV_PARAM_MP, 0, 0xe, 11, 1, 1, 0,
+        "Format disable"},
+    {"LOCKD", RBC_DEV_PARAM_MP, 0, 0xe, 11, 0, 1, 0,
+        "Lock disable"},
+
+    {"V_EER", V_ERR_RECOVERY_MP, 0, 0, 2, 3, 1, 0,   /* [0x8] sbc2 */
         "Enable early recover"},
-    {"V_PER", V_ERR_RECOVERY_MP, 0, 2, 2, 1, 0,
+    {"V_PER", V_ERR_RECOVERY_MP, 0, 0, 2, 2, 1, 0,
         "Post error"},
-    {"V_DTE", V_ERR_RECOVERY_MP, 0, 2, 1, 1, 0,
+    {"V_DTE", V_ERR_RECOVERY_MP, 0, 0, 2, 1, 1, 0,
         "Data terminate on error"},
-    {"V_DCR", V_ERR_RECOVERY_MP, 0, 2, 0, 1, 0,
+    {"V_DCR", V_ERR_RECOVERY_MP, 0, 0, 2, 0, 1, 0,
         "Disable correction"},
-    {"V_RC", V_ERR_RECOVERY_MP, 0, 3, 7, 8, 0,
+    {"V_RC", V_ERR_RECOVERY_MP, 0, 0, 3, 7, 8, 0,
         "Verify retry count"},
-    {"V_RTL", V_ERR_RECOVERY_MP, 0, 10, 7, 16, 0,
+    {"V_RTL", V_ERR_RECOVERY_MP, 0, 0, 10, 7, 16, 0,
         "Verify recovery time limit (ms)"},
 
-    {"IC", CACHING_MP, 0, 2, 7, 1, 0,    /* [0x8] sbc2 */
+    {"IC", CACHING_MP, 0, 0, 2, 7, 1, 0,    /* [0x8] sbc2 */
         "Initiator control"},
-    {"ABPF", CACHING_MP, 0, 2, 6, 1, 0,
+    {"ABPF", CACHING_MP, 0, 0, 2, 6, 1, 0,
         "Abort pre-fetch"},
-    {"CAP", CACHING_MP, 0, 2, 5, 1, 0,
+    {"CAP", CACHING_MP, 0, 0, 2, 5, 1, 0,
         "Caching analysis permitted"},
-    {"DISC", CACHING_MP, 0, 2, 4, 1, 0,
+    {"DISC", CACHING_MP, 0, 0, 2, 4, 1, 0,
         "Discontinuity"},
-    {"SIZE", CACHING_MP, 0, 2, 3, 1, 0,
+    {"SIZE", CACHING_MP, 0, 0, 2, 3, 1, 0,
         "Size"},
-    {"WCE", CACHING_MP, 0, 2, 2, 1, 1,
+    {"WCE", CACHING_MP, 0, 0, 2, 2, 1, 1,
         "Write cache enable"},
-    {"MF", CACHING_MP, 0, 2, 1, 1, 0,
+    {"MF", CACHING_MP, 0, 0, 2, 1, 1, 0,
         "Multiplication factor"},
-    {"RCD", CACHING_MP, 0, 2, 0, 1, 1,
+    {"RCD", CACHING_MP, 0, 0, 2, 0, 1, 1,
         "Read cache disable"},
-    {"DRRP", CACHING_MP, 0, 3, 7, 4, 0,
+    {"DRRP", CACHING_MP, 0, 0, 3, 7, 4, 0,
         "Demand read retension prioriry"},
-    {"WRP", CACHING_MP, 0, 3, 3, 4, 0,
+    {"WRP", CACHING_MP, 0, 0, 3, 3, 4, 0,
         "Write retension prioriry"},
-    {"DPTL", CACHING_MP, 0, 4, 7, 16, 0,
+    {"DPTL", CACHING_MP, 0, 0, 4, 7, 16, 0,
         "Disable pre-fetch transfer length"},
-    {"MIPF", CACHING_MP, 0, 6, 7, 16, 0,
+    {"MIPF", CACHING_MP, 0, 0, 6, 7, 16, 0,
         "Minimum pre-fetch"},
-    {"MAPF", CACHING_MP, 0, 8, 7, 16, 0,
+    {"MAPF", CACHING_MP, 0, 0, 8, 7, 16, 0,
         "Maximum pre-fetch"},
-    {"MAPFC", CACHING_MP, 0, 10, 7, 16, 0,
+    {"MAPFC", CACHING_MP, 0, 0, 10, 7, 16, 0,
         "Maximum pre-fetch ceiling"},
-    {"FSW", CACHING_MP, 0, 12, 7, 1, 0,
+    {"FSW", CACHING_MP, 0, 0, 12, 7, 1, 0,
         "Force sequential write"},
-    {"LBCSS", CACHING_MP, 0, 12, 5, 1, 0,
+    {"LBCSS", CACHING_MP, 0, 0, 12, 5, 1, 0,
         "Logical block cache segment size"},
-    {"DRA", CACHING_MP, 0, 12, 4, 1, 0,
+    {"DRA", CACHING_MP, 0, 0, 12, 4, 1, 0,
         "disable read ahead"},
-    {"NV_DIS", CACHING_MP, 0, 12, 0, 1, 0,
+    {"NV_DIS", CACHING_MP, 0, 0, 12, 0, 1, 0,
         "Non-volatile cache disbale"},
-    {"NCS", CACHING_MP, 0, 13, 7, 8, 0,
+    {"NCS", CACHING_MP, 0, 0, 13, 7, 8, 0,
         "Number of cache segments"},
-    {"CSS", CACHING_MP, 0, 14, 7, 16, 0,
+    {"CSS", CACHING_MP, 0, 0, 14, 7, 16, 0,
         "Cache segment size"},
 
-    {"TST", CONTROL_MP, 0, 2, 7, 3, 0,    /* [0xa] spc3 */
+    {"TST", CONTROL_MP, 0, -1, 2, 7, 3, 0,    /* [0xa] spc3 */
         "Task set type"},
-    {"TMF_ONLY", CONTROL_MP, 0, 2, 4, 1, 0,
+    {"TMF_ONLY", CONTROL_MP, 0, -1, 2, 4, 1, 0,
         "Task management functions only"},
-    {"D_SENSE", CONTROL_MP, 0, 2, 2, 1, 0,
+    {"D_SENSE", CONTROL_MP, 0, -1, 2, 2, 1, 0,
         "Descriptor format sense data"},
-    {"GLTSD", CONTROL_MP, 0, 2, 1, 1, 0,
+    {"GLTSD", CONTROL_MP, 0, -1, 2, 1, 1, 0,
         "Global logging target save disable"},
-    {"RLEC", CONTROL_MP, 0, 2, 0, 1, 0,
+    {"RLEC", CONTROL_MP, 0, -1, 2, 0, 1, 0,
         "Report log exception condition"},
-    {"QAM", CONTROL_MP, 0, 3, 7, 4, 0,
+    {"QAM", CONTROL_MP, 0, -1, 3, 7, 4, 0,
         "Queue algorithm modifier"},
-    {"QERR", CONTROL_MP, 0, 3, 2, 2, 0,
+    {"QERR", CONTROL_MP, 0, -1, 3, 2, 2, 0,
         "Queue error management"},
-    {"RAC", CONTROL_MP, 0, 4, 6, 1, 0,
+    {"RAC", CONTROL_MP, 0, -1, 4, 6, 1, 0,
         "Report a check"},
-    {"UA_INTLCK", CONTROL_MP, 0, 4, 5, 2, 0,
+    {"UA_INTLCK", CONTROL_MP, 0, -1, 4, 5, 2, 0,
         "Unit attention interlocks controls"},
-    {"SWP", CONTROL_MP, 0, 4, 3, 1, 1,
+    {"SWP", CONTROL_MP, 0, -1, 4, 3, 1, 1,
         "Software write protect"},
-    {"ATO", CONTROL_MP, 0, 5, 7, 1, 0,
+    {"ATO", CONTROL_MP, 0, -1, 5, 7, 1, 0,
         "Application tag owner"},
-    {"TAS", CONTROL_MP, 0, 5, 6, 1, 0,
+    {"TAS", CONTROL_MP, 0, -1, 5, 6, 1, 0,
         "Task aborted status"},
-    {"AUTOLOAD", CONTROL_MP, 0, 5, 2, 3, 0,
+    {"AUTOLOAD", CONTROL_MP, 0, -1, 5, 2, 3, 0,
         "Autoload mode"},
-    {"BTP", CONTROL_MP, 0, 8, 7, 16, 0,
+    {"BTP", CONTROL_MP, 0, -1, 8, 7, 16, 0,
         "Busy timeout period (100us)"},
-    {"ESTCT", CONTROL_MP, 0, 10, 7, 16, 0,
+    {"ESTCT", CONTROL_MP, 0, -1, 10, 7, 16, 0,
         "Extended self test completion time (sec)"},
 
-    {"PID", PROT_SPEC_PORT_MP, 0, 2, 3, 4, 0,    /* [0x19] spc3 */
+    {"DCE", DATA_COMPR_MP, 0, 1, 2, 7, 1, 1,    /* [0xf] ssc3 */
+        "Data compression enable"},
+    {"DCC", DATA_COMPR_MP, 0, 1, 2, 6, 1, 1,
+        "Data compression capable"},
+    {"DDE", DATA_COMPR_MP, 0, 1, 3, 7, 1, 1,
+        "Data decompression enable"},
+    {"RED", DATA_COMPR_MP, 0, 1, 3, 6, 2, 0,
+        "Report exception on decompression"},
+    {"COMPR_A", DATA_COMPR_MP, 0, 1, 4, 7, 32, 0,
+        "Compression algorithm"},
+    {"DCOMPR_A", DATA_COMPR_MP, 0, 1, 8, 7, 32, 0,
+        "Decompression algorithm"},
+
+    {"XORDIS", XOR_MP, 0, 0, 2, 1, 1, 0,    /* [0x10] sbc2 */
+        "XOR disable"},
+    {"MXWS", XOR_MP, 0, 0, 4, 7, 32, 0,
+        "Maximum XOR write size (blocks)"},
+
+    {"CAF", DEV_CONF_MP, 0, 1, 2, 5, 1, 0,    /* [0x10] ssc3 */
+        "Change active format"},
+    {"ACT_F", DEV_CONF_MP, 0, 1, 2, 4, 5, 0,
+        "Active format"},
+    {"ACT_P", DEV_CONF_MP, 0, 1, 3, 7, 8, 0,
+        "Active partition"},
+    {"WOBFR", DEV_CONF_MP, 0, 1, 4, 7, 8, 0,
+        "Write object buffer full ratio"},
+    {"ROBER", DEV_CONF_MP, 0, 1, 5, 7, 8, 0,
+        "Read object buffer empty ratio"},
+    {"WDT", DEV_CONF_MP, 0, 1, 6, 7, 16, 0,
+        "Write delay time (100 ms)"},
+    {"OBR", DEV_CONF_MP, 0, 1, 8, 7, 1, 0,
+        "Object buffer recovery"},
+    {"LOIS", DEV_CONF_MP, 0, 1, 8, 6, 1, 0,
+        "Logical object identifiers supported"},
+    {"RSMK", DEV_CONF_MP, 0, 1, 8, 5, 1, 1,
+        "Report setmarks"},
+    {"AVC", DEV_CONF_MP, 0, 1, 8, 4, 1, 0,
+        "Automatic velocity control"},
+    {"SOCF", DEV_CONF_MP, 0, 1, 8, 3, 2, 0,
+        "Stop on consecutive filemarks"},
+    {"ROBO", DEV_CONF_MP, 0, 1, 8, 1, 1, 0,
+        "Recover object buffer order"},
+    {"REW", DEV_CONF_MP, 0, 1, 8, 0, 1, 0,
+        "Report early warning"},
+    {"GAP_S", DEV_CONF_MP, 0, 1, 9, 7, 8, 0,
+        "Gap size"},
+    {"EOD_D", DEV_CONF_MP, 0, 1, 10, 7, 3, 0,
+        "EOD (end-of-data) defined"},
+    {"EEG", DEV_CONF_MP, 0, 1, 10, 4, 1, 0,
+        "Enable EOD generation"},
+    {"SEW", DEV_CONF_MP, 0, 1, 10, 3, 1, 1,
+        "Synchronize early warning"},
+    {"SWP_T", DEV_CONF_MP, 0, 1, 10, 2, 1, 0,
+        "Software write protect (tape)"},
+    {"BAML", DEV_CONF_MP, 0, 1, 10, 1, 1, 0,
+        "Block address mode lock"},
+    {"BAM", DEV_CONF_MP, 0, 1, 10, 0, 1, 0,
+        "Block address mode"},
+    {"OBSAEW", DEV_CONF_MP, 0, 1, 11, 7, 24, 0,
+        "Object buffer size at early warning"},
+    {"SDCA", DEV_CONF_MP, 0, 1, 14, 7, 8, 1,
+        "Select data compression algorithm"},
+    {"WRTE", DEV_CONF_MP, 0, 1, 15, 7, 2, 0,
+        "WORM tamper read enable"},
+    {"OIR", DEV_CONF_MP, 0, 1, 15, 5, 1, 0,
+        "Only if reserved"},
+    {"ROR", DEV_CONF_MP, 0, 1, 15, 4, 2, 0,
+        "Rewind on reset"},
+    {"ASOCWP", DEV_CONF_MP, 0, 1, 15, 2, 1, 0,
+        "Associated write protection"},
+    {"PERSWP", DEV_CONF_MP, 0, 1, 15, 1, 1, 0,
+        "Persistent write protection"},
+    {"PRMWP", DEV_CONF_MP, 0, 1, 15, 1, 0, 0,
+        "Permanent write protection"},
+
+    {"ENBLTC", ES_MAN_MP, 0, 0xd, 5, 0, 1, 1,    /* [0x14] ses2 */
+        "Enable timed completion"},
+    {"MTCT", ES_MAN_MP, 0, 0xd, 6, 7, 16, 1,
+        "Maximum task completion time (100ms)"},
+
+    {"PID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, 0,    /* [0x19] spc3 */
         "Protocol identifier"},
 
-    {"LUPID", PROT_SPEC_LU_MP, 0, 2, 3, 4, 0,    /* [0x18] spc3 */
+    {"LUPID", PROT_SPEC_LU_MP, 0, -1, 2, 3, 4, 0,    /* [0x18] spc3 */
         "Protocol identifier"},
 
-    {"IDLE", POWER_MP, 0, 3, 1, 1, 0,    /* [0x1a] spc3 */
+    {"IDLE", POWER_MP, 0, -1, 3, 1, 1, 0,    /* [0x1a] spc3 */
         "Idle timer active"},
-    {"STANDBY", POWER_MP, 0, 3, 0, 1, 0,
+    {"STANDBY", POWER_MP, 0, -1, 3, 0, 1, 0,
         "Standby timer active"},
-    {"ICT", POWER_MP, 0, 4, 7, 32, 0,
+    {"ICT", POWER_MP, 0, -1, 4, 7, 32, 0,
         "Idle condition timer (100 ms)"},
-    {"SCT", POWER_MP, 0, 8, 7, 32, 0,
+    {"SCT", POWER_MP, 0, -1, 8, 7, 32, 0,
         "Standby condition timer (100 ms)"},
 
-    {"PERF", IEC_MP, 0, 2, 7, 1, 0,    /* [0x1c] spc3 */
+    {"PERF", IEC_MP, 0, -1, 2, 7, 1, 0,    /* [0x1c] spc3 */
         "Performance"},
-    {"EBF", IEC_MP, 0, 2, 5, 1, 0,
+    {"EBF", IEC_MP, 0, -1, 2, 5, 1, 0,
         "Enable background function"},
-    {"EWASC", IEC_MP, 0, 2, 4, 1, 1,
+    {"EWASC", IEC_MP, 0, -1, 2, 4, 1, 1,
         "Enable warning"},
-    {"DEXCPT", IEC_MP, 0, 2, 3, 1, 1,
+    {"DEXCPT", IEC_MP, 0, -1, 2, 3, 1, 1,
         "Disable exceptions"},
-    {"TEST", IEC_MP, 0, 2, 2, 1, 0,
-        "Test (simulate device failure"},
-    {"LOGERR", IEC_MP, 0, 2, 0, 1, 0,
+    {"TEST", IEC_MP, 0, -1, 2, 2, 1, 0,
+        "Test (simulate device failure)"},
+    {"LOGERR", IEC_MP, 0, -1, 2, 0, 1, 0,
         "Log errors"},
-    {"MRIE", IEC_MP, 0, 3, 3, 4, 1,
+    {"MRIE", IEC_MP, 0, -1, 3, 3, 4, 1,
         "Method of reporting infomational exceptions"},
-    {"INTT", IEC_MP, 0, 4, 7, 32, 0,
+    {"INTT", IEC_MP, 0, -1, 4, 7, 32, 0,
         "Interval timer (100 ms)"},
-    {"REPC", IEC_MP, 0, 8, 7, 32, 0,
+    {"REPC", IEC_MP, 0, -1, 8, 7, 32, 0,
         "Report count"},
+
+    {"G3E", TIMEOUT_PROT_MP, 0, 5, 4, 3, 1, 0,    /* [0x1d] mmc5 */
+        "Group 3 timeout capability enable"},
+    {"TMOE", TIMEOUT_PROT_MP, 0, 5, 4, 2, 1, 0,
+        "Timeout enable"},
+    {"DISP", TIMEOUT_PROT_MP, 0, 5, 4, 1, 1, 0,
+        "Disable (unavailable) until power cycle"},
+    {"SWPP", TIMEOUT_PROT_MP, 0, 5, 4, 0, 1, 0,
+        "Software write protect until power cycle"},
+    {"G1MT", TIMEOUT_PROT_MP, 0, 5, 6, 7, 16, 0,
+        "Group 1 minimum timeout (sec)"},
+    {"G2MT", TIMEOUT_PROT_MP, 0, 5, 8, 7, 16, 0,
+        "Group 2 minimum timeout (sec)"},
 };
 
 static int mitem_arr_len = (sizeof(mitem_arr) / sizeof(mitem_arr[0]));
 
-static void list_mitems(int pn, int spn)
+static void list_mitems(int pn, int spn, int pdt)
 {
-    int k, t_pn, t_spn;
+    int k, t_pn, t_spn, t_pdt;
     const struct mode_page_item * mpi;
-    const struct values_name_t * vnp;
+    char buff[128];
     int found = 0;
 
     t_pn = -1;
     t_spn = -1;
+    t_pdt = -2;
     for (k = 0, mpi = mitem_arr; k < mitem_arr_len; ++k, ++mpi) {
-        if ((t_pn != mpi->page_num) || (t_spn != mpi->subpage_num)) {
+        if ((pdt >= 0) && (mpi->pdt >= 0) && (pdt != mpi->pdt))
+            continue;
+        if ((t_pn != mpi->page_num) || (t_spn != mpi->subpage_num) ||
+            (t_pdt != mpi->pdt)) {
             t_pn = mpi->page_num;
             t_spn = mpi->subpage_num;
+            t_pdt = mpi->pdt;
             if ((pn >= 0) && ((pn != t_pn) || (spn != t_spn)))
                 continue;
-            vnp = get_mode_detail(t_pn, t_spn);
-            if (vnp) {
-                if (t_spn)
-                    printf("%s mode page [0x%x,0x%x]:\n", vnp->name, t_pn,
-                           t_spn);
-                else
-                    printf("%s mode page [0x%x]:\n", vnp->name, t_pn);
-            } else if (0 == t_spn)
-                printf("mode page 0x%x:\n", t_pn);
-            else
-                printf("mode page 0x%x,0x%x:\n", t_pn, t_spn);
+            if ((pdt >= 0) && (pdt != t_pdt))
+                continue;
+            get_mode_page_name(t_pn, t_spn, t_pdt, 1, buff, sizeof(buff));
+            printf("%s mode page:\n", buff); 
         } else {
             if ((pn >= 0) && ((pn != t_pn) || (spn != t_spn)))
                 continue;
@@ -529,18 +720,8 @@ static void list_mitems(int pn, int spn)
         found = 1;
     }
     if ((! found) && (pn >= 0)) {
-        vnp = get_mode_detail(pn, spn);
-        if (vnp) {
-            if (spn)
-                printf("%s mode page [0x%x,0x%x]: no items found\n",
-                       vnp->name, pn, spn);
-            else
-                printf("%s mode page [0x%x]: no items found\n", vnp->name,
-                       pn);
-        } else if (0 == spn)
-            printf("mode page 0x%x: no items found\n", pn);
-        else
-            printf("mode page 0x%x,0x%x: no items found\n", pn, spn);
+        get_mode_page_name(pn, spn, pdt, 1, buff, sizeof(buff));
+        fprintf(stderr, "%s mode page: no items found\n", buff);
     }
 }
 
@@ -570,24 +751,24 @@ static const struct mode_page_item * find_mitem_by_acron(const char * ap,
 
 static void list_mp_settings(struct mode_page_settings * mps, int get)
 {
-    struct mode_page_it_val * ivp;
+    struct mode_page_item * mpip;
     int k;
 
     printf("mp_settings: page,subpage=0x%x,0x%x  num=%d\n",
            mps->page_num, mps->subpage_num, mps->num_it_vals);
     for (k = 0; k < mps->num_it_vals; ++k) {
-        ivp = &mps->it_vals[k];
+        mpip = &mps->it_vals[k].mpi;
         if (get)
-            printf("  [0x%x,0x%x]  byte_off=0x%x, bit_off=%d, num_bits"
-                   "=%d  val=%d  acronym: %s\n", ivp->mpi.page_num,
-                   ivp->mpi.subpage_num, ivp->mpi.start_byte,
-                   ivp->mpi.start_bit, ivp->mpi.num_bits, ivp->val,
-                   (ivp->mpi.acron ? ivp->mpi.acron : ""));
+            printf("  [0x%x,0x%x]  pdt=0x%x, byte_off=0x%x, bit_off=%d, "
+                   "num_bits=%d  val=%d  acronym: %s\n", mpip->page_num,
+                   mpip->subpage_num, mpip->start_byte, mpip->pdt,
+                   mpip->start_bit, mpip->num_bits, mps->it_vals[k].val,
+                   (mpip->acron ? mpip->acron : ""));
         else
-            printf("  byte_off=0x%x, bit_off=%d, num_bits=%d "
-                   " val=%d  acronym: %s\n", ivp->mpi.start_byte,
-                   ivp->mpi.start_bit, ivp->mpi.num_bits, ivp->val,
-                   (ivp->mpi.acron ? ivp->mpi.acron : ""));
+            printf("  pdt=0x%x, byte_off=0x%x, bit_off=%d, num_bits=%d "
+                   " val=%d  acronym: %s\n", mpip->pdt, mpip->start_byte,
+                   mpip->start_bit, mpip->num_bits, mps->it_vals[k].val,
+                   (mpip->acron ? mpip->acron : ""));
     }
 }
 
@@ -711,7 +892,7 @@ static void print_mp_entry(const char * pre, int smask,
     if (all_set)
         printf("%s%-10s -1", pre, acron);
     else
-        printf("%s%-10s %u", pre, acron, u);
+        printf("%s%-10s%3u", pre, acron, u);
     if (smask & 0xe) {
         printf("  [");
         if (smask & 2) {
@@ -725,7 +906,7 @@ static void print_mp_entry(const char * pre, int smask,
             if (all_set)
                 printf("%sdef: -1", (sep ? ", " : " "));
             else
-                printf("%sdef: %u", (sep ? ", " : " "), u);
+                printf("%sdef:%3u", (sep ? ", " : " "), u);
             sep = 1;
         }
         if (smask & 8) {
@@ -734,7 +915,7 @@ static void print_mp_entry(const char * pre, int smask,
             if (all_set)
                 printf("%ssaved: -1", (sep ? ", " : " "));
             else
-                printf("%ssaved: %u", (sep ? ", " : " "), u);
+                printf("%ssaved:%3u", (sep ? ", " : " "), u);
         }
         printf("]");
     }
@@ -743,66 +924,77 @@ static void print_mp_entry(const char * pre, int smask,
     printf("\n");
 }
 
-static void print_mode_info(int sg_fd, int mode6, int pn, int spn, int all,
-                            int long_out, int hex, int verbose)
+static void print_mode_info(int sg_fd, int pn, int spn, int pdt,
+                            const struct opt_coll * opts, int verbose)
 {
-    int k, res, len, verb, smask, single, fetch;
+    int k, res, len, verb, smask, single_pg, fetch_pg, rep_len, orig_pn;
     const struct mode_page_item * mpi;
-    const struct values_name_t * vnp;
     unsigned char cur_mp[DEF_MODE_RESP_LEN];
     unsigned char cha_mp[DEF_MODE_RESP_LEN];
     unsigned char def_mp[DEF_MODE_RESP_LEN];
     unsigned char sav_mp[DEF_MODE_RESP_LEN];
     const char * name;
+    void * pc_arr[4];
+    char buff[128];
 
     verb = (verbose > 0) ? verbose - 1 : 0;
+    orig_pn = pn;
     if (pn >= 0) {
-        single = 1;
-        fetch = 1;
+        single_pg = 1;
+        fetch_pg = 1;
         for (k = 0, mpi = mitem_arr; k < mitem_arr_len; ++k, ++mpi) {
-            if ((pn == mpi->page_num) && (spn == mpi->subpage_num))
-                break;
+            if ((pn == mpi->page_num) && (spn == mpi->subpage_num)) {
+                if ((pdt < 0) || (mpi->pdt < 0) || (pdt == mpi->pdt) ||
+                    opts->flexible)
+                    break;
+            }
         }
         if (k >= mitem_arr_len) {
-            if (verbose) {
-                if (0 == spn)
-                    printf("mode page 0x%x, attributes not found\n", pn);
-                else
-                    printf("mode page 0x%x,0x%x, attributes not found\n",
-                           pn, spn);
-            }
-            if (hex) {
+            if (opts->hex) {
                 k = 0;
                 mpi = mitem_arr;    /* trick to enter main loop once */
+            } else {
+                get_mode_page_name(pn, spn, pdt, opts->hex, buff,
+                                   sizeof(buff));
+                fprintf(stderr, "%s mode page, attributes not found\n", buff);
+                if ((0 == opts->flexible) && verbose)
+                    fprintf(stderr, "    perhaps try '--flexible'\n");
             }
         }
     } else {
-        single = 0;
-        fetch = 0;
+        single_pg = 0;
+        fetch_pg = 0;
         mpi = mitem_arr;
         k = 0;
     }
     name = "";
     smask = 0;
-    for (; k < mitem_arr_len; ++k, ++mpi, fetch = 0) {
-        if (0 == fetch) {
-            if (! (all || mpi->common))
+    for (; k < mitem_arr_len; ++k, ++mpi, fetch_pg = 0) {
+        if (0 == fetch_pg) {
+            if ((pdt >=0) && (mpi->pdt >= 0) && (pdt != mpi->pdt) &&
+                (0 == opts->flexible))
+                continue;
+            if (! (((orig_pn >= 0) ? 1 : opts->all) || mpi->common))
                 continue;
             if ((pn != mpi->page_num) || (spn != mpi->subpage_num)) {
-                if (single)
+                if (single_pg)
                     break;
-                fetch = 1;
+                fetch_pg = 1;
                 pn = mpi->page_num;
                 spn = mpi->subpage_num;
             }
         }
-        if (fetch) {
+        if (fetch_pg) {
             smask = 0;
-            res = sg_get_mode_page_types(sg_fd, mode6, pn, spn,
-                                         DEF_MODE_RESP_LEN, &smask, cur_mp,
-                                         cha_mp, def_mp, sav_mp, verb);
+            pc_arr[0] = cur_mp;
+            pc_arr[1] = cha_mp;
+            pc_arr[2] = def_mp;
+            pc_arr[3] = sav_mp;
+            res = sg_get_mode_page_controls(sg_fd, opts->mode_6, pn, spn,
+                                            opts->flexible, DEF_MODE_RESP_LEN,
+                                            &smask, pc_arr, &rep_len, verb);
             if (SG_LIB_CAT_INVALID_OP == res) {
-                if (mode6)
+                if (opts->mode_6)
                     fprintf(stderr, "6 byte MODE SENSE cdb not supported, "
                             "try again without '-6' option\n");
                 else
@@ -810,23 +1002,40 @@ static void print_mode_info(int sg_fd, int mode6, int pn, int spn, int all,
                             "try again with '-6' option\n");
                 return;
             }
-            if ((smask & 1)) {
-                vnp = get_mode_detail(pn, spn);
-                if (vnp) {
-                    if (0 == spn)
-                        printf("%s mode page [0x%x]:\n", vnp->name, pn);
-                    else
-                        printf("%s mode page [0x%x,0x%x]:\n", vnp->name, pn,
-                               spn);
-                } else if (0 == spn)
-                    printf("mode page 0x%x:\n", pn);
+            if (smask & 1) {
+                get_mode_page_name(pn, spn, pdt, opts->hex, buff,
+                                   sizeof(buff));
+                if (opts->long_out)
+                    printf("%s [PS=%d] mode page:\n", buff,
+                           !!(cur_mp[0] & 0x80));
                 else
-                    printf("mode page 0x%x,0x%x:\n", pn, spn);
-                if (hex) {
+                    printf("%s mode page:\n", buff);
+                if (pn != (cur_mp[0] & 0x3f)) {
+                    if (opts->flexible)
+                        fprintf(stderr, ">>> warning: mode page seems "
+                                "malformed\n");
+                    else
+                        fprintf(stderr, ">>> warning: mode page seems "
+                                "malformed, try '--flexible'\n");
+                } else if (verbose && (rep_len > 0xa00)) {
+                    if (opts->flexible)
+                        fprintf(stderr, ">>> warning: mode page length=%d "
+                                "too long,\n", rep_len);
+                    else
+                        fprintf(stderr, ">>> warning: mode page length=%d "
+                                "too long, perhaps try '--flexible'\n",
+                                rep_len);
+                }
+                if (opts->hex) {
                     if (cur_mp[0] & 0x40)
                         len = (cur_mp[2] << 8) + cur_mp[3] + 4;
                     else
                         len = cur_mp[1] + 2;
+                    if (len > (int)sizeof(cur_mp)) {
+                        fprintf(stderr, ">> decoded page length too "
+                                        "large=%d, trim\n", len);
+                        len = sizeof(cur_mp);
+                    }
                     printf("    Current:\n");
                     dStrHex((const char *)cur_mp, len, 1);
                     if (smask & 2) {
@@ -843,29 +1052,23 @@ static void print_mode_info(int sg_fd, int mode6, int pn, int spn, int all,
                     }
                 }
             } else {
-                if (verbose || single) {
-                    vnp = get_mode_detail(pn, spn);
-                    if (vnp)
-                        printf(">> %s mode page not supported\n", vnp->name);
-                    else if (0 == spn)
-                        printf(">> mode page 0x%x not supported\n", pn);
-                    else
-                        printf(">> mode page 0x%x,0x%x not supported\n",
-                               pn, spn);
+                if (verbose || single_pg) {
+                    get_mode_page_name(pn, spn, pdt, opts->hex, buff,
+                                       sizeof(buff));
+                    fprintf(stderr, ">> %s mode page not supported\n", buff);
                 }
             }
         }
-        if (smask && (! hex))
+        if (smask && (! opts->hex))
             print_mp_entry("  ", smask, mpi, cur_mp, cha_mp,
-                     def_mp, sav_mp, long_out);
+                     def_mp, sav_mp, opts->long_out);
     }
 }
 
-static void get_mode_info(int sg_fd, int mode6,
-                          struct mode_page_settings * mps, int long_out,
-                          int hex, int verbose)
+static void get_mode_info(int sg_fd, struct mode_page_settings * mps,
+                          int pdt, const struct opt_coll * opts, int verbose)
 {
-    int k, res, verb, smask, pn, spn;
+    int k, res, verb, smask, pn, spn, warned, rep_len;
     unsigned int u, val;
     const struct mode_page_item * mpi;
     unsigned char cur_mp[DEF_MODE_RESP_LEN];
@@ -873,7 +1076,10 @@ static void get_mode_info(int sg_fd, int mode6,
     unsigned char def_mp[DEF_MODE_RESP_LEN];
     unsigned char sav_mp[DEF_MODE_RESP_LEN];
     const struct mode_page_it_val * ivp;
+    char buff[128];
+    void * pc_arr[4];
 
+    warned = 0;
     verb = (verbose > 0) ? verbose - 1 : 0;
     for (k = 0, pn = 0, spn = 0; k < mps->num_it_vals; ++k) {
         ivp = &mps->it_vals[k];
@@ -885,27 +1091,34 @@ static void get_mode_info(int sg_fd, int mode6,
             smask = 0;
             switch (val) {
             case 0:
-                res = sg_get_mode_page_types(sg_fd, mode6, pn, spn,
-                                             DEF_MODE_RESP_LEN, &smask,
-                                             cur_mp, cha_mp, def_mp, sav_mp,
-                                             verb);
+                pc_arr[0] = cur_mp;
+                pc_arr[1] = cha_mp;
+                pc_arr[2] = def_mp;
+                pc_arr[3] = sav_mp;
+                res = sg_get_mode_page_controls(sg_fd, opts->mode_6, pn, spn,
+                                 opts->flexible, DEF_MODE_RESP_LEN, &smask,
+                                 pc_arr, &rep_len, verb);
                 break;
             case 1:
-                res = sg_get_mode_page_types(sg_fd, mode6, pn, spn,
-                                             DEF_MODE_RESP_LEN, &smask,
-                                             cur_mp, NULL, NULL, NULL, verb);
+                pc_arr[0] = cur_mp;
+                pc_arr[1] = NULL;
+                pc_arr[2] = NULL;
+                pc_arr[3] = NULL;
+                res = sg_get_mode_page_controls(sg_fd, opts->mode_6, pn, spn,
+                                 opts->flexible, DEF_MODE_RESP_LEN, &smask,
+                                 pc_arr, &rep_len, verb);
                 break;
             default:
                 if (mpi->acron)
-                    fprintf(stderr, "bad format 'val' given to %s\n",
+                    fprintf(stderr, "bad value given to %s\n",
                             mpi->acron);
                 else
-                    fprintf(stderr, "bad format 'val' given to 0x%x:%d:%d\n",
+                    fprintf(stderr, "bad value given to 0x%x:%d:%d\n",
                             mpi->start_byte, mpi->start_bit, mpi->num_bits);
                 return;
             }
             if (SG_LIB_CAT_INVALID_OP == res) {
-                if (mode6)
+                if (opts->mode_6)
                     fprintf(stderr, "6 byte MODE SENSE cdb not supported, "
                             "try again without '-6' option\n");
                 else
@@ -913,9 +1126,49 @@ static void get_mode_info(int sg_fd, int mode6,
                             "try again with '-6' option\n");
                 return;
             }
+            if ((0 == smask) && res) {
+                if (mpi->acron)
+                    fprintf(stderr, "%s ", mpi->acron);
+                else
+                    fprintf(stderr, "0x%x:%d:%d ",
+                            mpi->start_byte, mpi->start_bit, mpi->num_bits);
+                if (SG_LIB_CAT_ILLEGAL_REQ == res)
+                    fprintf(stderr, "not found in ");
+                else
+                    fprintf(stderr, "error (res=%d) in ", res);
+                get_mode_page_name(pn, spn, mpi->pdt, opts->hex, buff,
+                                   sizeof(buff));
+                fprintf(stderr, "%s mode page\n", buff);
+                return;
+            }
+            if (smask & 1) {
+                if (pn != (cur_mp[0] & 0x3f)) {
+                    if (opts->flexible)
+                        fprintf(stderr, ">>> warning: mode page seems "
+                                "malformed\n");
+                    else
+                        fprintf(stderr, ">>> warning: mode page seems "
+                                "malformed, try '--flexible'\n");
+                } else if (verbose && (rep_len > 0xa00)) {
+                    if (opts->flexible)
+                        fprintf(stderr, ">>> warning: mode page length=%d "
+                                "too long,\n", rep_len);
+                    else
+                        fprintf(stderr, ">>> warning: mode page length=%d "
+                                "too long, perhaps try '--flexible'\n",
+                                rep_len);
+                }
+            }
+        }
+        if ((pdt >= 0) && (0 == warned) && mpi->acron &&
+            (mpi->pdt >= 0) && (pdt != mpi->pdt)) {
+            warned = 1;
+            fprintf(stderr, ">> warning: peripheral device type (pdt) is "
+                    "0x%x but acronym %s\n   is associated with pdt 0x%x.\n",
+                    pdt, ivp->mpi.acron, ivp->mpi.pdt);
         }
         if (0 == val) {
-            if (hex) {
+            if (opts->hex) {
                 if (smask & 1) {
                     u = mp_get_value(mpi, cur_mp);
                     printf("0x%02x ", u);
@@ -939,9 +1192,9 @@ static void get_mode_info(int sg_fd, int mode6,
                 printf("\n");
             } else
                 print_mp_entry("", smask, mpi, cur_mp, cha_mp,
-                               def_mp, sav_mp, long_out);
+                               def_mp, sav_mp, opts->long_out);
         } else if (1 == val) {
-            if (hex) {
+            if (opts->hex) {
                 if (smask & 1) {
                     u = mp_get_value(mpi, cur_mp);
                     printf("0x%02x ", u);
@@ -950,7 +1203,7 @@ static void get_mode_info(int sg_fd, int mode6,
                 printf("\n");
             } else
                 print_mp_entry("", smask, mpi, cur_mp, NULL,
-                               NULL, NULL, long_out);
+                               NULL, NULL, opts->long_out);
         }
     }
 }
@@ -958,42 +1211,58 @@ static void get_mode_info(int sg_fd, int mode6,
 /* Return of 0 -> success,
  * SG_LIB_CAT_INVALID_OP -> invalid opcode, SG_LIB_CAT_ILLEGAL_REQ ->
  * bad field in cdb, -1 -> other failure */
-static int change_mode_page(int sg_fd, int save, int mode_6,
-                            struct mode_page_settings * mps, int dummy,
-                            int verbose)
+static int change_mode_page(int sg_fd, int pdt,
+                            struct mode_page_settings * mps,
+                            const struct opt_coll * opts, int verbose)
 {
     int k, len, off, md_len, res;
     char ebuff[EBUFF_SZ];
     unsigned char mdpg[MAX_MODE_DATA_LEN];
     struct mode_page_it_val * ivp;
+    char buff[128];
 
+    if (pdt >= 0) {
+        /* sanity check: check acronym's pdt matches device's pdt */
+        for (k = 0; k < mps->num_it_vals; ++k) {
+            ivp = &mps->it_vals[k];
+            if (ivp->mpi.acron && (ivp->mpi.pdt >= 0) &&
+                (pdt != ivp->mpi.pdt)) {
+                fprintf(stderr, "change_mode_page: peripheral device type "
+                        "(pdt) is 0x%x but acronym %s\n  is associated with "
+                        "pdt 0x%x. To bypass use numeric addressing mode.\n",
+                        pdt, ivp->mpi.acron, ivp->mpi.pdt);
+                return -1;
+            }
+        }
+    }
     len = MAX_MODE_DATA_LEN;
     memset(mdpg, 0, len);
-    if (mode_6)
+    if (opts->mode_6)
         res = sg_ll_mode_sense6(sg_fd, 0 /* dbd */, 0 /*current */,
-                                mps->page_num, mps->subpage_num,
-                                mdpg, ((len > 252) ? 252 : len), 1,
-                                verbose);
+                                mps->page_num, mps->subpage_num, mdpg,
+                                ((len > 252) ? 252 : len), 1, verbose);
     else
         res = sg_ll_mode_sense10(sg_fd, 0 /* llbaa */, 0 /* dbd */,
                                  0 /* current */, mps->page_num,
                                  mps->subpage_num, mdpg, len, 1, verbose);
     if (0 != res) {
-        fprintf(stderr, "change_mode_page: failed fetching page: 0x%x,0x%x\n",
-                mps->page_num, mps->subpage_num);
+        get_mode_page_name(mps->page_num, mps->subpage_num, pdt, 0, buff,
+                           sizeof(buff));
+        fprintf(stderr, "change_mode_page: failed fetching page: %s\n",
+                buff);
         return -1;
     }
-    off = sg_mode_page_offset(mdpg, len, mode_6, ebuff, EBUFF_SZ);
+    off = sg_mode_page_offset(mdpg, len, opts->mode_6, ebuff, EBUFF_SZ);
     if (off < 0) {
         fprintf(stderr, "change_mode_page: page offset failed: %s\n", ebuff);
         return -1;
     }
-    if (mode_6)
+    if (opts->mode_6)
         md_len = mdpg[0] + 1;
     else
         md_len = (mdpg[0] << 8) + mdpg[1] + 2;
     mdpg[0] = 0;        /* mode data length reserved for mode select */
-    if (! mode_6)
+    if (! opts->mode_6)
         mdpg[1] = 0;    /* mode data length reserved for mode select */
     if (md_len > len) {
         fprintf(stderr, "change_mode_page: mode data length=%d exceeds "
@@ -1006,31 +1275,28 @@ static int change_mode_page(int sg_fd, int save, int mode_6,
         mp_set_value(ivp->val, &ivp->mpi, mdpg + off);
     }
 
-    if ((! (mdpg[off] & 0x80)) && save) {
+    if ((! (mdpg[off] & 0x80)) && opts->saved) {
         fprintf(stderr, "change_mode_page: mode page indicates it is not "
                 "savable but\n    '--save' option given (try without "
                 "it)\n");
         return -1;
     }
     mdpg[off] &= 0x7f;   /* mask out PS bit, reserved in mode select */
-    if (dummy) {
-        printf("Mode data that would have been written:\n");
+    if (opts->dummy) {
+        fprintf(stderr, "Mode data that would have been written:\n");
         dStrHex((const char *)mdpg, md_len, 1);
         return 0;
     }
-    if (verbose) {
-        printf("Mode data about to be written:\n");
-        dStrHex((const char *)mdpg, md_len, 1);
-    }
-    if (mode_6)
-        res = sg_ll_mode_select6(sg_fd, 1, save, mdpg, md_len, 1,
+    if (opts->mode_6)
+        res = sg_ll_mode_select6(sg_fd, 1, opts->saved, mdpg, md_len, 1,
                                  verbose);
     else
-        res = sg_ll_mode_select10(sg_fd, 1, save, mdpg, md_len, 1,
+        res = sg_ll_mode_select10(sg_fd, 1, opts->saved, mdpg, md_len, 1,
                                   verbose);
     if (0 != res) {
-        fprintf(stderr, "change_mode_page: failed setting page: 0x%x,0x%x\n",
-                mps->page_num, mps->subpage_num);
+        get_mode_page_name(mps->page_num, mps->subpage_num, pdt, 0, buff,
+                           sizeof(buff));
+        fprintf(stderr, "change_mode_page: failed setting page: %s\n", buff);
         return -1;
     }
     return 0;
@@ -1039,19 +1305,20 @@ static int change_mode_page(int sg_fd, int save, int mode_6,
 /* Return of 0 -> success,
  * SG_LIB_CAT_INVALID_OP -> invalid opcode, SG_LIB_CAT_ILLEGAL_REQ ->
  * bad field in cdb, -1 -> other failure */
-static int set_mode_page(int sg_fd, int pn, int spn, int save, int mode_6,
-                         unsigned char * mode_pg, int mode_pg_len,
-                         int dummy, int verbose)
+static int set_def_mode_page(int sg_fd, int pn, int spn, int save,
+                             int mode_6, unsigned char * mode_pg,
+                             int mode_pg_len, int dummy, int verbose)
 {
     int len, off, md_len;
     unsigned char * mdp;
     char ebuff[EBUFF_SZ];
     int ret = -1;
+    char buff[128];
 
     len = mode_pg_len + MODE_DATA_OVERHEAD;
     mdp = malloc(len);
     if (NULL ==mdp) {
-        fprintf(stderr, "set_mode_page: malloc failed, out of memory\n");
+        fprintf(stderr, "set_def_mode_page: malloc failed, out of memory\n");
         return -1;
     }
     memset(mdp, 0, len);
@@ -1064,13 +1331,15 @@ static int set_mode_page(int sg_fd, int pn, int spn, int save, int mode_6,
                                  0 /* current */, pn, spn, mdp, len, 1,
                                  verbose);
     if (0 != ret) {
-        fprintf(stderr, "set_mode_page: failed fetching page: 0x%x,0x%x\n",
-                pn, spn);
+        get_mode_page_name(pn, spn, -1, 0, buff, sizeof(buff));
+        fprintf(stderr, "set_def_mode_page: failed fetching page: %s\n",
+                buff);
         goto err_out;
     }
     off = sg_mode_page_offset(mdp, len, mode_6, ebuff, EBUFF_SZ);
     if (off < 0) {
-        fprintf(stderr, "set_mode_page: page offset failed: %s\n", ebuff);
+        fprintf(stderr, "set_def_mode_page: page offset failed: %s\n",
+                ebuff);
         ret = -1;
         goto err_out;
     }
@@ -1082,13 +1351,13 @@ static int set_mode_page(int sg_fd, int pn, int spn, int save, int mode_6,
     if (! mode_6)
         mdp[1] = 0;    /* mode data length reserved for mode select */
     if (md_len > len) {
-        fprintf(stderr, "set_mode_page: mode data length=%d exceeds "
+        fprintf(stderr, "set_def_mode_page: mode data length=%d exceeds "
                 "allocation length=%d\n", md_len, len);
         ret = -1;
         goto err_out;
     }
     if ((md_len - off) > mode_pg_len) {
-        fprintf(stderr, "set_mode_page: mode length length=%d exceeds "
+        fprintf(stderr, "set_def_mode_page: mode length length=%d exceeds "
                 "new contents length=%d\n", md_len - off, mode_pg_len);
         ret = -1;
         goto err_out;
@@ -1096,14 +1365,10 @@ static int set_mode_page(int sg_fd, int pn, int spn, int save, int mode_6,
     memcpy(mdp + off, mode_pg, md_len - off);
     mdp[off] &= 0x7f;   /* mask out PS bit, reserved in mode select */
     if (dummy) {
-        printf("Mode data that would have been written:\n");
+        fprintf(stderr, "Mode data that would have been written:\n");
         dStrHex((const char *)mdp, md_len, 1);
         ret = 0;
         goto err_out;
-    }
-    if (verbose) {
-        printf("Mode data about to be written:\n");
-        dStrHex((const char *)mdp, md_len, 1);
     }
     if (mode_6)
         ret = sg_ll_mode_select6(sg_fd, 1, save, mdp, md_len, 1,
@@ -1112,8 +1377,9 @@ static int set_mode_page(int sg_fd, int pn, int spn, int save, int mode_6,
         ret = sg_ll_mode_select10(sg_fd, 1, save, mdp, md_len, 1,
                                   verbose);
     if (0 != ret) {
-        fprintf(stderr, "set_mode_page: failed setting page: 0x%x,0x%x\n",
-                pn, spn);
+        get_mode_page_name(pn, spn, -1, 0, buff, sizeof(buff));
+        fprintf(stderr, "set_def_mode_page: failed setting page: %s\n",
+                buff);
         goto err_out;
     }
 
@@ -1122,18 +1388,23 @@ err_out:
     return ret;
 }
 
-static int set_mp_defaults(int sg_fd, int pn, int spn, int saved,
-                           int mode_6, int dummy, int verbose)
+static int set_mp_defaults(int sg_fd, int pn, int spn, int pdt, int saved,
+                           int mode_6, int dummy, int flexible, int verbose)
 {
-    int smask, res, len;
-    const struct values_name_t * vnp;
+    int smask, res, len, rep_len;
     unsigned char cur_mp[DEF_MODE_RESP_LEN];
     unsigned char def_mp[DEF_MODE_RESP_LEN];
+    char buff[128];
+    void * pc_arr[4];
 
     smask = 0;
-    res = sg_get_mode_page_types(sg_fd, mode_6, pn, spn, DEF_MODE_RESP_LEN,
-                                 &smask, cur_mp, NULL, def_mp, NULL,
-                                 verbose);
+    pc_arr[0] = cur_mp;
+    pc_arr[1] = NULL;
+    pc_arr[2] = def_mp;
+    pc_arr[3] = NULL;
+    res = sg_get_mode_page_controls(sg_fd, mode_6, pn, spn,
+                 flexible, DEF_MODE_RESP_LEN, &smask, pc_arr,
+                 &rep_len, verbose);
     if (SG_LIB_CAT_INVALID_OP == res) {
         if (mode_6)
             fprintf(stderr, "6 byte MODE SENSE cdb not supported, "
@@ -1143,35 +1414,29 @@ static int set_mp_defaults(int sg_fd, int pn, int spn, int saved,
                     "try again with '-6' option\n");
         return -1;
     }
+    if (verbose && (0 == flexible) && (rep_len > 0xa00)) {
+        get_mode_page_name(pn, spn, pdt, 0, buff, sizeof(buff));
+        fprintf(stderr, "%s mode page length=%d too long, perhaps "
+                "try '--flexible'\n", buff, rep_len);
+    }
     if ((smask & 1)) {
         if ((smask & 4)) {
             if (cur_mp[0] & 0x40)
                 len = (cur_mp[2] << 8) + cur_mp[3] + 4; /* spf set */
             else
                 len = cur_mp[1] + 2; /* spf clear (not subpage) */
-            return set_mode_page(sg_fd, pn, spn, saved, mode_6, def_mp,
-                                 len, dummy, verbose);
+            return set_def_mode_page(sg_fd, pn, spn, saved, mode_6, def_mp,
+                                     len, dummy, verbose);
         }
         else {
-            vnp = get_mode_detail(pn, spn);
-            if (vnp)
-                printf(">> %s mode page (default) not supported\n",
-                       vnp->name);
-            else if (0 == spn)
-                printf(">> mode page 0x%x (default) not supported\n", pn);
-            else
-                printf(">> mode page 0x%x,0x%x (default) not supported\n",
-                       pn, spn);
+            get_mode_page_name(pn, spn, pdt, 0, buff, sizeof(buff));
+            fprintf(stderr, ">> %s mode page (default) not supported\n",
+                    buff);
             return -1;
         }
     } else {
-        vnp = get_mode_detail(pn, spn);
-        if (vnp)
-            printf(">> %s mode page not supported\n", vnp->name);
-        else if (0 == spn)
-            printf(">> mode page 0x%x not supported\n", pn);
-        else
-            printf(">> mode page 0x%x,0x%x not supported\n", pn, spn);
+        get_mode_page_name(pn, spn, pdt, 0, buff, sizeof(buff));
+        fprintf(stderr, ">> %s mode page not supported\n", buff);
         return -1;
     }
 }
@@ -1335,6 +1600,7 @@ static int build_mp_settings(const char * arg,
                     }
                 }
             }
+            ivp->mpi.pdt = -1;  /* don't known pdt now, so don't restrict */
             if (ivp->mpi.start_byte < 0) {
                 fprintf(stderr, "build_mp_settings: need positive start "
                         "byte offset\n");
@@ -1542,8 +1808,8 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
             }
             if (2 == naa) {
                 if (8 != i_len) {
-                    printf("      << expected NAA 2 identifier length: "
-                           "0x%x>>\n", i_len);
+                    fprintf(stderr, "      << expected NAA 2 identifier "
+                            "length: 0x%x>>\n", i_len);
                     dStrHex((const char *)ip, i_len, 0);
                     break;
                 }
@@ -1562,8 +1828,8 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
                 printf("]\n");
             } else if (5 == naa) {
                 if (8 != i_len) {
-                    printf("      << expected NAA 5 identifier length: "
-                           "0x%x>>\n", i_len);
+                    fprintf(stderr, "      << expected NAA 5 identifier "
+                            "length: 0x%x>>\n", i_len);
                     dStrHex((const char *)ip, i_len, 0);
                     break;
                 }
@@ -1585,8 +1851,8 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
                 printf("]\n");
             } else if (6 == naa) {
                 if (16 != i_len) {
-                    printf("      << expected NAA 6 identifier length: "
-                           "0x%x>>\n", i_len);
+                    fprintf(stderr, "      << expected NAA 6 identifier "
+                            "length: 0x%x>>\n", i_len);
                     dStrHex((const char *)ip, i_len, 0);
                     break;
                 }
@@ -1618,8 +1884,8 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
             break;
         case 4: /* Relative target port */
             if ((1 != c_set) || (1 != assoc) || (4 != i_len)) {
-                printf("      << expected binary code_set, target "
-                       "port association, length 4>>\n");
+                fprintf(stderr, "      << expected binary code_set, target "
+                        "port association, length 4>>\n");
                 dStrHex((const char *)ip, i_len, 0);
                 break;
             }
@@ -1628,8 +1894,8 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
             break;
         case 5: /* Target port group */
             if ((1 != c_set) || (1 != assoc) || (4 != i_len)) {
-                printf("      << expected binary code_set, target "
-                       "port association, length 4>>\n");
+                fprintf(stderr, "      << expected binary code_set, target "
+                        "port association, length 4>>\n");
                 dStrHex((const char *)ip, i_len, 0);
                 break;
             }
@@ -1638,8 +1904,8 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
             break;
         case 6: /* Logical unit group */
             if ((1 != c_set) || (0 != assoc) || (4 != i_len)) {
-                printf("      << expected binary code_set, logical "
-                       "unit association, length 4>>\n");
+                fprintf(stderr, "      << expected binary code_set, logical "
+                        "unit association, length 4>>\n");
                 dStrHex((const char *)ip, i_len, 0);
                 break;
             }
@@ -1687,8 +1953,12 @@ static int process_vpd_page(int sg_fd, int pn, const struct opt_coll * opts,
 
     sz = sizeof(b);
     memset(b, 0, sz);
-    if (pn < 0)
-        pn = VPD_DEVICE_ID;  /* default to device identification page */
+    if (pn < 0) {
+        if (opts->all)
+            pn = VPD_SUPPORTED_VPDS;  /* if '--all' list supported vpds */
+        else
+            pn = VPD_DEVICE_ID;  /* default to device identification page */
+    }
     res = sg_ll_inquiry(sg_fd, 0, 1, pn, b, sz, 0, verbose);
     if (res) {
         fprintf(stderr, "INQUIRY fetching VPD page=0x%x failed\n", pn);
@@ -1707,9 +1977,12 @@ static int process_vpd_page(int sg_fd, int pn, const struct opt_coll * opts,
         if (len > 0) {
             for (k = 0; k < len; ++k) {
                 cp = get_vpd_name(b[4 + k]);
-                if (cp)
-                    printf("  %s\n", cp);
-                else
+                if (cp) {
+                    if (opts->long_out)
+                        printf("  [0x%02x] %s\n", b[4 + k], cp);
+                    else
+                        printf("  %s\n", cp);
+                } else
                     printf("  0x%x\n", b[4 + k]);
             }
         } else
@@ -1724,7 +1997,10 @@ static int process_vpd_page(int sg_fd, int pn, const struct opt_coll * opts,
                     "truncated\n");
             len = sz;
         }
-        printf("Device identification VPD page:\n");
+        if (opts->long_out)
+            printf("Device identification [0x83] VPD page:\n");
+        else
+            printf("Device identification VPD page:\n");
         if (opts->hex) {
             dStrHex((const char *)b, len + 4, 0);
             return 0;
@@ -1759,13 +2035,18 @@ static int process_vpd_page(int sg_fd, int pn, const struct opt_coll * opts,
     default:
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];
+        len = (b[2] << 8) + b[3] + 4;
         cp = get_vpd_name(pn);
         if (cp)
-            printf("%s VPD page in hex:\n", cp);
+            fprintf(stderr, "%s VPD page in hex:\n", cp);
         else
-            printf("VPD page 0x%x in hex:\n", pn);
-        dStrHex((const char *)b, len + 4, 0);
+            fprintf(stderr, "VPD page 0x%x in hex:\n", pn);
+        if (len > (int)sizeof(b)) {
+            if (verbose)
+                fprintf(stderr, "page length=%d too long, trim\n", len);
+            len = sizeof(b);
+        }
+        dStrHex((const char *)b, len, 0);
         break;
     }
     return 0;
@@ -1776,17 +2057,38 @@ dumb_inq:
     return -1;
 }
 
+static const char * ansi_version_arr[] =
+{
+    "no conformance claimed",
+    "SCSI-1",
+    "SCSI-2",
+    "SPC",
+    "SPC-2",
+    "SPC-3",
+    "SPC-4",
+    "ANSI version: 7",
+};
+
+static const char * get_ansi_version_str(int version, char * buff,
+                                         int buff_len)
+{
+    version &= 0x7;
+    buff[buff_len - 1] = '\0';
+    strncpy(buff, ansi_version_arr[version], buff_len - 1);
+    return buff;
+}
+
 static int open_and_simple_inquiry(const char * device_name, int flags,
                                    int * pdt, const struct opt_coll * opts,
                                    int verbose)
 {
-    int res, verb, sg_fd, sg_sg_fd;
+    int res, verb, sg_fd, sg_sg_fd, l_pdt;
     struct sg_simple_inquiry_resp sir;
 
     verb = (verbose > 0) ? verbose - 1 : 0;
     sg_fd = open(device_name, flags);
     if (sg_fd < 0) {
-        fprintf(stderr, ME "open error: %s, flags=0x%x: ", device_name,
+        fprintf(stderr, "open error: %s, flags=0x%x: ", device_name,
                 flags);
         perror("");
         return -1;
@@ -1827,19 +2129,50 @@ static int open_and_simple_inquiry(const char * device_name, int flags,
             goto err_out;
         }
     }
-    *pdt = sir.peripheral_type;
+    l_pdt = sir.peripheral_type;
+    if ((4 == l_pdt) || (7 == l_pdt))
+        *pdt = 0;       /* map disk like pdt's to zero */
+    else
+        *pdt = l_pdt;
     if (0 == opts->hex) {
         printf("    %s: %.8s  %.16s  %.4s",
                device_name, sir.vendor, sir.product, sir.revision);
-        if (0 != *pdt)
-            printf("  [pdt=%d]", *pdt);
+        if (0 != l_pdt)
+            printf("  [pdt=0x%x]", l_pdt);
         printf("\n");
+        if (opts->long_out > 1) {
+            char buff[32];
+
+            printf("  PQual=%d  Device_type=0x%x  RMB=%d  version=0x%02x ",
+                   sir.peripheral_qualifier, l_pdt, sir.rmb, sir.version);
+            printf(" [%s]\n", get_ansi_version_str(sir.version, buff,
+                                                   sizeof(buff)));
+            printf("  [AERC=%d]  [TrmTsk=%d]  NormACA=%d  HiSUP=%d "
+                   " Resp_data_format=%d\n  SCCS=%d  ",
+                   !!(sir.byte_3 & 0x80), !!(sir.byte_3 & 0x40),
+                   !!(sir.byte_3 & 0x20), !!(sir.byte_3 & 0x10),
+                   sir.byte_3 & 0x0f, !!(sir.byte_5 & 0x80));
+            printf("ACC=%d  TGPS=%d  3PC=%d  Protect=%d ",
+                   !!(sir.byte_5 & 0x40), ((sir.byte_5 & 0x30) >> 4),
+                   !!(sir.byte_5 & 0x08), !!(sir.byte_5 & 0x01));
+            printf(" BQue=%d\n  EncServ=%d  ", !!(sir.byte_6 & 0x80),
+                   !!(sir.byte_6 & 0x40));
+            if (sir.byte_6 & 0x10)
+                printf("MultiP=1 (VS=%d)  ", !!(sir.byte_6 & 0x20));
+            else
+                printf("MultiP=0  ");
+            printf("MChngr=%d  [ACKREQQ=%d]  Addr16=%d\n  [RelAdr=%d]  ",
+                   !!(sir.byte_6 & 0x08), !!(sir.byte_6 & 0x04),
+                   !!(sir.byte_6 & 0x01), !!(sir.byte_7 & 0x80));
+            printf("WBus16=%d  Sync=%d  Linked=%d  [TranDis=%d]  ",
+                   !!(sir.byte_7 & 0x20), !!(sir.byte_7 & 0x10),
+                   !!(sir.byte_7 & 0x08), !!(sir.byte_7 & 0x04));
+            printf("CmdQue=%d\n", !!(sir.byte_7 & 0x02));
+        }
         if (opts->long_out || verbose) {
-            if (! ((0 == *pdt) || (4 == *pdt) || (7 == *pdt) ||
-                  (0xe == *pdt))) {
-                fprintf(stderr, "        given %s rather than disk device "
-                        "type\n", scsi_ptype_strs[*pdt]);
-            }
+            if (0 != *pdt)
+                fprintf(stderr, "     note: given %s rather than disk "
+                        "type\n", scsi_ptype_strs[l_pdt]);
         }
     }
     return sg_fd;
@@ -1862,18 +2195,21 @@ static int process_mode_page(int sg_fd, struct mode_page_settings * mps,
         fprintf(stderr, "  Allowable mode subpage numbers are 0 to 254\n");
         return -1;
     }
-    if (pn > 0) {
-        vnp = get_mode_detail(pn, spn);
-        if (vnp && (pdt >= 0) && (vnp->pdt >= 0) && (vnp->pdt != pdt)) {
+    if ((pn > 0) && (pdt >= 0)) {
+        vnp = get_mode_detail(pn, spn, pdt);
+        if (NULL == vnp)
+            vnp = get_mode_detail(pn, spn, -1);
+        if (vnp && vnp->name && (vnp->pdt >= 0) && (pdt != vnp->pdt)) {
             fprintf(stderr, ">> Warning: %s mode page associated with "
                     "peripheral\n", vnp->name);
-            fprintf(stderr, "   device type 0x%x but device pdt is 0x%x\n",
-                    vnp->pdt, pdt);
+            fprintf(stderr, "   device type 0x%x but device pdt is "
+                    "0x%x\n", vnp->pdt, pdt);
         }
     }
     if (opts->defaults) {
-        res = set_mp_defaults(sg_fd, pn, spn, opts->saved,
-                              opts->six_byte_cdb, opts->dummy, verbose);
+        res = set_mp_defaults(sg_fd, pn, spn, pdt, opts->saved,
+                              opts->mode_6, opts->dummy,
+                              opts->flexible, verbose);
         if (0 != res)
             return -1;
     } else if (rw) {
@@ -1881,8 +2217,7 @@ static int process_mode_page(int sg_fd, struct mode_page_settings * mps,
             fprintf(stderr, "no parameters found to set or clear\n");
             return -1;
         }
-        res = change_mode_page(sg_fd, opts->saved, opts->six_byte_cdb, mps,
-                               opts->dummy, verbose);
+        res = change_mode_page(sg_fd, pdt, mps, opts, verbose);
         if (0 != res)
             return -1;
     } else if (get) {
@@ -1890,12 +2225,9 @@ static int process_mode_page(int sg_fd, struct mode_page_settings * mps,
             fprintf(stderr, "no parameters found to get\n");
             return -1;
         }
-        get_mode_info(sg_fd, opts->six_byte_cdb, mps, opts->long_out,
-                      opts->hex, verbose);
+        get_mode_info(sg_fd, mps, pdt, opts, verbose);
     } else
-        print_mode_info(sg_fd, opts->six_byte_cdb, pn, spn,
-                        ((pn >= 0) ? 1 : opts->all), opts->long_out,
-                        opts->hex, verbose);
+        print_mode_info(sg_fd, pn, spn, pdt, opts, verbose);
     return 0;
 }
 
@@ -2033,17 +2365,18 @@ int main(int argc, char * argv[])
     memset(&opts, 0, sizeof(opts));
     memset(device_name, 0, sizeof(device_name));
     memset(&mp_settings, 0, sizeof(mp_settings));
+    pdt = -1;
     while (1) {
         int option_index = 0;
 
-        c = getopt_long(argc, argv, "6ac:dDeg:hHilp:s:SvV", long_options,
+        c = getopt_long(argc, argv, "6ac:dDefg:hHilp:s:SvV", long_options,
                         &option_index);
         if (c == -1)
             break;
 
         switch (c) {
         case '6':
-            opts.six_byte_cdb = 1;
+            opts.mode_6 = 1;
             break;
         case 'a':
             opts.all = 1;
@@ -2062,6 +2395,9 @@ int main(int argc, char * argv[])
         case 'e':
             opts.enumerate = 1;
             break;
+        case 'f':
+            opts.flexible = 1;
+            break;
         case 'g':
             get_str = optarg;
             break;
@@ -2076,7 +2412,7 @@ int main(int argc, char * argv[])
             opts.inquiry = 1;
             break;
         case 'l':
-            opts.long_out = 1;
+            ++opts.long_out;
             break;
         case 'p':
             if (isalpha(optarg[0])) {
@@ -2094,6 +2430,7 @@ int main(int argc, char * argv[])
                 } else {
                     pn = vnp->value;
                     spn = vnp->subvalue;
+                    pdt = vnp->pdt;
                 }
             } else {
                 cp = strchr(optarg, ',');
@@ -2195,7 +2532,7 @@ int main(int argc, char * argv[])
                 list_mps();
             }
             if (opts.all || (pn >= 0))
-                list_mitems(pn, spn);
+                list_mitems(pn, spn, pdt);
             return 0;
         }
 
@@ -2251,7 +2588,7 @@ int main(int argc, char * argv[])
 err_out:
     res = close(sg_fd);
     if (res < 0) {
-        perror(ME "close error");
+        perror("close error");
         return 1;
     }
     return ret;
