@@ -1,5 +1,11 @@
 The version number is hardcoded into sdparm.c (in a C string) and
 the rpm spec file: sdparm.spec
 
+ChangeLog for sdparm-0.91 [20050506]
+  - if lk 2.4 detected, map primary SCSI node to sg node for ease of use
+  - add support for '--inquiry' (VPD pages, defaults to device
+    identification)
+  - decode format and rigid disk mode pages (sbc2) (obsolete but common)
+
 ChangeLog for sdparm-0.90 [20050418]
   - initial version

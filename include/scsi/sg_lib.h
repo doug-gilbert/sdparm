@@ -30,7 +30,8 @@
  *
  */
 
-/* Version 1.07 [20050227]
+/* Version 1.09 [20050504]
+ *
  * On 5th October 2004 a FreeBSD license was added to this file.
  * The intention is to keep this file and the related sg_lib.c file
  * as open source and encourage their unencumbered use.
@@ -207,6 +208,13 @@ extern const char * sg_lib_version();
 #define DID_PASSTHROUGH 0x0a    /* Force command past mid-level */
 #define DID_SOFT_ERROR 0x0b     /* The low-level driver wants a retry */
 #endif
+#ifndef DID_IMM_RETRY
+#define DID_IMM_RETRY 0x0c      /* Retry without decrementing retry count  */
+#endif
+#ifndef DID_REQUEUE
+#define DID_REQUEUE 0x0d        /* Requeue command (no immediate retry) also
+                                 * without decrementing the retry count    */
+#endif
 
 /* These defines are to isolate applictaions from kernel define changes */
 #define SG_LIB_DID_OK           DID_OK
@@ -221,6 +229,8 @@ extern const char * sg_lib_version();
 #define SG_LIB_DID_BAD_INTR     DID_BAD_INTR
 #define SG_LIB_DID_PASSTHROUGH  DID_PASSTHROUGH
 #define SG_LIB_DID_SOFT_ERROR   DID_SOFT_ERROR
+#define SG_LIB_DID_IMM_RETRY    DID_IMM_RETRY
+#define SG_LIB_DID_REQUEUE      DID_REQUEUE
 
 /* The following are 'driver_status' codes */
 #ifndef DRIVER_OK

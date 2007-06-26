@@ -1,5 +1,5 @@
 %define	name	sdparm
-%define	version	0.90
+%define	version	0.91
 %define	release	1
 
 Summary:	List or change SCSI disk parameters
@@ -18,12 +18,11 @@ SCSI disk parameters are held in mode pages. This utility lists or
 changes those parameters. Other SCSI devices (or devices that use
 the SCSI command set) such as CD/DVD and tape drives may also find
 parts of sdparm useful. Requires the linux kernel 2.4 series or later.
-In the 2.4 series SCSI generic device names (e.g. /dev/sg0)
-must be used. In the 2.6 series other device names may be used as
-well (e.g. /dev/sda).
+In the 2.6 series any device node the understands a SCSI command set
+may be used (e.g. /dev/sda). In the 2.4 series SCSI device node may be used.
 
 Warning: It is possible (but unlikely) to change SCSI disk settings
-that stop of slow it down. Use with care.
+such that the disk stops operating or is slowed down. Use with care.
 
 %prep
 
@@ -53,6 +52,9 @@ make install \
 %{_mandir}/man8/*
 
 %changelog
+* Fri May 06 2005 - dgilbert at interlog dot com
+- if lk 2.4 detected, map non-sg SCSI device node to sg equivalent
+  * sdparm-0.91
 * Mon Apr 18 2005 - dgilbert at interlog dot com
 - initial version
   * sdparm-0.90

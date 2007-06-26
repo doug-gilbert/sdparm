@@ -38,6 +38,7 @@
 #include <ctype.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
+#include <sys/utsname.h>
 #include <scsi/scsi.h>
 #include <scsi/sg.h>
 #include <scsi/sg_lib.h>
@@ -50,13 +51,18 @@
  * set). In some cases these parameters can be changed.
  */
 
-static char * version_str = "0.90 20050418";
+static char * version_str = "0.91 20050506";
 
 #define ME "sdparm: "
 
+#define MAP_TO_SG_NODE
+
 #define DEF_MODE_RESP_LEN 252
+#define DEF_INQ_RESP_LEN 252
 #define RW_ERR_RECOVERY_MP 1
 #define DISCONNECT_MP 2
+#define FORMAT_MP 3
+#define RIGID_DISK_MP 4
 #define V_ERR_RECOVERY_MP 7
 #define CACHING_MP 8
 #define CONTROL_MP 0xa
@@ -70,6 +76,16 @@ static char * version_str = "0.90 20050418";
 #define MAX_MP_IT_VAL 128
 #define MAX_MODE_DATA_LEN 2048
 
+#define VPD_SUPPORTED_VPDS 0x0
+#define VPD_UNIT_SERIAL_NUM 0x80
+#define VPD_DEVICE_ID 0x83
+#define VPD_SCSI_PORTS 0x88
+#define VPD_ASSOC_LU 0
+#define VPD_ASSOC_TPORT 1
+#define VPD_ASSOC_TDEVICE 2
+
+static int find_corresponding_sg_fd(int sg_fd, const char * device_name,
+                                    int flags, int verbose);
 
 static struct option long_options[] = {
         {"six", 0, 0, '6'},
@@ -94,13 +110,15 @@ static struct option long_options[] = {
 static void usage()
 {
     fprintf(stderr, "Usage: "
-          "sdparm    [-all] [--clear=<str>] [--defaults] [-dummy] "
-          "[--enumerate]\n"
-          "                 [--get=<str>] [--help] [--hex] [--inquiry] "
-          "[--long]\n"
-          "                 [--page=<pg>] [--save] [--set=<str>] [--six] "
-          "[--verbose]\n"
-          "                 [--version] <scsi_disk>\n"
+          "sdparm    [-all] [--clear=<str>] [--defaults] [--dummy] "
+          "[--get=<str>]\n"
+          "                 [--help] [--hex] [--inquiry] [--long] "
+          "[--page=<pg[,spg]>]\n"
+          "                 [--save] [--set=<str>] [--six] [--verbose] "
+          "[--version]\n"
+          "                 <scsi_disk>\n"
+          "       sdparm    [-all] --enumerate [--inquiry] "
+          "[--page=<pg[,spg]>]\n"
           "  where:\n"
           "      --all | -a            list all known parameters for given "
           "disk\n"
@@ -117,8 +135,9 @@ static void usage()
           "      --inquiry | -i        output INQUIRY VPD page(s) (def mode "
           "page(s))\n"
           "      --long | -l           add description to parameter output\n"
-          "      --page=<pg> | -p <pg>  page ([,subpage]) number to output "
-          "(or change)\n"
+          "      --page=<pg[,spg]> | -p <pg[,spg]>  page (and optionally "
+          "subpage) number\n"
+          "                            to output, change or enumerate\n"
           "      --save | -S           place mode changes in saved page as "
           "well\n"
           "      --set=<str> | -s <str>  set parameter value(s)\n"
@@ -132,20 +151,24 @@ static void usage()
 struct values_name_t {
     int value;
     int subvalue;
+    int pdt;    /* -1 for SPC-3, else primary device type */
     const char * acron;
     const char * name;
 };
 
 static struct values_name_t mode_nums_name[] = {
-    {CACHING_MP, 0, "ca", "Caching"},
-    {CONTROL_MP, 0, "co", "Control"},
-    {DISCONNECT_MP, 0, "dr", "Disconnect-reconnect"},
-    {IEC_MP, 0, "ie", "Informational exception control"},
-    {PROT_SPEC_LU_MP, 0, "pl", "Protocol specific logical unit"},
-    {POWER_MP, 0, "po", "Power condition"},
-    {PROT_SPEC_PORT_MP, 0, "pp", "Protocol specific port"},
-    {RW_ERR_RECOVERY_MP, 0, "rw", "Read write error recovery"},
-    {V_ERR_RECOVERY_MP, 0, "ve", "Verify error recovery"},
+    {CACHING_MP, 0, 0, "ca", "Caching"},
+    {CONTROL_MP, 0, -1, "co", "Control"},
+    {DISCONNECT_MP, 0, -1, "dr", "Disconnect-reconnect"},
+    {FORMAT_MP, 0, 0, "fo", "Format"},
+    {IEC_MP, 0, -1, "ie", "Informational exception control"},
+    {PROT_SPEC_LU_MP, 0, -1, "pl", "Protocol specific logical unit"},
+    {POWER_MP, 0, -1, "po", "Power condition"},
+    {PROT_SPEC_PORT_MP, 0, -1, "pp", "Protocol specific port"},
+    {RIGID_DISK_MP, 0, 0, "rd", "Rigid disk"},
+    {RW_ERR_RECOVERY_MP, 0, -1, "rw", "Read write error recovery"},
+        /* since in SBC, SSC and MMC treat as if in SPC */
+    {V_ERR_RECOVERY_MP, 0, 0, "ve", "Verify error recovery"},
 };
 
 static int mode_nums_name_len =
@@ -166,14 +189,15 @@ static void list_mps()
     }
 }
 
-static const char * get_mode_name(int page_num, int subpage_num)
+static const struct values_name_t * get_mode_detail(int page_num,
+                                                    int subpage_num)
 {
     int k;
     const struct values_name_t * vnp;
 
     for (k = 0, vnp = mode_nums_name; k < mode_nums_name_len; ++k, ++vnp) {
         if ((page_num == vnp->value) && (subpage_num == vnp->subvalue))
-            return vnp->name;
+            return vnp;
     }
     return NULL;
 }
@@ -189,6 +213,61 @@ static const struct values_name_t * find_mp_by_acron(const char * ap)
     }
     return NULL;
 }
+
+static struct values_name_t vpd_nums_name[] = {
+    {VPD_DEVICE_ID, 0, -1, "di", "Device identification"},
+    {VPD_SCSI_PORTS, 0, -1, "sp", "SCSI ports"},
+    {VPD_SUPPORTED_VPDS, 0, -1, "sv", "Supported VPD pages"},
+    {VPD_UNIT_SERIAL_NUM, 0, -1, "sn", "Unit serial number"},
+};
+
+static int vpd_nums_name_len =
+        (sizeof(vpd_nums_name) / sizeof(vpd_nums_name[0]));
+
+static void list_vpds()
+{
+    int k;
+    const struct values_name_t * vnp;
+
+    for (k = 0, vnp = vpd_nums_name; k < vpd_nums_name_len; ++k, ++vnp)
+        printf("  %-4s 0x%02x      %s\n", vnp->acron, vnp->value, vnp->name);
+}
+
+static const char * get_vpd_name(int page_num)
+{
+    int k;
+    const struct values_name_t * vnp;
+
+    for (k = 0, vnp = vpd_nums_name; k < vpd_nums_name_len; ++k, ++vnp) {
+        if (page_num == vnp->value)
+            return vnp->name;
+    }
+    return NULL;
+}
+
+static const struct values_name_t * find_vpd_by_acron(const char * ap)
+{
+    int k;
+    const struct values_name_t * vnp;
+
+    for (k = 0, vnp = vpd_nums_name; k < vpd_nums_name_len; ++k, ++vnp) {
+        if (0 == strncmp(vnp->acron, ap, 2))
+            return vnp;
+    }
+    return NULL;
+}
+
+struct opt_coll {
+    int all;
+    int six_byte_cdb;
+    int defaults;
+    int dummy;
+    int enumerate;
+    int hex;
+    int inquiry;
+    int long_out;
+    int saved;
+};
 
 struct mode_page_item {
     const char * acron;
@@ -246,6 +325,52 @@ static struct mode_page_item mitem_arr[] = {
         "Maximum burst size"},
     {"FBS", DISCONNECT_MP, 0, 14, 7, 16, 0,
         "First burst size"},
+
+    {"TPZ", FORMAT_MP, 0, 2, 7, 16, 0,          /* [0x3] sbc2 (obsolete) */
+        "Tracks per zone"},
+    {"ASPZ", FORMAT_MP, 0, 4, 7, 16, 0,
+        "Alternate sectors per zone"},
+    {"ATPZ", FORMAT_MP, 0, 6, 7, 16, 0,
+        "Alternate tracks per zone"},
+    {"ATPLU", FORMAT_MP, 0, 8, 7, 16, 0,
+        "Alternate tracks per logical unit"},
+    {"SPT", FORMAT_MP, 0, 10, 7, 16, 0,
+        "Sectors per track"},
+    {"DBPPS", FORMAT_MP, 0, 12, 7, 16, 0,
+        "Data bytes per physical sector"},
+    {"INTLV", FORMAT_MP, 0, 14, 7, 16, 0,
+        "Interleave"},
+    {"TSF", FORMAT_MP, 0, 16, 7, 16, 0,
+        "Track skew factor"},
+    {"CSF", FORMAT_MP, 0, 18, 7, 16, 0,
+        "Cylinder skew factor"},
+    {"SSEC", FORMAT_MP, 0, 20, 7, 1, 0,
+        "Soft sector"},
+    {"HSEC", FORMAT_MP, 0, 20, 6, 1, 0,
+        "Hard sector"},
+    {"RMB", FORMAT_MP, 0, 20, 5, 1, 0,
+        "Removable"},
+    {"SURF", FORMAT_MP, 0, 20, 4, 1, 0,
+        "Surface"},
+
+    {"NOC", RIGID_DISK_MP, 0, 2, 7, 24, 0,      /* [0x4] sbc2 (obsolete) */
+        "Number of cylinders"},
+    {"NOH", RIGID_DISK_MP, 0, 5, 7, 8, 0,
+        "Number of heads"},
+    {"SCWP", RIGID_DISK_MP, 0, 6, 7, 24, 0,
+        "Starting cylinder for write precompensation"},
+    {"SCRWC", RIGID_DISK_MP, 0, 9, 7, 24, 0,
+        "Starting cylinder for reduced write current"},
+    {"DSR", RIGID_DISK_MP, 0, 12, 7, 16, 0,
+        "Device step rate"},
+    {"LZC", RIGID_DISK_MP, 0, 14, 7, 24, 0,
+        "Landing zone cylinder"},
+    {"RPL", RIGID_DISK_MP, 0, 17, 1, 2, 0,
+        "Rotational position locking"},
+    {"ROTO", RIGID_DISK_MP, 0, 18, 7, 8, 0,
+        "Rotational offset"},
+    {"MRR", RIGID_DISK_MP, 0, 20, 7, 16, 0,
+        "Medium rotation rate (rpm)"},
 
     {"V_EER", V_ERR_RECOVERY_MP, 0, 2, 3, 1, 0,   /* [0x8] sbc2 */
         "Enable early recover"},
@@ -373,7 +498,7 @@ static void list_mitems(int pn, int spn)
 {
     int k, t_pn, t_spn;
     const struct mode_page_item * mpi;
-    const char * name;
+    const struct values_name_t * vnp;
     int found = 0;
 
     t_pn = -1;
@@ -384,12 +509,13 @@ static void list_mitems(int pn, int spn)
             t_spn = mpi->subpage_num;
             if ((pn >= 0) && ((pn != t_pn) || (spn != t_spn)))
                 continue;
-            name = get_mode_name(t_pn, t_spn);
-            if (name) {
+            vnp = get_mode_detail(t_pn, t_spn);
+            if (vnp) {
                 if (t_spn)
-                    printf("%s mode page [0x%x,0x%x]:\n", name, t_pn, t_spn);
+                    printf("%s mode page [0x%x,0x%x]:\n", vnp->name, t_pn,
+                           t_spn);
                 else
-                    printf("%s mode page [0x%x]:\n", name, t_pn);
+                    printf("%s mode page [0x%x]:\n", vnp->name, t_pn);
             } else if (0 == t_spn)
                 printf("mode page 0x%x:\n", t_pn);
             else
@@ -403,13 +529,14 @@ static void list_mitems(int pn, int spn)
         found = 1;
     }
     if ((! found) && (pn >= 0)) {
-        name = get_mode_name(pn, spn);
-        if (name) {
+        vnp = get_mode_detail(pn, spn);
+        if (vnp) {
             if (spn)
-                printf("%s mode page [0x%x,0x%x]: no items found\n", name,
-                       pn, spn);
+                printf("%s mode page [0x%x,0x%x]: no items found\n",
+                       vnp->name, pn, spn);
             else
-                printf("%s mode page [0x%x]: no items found\n", name, pn);
+                printf("%s mode page [0x%x]: no items found\n", vnp->name,
+                       pn);
         } else if (0 == spn)
             printf("mode page 0x%x: no items found\n", pn);
         else
@@ -417,7 +544,8 @@ static void list_mitems(int pn, int spn)
     }
 }
 
-static const struct mode_page_item * find_mitem_by_acron(const char * ap, int * from)
+static const struct mode_page_item * find_mitem_by_acron(const char * ap,
+                                                         int * from)
 {
     int k = 0;
     const struct mode_page_item * mpi;
@@ -438,6 +566,29 @@ static const struct mode_page_item * find_mitem_by_acron(const char * ap, int * 
     if (from)
         *from = k + 1;
     return mpi;
+}
+
+static void list_mp_settings(struct mode_page_settings * mps, int get)
+{
+    struct mode_page_it_val * ivp;
+    int k;
+
+    printf("mp_settings: page,subpage=0x%x,0x%x  num=%d\n",
+           mps->page_num, mps->subpage_num, mps->num_it_vals);
+    for (k = 0; k < mps->num_it_vals; ++k) {
+        ivp = &mps->it_vals[k];
+        if (get)
+            printf("  [0x%x,0x%x]  byte_off=0x%x, bit_off=%d, num_bits"
+                   "=%d  val=%d  acronym: %s\n", ivp->mpi.page_num,
+                   ivp->mpi.subpage_num, ivp->mpi.start_byte,
+                   ivp->mpi.start_bit, ivp->mpi.num_bits, ivp->val,
+                   (ivp->mpi.acron ? ivp->mpi.acron : ""));
+        else
+            printf("  byte_off=0x%x, bit_off=%d, num_bits=%d "
+                   " val=%d  acronym: %s\n", ivp->mpi.start_byte,
+                   ivp->mpi.start_bit, ivp->mpi.num_bits, ivp->val,
+                   (ivp->mpi.acron ? ivp->mpi.acron : ""));
+    }
 }
 
 static const char * scsi_ptype_strs[] = {
@@ -597,6 +748,7 @@ static void print_mode_info(int sg_fd, int mode6, int pn, int spn, int all,
 {
     int k, res, len, verb, smask, single, fetch;
     const struct mode_page_item * mpi;
+    const struct values_name_t * vnp;
     unsigned char cur_mp[DEF_MODE_RESP_LEN];
     unsigned char cha_mp[DEF_MODE_RESP_LEN];
     unsigned char def_mp[DEF_MODE_RESP_LEN];
@@ -659,12 +811,13 @@ static void print_mode_info(int sg_fd, int mode6, int pn, int spn, int all,
                 return;
             }
             if ((smask & 1)) {
-                name = get_mode_name(pn, spn);
-                if (name) {
+                vnp = get_mode_detail(pn, spn);
+                if (vnp) {
                     if (0 == spn)
-                        printf("%s mode page [0x%x]:\n", name, pn);
+                        printf("%s mode page [0x%x]:\n", vnp->name, pn);
                     else
-                        printf("%s mode page [0x%x,0x%x]:\n", name, pn, spn);
+                        printf("%s mode page [0x%x,0x%x]:\n", vnp->name, pn,
+                               spn);
                 } else if (0 == spn)
                     printf("mode page 0x%x:\n", pn);
                 else
@@ -691,9 +844,9 @@ static void print_mode_info(int sg_fd, int mode6, int pn, int spn, int all,
                 }
             } else {
                 if (verbose || single) {
-                    name = get_mode_name(pn, spn);
-                    if (name)
-                        printf(">> %s mode page not supported\n", name);
+                    vnp = get_mode_detail(pn, spn);
+                    if (vnp)
+                        printf(">> %s mode page not supported\n", vnp->name);
                     else if (0 == spn)
                         printf(">> mode page 0x%x not supported\n", pn);
                     else
@@ -876,7 +1029,7 @@ static int change_mode_page(int sg_fd, int save, int mode_6,
         res = sg_ll_mode_select10(sg_fd, 1, save, mdpg, md_len, 1,
                                   verbose);
     if (0 != res) {
-        fprintf(stderr, "change__mode_page: failed setting page: 0x%x,0x%x\n",
+        fprintf(stderr, "change_mode_page: failed setting page: 0x%x,0x%x\n",
                 mps->page_num, mps->subpage_num);
         return -1;
     }
@@ -973,10 +1126,9 @@ static int set_mp_defaults(int sg_fd, int pn, int spn, int saved,
                            int mode_6, int dummy, int verbose)
 {
     int smask, res, len;
+    const struct values_name_t * vnp;
     unsigned char cur_mp[DEF_MODE_RESP_LEN];
     unsigned char def_mp[DEF_MODE_RESP_LEN];
-    const char * name;
-
 
     smask = 0;
     res = sg_get_mode_page_types(sg_fd, mode_6, pn, spn, DEF_MODE_RESP_LEN,
@@ -1001,9 +1153,10 @@ static int set_mp_defaults(int sg_fd, int pn, int spn, int saved,
                                  len, dummy, verbose);
         }
         else {
-            name = get_mode_name(pn, spn);
-            if (name)
-                printf(">> %s mode page (default) not supported\n", name);
+            vnp = get_mode_detail(pn, spn);
+            if (vnp)
+                printf(">> %s mode page (default) not supported\n",
+                       vnp->name);
             else if (0 == spn)
                 printf(">> mode page 0x%x (default) not supported\n", pn);
             else
@@ -1012,9 +1165,9 @@ static int set_mp_defaults(int sg_fd, int pn, int spn, int saved,
             return -1;
         }
     } else {
-        name = get_mode_name(pn, spn);
-        if (name)
-            printf(">> %s mode page not supported\n", name);
+        vnp = get_mode_detail(pn, spn);
+        if (vnp)
+            printf(">> %s mode page not supported\n", vnp->name);
         else if (0 == spn)
             printf(">> mode page 0x%x not supported\n", pn);
         else
@@ -1217,62 +1370,697 @@ static int build_mp_settings(const char * arg,
     return 0;
 }
 
+static const char * transport_proto_arr[] =
+{
+    "Fibre Channel (FCP-2)",
+    "Parallel SCSI (SPI-4)",
+    "SSA (SSA-S3P)",
+    "IEEE 1394 (SBP-3)",
+    "Remote Direct Memory Access (RDMA)",
+    "Internet SCSI (iSCSI)",
+    "Serial Attached SCSI (SAS)",
+    "Automation/Drive Interface (ADT)",
+    "ATA Packet Interface (ATA/ATAPI-7)",
+    "Ox9", "Oxa", "Oxb", "Oxc", "Oxd", "Oxe",
+    "No specific protocol"
+};
+
+static const char * code_set_arr[] =
+{
+    "Reserved [0x0]",
+    "Binary",
+    "ASCII",
+    "UTF-8",
+    "Reserved [0x4]", "Reserved [0x5]", "Reserved [0x6]", "Reserved [0x7]",
+    "Reserved [0x8]", "Reserved [0x9]", "Reserved [0xa]", "Reserved [0xb]",
+    "Reserved [0xc]", "Reserved [0xd]", "Reserved [0xe]", "Reserved [0xf]",
+};
+
+static const char * assoc_arr[] =
+{
+    "Addressed logical unit",
+    "Target port that received request",
+    "Target device that contains addressed lu",
+    "Reserved [0x3]",
+};
+
+static const char * id_type_arr[] =
+{
+    "vendor specific [0x0]",
+    "T10 vendor identication",
+    "EUI-64 based",
+    "NAA",
+    "Relative target port",
+    "Target port group",
+    "Logical unit group",
+    "MD5 logical unit identifier",
+    "SCSI name string",
+    "Reserved [0x9]", "Reserved [0xa]", "Reserved [0xb]",
+    "Reserved [0xc]", "Reserved [0xd]", "Reserved [0xe]", "Reserved [0xf]",
+};
+
+/* These are target port, device server (i.e. target) and lu identifiers */
+static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
+                          int len, int match_assoc, int long_out, int do_hex)
+{
+    int k, j, m, id_len, p_id, c_set, piv, assoc, id_type, i_len;
+    int ci_off, c_id, d_id, naa, vsi, printed;
+    unsigned long long vsei;
+    unsigned long long id_ext;
+    const unsigned char * ucp;
+    const unsigned char * ip;
+
+    ucp = buff;
+    printed = 0;
+    for (k = 0, j = 1; k < len; k += id_len, ucp += id_len, ++j) {
+        i_len = ucp[3];
+        id_len = i_len + 4;
+        if (match_assoc < 0)
+            printf("  Identification descriptor number %d, "
+                   "descriptor length: %d\n", j, id_len);
+        if ((k + id_len) > len) {
+            fprintf(stderr, "    VPD page error: descriptor length longer "
+                    "than\n     remaining response length=%d\n", (len - k));
+            return -1;
+        }
+        ip = ucp + 4;
+        p_id = ((ucp[0] >> 4) & 0xf);
+        c_set = (ucp[0] & 0xf);
+        piv = ((ucp[1] & 0x80) ? 1 : 0);
+        assoc = ((ucp[1] >> 4) & 0x3);
+        id_type = (ucp[1] & 0xf);
+        if ((match_assoc >= 0) && (match_assoc != assoc))
+            continue;
+        else if (print_if_found && (0 == printed)) {
+            printed = 1;
+            printf("  %s:\n", print_if_found);
+        }
+        if (piv && ((1 == assoc) || (2 == assoc)))
+            printf("    transport: %s\n", transport_proto_arr[p_id]);
+        printf("    id_type: %s,  code_set: %s\n", id_type_arr[id_type],
+               code_set_arr[c_set]);
+        /* printf("    associated with the %s\n", assoc_arr[assoc]); */
+        if (do_hex) {
+            printf("    descriptor header(hex): %.2x %.2x %.2x %.2x\n",
+                   ucp[0], ucp[1], ucp[2], ucp[3]);
+            printf("    identifier:\n");
+            dStrHex((const char *)ip, i_len, 0);
+            continue;
+        }
+        switch (id_type) {
+        case 0: /* vendor specific */
+            dStrHex((const char *)ip, i_len, 0);
+            break;
+        case 1: /* T10 vendor identication */
+            printf("      vendor id: %.8s\n", ip);
+            if (i_len > 8)
+                printf("      vendor specific: %.*s\n", i_len - 8, ip + 8);
+            break;
+        case 2: /* EUI-64 based */
+            if (! long_out) {
+                printf("      [0x");
+                if ((8 != i_len) && (12 != i_len) && (16 != i_len)) {
+                    printf("      << expect 8, 12 and 16 byte ids, got "
+                           "%d>>\n", i_len);
+                    dStrHex((const char *)ip, i_len, 0);
+                    break;
+                }
+                for (m = 0; m < i_len; ++m)
+                    printf("%02x", (unsigned int)ip[m]);
+                printf("]\n");
+                break;
+            }
+            printf("      EUI-64 based %d byte identifier\n", i_len);
+            if (1 != c_set) {
+                printf("      << expected binary code_set (1)>>\n");
+                dStrHex((const char *)ip, i_len, 0);
+                break;
+            }
+            ci_off = 0;
+            if (16 == i_len) {
+                ci_off = 8;
+                id_ext = 0;
+                for (m = 0; m < 8; ++m) {
+                    if (m > 0)
+                        id_ext <<= 8;
+                    id_ext |= ip[m];
+                }
+                printf("      Identifier extension: 0x%llx\n", id_ext);
+            } else if ((8 != i_len) && (12 != i_len)) {
+                printf("      << can only decode 8, 12 and 16 byte ids>>\n");
+                dStrHex((const char *)ip, i_len, 0);
+                break;
+            }
+            c_id = ((ip[ci_off] << 16) | (ip[ci_off + 1] << 8) |
+                    ip[ci_off + 2]);
+            printf("      IEEE Company_id: 0x%x\n", c_id);
+            vsei = 0;
+            for (m = 0; m < 5; ++m) {
+                if (m > 0)
+                    vsei <<= 8;
+                vsei |= ip[ci_off + 3 + m];
+            }
+            printf("      Vendor Specific Extension Identifier: 0x%llx\n",
+                   vsei);
+            if (12 == i_len) {
+                d_id = ((ip[8] << 24) | (ip[9] << 16) | (ip[10] << 8) |
+                        ip[11]);
+                printf("      Directory ID: 0x%x\n", d_id);
+            }
+            break;
+        case 3: /* NAA */
+            if (1 != c_set) {
+                printf("      << expected binary code_set (1)>>\n");
+                dStrHex((const char *)ip, i_len, 0);
+                break;
+            }
+            naa = (ip[0] >> 4) & 0xff;
+            if (! ((2 == naa) || (5 == naa) || (6 == naa))) {
+                printf("      << expected naa [0x%x]>>\n", naa);
+                dStrHex((const char *)ip, i_len, 0);
+                break;
+            }
+            if (2 == naa) {
+                if (8 != i_len) {
+                    printf("      << expected NAA 2 identifier length: "
+                           "0x%x>>\n", i_len);
+                    dStrHex((const char *)ip, i_len, 0);
+                    break;
+                }
+                d_id = (((ip[0] & 0xf) << 8) | ip[1]);
+                c_id = ((ip[2] << 16) | (ip[3] << 8) | ip[4]);
+                vsi = ((ip[5] << 16) | (ip[6] << 8) | ip[7]);
+                if (long_out) {
+                    printf("      NAA 2, vendor specific identifier A: "
+                           "0x%x\n", d_id);
+                    printf("      IEEE Company_id: 0x%x\n", c_id);
+                    printf("      vendor specific identifier B: 0x%x\n", vsi);
+                }
+                printf("      [0x");
+                for (m = 0; m < 8; ++m)
+                    printf("%02x", (unsigned int)ip[m]);
+                printf("]\n");
+            } else if (5 == naa) {
+                if (8 != i_len) {
+                    printf("      << expected NAA 5 identifier length: "
+                           "0x%x>>\n", i_len);
+                    dStrHex((const char *)ip, i_len, 0);
+                    break;
+                }
+                c_id = (((ip[0] & 0xf) << 20) | (ip[1] << 12) | 
+                        (ip[2] << 4) | ((ip[3] & 0xf0) >> 4));
+                vsei = ip[3] & 0xf;
+                for (m = 1; m < 5; ++m) {
+                    vsei <<= 8;
+                    vsei |= ip[3 + m];
+                }
+                if (long_out) {
+                    printf("      NAA 5, IEEE Company_id: 0x%x\n", c_id);
+                    printf("      Vendor Specific Identifier: 0x%llx\n",
+                           vsei);
+                }
+                printf("      [0x");
+                for (m = 0; m < 8; ++m)
+                    printf("%02x", (unsigned int)ip[m]);
+                printf("]\n");
+            } else if (6 == naa) {
+                if (16 != i_len) {
+                    printf("      << expected NAA 6 identifier length: "
+                           "0x%x>>\n", i_len);
+                    dStrHex((const char *)ip, i_len, 0);
+                    break;
+                }
+                c_id = (((ip[0] & 0xf) << 20) | (ip[1] << 12) | 
+                        (ip[2] << 4) | ((ip[3] & 0xf0) >> 4));
+                vsei = ip[3] & 0xf;
+                for (m = 1; m < 5; ++m) {
+                    vsei <<= 8;
+                    vsei |= ip[3 + m];
+                }
+                if (long_out) {
+                    printf("      NAA 6, IEEE Company_id: 0x%x\n", c_id);
+                    printf("      Vendor Specific Identifier: 0x%llx\n",
+                           vsei);
+                    vsei = 0;
+                    for (m = 0; m < 8; ++m) {
+                        if (m > 0)
+                            vsei <<= 8;
+                        vsei |= ip[8 + m];
+                    }
+                    printf("      Vendor Specific Identifier Extension: "
+                           "0x%llx\n", vsei);
+                }
+                printf("      [0x");
+                for (m = 0; m < 16; ++m)
+                    printf("%02x", (unsigned int)ip[m]);
+                printf("]\n");
+            }
+            break;
+        case 4: /* Relative target port */
+            if ((1 != c_set) || (1 != assoc) || (4 != i_len)) {
+                printf("      << expected binary code_set, target "
+                       "port association, length 4>>\n");
+                dStrHex((const char *)ip, i_len, 0);
+                break;
+            }
+            d_id = ((ip[2] << 8) | ip[3]);
+            printf("      Relative target port: 0x%x\n", d_id);
+            break;
+        case 5: /* Target port group */
+            if ((1 != c_set) || (1 != assoc) || (4 != i_len)) {
+                printf("      << expected binary code_set, target "
+                       "port association, length 4>>\n");
+                dStrHex((const char *)ip, i_len, 0);
+                break;
+            }
+            d_id = ((ip[2] << 8) | ip[3]);
+            printf("      Target port group: 0x%x\n", d_id);
+            break;
+        case 6: /* Logical unit group */
+            if ((1 != c_set) || (0 != assoc) || (4 != i_len)) {
+                printf("      << expected binary code_set, logical "
+                       "unit association, length 4>>\n");
+                dStrHex((const char *)ip, i_len, 0);
+                break;
+            }
+            d_id = ((ip[2] << 8) | ip[3]);
+            printf("      Logical unit group: 0x%x\n", d_id);
+            break;
+        case 7: /* MD5 logical unit identifier */
+            if ((1 != c_set) || (0 != assoc)) {
+                printf("      << expected binary code_set, logical "
+                       "unit association>>\n");
+                dStrHex((const char *)ip, i_len, 0);
+                break;
+            }
+            printf("      MD5 logical unit identifier:\n");
+            dStrHex((const char *)ip, i_len, 0);
+            break;
+        case 8: /* SCSI name string */
+            if (3 != c_set) {
+                printf("      << expected UTF-8 code_set>>\n");
+                dStrHex((const char *)ip, i_len, 0);
+                break;
+            }
+            printf("      MD5 logical unit identifier:\n");
+            /* does %s print out UTF-8 ok??
+             * Seems to depend on the locale. Looks ok here with my
+             * locale setting: en_AU.UTF-8
+             */
+            printf("      %s\n", (const char *)ip);
+            break;
+        default: /* reserved */
+            dStrHex((const char *)ip, i_len, 0);
+            break;
+        }
+    }
+    return 0;
+}
+
+static int process_vpd_page(int sg_fd, int pn, const struct opt_coll * opts,
+                            int verbose)
+{
+    int res, len, k;
+    unsigned char b[DEF_INQ_RESP_LEN];
+    int sz;
+    const char * cp;
+
+    sz = sizeof(b);
+    memset(b, 0, sz);
+    if (pn < 0)
+        pn = VPD_DEVICE_ID;  /* default to device identification page */
+    res = sg_ll_inquiry(sg_fd, 0, 1, pn, b, sz, 0, verbose);
+    if (res) {
+        fprintf(stderr, "INQUIRY fetching VPD page=0x%x failed\n", pn);
+        return res;
+    }
+    switch (pn) {
+    case VPD_SUPPORTED_VPDS:
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = b[3];
+        printf("Supported VPD pages VPD page:\n");
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        if (len > 0) {
+            for (k = 0; k < len; ++k) {
+                cp = get_vpd_name(b[4 + k]);
+                if (cp)
+                    printf("  %s\n", cp);
+                else
+                    printf("  0x%x\n", b[4 + k]);
+            }
+        } else
+            printf("  <empty>\n");
+        break;
+    case VPD_DEVICE_ID:
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = (b[2] << 8) + b[3];
+        if (len > sz) {
+            fprintf(stderr, "Response to device identification VPD page "
+                    "truncated\n");
+            len = sz;
+        }
+        printf("Device identification VPD page:\n");
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        res = decode_dev_ids(assoc_arr[VPD_ASSOC_LU], b + 4, len,
+                             VPD_ASSOC_LU, opts->long_out, opts->hex);
+        if (res)
+            return res;
+        res = decode_dev_ids(assoc_arr[VPD_ASSOC_TPORT], b + 4, len,
+                             VPD_ASSOC_TPORT, opts->long_out, opts->hex);
+        if (res)
+            return res;
+        res = decode_dev_ids(assoc_arr[VPD_ASSOC_TDEVICE], b + 4, len,
+                             VPD_ASSOC_TDEVICE, opts->long_out, opts->hex);
+        if (res)
+            return res;
+        break;
+    case VPD_UNIT_SERIAL_NUM:
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = b[3];
+        printf("Unit serial number VPD page:\n");
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        if (len > 0)
+            printf("  %s\n", b + 4);
+        else
+            printf("  <empty>\n");
+        break;
+    default:
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = (b[2] << 8) + b[3];
+        cp = get_vpd_name(pn);
+        if (cp)
+            printf("%s VPD page in hex:\n", cp);
+        else
+            printf("VPD page 0x%x in hex:\n", pn);
+        dStrHex((const char *)b, len + 4, 0);
+        break;
+    }
+    return 0;
+
+dumb_inq:
+    fprintf(stderr, "malformed VPD response, VPD pages probably not "
+            "supported\n");
+    return -1;
+}
+
+static int open_and_simple_inquiry(const char * device_name, int flags,
+                                   int * pdt, const struct opt_coll * opts,
+                                   int verbose)
+{
+    int res, verb, sg_fd, sg_sg_fd;
+    struct sg_simple_inquiry_resp sir;
+
+    verb = (verbose > 0) ? verbose - 1 : 0;
+    sg_fd = open(device_name, flags);
+    if (sg_fd < 0) {
+        fprintf(stderr, ME "open error: %s, flags=0x%x: ", device_name,
+                flags);
+        perror("");
+        return -1;
+    } 
+    res = sg_simple_inquiry(sg_fd, &sir, 0, verb);
+    if (res) {
+        if (res < 1) {
+            /* could be lk 2.4 and not using a sg device */
+            struct utsname a_uts;
+            int two, four;
+
+            if (uname(&a_uts) < 0) {
+                fprintf(stderr, "uname system call failed, couldn't send "
+                        "SG_IO ioctl to %s\n", device_name);
+                goto err_out;
+            }
+            res = sscanf(a_uts.release, "%d.%d", &two, &four);
+            if (2 != res) {
+                fprintf(stderr, "unable to read uname release\n");
+                goto err_out;
+            }
+            if (! ((2 == two) && (4 == four))) {
+                fprintf(stderr, "unable to open %s (not lk 2.4)\n",
+                        device_name);
+                goto err_out;
+            }
+            sg_sg_fd = find_corresponding_sg_fd(sg_fd, device_name, flags,
+                                                verbose);
+            if (sg_sg_fd < 0)
+                goto err_out;
+            close(sg_fd);
+            sg_fd = sg_sg_fd;
+            res = sg_simple_inquiry(sg_fd, &sir, 0, verb);
+        }
+        if (res) {
+            fprintf(stderr, "SCSI INQUIRY command failed on %s\n",
+                    device_name);
+            goto err_out;
+        }
+    }
+    *pdt = sir.peripheral_type;
+    if (0 == opts->hex) {
+        printf("    %s: %.8s  %.16s  %.4s",
+               device_name, sir.vendor, sir.product, sir.revision);
+        if (0 != *pdt)
+            printf("  [pdt=%d]", *pdt);
+        printf("\n");
+        if (opts->long_out || verbose) {
+            if (! ((0 == *pdt) || (4 == *pdt) || (7 == *pdt) ||
+                  (0xe == *pdt))) {
+                fprintf(stderr, "        given %s rather than disk device "
+                        "type\n", scsi_ptype_strs[*pdt]);
+            }
+        }
+    }
+    return sg_fd;
+
+err_out:
+    close(sg_fd);
+    return -1;
+}
+
+static int process_mode_page(int sg_fd, struct mode_page_settings * mps,
+                             int pn, int spn, int rw, int get,
+                             const struct opt_coll * opts, int pdt,
+                             int verbose)
+{
+    int res;
+    const struct values_name_t * vnp;
+
+    if ((pn > 0x3e) || (spn > 0xfe)) {
+        fprintf(stderr, "Allowable mode page numbers are 0 to 62\n");
+        fprintf(stderr, "  Allowable mode subpage numbers are 0 to 254\n");
+        return -1;
+    }
+    if (pn > 0) {
+        vnp = get_mode_detail(pn, spn);
+        if (vnp && (pdt >= 0) && (vnp->pdt >= 0) && (vnp->pdt != pdt)) {
+            fprintf(stderr, ">> Warning: %s mode page associated with "
+                    "peripheral\n", vnp->name);
+            fprintf(stderr, "   device type 0x%x but device pdt is 0x%x\n",
+                    vnp->pdt, pdt);
+        }
+    }
+    if (opts->defaults) {
+        res = set_mp_defaults(sg_fd, pn, spn, opts->saved,
+                              opts->six_byte_cdb, opts->dummy, verbose);
+        if (0 != res)
+            return -1;
+    } else if (rw) {
+        if (mps->num_it_vals < 1) {
+            fprintf(stderr, "no parameters found to set or clear\n");
+            return -1;
+        }
+        res = change_mode_page(sg_fd, opts->saved, opts->six_byte_cdb, mps,
+                               opts->dummy, verbose);
+        if (0 != res)
+            return -1;
+    } else if (get) {
+        if (mps->num_it_vals < 1) {
+            fprintf(stderr, "no parameters found to get\n");
+            return -1;
+        }
+        get_mode_info(sg_fd, opts->six_byte_cdb, mps, opts->long_out,
+                      opts->hex, verbose);
+    } else
+        print_mode_info(sg_fd, opts->six_byte_cdb, pn, spn,
+                        ((pn >= 0) ? 1 : opts->all), opts->long_out,
+                        opts->hex, verbose);
+    return 0;
+}
+
+
+#ifdef MAP_TO_SG_NODE
+typedef struct my_scsi_idlun
+{
+    int mux4;
+    int host_unique_id;
+
+} My_scsi_idlun;
+
+#define DEVNAME_SZ 256
+#define MAX_SG_DEVS 256
+#define MAX_NUM_NODEVS 4
+
+/* Given a file descriptor 'oth_fd' that refers to a linux SCSI device node
+ * this function returns the open file descriptor of the corresponding sg
+ * device node. Returns a value >= 0 on success, else -1 or -2. device_name
+ * should correspond with oth_fd. If a corresponding sg device node is found
+ * then it is opened with flags. The oth_fd is left as is (i.e. it is not
+ * closed). sg device node scanning is done "O_RDONLY | O_NONBLOCK".
+ * Assumes (and is currently only invoked for) lk 2.4.
+ */
+static int find_corresponding_sg_fd(int oth_fd, const char * device_name,
+                                    int flags, int verbose)
+{
+    int fd, err, bus, bbus, k, v;
+    My_scsi_idlun m_idlun, mm_idlun;
+    char name[DEVNAME_SZ];
+    int num_nodevs = 0;
+
+    err = ioctl(oth_fd, SCSI_IOCTL_GET_BUS_NUMBER, &bus);
+    if (err < 0) {
+        fprintf(stderr, "%s does not understand SCSI commands; or "
+                "bypasses the linux SCSI\n",
+                device_name);
+        fprintf(stderr, " subsystem, need sd, scd, st, osst or sg "
+                "based device name\n For example: /dev/hdd is not "
+                "suitable.\n");
+        return -2;
+    }
+    err = ioctl(oth_fd, SCSI_IOCTL_GET_IDLUN, &m_idlun);
+    if (err < 0) {
+        if (verbose)
+            fprintf(stderr, "%s does not understand SCSI commands(2)\n",
+                    device_name);
+        return -2;
+    }
+
+    fd = -2;
+    for (k = 0; (k < MAX_SG_DEVS) && (num_nodevs < MAX_NUM_NODEVS); k++) {
+        snprintf(name, sizeof(name), "/dev/sg%d", k);
+        fd = open(name, O_RDONLY | O_NONBLOCK);
+        if (fd < 0) {
+            if ((ENODEV == errno) || (ENOENT == errno) ||
+                (ENXIO == errno)) {
+                ++num_nodevs;
+                continue;       /* step over MAX_NUM_NODEVS holes */
+            }
+            if (EBUSY == errno)
+                continue;   /* step over if O_EXCL already on it */
+            else
+                break;
+        }
+        err = ioctl(fd, SCSI_IOCTL_GET_BUS_NUMBER, &bbus);
+        if (err < 0) {
+            if (verbose)
+                perror("SCSI_IOCTL_GET_BUS_NUMBER failed");
+            return -2;
+        }
+        err = ioctl(fd, SCSI_IOCTL_GET_IDLUN, &mm_idlun);
+        if (err < 0) {
+            if (verbose)
+                perror("SCSI_IOCTL_GET_IDLUN failed");
+            return -2;
+        }
+        if ((bus == bbus) && 
+            ((m_idlun.mux4 & 0xff) == (mm_idlun.mux4 & 0xff)) &&
+            (((m_idlun.mux4 >> 8) & 0xff) == 
+                                    ((mm_idlun.mux4 >> 8) & 0xff)) &&
+            (((m_idlun.mux4 >> 16) & 0xff) == 
+                                    ((mm_idlun.mux4 >> 16) & 0xff)))
+            break;
+        else {
+            close(fd);
+            fd = -2;
+        }
+    }
+    if (fd >= 0) {
+        if ((ioctl(fd, SG_GET_VERSION_NUM, &v) < 0) || (v < 30000)) {
+            fprintf(stderr, "requires lk 2.4 (sg driver) or lk 2.6\n");
+            close(fd);
+            return -2;
+        }
+        close(fd);
+        if (verbose)
+            fprintf(stderr, ">> mapping %s to %s (in lk 2.4 series)\n",
+                    device_name, name);
+        /* re-opening corresponding sg device with given flags */
+        return open(name, flags);
+    }
+    else
+        return fd;
+}
+#else
+
+static int find_corresponding_sg_fd(int sg_fd, const char * device_name,
+                                    int flags, int verbose)
+{
+    fprintf(stderr, "Mapping %s to sg device name not supported\n",
+           device_name);
+    return -2;
+}
+#endif
+
+
 int main(int argc, char * argv[])
 {
     int sg_fd, res, c, pdt, flags;
-    int six_byte_cdb = 0;
-    int all = 0;
+    struct opt_coll opts;
     const char * clear_str = NULL;
     const char * get_str = NULL;
     const char * set_str = NULL;
-    int defaults = 0;
-    int dummy = 0;
-    int enumerate = 0;
-    int hex = 0;
-    int inquiry = 0;
-    int long_out = 0;
-    int saved = 0;
     int verbose = 0;
     char device_name[256];
     int pn = -1;
     int spn = -1;
     int rw = 0;
-    struct sg_simple_inquiry_resp sir;
     const struct values_name_t * vnp;
     struct mode_page_settings mp_settings; 
     char * cp;
     int ret = 1;
 
+    memset(&opts, 0, sizeof(opts));
     memset(device_name, 0, sizeof(device_name));
     memset(&mp_settings, 0, sizeof(mp_settings));
     while (1) {
         int option_index = 0;
 
-        c = getopt_long(argc, argv, "6ac:Ddeg:hHilp:s:SvV", long_options,
+        c = getopt_long(argc, argv, "6ac:dDeg:hHilp:s:SvV", long_options,
                         &option_index);
         if (c == -1)
             break;
 
         switch (c) {
         case '6':
-            six_byte_cdb = 1;
+            opts.six_byte_cdb = 1;
             break;
         case 'a':
-            all = 1;
+            opts.all = 1;
             break;
         case 'c':
             clear_str = optarg;
             rw = 1;
             break;
         case 'd':
-            dummy = 1;
+            opts.dummy = 1;
             break;
         case 'D':
-            defaults = 1;
+            opts.defaults = 1;
             rw = 1;
             break;
         case 'e':
-            enumerate = 1;
+            opts.enumerate = 1;
             break;
         case 'g':
             get_str = optarg;
@@ -1282,23 +2070,31 @@ int main(int argc, char * argv[])
             usage();
             return 0;
         case 'H':
-            hex = 1;
+            opts.hex = 1;
             break;
         case 'i':
-            inquiry = 1;
+            opts.inquiry = 1;
             break;
         case 'l':
-            long_out = 1;
+            opts.long_out = 1;
             break;
         case 'p':
             if (isalpha(optarg[0])) {
                 vnp = find_mp_by_acron(optarg);
                 if (NULL == vnp) {
-                    fprintf(stderr, "mode page acronym not found\n");
-                    return 1;
+                    vnp = find_vpd_by_acron(optarg);
+                    if (NULL == vnp) {
+                        fprintf(stderr, "acronym does not match a mode nor "
+                                "a VPD page\n");
+                        return 1;
+                    } else {
+                        pn = vnp->value;
+                        opts.inquiry = 1;
+                    }
+                } else {
+                    pn = vnp->value;
+                    spn = vnp->subvalue;
                 }
-                pn = vnp->value;
-                spn = vnp->subvalue;
             } else {
                 cp = strchr(optarg, ',');
                 pn = get_num(optarg);
@@ -1323,7 +2119,7 @@ int main(int argc, char * argv[])
             rw = 1;
             break;
         case 'S':
-            saved = 1;
+            opts.saved = 1;
             rw = 1;
             break;
         case 'v':
@@ -1352,144 +2148,104 @@ int main(int argc, char * argv[])
             return 1;
         }
     }
-/* think about --get= with --enumerate */
-    if (pn < 0) {
-        mp_settings.page_num = -1;
-        mp_settings.subpage_num = -1;
+
+    if (opts.inquiry) {
+        if (set_str || clear_str || get_str || opts.defaults || opts.saved) {
+            fprintf(stderr, "'--inquiry' option lists VPD pages so other "
+                    "options that are\nconcerned with mode pages are "
+                    "inappropriate\n");
+            return 1;
+        }
+        if ((pn > 255) || (spn > 0)) {
+            fprintf(stderr, "VPD page numbers are from 0 to 255 with no "
+                    "subpages\n");
+            return 1;
+        }
+        if (opts.enumerate) {
+            printf("VPD pages:\n");
+            list_vpds();
+            return 0;
+        }
     } else {
-        mp_settings.page_num = pn;
-        mp_settings.subpage_num = spn;
-    }
-    if (get_str) {
-        if (set_str || clear_str) {
-            fprintf(stderr, "'--get=' can't be used with '--set=' or "
-                    "'--clear='\n");
-            return 1;
-        }
-        if (build_mp_settings(get_str, &mp_settings, 0, 1))
-            return 1;
-    }
-    if (enumerate) {
-        if (device_name[0] || set_str || clear_str || get_str || saved)
-            printf("Most option including <scsi_disk> are ignored when "
-                   "'--enumerate' is given\n");
+        /* assume mode pages */
         if (pn < 0) {
-            printf("Mode pages:\n");
-            list_mps();
+            mp_settings.page_num = -1;
+            mp_settings.subpage_num = -1;
+        } else {
+            mp_settings.page_num = pn;
+            mp_settings.subpage_num = spn;
         }
-        if (all || (pn >= 0))
-            list_mitems(pn, spn);
-        return 0;
+        if (get_str) {
+            if (set_str || clear_str) {
+                fprintf(stderr, "'--get=' can't be used with '--set=' or "
+                        "'--clear='\n");
+                return 1;
+            }
+            if (build_mp_settings(get_str, &mp_settings, 0, 1))
+                return 1;
+        }
+        if (opts.enumerate) {
+            if (device_name[0] || set_str || clear_str || get_str ||
+                opts.saved)
+                /* think about --get= with --enumerate */
+                printf("Most option including <scsi_disk> are ignored when "
+                       "'--enumerate' is given\n");
+            if (pn < 0) {
+                printf("Mode pages:\n");
+                list_mps();
+            }
+            if (opts.all || (pn >= 0))
+                list_mitems(pn, spn);
+            return 0;
+        }
+
+        if (opts.defaults && (set_str || clear_str || get_str)) {
+            fprintf(stderr, "'--get=', '--set=' or '--clear=' can't be used "
+                    "with '--defaults'\n");
+            return 1;
+        }
+
+        if (set_str) {
+            if (build_mp_settings(set_str, &mp_settings, 0, 0))
+                return 1;
+        }
+        if (clear_str) {
+            if (build_mp_settings(clear_str, &mp_settings, 1, 0))
+                return 1;
+        }
+ 
+        if (verbose && (mp_settings.num_it_vals > 0))
+            list_mp_settings(&mp_settings, (NULL != get_str));
+
+        if (opts.defaults && (pn < 0)) {
+            fprintf(stderr, "to set defaults, the '--page=' option must "
+                    "be used\n");
+            return 1;
+        }
     }
+
     if (0 == device_name[0]) {
         fprintf(stderr, "missing device name!\n");
         usage();
         return 1;
     }
 
-    if (inquiry) {
-        fprintf(stderr, "INQUIRY VPD pages not supported yet\n");
-        return 1;
-    }
-    if (defaults && (set_str || clear_str || get_str)) {
-        fprintf(stderr, "'--get=', '--set=' or '--clear=' can't be used "
-                "with '--defaults'\n");
-        return 1;
-    }
-
-    if (set_str) {
-        if (build_mp_settings(set_str, &mp_settings, 0, 0))
-            return 1;
-    }
-    if (clear_str) {
-        if (build_mp_settings(clear_str, &mp_settings, 1, 0))
-            return 1;
-    }
-
-    if (verbose && (mp_settings.num_it_vals > 0)) {
-        struct mode_page_it_val * ivp;
-        int k;
-
-        printf("mp_settings: page,subpage=0x%x,0x%x  num=%d\n",
-               mp_settings.page_num, mp_settings.subpage_num,
-               mp_settings.num_it_vals);
-        for (k = 0; k < mp_settings.num_it_vals; ++k) {
-            ivp = &mp_settings.it_vals[k];
-            if (get_str)
-                printf("  [0x%x,0x%x]  byte_off=0x%x, bit_off=%d, num_bits"
-                       "=%d  val=%d  acronym: %s\n", ivp->mpi.page_num,
-                       ivp->mpi.subpage_num, ivp->mpi.start_byte,
-                       ivp->mpi.start_bit, ivp->mpi.num_bits, ivp->val,
-                       (ivp->mpi.acron ? ivp->mpi.acron : ""));
-            else
-                printf("  byte_off=0x%x, bit_off=%d, num_bits=%d "
-                       " val=%d  acronym: %s\n", ivp->mpi.start_byte,
-                       ivp->mpi.start_bit, ivp->mpi.num_bits, ivp->val,
-                       (ivp->mpi.acron ? ivp->mpi.acron : ""));
-        }
-    }
-
-    if (defaults && (pn < 0)) {
-        fprintf(stderr, "to set defaults, the '--page=' option must "
-                "be used\n");
-        return 1;
-    }
-
+    pdt = -1;
     flags = (O_NONBLOCK | (rw ? O_RDWR : O_RDONLY));
-    sg_fd = open(device_name, flags);
-    if (sg_fd < 0) {
-        fprintf(stderr, ME "open error: %s, flags=0x%x: ", device_name,
-                flags);
-        perror("");
+    sg_fd = open_and_simple_inquiry(device_name, flags, &pdt, &opts, verbose);
+    if (sg_fd < 0) 
         return 1;
-    } 
 
-    if (sg_simple_inquiry(sg_fd, &sir, 0, verbose)) {
-        fprintf(stderr, "SCSI INQUIRY command failed on %s\n", device_name);
-        goto err_out;
+    if (opts.inquiry) {
+        res = process_vpd_page(sg_fd, pn, &opts, verbose);
+        if (res)
+            goto err_out;
+    } else {    /* mode page */
+        res = process_mode_page(sg_fd, &mp_settings, pn, spn, rw,
+                                (NULL != get_str), &opts, pdt, verbose);
+        if (res)
+            goto err_out;
     }
-    pdt = sir.peripheral_type;
-    if (0 == hex) {
-        printf("    %s: %.8s  %.16s  %.4s",
-               device_name, sir.vendor, sir.product, sir.revision);
-        if (0 != pdt)
-            printf("  [pdt=%d]", pdt);
-        printf("\n");
-        if (! ((0 == pdt) || (4 == pdt) || (7 == pdt) || (0xe == pdt))) {
-            fprintf(stderr, "        expected disk device type, got %s\n",
-                    scsi_ptype_strs[pdt]);
-        }
-    }
-
-    if ((pn > 0x3e) || (spn > 0xfe)) {
-        fprintf(stderr, "Allowable mode page numbers are 0 to 62\n");
-        fprintf(stderr, "  Allowable mode subpage numbers are 0 to 254\n");
-        goto err_out;
-    }
-    if (defaults) {
-        res = set_mp_defaults(sg_fd, pn, spn, saved, six_byte_cdb, dummy,
-                              verbose);
-        if (0 != res)
-            goto err_out;
-    } else if (set_str || clear_str) {
-        if (mp_settings.num_it_vals < 1) {
-            fprintf(stderr, "no parameters found to set or clear\n");
-            goto err_out;
-        }
-        res = change_mode_page(sg_fd, saved, six_byte_cdb, &mp_settings,
-                               dummy, verbose);
-        if (0 != res)
-            goto err_out;
-    } else if (get_str) {
-        if (mp_settings.num_it_vals < 1) {
-            fprintf(stderr, "no parameters found to get\n");
-            goto err_out;
-        }
-        get_mode_info(sg_fd, six_byte_cdb, &mp_settings, long_out, hex,
-                      verbose);
-    } else
-        print_mode_info(sg_fd, six_byte_cdb, pn, spn, ((pn >= 0) ? 1 : all),
-                        long_out, hex, verbose);
     ret = 0;
 
 err_out:

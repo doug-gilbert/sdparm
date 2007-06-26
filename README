@@ -46,7 +46,7 @@ Notes
 -----
 The following files were symlinks to /usr/share/automake-1.9 generic
 files on the author's system. That doesn't seem useful to put in
-a tarball so versions were copied. The symlinks:
+a tarball so versions were copied. Former symlinks:
    - config.guess
    - config.sub
    - COPYING
@@ -58,4 +58,4 @@ The contents of INSTALL have been replaced by more specific instructions.
 
 
 Douglas Gilbert
-18th April 2005
+6th May 2005
