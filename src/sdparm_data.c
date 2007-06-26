@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Douglas Gilbert.
+ * Copyright (c) 2005-2006 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,18 +52,22 @@ struct sdparm_values_name_t sdparm_gen_mode_pg[] = {
     {CONTROL_MP, MSP_SPC_CE, -1, 0, "coe", "Control extension"},
     {DATA_COMPR_MP, 0, 1, 0, "dac", "Data compression (SSC)"},
     {DEV_CONF_MP, 0, 1, 0, "dc", "Device configuration (SSC)"},
+    {DEV_CONF_MP, MSP_DEV_CONF_EXT, 1, 0, "dce", "Device configuration "
+        "extension (SSC)"},
     {ES_MAN_MP, 0, 0xd, 0, "esm", "Enclosure services management (SES)"},
     {FORMAT_MP, 0, 0, 0, "fo", "Format (SBC)"},
     {IEC_MP, 0, -1, 0, "ie", "Informational exceptions control"},
+    {MED_PART_MP, 0, 1, 0, "mpa", "Medium partition (SSC)"},
     {MRW_MP, 0, 5, 0, "mrw", "Mount rainier reWritable (MMC)"},
+    {CONTROL_MP, MSP_SAT_PATA, 0, 0, "pat", "SAT pATA control"},
     {PROT_SPEC_LU_MP, 0, -1, 0, "pl", "Protocol specific logical unit"},
     {POWER_MP, 0, -1, 0, "po", "Power condition"},
     {PROT_SPEC_PORT_MP, 0, -1, 0, "pp", "Protocol specific port"},
     {RBC_DEV_PARAM_MP, 0, 0xe, 0, "rbc", "RBC device parameters (RBC)"},
     {RIGID_DISK_MP, 0, 0, 0, "rd", "Rigid disk (SBC)"},
-    {TIMEOUT_PROT_MP, 0, 5, 0, "rp", "Timeout and protect (MMC)"},
     {RW_ERR_RECOVERY_MP, 0, -1, 0, "rw", "Read write error recovery"},
         /* since in SBC, SSC and MMC treat as if in SPC */
+    {TIMEOUT_PROT_MP, 0, 5, 0, "tp", "Timeout and protect (MMC)"},
     {V_ERR_RECOVERY_MP, 0, 0, 0, "ve", "Verify error recovery (SBC)"},
     {WRITE_PARAM_MP, 0, 5, 0, "wp", "Write parameters (MMC)"},
     {XOR_MP, 0, 0, 0, "xo", "XOR control (SBC)"},
@@ -188,11 +192,13 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Head offset count (obsolete)", NULL},
     {"DSOC", RW_ERR_RECOVERY_MP, 0, -1, 6, 7, 8, 0,
         "Data strobe offset count (obsolete)", NULL},
-    {"EMCDR", RW_ERR_RECOVERY_MP, 0, 5, 7, 1, 2, 0, /* MMC only */
+    {"EMCDR", RW_ERR_RECOVERY_MP, 0, 5, 7, 1, 2, 0, /* MMC */
         "Enhanced media certification and defect reporting", NULL},
     {"WRC", RW_ERR_RECOVERY_MP, 0, -1, 8, 7, 8, 0,
         "Write retry count", NULL},
-    {"RTL", RW_ERR_RECOVERY_MP, 0, -1, 10, 7, 16, 0,
+    {"ERTL", RW_ERR_RECOVERY_MP, 0, 5, 9, 7, 24, 0, /* MMC */
+        "Error reporting threshold length (blocks)", NULL},
+    {"RTL", RW_ERR_RECOVERY_MP, 0, 0, 10, 7, 16, 0, /* SBC */
         "Recovery time limit (ms)", NULL},
 
     /* Disconnect-reconnect mode page [0x2]: see transport section */
@@ -259,7 +265,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"WR_T", WRITE_PARAM_MP, 0, 5, 2, 3, 4, MF_COMMON,
         "Write type",
         "0: packet/incremental; 1: track-at-once\t"
-        "2: session-at-once; 3: raw"},
+        "2: session-at-once; 3: raw; 4: layer jump recording"},
     {"MULTI_S", WRITE_PARAM_MP, 0, 5, 3, 7, 2, MF_COMMON,
         "Multi session",
         "0: next session not allowed (no BO pointer)\t"
@@ -365,8 +371,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     /* Control mode page [0xa] spc3 */
     {"TST", CONTROL_MP, 0, -1, 2, 7, 3, 0,
         "Task set type",
-        "0: lu maintains a task set for all I_T nexuses; "
-        "1: one per I_T nexus"},
+        "0: lu maintains one task set for all I_T nexuses\t"
+        "1: lu maintains separate task sets for each I_T nexus"},
     {"TMF_ONLY", CONTROL_MP, 0, -1, 2, 4, 1, 0,
         "Task management functions only", NULL},
     {"D_SENSE", CONTROL_MP, 0, -1, 2, 2, 1, 0,
@@ -415,6 +421,33 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"IALUAE", CONTROL_MP, MSP_SPC_CE, -1, 4, 0, 1, 0,
         "Implicit asymmetric logical unit access enabled", NULL},
 
+    /* SAT: pATA control mode subpage [0xa,0xf1] sat-r07 */
+    /* treat as if in sbc (rather than spc) */
+    {"MWD2", CONTROL_MP, MSP_SAT_PATA, 0, 4, 6, 1, 0,
+        "Multi word DMA bit 2", NULL},
+    {"MWD1", CONTROL_MP, MSP_SAT_PATA, 0, 4, 5, 1, 0,
+        "Multi word DMA bit 1", NULL},
+    {"MWD0", CONTROL_MP, MSP_SAT_PATA, 0, 4, 4, 1, 0,
+        "Multi word DMA bit 0", NULL},
+    {"PIO4", CONTROL_MP, MSP_SAT_PATA, 0, 4, 1, 1, 0,
+        "Parallel IO bit 4", NULL},
+    {"PIO3", CONTROL_MP, MSP_SAT_PATA, 0, 4, 0, 1, 0,
+        "Parallel IO bit 3", NULL},
+    {"UDMA6", CONTROL_MP, MSP_SAT_PATA, 0, 5, 6, 1, 0,
+        "Ultra DMA bit 6", NULL},
+    {"UDMA5", CONTROL_MP, MSP_SAT_PATA, 0, 5, 5, 1, 0,
+        "Ultra DMA bit 5", NULL},
+    {"UDMA4", CONTROL_MP, MSP_SAT_PATA, 0, 5, 4, 1, 0,
+        "Ultra DMA bit 4", NULL},
+    {"UDMA3", CONTROL_MP, MSP_SAT_PATA, 0, 5, 3, 1, 0,
+        "Ultra DMA bit 3", NULL},
+    {"UDMA2", CONTROL_MP, MSP_SAT_PATA, 0, 5, 2, 1, 0,
+        "Ultra DMA bit 2", NULL},
+    {"UDMA1", CONTROL_MP, MSP_SAT_PATA, 0, 5, 1, 1, 0,
+        "Ultra DMA bit 1", NULL},
+    {"UDMA0", CONTROL_MP, MSP_SAT_PATA, 0, 5, 0, 1, 0,
+        "Ultra DMA bit 0", NULL},
+
     /* Data compression mode page [0xf] ssc3 */
     {"DCE", DATA_COMPR_MP, 0, 1, 2, 7, 1, MF_COMMON,
         "Data compression enable", NULL},
@@ -425,9 +458,11 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"RED", DATA_COMPR_MP, 0, 1, 3, 6, 2, 0,
         "Report exception on decompression", NULL},
     {"COMPR_A", DATA_COMPR_MP, 0, 1, 4, 7, 32, 0,
-        "Compression algorithm", NULL},
+        "Compression algorithm",
+        "0: none; 5: ALDC (2048 byte): 16: IDRC; 32: DCLZ"},
     {"DCOMPR_A", DATA_COMPR_MP, 0, 1, 8, 7, 32, 0,
-        "Decompression algorithm", NULL},
+        "Decompression algorithm",
+        "0: none; 5: ALDC (2048 byte): 16: IDRC; 32: DCLZ"},
 
     /* XOR control mode page [0x10] sbc2 */
     {"XORDIS", XOR_MP, 0, 0, 2, 1, 1, 0,
@@ -465,7 +500,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"GAP_S", DEV_CONF_MP, 0, 1, 9, 7, 8, 0,
         "Gap size", NULL},
     {"EOD_D", DEV_CONF_MP, 0, 1, 10, 7, 3, 0,
-        "EOD (end-of-data) defined", NULL},
+        "EOD (end-of-data) defined",
+        "0: default; 1: format defined; 2: SOCF; 3: not supported"},
     {"EEG", DEV_CONF_MP, 0, 1, 10, 4, 1, 0,
         "Enable EOD generation", NULL},
     {"SEW", DEV_CONF_MP, 0, 1, 10, 3, 1, MF_COMMON,
@@ -480,18 +516,58 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Object buffer size at early warning", NULL},
     {"SDCA", DEV_CONF_MP, 0, 1, 14, 7, 8, MF_COMMON,
         "Select data compression algorithm", NULL},
-    {"WRTE", DEV_CONF_MP, 0, 1, 15, 7, 2, 0,
+    {"WTRE", DEV_CONF_MP, 0, 1, 15, 7, 2, 0,
         "WORM tamper read enable", NULL},
     {"OIR", DEV_CONF_MP, 0, 1, 15, 5, 1, 0,
         "Only if reserved", NULL},
     {"ROR", DEV_CONF_MP, 0, 1, 15, 4, 2, 0,
-        "Rewind on reset", NULL},
+        "Rewind on reset",
+        "0: vendor specific; 1: to BOP 0 on lu reset\t"
+        "2: hold position on lu reset"},
     {"ASOCWP", DEV_CONF_MP, 0, 1, 15, 2, 1, 0,
         "Associated write protection", NULL},
     {"PERSWP", DEV_CONF_MP, 0, 1, 15, 1, 1, 0,
         "Persistent write protection", NULL},
     {"PRMWP", DEV_CONF_MP, 0, 1, 15, 0, 1, 0,
         "Permanent write protection", NULL},
+
+    /* Device configuration extension mode subpage [0x10,1 ] ssc3 */
+    {"SEM", DEV_CONF_MP, MSP_DEV_CONF_EXT, 1, 5, 3, 4, 0,
+        "Short erase mode",
+        "0: as per ssc-2; 1: erase has no effect; 2: record EOD indication"},
+
+    /* Medium partition mode page [0x11] ssc3 */
+    {"MAX_AP", MED_PART_MP, 0, 1, 2, 7, 8, 0,
+        "Maximum additional partitions", NULL},
+    {"APD", MED_PART_MP, 0, 1, 3, 7, 8, 0,
+        "Additional partitions defined", NULL},
+    {"FDP", MED_PART_MP, 0, 1, 4, 7, 1, 0,
+        "Fixed data partitions", NULL},
+    {"SDP", MED_PART_MP, 0, 1, 4, 6, 1, 0,
+        "Select data partitions", NULL},
+    {"IDP", MED_PART_MP, 0, 1, 4, 5, 1, 0,
+        "Initiator defined partitions", NULL},
+    {"PSUM", MED_PART_MP, 0, 1, 4, 4, 2, 0,
+        "Partition size unit of measure",
+        "0: bytes; 1: kilobytes; 2: megabytes; 3: 10**(partition_units)"},
+    {"POFM", MED_PART_MP, 0, 1, 4, 2, 1, 0,
+        "Partition on format", NULL},
+    {"CLEAR", MED_PART_MP, 0, 1, 4, 1, 1, 0,
+        "Erase partition(s) (in concert with ADDP)", NULL},
+    {"ADDP", MED_PART_MP, 0, 1, 4, 0, 1, 0,
+        "Additional partition bit (in concert with CLEAR)", NULL},
+    {"MFR", MED_PART_MP, 0, 1, 5, 7, 8, 0,
+        "Medium format recognition",
+        "0: incapable; 1: format recognition; 2: partition recognition\t"
+        "3: format and partition recognition"},
+    {"PART_U", MED_PART_MP, 0, 1, 6, 3, 4, 0,
+        "Partition units (exponent of 10, bytes)", NULL},
+    {"P_SZ_0", MED_PART_MP, 0, 1, 8, 7, 16, 0,
+        "Partition size (index 0)", NULL},
+    {"P_SZ_1", MED_PART_MP, 0, 1, 10, 7, 16, 0,
+        "Partition size (index 1)", NULL},
+    {"P_SZ_2", MED_PART_MP, 0, 1, 12, 7, 16, 0,
+        "Partition size (index 2)", NULL},
 
     /* Enclosure services management mode page [0x14] ses2 */
     {"ENBLTC", ES_MAN_MP, 0, 0xd, 5, 0, 1, MF_COMMON,
@@ -521,7 +597,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
 
     /* Informational exception control mode page [0x1c] spc3 */
     {"PERF", IEC_MP, 0, -1, 2, 7, 1, 0,
-        "Performance", NULL},
+        "Performance (impact of ie operations)",
+        "0: normal (some delays); 1: abridge ie operations"},
     {"EBF", IEC_MP, 0, -1, 2, 5, 1, 0,
         "Enable background function", NULL},
     {"EWASC", IEC_MP, 0, -1, 2, 4, 1, MF_COMMON,
@@ -531,7 +608,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"TEST", IEC_MP, 0, -1, 2, 2, 1, 0,
         "Test (simulate device failure)", NULL},
     {"EBACKERR", IEC_MP, 0, -1, 2, 1, 1, 0,
-        "Enable background error reporting", NULL},
+        "Enable background (scan + self test) error reporting", NULL},
     {"LOGERR", IEC_MP, 0, -1, 2, 0, 1, 0,
         "Log informational exception errors", NULL},
     {"MRIE", IEC_MP, 0, -1, 3, 3, 4, MF_COMMON,
@@ -1024,6 +1101,34 @@ struct sdparm_transport_pair sdparm_transport_mp[] = {
     {NULL, NULL},       /* 15 */
 };
 
+
+const char * sdparm_pdt_doc_strs[] = {
+    /* 0 */ "SBC-3",    /* disk */
+    "SSC-3",            /* tape */
+    "SSC",              /* printer */
+    "SPC-2",            /* processor */
+    "SBC",              /* write once optical disk */
+    /* 5 */ "MMC-5",    /* cd/dvd */
+    "SCSI-2",           /* scanner */
+    "SBC-2",            /* optical memory device */
+    "SMC-2",            /* medium changer */
+    "SCSI-2",           /* communications */
+    /* 0xa */ "SCSI-2", /* graphics [0xa] */
+    "SCSI-2",           /* graphics [0xb] */
+    "SCC-2",            /* storage array controller */
+    "SES-2",            /* enclosure services device */
+    "RBC",              /* simplified direct access device */
+    "OCRW",             /* optical card reader/writer device */
+    /* 0x10 */ "BCC",   /* bridge controller commands */
+    "OSD-2",            /* object based storage */
+    "ADC",              /* automation/driver interface */
+    "unknown",          /* 0x13 */
+    "unknown", "unknown", "unknown", "unknown", "unknown",
+    "unknown", "unknown", "unknown", "unknown",
+    "unknown",          /* 0x1d */
+    "SPC-4",            /* well known logical unit */
+    "SPC-4",            /* no physical device on this lu */
+};
 
 const char * sdparm_transport_proto_arr[] =
 {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Douglas Gilbert.
+ * Copyright (c) 2005-2006 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,10 @@
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
-#include <scsi/sg_lib.h>
-#include <scsi/sg_cmds.h>
 
 #include "sdparm.h"
+#include "sg_lib.h"
+#include "sg_cmds.h"
 
 /* sdparm_cmd.c : contains code to implement commands
  * (i.e "--command=<cmd>") in sdparm.
@@ -160,7 +160,8 @@ const struct sdparm_command * sdp_build_cmd(const char * cmd_str, int * rwp)
     if (scmdp->name) {
         if (rwp) {
             if ((CMD_READY  == scmdp->cmd_num) ||
-                (CMD_SENSE  == scmdp->cmd_num))
+                (CMD_SENSE  == scmdp->cmd_num) ||
+                (CMD_CAPACITY  == scmdp->cmd_num))
                 *rwp = 0;
             else
                 *rwp = 1;
@@ -201,10 +202,13 @@ int sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp,
         res = do_cmd_read_capacity(sg_fd, verbose);
         break;
     case CMD_EJECT:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 1, 0, 1, verbose);
+        res = sg_ll_start_stop_unit(sg_fd, 0 /* immed */, 0 /* fl_num */,
+                                    0 /* power cond. */, 0 /* fl */,
+                                    1 /*loej */, 0 /* start */, 1 /* noisy */,
+                                    verbose);
         break;
     case CMD_LOAD:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 1, 1, 1, verbose);
+        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 1, 1, 1, verbose);
         break;
     case CMD_READY:
         progress = -1;
@@ -225,10 +229,10 @@ int sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp,
         res = do_cmd_sense(sg_fd, verbose);
         break;
     case CMD_START:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 1, 1, verbose);
+        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 0, 1, 1, verbose);
         break;
     case CMD_STOP:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 1, verbose);
+        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 0, 0, 1, verbose);
         break;
     case CMD_SYNC:
         res = sg_ll_sync_cache_10(sg_fd, 0, 0, 0, 0, 0, 1, verbose);

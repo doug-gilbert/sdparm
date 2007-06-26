@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Douglas Gilbert.
+ * Copyright (c) 2005-2006 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -271,10 +271,21 @@ void sdp_mp_set_value(unsigned long long val,
                        mpi->num_bits);
 }
  
-const char * sdp_get_ansi_version_str(int version, char * buff, int buff_len)
+char * sdp_get_ansi_version_str(int version, int buff_len, char * buff)
 {
     version &= 0x7;
     buff[buff_len - 1] = '\0';
     strncpy(buff, sdparm_ansi_version_arr[version], buff_len - 1);
+    return buff;
+}
+
+char * sdp_get_pdt_doc_str(int pdt, int buff_len, char * buff)
+{
+    if ((pdt < -1) || (pdt > 31))
+        snprintf(buff, buff_len, "bad pdt");
+    else if (-1 == pdt)
+        snprintf(buff, buff_len, "SPC-4");
+    else
+        snprintf(buff, buff_len, "%s", sdparm_pdt_doc_strs[pdt]);
     return buff;
 }

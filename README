@@ -6,9 +6,12 @@ a SCSI command set. Apart form SCSI disks, examples of devices that
 use SCSI command sets are ATAPI CD/DVD drives, SCSI and ATAPI tape
 drives and SCSI enclosures.
 
+This utility was originally written for Linux. It has been ported
+to FreeBSD and Tru64.
+
 Relationship to sg3_utils
 -------------------------
-This package shares code with sg3_utils (version 1.17).
+This package shares code with sg3_utils (version 1.19).
 sg3_utils is a package of utilities that typically act at the SCSI
 command level. sg3_utils is written by the same author. The shared code
 (sg_lib.[hc] and sg_cmds.[hc]) includes tables of SCSI command names
@@ -65,10 +68,10 @@ a tarball so versions were copied. Former symlinks:
    - install-sh
    - missing
 The above file copies have been updated to match with automake version
-1.9.5 as found in Fedora Core 4.
+1.9.5 as found in Fedora Core 4 (linux).
 The contents of INSTALL have been replaced by more specific instructions.
 The contents of COPYING is a FreeBSD license (rather than the GPL v2).
 
 
 Douglas Gilbert
-19th November 2005
+25th January 2006

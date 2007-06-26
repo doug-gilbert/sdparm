@@ -5,20 +5,21 @@
   <meta http-equiv="Content-Type"
  content="text/html; charset=iso-8859-1">
   <meta name="keywords"
- content="Linux, SCSI, sdparm, hdparm variant, mode page">
+ content="sdparm, SCSI utility, linux hdparm variant, mode page">
   <meta name="GENERATOR"
  content="Mozilla/4.79 [en] (X11; U; Linux 2.5.31 i686) [Netscape]">
 </head>
 <body alink="#ff0000" background="paper.jpg" bgcolor="#ffffff"
  link="#0000ff" text="#000000" vlink="#000080">
+<br>
 <center>
-<h1><a class="mozTocH1" name="mozTocId871473"></a> The&nbsp; Linux
-sdparm utility<br>
-</h1>
+<h1><a class="mozTocH1" name="mozTocId871473"></a> The
+sdparm utility</h1>
 </center>
 <ol id="mozToc">
 <!--mozToc h1 1 h2 2 h3 3 h4 4 h5 5 h6 6--><li><a href="#mozTocId871473">
-The&nbsp; Linux sdparm utility </a>
+The
+sdparm utility</a>
     <ol>
       <li><a href="#mozTocId373998">Introduction</a></li>
       <li><a href="#mozTocId783733">SCSI mode pages</a></li>
@@ -30,32 +31,35 @@ The&nbsp; Linux sdparm utility </a>
       <li><a href="#mozTocId28143">IEEE 1394</a></li>
       <li><a href="#mozTocId752074">SATA</a></li>
       <li><a href="#mozTocId262297">hdparm mapping</a></li>
-      <li><a href="#mozTocId600630">linux kernel series</a></li>
+      <li><a href="#mozTocId600630"> Linux kernel series</a></li>
+      <li><a href="#mozTocId197336">FreeBSD port</a></li>
+      <li><a href="#mozTocId997981">Tru64 port</a></li>
       <li><a href="#mozTocId786906">Examples</a></li>
       <li><a href="#mozTocId166213">Downloads</a></li>
       <li><a href="#mozTocId633593">Conclusion</a></li>
     </ol>
   </li>
 </ol>
-<a href="#Conclusion"></a>
 <h2><a class="mozTocH2" name="mozTocId373998"></a>Introduction</h2>
 The <span style="font-weight: bold;">sdparm</span> utility outputs and
 in some cases modifies SCSI device parameters. When the SCSI device is
 a disk, <span style="font-weight: bold;">sdparm</span>'s role is
 similar
-to its Linux namesake: <span style="font-weight: bold;">hdparm</span>
-which is for ATA disks that usually have device names starting with
+to its&nbsp; namesake: the linux <span style="font-weight: bold;">hdparm</span>
+utility which is for ATA disks that usually have device names starting
+with
 "hd".
 More generally <span style="font-weight: bold;">sdparm</span> can be
 used to output and modify parameters on any device that uses a SCSI
 command set. Apart from SCSI disks, such devices include CD/DVD drives
 (irrespective of transport), SCSI and ATAPI tape drives and SCSI
 enclosures. A small set of commands associated with starting and
-stopping the media, and loading and unloading removable media can also
+stopping the media, loading and unloading removable media and some
+other housekeeping functions can also
 be sent by this utility.<br>
 <br>
 The information in this page corresponds to <span
- style="font-weight: bold;">sdparm</span> version 0.96 .<br>
+ style="font-weight: bold;">sdparm</span> version 0.97 .<br>
 <h2><a class="mozTocH2" name="mozTocId783733"></a>SCSI mode pages</h2>
 Mode pages hold meta data about a SCSI device which can, in some cases,
 be changed by the user. In SCSI parlance the "device" is a <span
@@ -73,8 +77,10 @@ the SCSI initiator.<br>
 <br>
 Mode pages are defined in SCSI (draft) standards found at <a
  href="http://www.t10.org">www.t10.org</a> . Mode pages common to all
-SCSI devices are found in SPC-3 while those specific to block devices
-are found in SBC-2 and those for CD/DVD drives are found in MMC-5. SCSI
+SCSI devices are found in the SCSI Primary Commands document (SPC-3)
+while those specific to block devices
+(e.g. disks) are found in SBC-2 and those for CD/DVD drives are found
+in MMC-5. SCSI
 device product manuals detail precisely which mode pages (and parts
 thereof) are supported by a particular model and describe the way the
 device will react (if the generic description in the SCSI (draft)
@@ -93,7 +99,8 @@ obtained via the SCSI INQUIRY command. Performance statistics are held
 in log pages which are obtained via the SCSI LOG SENSE command. Recent
 CD/DVD drives hold a lot of information in feature and profile
 descriptors (see MMC-4 and MMC-5) which are accessed via the GET
-CONFIGURATION command (see the sg_get_config utility in the sg3_utils
+CONFIGURATION command (see the sg_get_config utility in the <a
+ href="u_index.html">sg3_utils</a>
 package).<br>
 <br>
 Each mode page has up to four tables associated with it. These can be
@@ -153,12 +160,13 @@ onto a rope which you are not sure is properly secured.&nbsp; If in
 doubt, change the current value without using the "--save" option. That
 way if the setting is disastrous, power cycling the device will
 restore the previous setting. Once the new setting is known to be safe,
-then the command can be re-executed with the "--save" option added.<br>
+then the sdparm command can be re-executed with the "--save" option
+added.<br>
 <h2><a class="mozTocH2" name="mozTocId968100"></a>VPD pages</h2>
 Vital Product Data (VPD) pages are associated with the SCSI INQUIRY
 command. While support for a "standard" INQUIRY response is mandatory,
-support for VPD page has been optional in the past. The current SPC-3
-draft makes support for the "Device Identification" and the "Supported
+support for VPD page has been optional in the past. SPC-3 makes support
+for the "Device Identification" and the "Supported
 VPD pages" VPD pages mandatory.<br>
 <br>
 VPD pages are read only and in some situations may not be available
@@ -170,7 +178,7 @@ with the '--page=' option; if only the '--inquiry' option is given
 VPD
 page (page number 0x83 or abbreviation "di") is assumed. If both the
 '--inquiry' and '-all' options are given (without a '--page=' option)
-then the Support VPD pages VPD page (page number 0x0 or abbreviation
+then the Supported VPD pages VPD page (page number 0x0 or abbreviation
 "sv") is assumed.<br>
 <br>
 The device
@@ -188,7 +196,9 @@ addressed logical unit</li>
 </ul>
 Any descriptors found are grouped in the order of the above list. If
 there are no descriptors of a given type of association then the
-heading for that association is not output.<br>
+heading for that association is not output. Each association can be
+listed individually with the
+"di_lu", "di_port" and "di_target" acronyms.<br>
 <br>
 VPD pages that are currently decoded:<br>
 <ul>
@@ -201,7 +211,10 @@ a vendor specific (vendor format) serial number.<br>
   <li>Device identification [page 0x83]; default, page abbreviation:
 "di". Contains identifiers for the addressed logical unit, target
 device and target port. These can be listed individually with the
-"di_lu", "di_target" and "di_port" acronyms.<br>
+"di_lu", "di_port" and "di_target" acronyms.</li>
+  <li>Software Interface Identification; [page 0x84], one or more
+EUI-48 identifiers that can be used to define more precisely the
+peripheral device type.<br>
   </li>
   <li>Management network addresses: [page 0x85], page abbreviation:
 "mna". Contains a list network addresses of associated management
@@ -235,9 +248,7 @@ in ASCII hex. VPD page abbreviations can be listed with "sdparm
 --enumerate --inquiry".<br>
 <h2><a class="mozTocH2" name="mozTocId592219"></a>sdparm commands</h2>
 The "--command=" option allows a command to be sent to the given
-device. The currently supported commands may be useful for controlling
-power conditions and for devices with
-removable media. Those commands are:<br>
+device. The currently supported commands are:
 <ul>
   <li>capacity: sends a READ CAPACITY and if successful reports the
 number of blocks, block length and capacity expressed in MibiBytes
@@ -267,7 +278,8 @@ your own risk.<br>
 </ul>
 These sdparm commands send SCSI commands to the given device. If they
 don't seem to work, adding a verbose flag (i.e. "-v" or "-vv") may
-provide more information. The "ready" command needs read permissions on
+provide more information. The "ready" and "sense" commands need read
+permissions on
 the given device while the other commands need both read and write
 permissions.<br>
 <h2><a class="mozTocH2" name="mozTocId683013"></a>sdparm syntax</h2>
@@ -369,7 +381,7 @@ command.]<br>
       </td>
       <td style="vertical-align: top;">fetch information from the
 sdparm's internal tables. If a SCSI device name is given then it will
-be ignored. May be used in conjunction with '-all', '--inquiry',
+be ignored. May be used in conjunction with '--all', '--inquiry',
 '--long',&nbsp;
 '--page=', and/or '--transport='.<br>
       </td>
@@ -455,7 +467,7 @@ abbreviation may be for a mode page (e.g. "ca")&nbsp; or a VPD page
       <td style="vertical-align: top;">-q<br>
       </td>
       <td style="vertical-align: top;">suppress vendor/product/revision
-strings that are usually output as the first line.<br>
+strings that are usually the first line of the output.<br>
       </td>
     </tr>
     <tr>
@@ -543,7 +555,10 @@ parameters and that operation succeeds (or at least no error is
 reported) then only standard INQUIRY response information (i.e. vendor,
 model and revision) is output
 and the <span style="font-weight: bold;">sdparm</span> process exits
-with a value of 0. If <span style="font-weight: bold;">sdparm</span>
+with a value of 0. If required the standard INQUIRY response
+information (i.e. vendor,
+model and revision) output can be suppressed with the '--quiet' option.
+If <span style="font-weight: bold;">sdparm</span>
 is used to change parameters and that operation fails then error
 information is output (usually to stderr) and the <span
  style="font-weight: bold;">sdparm</span> process exits with a value of
@@ -581,8 +596,10 @@ command sets (e.g. MMC for CD/DVD drives). SAS and FCP are considered
 "SCSI" transports yet they can also carry (or tunnel) the ATA
 non-packet command set for disks.<br>
 <br>
-Now should Linux name devices by transport or command set? Well, there
-are examples of both:<br>
+Should&nbsp; name devices by transport or command set? That is a
+difficult question since transports can be bridged (or tunnelled) while
+command set can be translated.&nbsp; has examples of both transport and
+command set device naming that shows there is no good answer:<br>
 <ul>
   <li>/dev/hdc could be an ATAPI DVD drive connected via a parallel ATA
 ribbon cable. However it responds to very few ATA commands (those for
@@ -591,7 +608,7 @@ it is a "SCSI" device using the Multi Media Command (MMC) set.</li>
   <li>/dev/sda could be a Compact Flash card, plugged into a USB
 multi-card reader which is connected to the computer with a USB cable.
 The device node name suggests it is a SCSI device yet its transport is
-obviously obviously USB.</li>
+obviously USB bridged externally to PATA.</li>
 </ul>
 Sometimes the command set layer is used to fetch or perhaps change
 transport characteristics of the given device (e.g. a disk at the other
@@ -602,11 +619,12 @@ transport (protocol) specific mode pages (according to current drafts):<br>
 <ul>
   <li>Fibre channel [abbreviation "fcp"]</li>
   <li>SCSI parallel interface [abbreviation "spi"]</li>
-  <li>SCSI Remote DMA [abbreviation "srp"]</li>
+  <li>SCSI Remote DMA used by InfiniBand [abbreviation "srp"]</li>
   <li>Serial attached SCSI [abbreviation "sas"]</li>
 </ul>
 These transports all have a protocol specific Disconnect/reconnect mode
-page, and most have additional mode pages. All supported protocol
+page, and most have additional mode pages. All supported generic and
+protocol
 specific
 modes pages can be listed (enumerated) with the "--enumerate --long"
 option. Mode pages for a given transport can be listed with, for
@@ -622,7 +640,8 @@ can be found at <a href="http://www.usb.org/developers/devclass_docs">www.usb.or
 under "Mass storage". There are no transport specific mode pages
 defined for the USB
 mass storage class. Typically a USB external disk enclosure contains an
-ATA disk while USB external CD/DVD drives are normally ATAPI devices.
+ATA disk while USB external CD/DVD drives are normally parallel ATAPI
+devices.
 Often there is a protocol bridge chip within a USB enclosure to do a
 SCSI to ATA translation and in the author's experience the translation
 is minimal. There are also USB memory keys (containing flash ram) and
@@ -645,7 +664,7 @@ CAPACITY SCSI command) in a rather awkward way. RBC only supports the 6
 byte variants of MODE SENSE and MODE SELECT and requires the "disable
 descriptor blocks" (DBD) bit to be set, both of which defy the
 conventions of other t10.org standards. Since RBC can trip up the SCSI
-disk (sd) driver in linux, the USB mass storage driver does its own
+disk (sd) driver in , the USB mass storage driver does its own
 translation so RBC is somewhat hidden.
 Around lk 2.6.13 the sd driver has been corrected to handle the RBC set
 properly (mainly for IEEE 1394). This discussion suggests that the way
@@ -656,7 +675,7 @@ parameters mode page is something like "sdparm --dbd --six --page=rbc
 In summary, sdparm can do very little with USB mass storage
 devices. Best to start with very low expectations. Features such as
 locking and password based access control are being discussed for USB
-so there may be improvements in the futures.<br>
+so there may be improvements in the future.<br>
 <h2><a class="mozTocH2" name="mozTocId28143"></a>IEEE 1394</h2>
 This is a similar technology to USB. IEEE1394 has a transport defined
 at t10.org called SBP-2 (and a new version called SBP-3). There are no
@@ -665,25 +684,25 @@ the use of the Reduced Block Commands (RBC) set. The comments about RBC
 in the former section on USB apply.<br>
 <h2><a class="mozTocH2" name="mozTocId752074"></a>SATA</h2>
 SATA disks and S-ATAPI devices (e.g. a DVD drive) may appear as either
-IDE (e.g. /dev/hda) or SCSI (e.g. /dev/scd0) devices in linux. In some
+IDE (e.g. /dev/hda) or SCSI (e.g. /dev/scd0) devices in . In some
 cases this may depend on which hardware drivers have been chosen in the
-kernel configuration. For SATA disks that appear as IDE devices in
-linux, the hdparm utility is the appropriate tool. S-ATAPI devices,
-regardless of how the appear in linux, may find sdparm useful because
+kernel configuration. For SATA disks that appear as IDE devices in ,
+the hdparm utility is the appropriate tool. S-ATAPI devices,
+regardless of how the appear in , may find sdparm useful because
 there is a high probability that they use a SCSI command set (e.g. MMC
 for DVD drives).<br>
 <br>
-SATA disks that appear in linux as SCSI devices (e.g. /dev/sda) will
+SATA disks that appear in&nbsp; as SCSI devices (e.g. /dev/sda) will
 have a SCSI ATA Translation layer (SATL) between the disk and the host
 computer. SCSI ATA Translation (SAT) is an emerging standard at t10.org
-. The SATL may be within the linux kernel (e.g. libata) or in an
+. The SATL may be within the&nbsp; kernel (e.g. libata) or in an
 external enclosure (e.g. Fibre channel has FC to SATA translation chips
 that include a SATL). [One reason for doing this is that the SCSI
 protocols scale better in multi-initiator, multi-port environments
 (e.g. SATA NCQ assumes one host).] Recent versions of hdparm may work
 on device attributes; since it tries to use the ATA PASS THROUGH SCSI
-commands defined by SAT. Those commands should be supported by libata
-soon.<br>
+commands defined by SAT. Those commands have been added to libata in lk
+2.6.15-rc1 and thus should be available when lk 2.6.15 is released.<br>
 <br>
 The SAT draft defines a Vital Product Data page for fetching
 information about ATA devices which includes the response to the
@@ -712,9 +731,10 @@ useful since the ATA PASS THROUGH will be very useful for other
 utilities like smartmontools while MODE SELECT is required for S-ATAPI
 devices that use SCSI command sets (e.g. DVD drives use MMC).<br>
 <h2><a class="mozTocH2" name="mozTocId262297"></a>hdparm mapping</h2>
-hdparm uses command line options in many cases to change or fetch a
+The linux hdparm utility uses command line options in many cases to
+change or fetch a
 specific attribute. These attributes can be looked up in the "man page"
-for the hdparm command. The sdparm utility uses more generic command
+for&nbsp; hdparm. The sdparm utility uses more generic command
 line options with acronyms for attributes; these acronyms are not
 defined in sdparm's man page but can be listed (with a short
 description)
@@ -722,15 +742,16 @@ with the '--enumerate' option. In both cases the relevant standards
 and/or product manuals should be consulted before some of these
 attributes are <span style="font-style: italic;">changed</span>.<br>
 <br>
-hdparm covers a wide sweep of attributes: for the linux kernel block
+hdparm covers a wide sweep of attributes: for the&nbsp; kernel block
 subsystem, for the host interface (to the PATA or SATA transport), for
 the transport specific attributes of the device (at the other end of
 the cable) and the more general attributes of the device. Even though
 ATAPI (but not ATA) is recognised as a SCSI
 transport, there are no standard transport specific mode pages
-defined for sdparm to access. The main area of overlap is for general
+defined for sdparm to access. The main area of overlap between sdparm
+and hdparm is for general
 device attributes. For directly attached ATAPI devices (e.g. DVD
-drive) then hdparm can be used to probe and perhaps change transport
+drive) hdparm can be used to probe and perhaps change transport
 characteristics while sdparm can be used for more general attributes
 (e.g. setting the TST_W (test write) attribute for DVD writing
 code).<br>
@@ -874,6 +895,15 @@ global flag in ATA but per attribute in SCSI. Hence not an exact match.<br>
       <td style="vertical-align: top;">enable write cache<br>
       </td>
     </tr>
+    <tr>
+      <td style="vertical-align: top;">-y<br>
+      </td>
+      <td style="vertical-align: top;">--command=stop<br>
+      </td>
+      <td style="vertical-align: top;">places an ATA disk, or a CD/DVD
+drive, in standby mode<br>
+      </td>
+    </tr>
   </tbody>
 </table>
 <br>
@@ -882,31 +912,55 @@ response to an IDENTIFY (PACKET) DEVICE ATA command (with "--page=ai"
 to get the ATA information VPD page), it doesn't decode it; just dumps
 it
 in hex. The hdparm utility does decode it when the '-I' option is used.
-The hdparm utility can also accept response data from stdin as longer
+The hdparm utility can also accept response data from stdin as long
 as it has a specific format (which is the format seen with 'cat
 /proc/ide/hd&lt;x&gt;/identify') when the '--Istdin' option is given.
 See the earlier SATA section for more details.<br>
-<h2><a class="mozTocH2" name="mozTocId600630"></a>linux kernel series</h2>
-<span style="font-weight: bold;">sdparm</span> is designed for both the
-linux kernel 2.6 and 2.4 series. There are some slight differences
+<h2><a class="mozTocH2" name="mozTocId600630"></a> Linux kernel series</h2>
+<span style="font-weight: bold;">sdparm</span> is designed for both
+the&nbsp; 2.6 and 2.4 linux kernel series. There are some slight
+differences
 between the two environments.<br>
 <br>
-In the linux kernel 2.6 series <span style="font-weight: bold;">sdparm</span>
+In the&nbsp; kernel 2.6 series <span style="font-weight: bold;">sdparm</span>
 uses the SG_IO ioctl which is implemented for all SCSI devices and many
-other devices that are not considered as "SCSI" but use a SCSI command
+other devices that are not considered to be "SCSI" but use a SCSI
+command
 set. An example of the latter case is an ATAPI DVD drive which uses MMC
 (a SCSI command set) and implements the SG_IO ioctl so <span
  style="font-weight: bold;">sdparm</span> will work with it (in the lk
 2.6 series). So if "/dev/hdc" is a DVD drive (with or without media in
 it) then "sdparm /dev/hdc" should work.<br>
 <br>
-In the linux kernel 2.4 series <span style="font-weight: bold;">sdparm
+In the&nbsp; kernel 2.4 series <span style="font-weight: bold;">sdparm
 </span>will work on all devices that use the SCSI subsystem. Internally
-it maps the given SCSI
+sdparm maps the given SCSI
 device to the corresponding SCSI generic (sg) device which implements
 the SG_IO ioctl. Hence an ATAPI DVD drive will only be accessible to
 sdparm if the device is mapped through to the SCSI subsystem with the
 ide-scsi driver.<br>
+<h2><a class="mozTocH2" name="mozTocId197336"></a>FreeBSD port</h2>
+Version 0.97 has been ported to the FreeBSD operating system. Virtually
+all of sdparm's features work with FreeBSD. SCSI commands are routed
+through the CAM pass through interface. The author tested sdparm with
+FreeBSD version 5.3 and found SCSI disks worked with the "da" device
+(e.g. "sdparm&nbsp; /dev/da0"). SCSI tape drives can be accessed via
+the "sa" device via /dev nodes starting with "esa", "nsa" and "sa". To
+access cd/dvd drives, the kernel needs to be build with the "atapicam"
+device after which access is via the "cd" device. Other SCSI devices
+are "ses" (for enclosure services), "ch" (media changer (for tapes)),
+and "pr" for processor device type (e.g. SAF-TE devices). All these
+device may also be accessed via the "pass" device. To see the mapping
+between the "pass" device name and the corresponding higher level
+device node try "camcontrol devlist".<br>
+<br>
+USB storage devices are usually a disappointment from the SCSI command
+level perspective (even if the OS gives access via a pass through).
+SATA devices (e.g. disks) may be accessed via sdparm if there is a SCSI
+to ATA Translation (SAT) layer between the disk and the user space
+(e.g. some FC SATA disk enclosures).<br>
+<h2><a class="mozTocH2" name="mozTocId997981"></a>Tru64 port</h2>
+An experimental port has just been added.<br>
 <h2><a class="mozTocH2" name="mozTocId786906"></a>Examples</h2>
 List the common (mode) parameters of a disk:<br>
 <span style="font-family: monospace;"># sdparm /dev/sda</span><br
@@ -966,10 +1020,9 @@ See all parameters for the read write error recovery mode page:<br>
  style="font-family: monospace;">
 <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp; /dev/sda:
 SEAGATE&nbsp;&nbsp;
-ST336732LC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ABCD</span><br
- style="font-family: monospace;">
-<span style="font-family: monospace;"></span><span
- style="font-family: monospace;">Read write error recovery mode page:<br>
+ST336732LC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ABCD</span><span
+ style="font-family: monospace;"><br>
+Read write error recovery mode page:<br>
 &nbsp; AWRE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1&nbsp; [cha: y,
 def:&nbsp; 1, sav:&nbsp; 1]<br>
 &nbsp; ARRE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1&nbsp; [cha: y,
@@ -988,6 +1041,12 @@ def:&nbsp; 1, sav:&nbsp; 1]<br>
 [cha: y, def:&nbsp; 0, sav:&nbsp; 0]<br>
 &nbsp; RRC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 11&nbsp; [cha: y,
 def: 11, sav: 11]<br>
+&nbsp; COR_S&nbsp;&nbsp;&nbsp;&nbsp; 240&nbsp; [cha: n, def:240,
+sav:240]<br>
+&nbsp; HOC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;
+[cha: n, def:&nbsp; 0, sav:&nbsp; 0]<br>
+&nbsp; DSOC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n,
+def:&nbsp; 0, sav:&nbsp; 0]<br>
 &nbsp; WRC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 5&nbsp;
 [cha: y, def:&nbsp; 5, sav:&nbsp; 5]<br>
 &nbsp; RTL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -1&nbsp; [cha: y,
@@ -999,32 +1058,121 @@ acronym descriptions:<br>
  style="font-family: monospace;">
 <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp; /dev/sda:
 SEAGATE &nbsp; ST336732LC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ABCD<br>
-Read write error recovery [PS=1] mode page:<br>
-&nbsp; AWRE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1&nbsp; [cha: y,
-def:&nbsp; 1, sav:&nbsp; 1]&nbsp; Automatic write reallocation enabled<br>
-&nbsp; ARRE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1&nbsp; [cha: y,
-def:&nbsp; 1, sav:&nbsp; 1]&nbsp; Automatic read reallocation enabled<br>
-&nbsp; TB&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;
-[cha: y, def:&nbsp; 0, sav:&nbsp; 0]&nbsp; Transfer block<br>
-&nbsp; RC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;
-[cha: y, def:&nbsp; 0, sav:&nbsp; 0]&nbsp; Read continuous<br>
-&nbsp; EER&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;
-[cha: y, def:&nbsp; 0, sav:&nbsp; 0]&nbsp; Enable early recover<br>
-&nbsp; PER&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;
-[cha: y, def:&nbsp; 0, sav:&nbsp; 0]&nbsp; Post error<br>
-&nbsp; DTE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;
-[cha: y, def:&nbsp; 0, sav:&nbsp; 0]&nbsp; Data terminate on error<br>
-&nbsp; DCR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp;
-[cha: y, def:&nbsp; 0, sav:&nbsp; 0]&nbsp; Disable correction<br>
-&nbsp; RRC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 11&nbsp; [cha: y,
-def: 11, sav: 11]&nbsp; Read retry count<br>
-&nbsp; WRC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 5&nbsp;
-[cha: y, def:&nbsp; 5, sav:&nbsp; 5]&nbsp; Write retry count<br>
-&nbsp; RTL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -1&nbsp; [cha: y,
-def: -1, sav: -1]&nbsp; Recovery time limit (ms)<br
+&nbsp;&nbsp;&nbsp; Direct access device specific parameters: WP=0&nbsp;
+DPOFUA=1</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">Read write error recovery mode
+page:</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+AWRE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1&nbsp; [cha: y,
+def:&nbsp; 1, sav:&nbsp; 1]&nbsp; Automatic write reallocation enabled</span><br
  style="font-family: monospace;">
-</span><span style="font-family: monospace;"><br>
-</span>&nbsp;<span style="text-decoration: underline;"></span>Get the
+<span style="font-family: monospace;">&nbsp;
+ARRE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1&nbsp; [cha: y,
+def:&nbsp; 1, sav:&nbsp; 1]&nbsp; Automatic read reallocation enabled</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+TB&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha:
+y, def:&nbsp; 0, sav:&nbsp; 0]&nbsp; Transfer block</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+RC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha:
+y, def:&nbsp; 0, sav:&nbsp; 0]&nbsp; Read continuous</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+EER&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: y,
+def:&nbsp; 0, sav:&nbsp; 0]&nbsp; Enable early recovery</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+PER&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: y,
+def:&nbsp; 0, sav:&nbsp; 0]&nbsp; Post error</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+DTE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: y,
+def:&nbsp; 0, sav:&nbsp; 0]&nbsp; Data terminate on error</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+DCR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: y,
+def:&nbsp; 0, sav:&nbsp; 0]&nbsp; Disable correction</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+RRC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 11&nbsp; [cha: y, def:
+11, sav: 11]&nbsp; Read retry count</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+COR_S&nbsp;&nbsp;&nbsp;&nbsp; 240&nbsp; [cha: n, def:240,
+sav:240]&nbsp; Correction span (obsolete)</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+HOC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n,
+def:&nbsp; 0, sav:&nbsp; 0]&nbsp; Head offset count (obsolete)</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+DSOC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n,
+def:&nbsp; 0, sav:&nbsp; 0]&nbsp; Data strobe offset count (obsolete)</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+WRC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 5&nbsp; [cha: y,
+def:&nbsp; 5, sav:&nbsp; 5]&nbsp; Write retry count</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+RTL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -1&nbsp; [cha: y, def:
+-1, sav: -1]&nbsp; Recovery time limit (ms)</span><br>
+<span style="font-family: monospace;"></span><span
+ style="font-family: monospace;"><br>
+</span>The '--long' option can be used twice to get more information on
+selected mode page attribute values. The next example uses the
+'--enumerate' option so that tables within sdparm are being probed
+(rather than a specific device):<br>
+<span style="font-family: monospace;"># sdparm --enumerate --page=ie
+--long --long</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">Informational exceptions control
+[0x1c] mode page:</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+PERF&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x02:7:1 ]&nbsp; Performance</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+EBF&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x02:5:1 ]&nbsp; Enable
+background function</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+EWASC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x02:4:1 ]&nbsp; Enable warning</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+DEXCPT&nbsp;&nbsp;&nbsp;&nbsp; [0x02:3:1 ]&nbsp; Disable exceptions</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+TEST&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x02:2:1 ]&nbsp; Test
+(simulate device failure)</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp; EBACKERR&nbsp;&nbsp;
+[0x02:1:1 ]&nbsp; Enable background error reporting</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+LOGERR&nbsp;&nbsp;&nbsp;&nbsp; [0x02:0:1 ]&nbsp; Log informational
+exception errors</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+MRIE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x03:3:4 ]&nbsp; Method of
+reporting informational exceptions</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+0: no reporting; 1: async reporting; 2: unit attention</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+3: conditional recovered error; 4: recovered error</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+5: check condition with no sense; 6: request sense only</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+INTT&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x04:7:32]&nbsp; Interval
+timer (100 ms)</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+REPC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x08:7:32]&nbsp; Report count</span><br>
+<br>
+The short option form of the above invocation would be "sdparm -ell -p
+ie". Notice that the MRIE field has its possible values listed on
+following, tab indented lines. Only fields with non-obvious values
+supply this extra information.<br>
+<br>
+To get the
 Writeback Cache Enable (WCE) values from the caching control mode
 page:<br>
 <span style="font-family: monospace;"># sdparm --get=WCE /dev/sdd</span><br
@@ -1032,7 +1180,7 @@ page:<br>
 <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp; /dev/sdd:
 SEAGATE &nbsp; ST373453LC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ABCD<br>
 WCE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: y,
-def:&nbsp; 0, sav:&nbsp; 0]</span><br>
+def:&nbsp; 1, sav:&nbsp; 0]</span><br>
 <span style="font-family: monospace;"></span><br>
 Get the Write Cache Enable (WCE) values from the caching control mode
 page in hex (using short option form). The four values are the current
@@ -1057,11 +1205,10 @@ exits with a non-zero status):<br>
 <span style="font-family: monospace;">&nbsp;&nbsp;&nbsp; /dev/sdd:
 SEAGATE &nbsp; ST373453LC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ABCD</span><br>
 <br>
-Check that change occurred:<br>
-<span style="font-family: monospace;"># sdparm --get=WCE /dev/sdd</span><br
- style="font-family: monospace;">
-<span style="font-family: monospace;">&nbsp;&nbsp;&nbsp; /dev/sdd:
-SEAGATE &nbsp; ST373453LC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ABCD</span><span
+Check that change occurred (and suppress the disk identification line
+with '--quiet'):<br>
+<span style="font-family: monospace;"># sdparm --get=WCE --quiet
+/dev/sdd</span><span style="font-family: monospace;"></span><span
  style="font-family: monospace;"><br>
 </span><span style="font-family: monospace;">WCE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 1&nbsp; [cha: y, def:&nbsp; 1, sav:&nbsp; 0]</span><br>
@@ -1169,10 +1316,10 @@ port: phy control and discover (SAS) mode page:<br>
 <br>
 </span>Here is a command example; ejecting a CD:<span
  style="font-family: monospace;"><br>
-$ sdparm --command=eject /dev/hdc<br>
+# sdparm --command=eject /dev/hdc<br>
 &nbsp;&nbsp;&nbsp; /dev/hdc: HITACHI&nbsp;&nbsp; DVD-ROM
 GD-S200&nbsp;&nbsp; 0034&nbsp; [pdt=0x5]<br>
-$ echo $?<br>
+# echo $?<br>
 0<br>
 <br>
 </span>The process status of 0 indicates that the eject command worked.<span
@@ -1260,10 +1407,21 @@ package</span><br>
  href="p/sdparm_0.95-0.1_i386.deb">sdparm_0.95-0.1_i386.deb</a> </td>
     </tr>
     <tr>
-      <td style="vertical-align: top;">0.96 beta<br>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">0.96</span><br>
       </td>
       <td style="vertical-align: top;"><a href="p/sdparm-0.96.tgz">sdparm-0.96.tgz</a>
       </td>
+      <td style="vertical-align: top;"><a href="p/sdparm-0.96-1.src.rpm">sdparm-0.96-1.src.rpm</a>
+      </td>
+      <td style="vertical-align: top;"><a
+ href="p/sdparm-0.96-1.i386.rpm">sdparm-0.96-1.i386.rpm</a> </td>
+      <td style="vertical-align: top;"><a
+ href="p/sdparm_0.96-0.1_i386.deb">sdparm_0.96-0.1_i386.deb</a> </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;">0.97 (beta)<br>
+      </td>
+      <td style="vertical-align: top;"><a href="p/sdparm-0.97.tgz">sdparm-0.97.tgz</a></td>
       <td style="vertical-align: top;"><br>
       </td>
       <td style="vertical-align: top;"><br>
@@ -1284,7 +1442,9 @@ cases setting device parameters. These device parameters number more
 than 300 and are accessed via transport, page and/or parameter acronym.
 The sdparm package includes a man page
 (in chapter 8) for online access and outputs a usage message if the
-'--help' option is given.<br>
+'--help' option is given. Rather than list the supported parameters and
+their acronyms in the man page, an '--enumerate' option is available to
+probe sdparm's internal tables (which are quite large).<br>
 <br>
 The author hopes a GUI wrapping this utility (or using it as a library)
 will soon emerge. SCSI mode pages especially lend themselves to a GUI
@@ -1293,7 +1453,7 @@ representation similar to the table representations found in the SCSI
 <br>
 <p>Return to <a href="index.html">main</a> page. </p>
 <center>
-<p>Last updated: 15th November 2005<br>
+<p>Last updated: 18th January 2006<br>
 <br>
 </p>
 </center>

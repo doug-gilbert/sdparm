@@ -41,8 +41,10 @@ echo "- autoheader."		&& \
 autoheader			&& \
 echo "- automake."		&& \
 automake --add-missing --gnu	&& \
-echo				&& \
-./configure "$@"		&& exit 0
+exit 0
+
+# echo				&& \
+# ./configure "$@"		&& exit 0
 
 exit 1
 

@@ -1,7 +1,30 @@
-The hdparm utility is usually found in the /sbin and sometimes in the
-/usr/sbin directory. That location is not usually on the PATH of a
+The sdparm utility uses the MODE SENSE SCSI command to read device
+parameters and the MODE SELECT SCSI command to change them. CD/DVD
+drives (and their media) have a large amount of information that
+either the user can't change or are a characteristic of the media.
+The MMC set has developed a special GET CONFIGURATION SCSI command
+to fetch information (basically capabilities) that the user is not
+able to change. To read this information see the sg_get_config utility
+in the sg3_utils package. Earlier versions of MMC put information in
+the "CD/DVD (MM) capabilities and mechanical status" mode page that is
+now found in the GET CONFIGURATION feature and profile pages. The
+sdparm utility shows the CD/DVD capabilities and mechanical status
+mode page which has information up to about "DVD-R" vintage. Thereafter,
+(MMC-4 and MMC-5) information about "DVD+R" and later (e.g. BD and
+HD-DVD) are in feature and profile pages fetched with the GET
+CONFIGURATION command.
+
+
+There is a C program called chk_sdparm_data.c in the src directory
+for checking the integrity of the mode items in the sdparm_data.c
+file. A simple example for building chk_sdparm_data is given inside
+the source file. The sdparm_data.c file only needs to be checked for
+integrity after a lot of new mode page items are added or changed.
+The linux hdparm utility is usually found in the /sbin and sometimes in
+the /usr/sbin directory. That location is not usually on the PATH of a
 non-root user. Since hdparm is mainly used on disks, this is an appropriate
 place.
+
 
 Currently sdparm is placed in the /usr/bin directory (by the sdparm.spec
 file) or /usr/local/bin (by 'make install'). This allows both root and
@@ -22,28 +45,5 @@ CD/DVD drive has permissions like this (when "dougg" is the GUI user):
   # ls -l /dev/hdc
   brw-------  1 dougg disk 22, 0 Jul 28  2005 /dev/hdc
 
-
-The sdparm utility uses the MODE SENSE SCSI command to read device
-parameters and the MODE SELECT SCSI command to change them. CD/DVD
-drives (and their media) have a large amount of information that
-either the user can't change or are a characteristic of the media.
-The MMC set has developed a special GET CONFIGURATION SCSI command
-to fetch information (basically capabilities) that the user is not
-able to change. To read this information see the sg_get_config utility
-in the sg3_utils package. Earlier versions of MMC put information in
-the "CD/DVD (MM) capabilities and mechanical status" mode page that is
-now found in the GET CONFIGURATION feature and profile pages. The
-sdparm utility shows the CD/DVD capabilities and mechanical status
-mode page which has information up to about "DVD-R" vintage. Thereafter,
-(MMC-4 and MMC-5) information about "DVD+R" and later (e.g. BD and
-HD-DVD) are in feature and profile pages fetched with the GET
-CONFIGURATION command.
-
-There is a C program called chk_sdparm_data.c in the src directory
-for checking the integrity of the mode items in the sdparm_data.c
-file. A simple example for building chk_sdparm_data is given inside
-the source file. The sdparm_data.c file only needs to be checked for
-integrity after a lot of new mode page items are added or changed.
-
 Doug Gilbert
-13th November 2005
+27th December 2005

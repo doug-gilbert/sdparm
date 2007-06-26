@@ -2,6 +2,21 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
+ChangeLog for sdparm-0.97 [20060125]
+  - add decode for SAT pATA control mode subpage
+  - add decode for Medium partition mode page (ssc)
+  - add decode for Device configuration extension mode subpage (ssc)
+  - add decode for Software interface identification VPD page
+  - rename 'timeout and protect' mode page acronym to "tp" (mmc)
+  - clear DPOFUA bit for disks in mode select parameters
+  - make '-q' trim output of '-p di' and its components:
+    di_lu, di_port and di_target
+  - allow 'h' suffix as hex indicator (still accept '0x' prefix)
+  - rework sg_lib.[hc] and sg_cmds.[hc] to be less linux specific,
+    add sg_pt.h and sg_pt_linux.c
+  - add logic for FreeBSD port (via sg_pt_freebsd.c)
+  - add logic for Tru64 port (via sg_pt_osf1.c)
+
 ChangeLog for sdparm-0.96 [20051119]
   - add di_lu, di_port and di_target variants of di VPD
   - re-factor sdparm.c: add sdparm_access.c + sdparm_vpd.c +
