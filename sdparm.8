@@ -1,21 +1,21 @@
-.TH SDPARM "8" "October 2006" "sdparm-1.00" SDPARM
+.TH SDPARM "8" "January 2007" "sdparm\-1.01" SDPARM
 .SH NAME
-sdparm \- fetch and potentially change SCSI device attributes, send commands
+sdparm \- fetch and potentially change SCSI device attributes. Send commands.
 .SH SYNOPSIS
 .B sdparm
-[\fI--all\fR] [\fI--clear=<str>\fR] [\fI--command=<str>\fR] [\fI--dbd\fR]
-[\fI--defaults\fR] [\fI--dummy\fR] [\fI--flexible\fR] [\fI--get=<str>\fR]
-[\fI--help\fR] [\fI--hex\fR] [\fI--inquiry\fR] [\fI--long\fR]
-[\fI--page=<pg>[,<spg>]\fR] [\fI--quiet\fR] [\fI--save\fR]
-[\fI--set=<str>\fR] [\fI--six\fR] [\fI--transport=<tn>\fR]
-[\fI--vendor=<vn>\fR] [\fI--verbose\fR] [\fI--version\fR] \fI<scsi_device>\fR
+[\fI\-\-all\fR] [\fI\-\-clear=STR\fR] [\fI\-\-command=CMD\fR]
+[\fI\-\-dbd\fR] [\fI\-\-defaults\fR] [\fI\-\-dummy\fR] [\fI\-\-flexible\fR]
+[\fI\-\-get=STR\fR] [\fI\-\-help\fR] [\fI\-\-hex\fR] [\fI\-\-inquiry\fR]
+[\fI\-\-long\fR] [\fI\-\-page=PG[,SPG]\fR] [\fI\-\-quiet\fR] [\fI\-\-save\fR]
+[\fI\-\-set=STR\fR] [\fI\-\-six\fR] [\fI\-\-transport=TN\fR]
+[\fI\-\-vendor=VN\fR] [\fI\-\-verbose\fR] [\fI\-\-version\fR] \fIDEVICE\fR
 .PP
 .B sdparm
-\fI--enumerate\fR [\fI--all\fR] [\fI--inquiry\fR] [\fI--long\fR]
-[\fI--page=<pg>[,<spg>]\fR] [\fI--transport=<tn>\fR] [\fI--vendor=<vn>\fR]
+\fI\-\-enumerate\fR [\fI\-\-all\fR] [\fI\-\-inquiry\fR] [\fI\-\-long\fR]
+[\fI\-\-page=PG[,SPG]\fR] [\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
 .PP
 .B sdparm
-\fI--wscan\fR [\fI--verbose\fR]
+\fI\-\-wscan\fR [\fI\-\-verbose\fR]
 .SH DESCRIPTION
 .\" Add any additional description here
 .PP
@@ -25,19 +25,26 @@ pages can also be displayed. Commands associated with starting
 and stopping the medium; loading and unloading the medium; and
 other housekeeping function may also be issued by this utility.
 .PP
-If no options (other than <scsi_device>) are given then a selection of
-common mode page attributes for that device are listed. If the '--long'
-option is also given then a description of the attributes is placed
-on the right of each line. If the '--all' option is given then all
-known mode page attributes for that device are listed. Individual
-attributes can be displayed with the '--get' option (e.g. '--get=WCE'
-to fetch the state of the Writeback Cache Enable attribute).
+Of the three invocations shown in the synopsis, the first is the
+most general. The second variant that uses \fI\-\-enumerate\fR is
+for dumping information held in sdparm's internal tables. The last
+variant is for Windows only and lists the available device names;
+see the OPTIONS entry for \fI\-\-wscan\fR. 
+.PP
+If no options (other than \fIDEVICE\fR) are given then a selection of
+common mode page attributes for that device are listed. If the
+\fI\-\-long\fR option is also given then a description of the attributes
+is placed on the right of each line. If the \fI\-\-all\fR option is given
+then all known mode page attributes for that device are listed. Individual
+attributes can be displayed with the \fI\-\-get=STR\fR
+option (e.g. '\-\-get=WCE' to fetch the state of the Writeback Cache Enable
+attribute).
 .PP
 By default this utility shows mode pages that are common to all
 transport protocols. These are termed as "generic" mode pages.
 Transport protocol specific mode pages are selected with
-the '--transport=' option. See the TRANSPORT section below.
-Vendor specific mode pages are selected with the '--vendor=' option.
+the \fI\-\-transport=TN\fR option. See the TRANSPORT section below.
+Vendor specific mode pages are selected with the \fI\-\-vendor=VN\fR option.
 See the VENDORS section below.
 .PP
 Although originally for SCSI disks (or storage devices that appear to the
@@ -45,401 +52,210 @@ OS as SCSI disks) many of the mode pages are for other SCSI device types.
 These include CD/DVD players that use the ATAPI (or any other) transport,
 SCSI tapes drives and SCSI enclosures.
 .PP
-When the '--inquiry' option is given without a page number then the
+When the \fI\-\-inquiry\fR option is given without a page number then the
 Device Identification VPD page (page number 0x83) is requested and
 if found it is decoded and output. If no page number is given and
-the '--all' option is given then a list of VPD page names (but not their
-contents) supported by the given device is output. When both
-the '--inquiry' and '--page=' options are given then the VPD page can be
-specified as an abbreviation (e.g. "sp" for the SCSI ports VPD page)
-or numerically (e.g. "0x88"). If a VPD page is returned by the device
-but sdparm cannot decode it or the '-H' option is given then it is
-output in hex.
+the \fI\-\-all\fR option is given then a list of VPD page names (but not
+their contents) supported by the given device is output. When both
+the \fI\-\-inquiry\fR and \fI\-\-page=PG\fR options are given then
+the VPD page can be specified as an abbreviation (e.g. "sp" for the SCSI
+ports VPD page) or numerically (e.g. "0x88"). If a VPD page is returned
+by the \fIDEVICE\fR but sdparm cannot decode it or the \fI\-\-hex\fR
+option is given then it is output in hex.
+.SH OPTIONS
+Mandatory arguments to long options are mandatory for short options as well.
+If an option takes a numeric argument then that argument is assumed to
+be decimal unless otherwise indicated (e.g. with a leading "0x" or a
+trailing "h").
 .TP
---all | -a
-output all recognized attributes for the device type (e.g. disk)
-of the given device. Without this option (or the '--page=' option)
-the default action is to output a relatively small number of 
-commonly used attributes from different pages. When a
-specific (mode) page number is given with the '--page=' option then
-all the attributes of that page are output (irrespective of the
-setting of this option). For this option's action when used with
-the '--enumerate' option see the ENUMERATE section below.
+\fB\-a\fR, \fB\-\-all\fR
+output all recognized attributes for the device type (e.g. disk) of the
+given device. Without this option (or the \fI\-\-page=PG[,SPG]\fR option)
+the default action is to output a relatively small number of commonly used
+attributes from different pages. When a specific (mode) page number is
+given with the \fI\-\-page=PG[,SPG]\fR option then all the attributes of
+that page are output (irrespective of the setting of this option). For
+this option's action when used with the \fI\-\-enumerate\fR option see the
+ENUMERATE section below.
 .TP
---clear=<str> | -c <str>
-The <str> contains a comma separated list of attribute acronyms. In
-the absence of an explicit value argument (e.g. '--clear=WCE=1'),
-each acronym has its value cleared to zero. Utility completes with
-exit status 0 if successful. See the PARAMETERS section below.
+\fB\-c\fR, \fB\-\-clear\fR=\fISTR\fR
+The \fISTR\fR contains a comma separated list of attribute acronyms. In the
+absence of an explicit value argument (e.g. '\-\-clear=WCE=1'), each
+acronym has its value cleared to zero. Utility completes with exit status 0
+if successful.  See the PARAMETERS section below.
 .TP
---command=<cmd> | -C <cmd>
-Perform given command. See section below on COMMANDS. If successful then
+\fB\-C\fR, \fB\-\-command\fR=\fICMD\fR
+Perform given \fICMD\fR. See section below on COMMANDS. If successful then
 the exit status is 0. To enumerate supported commands
-use '-e -C x' (using any command name, valid or otherwise).
+use '\-e \-C x' (using any CMD name, valid or otherwise).
 .TP
---dbd | -B
+\fB\-B\fR, \fB\-\-dbd\fR
 disable block descriptors. This is a bit in MODE SENSE cdbs that
 rarely needs to be set. One known case is a MODE SENSE 6 issued to a
 Reduced Block Commands (RBC) device where the RBC standard says it
 shall be set.
 .TP
---defaults | -D
-sets the given mode page to its default values. Requires the '--page='
-option to be given to specify the mode page. To make the default mode
-page values also the saved mode page values, use the '--save' option as
-well.
+\fB\-D\fR, \fB\-\-defaults\fR
+sets the given mode page to its default values. Requires the 
+\fI\-\-page=PG[,SPG]\fR option to be given to specify the mode page. To make
+the default mode page values also the saved mode page values, use the
+\fI\-\-save\fR option as well.
 .TP
---dummy | -d
-when set inhibits changes being placed in the device's mode page.
+\fB\-d\fR, \fB\-\-dummy\fR
+when set inhibits changes being placed in the \fIDEVICE\fR's mode page.
 Instead the mode data that would have been sent to a MODE SELECT
 command, is output in ASCII hex to the console. This option is mainly
 for testing.
 .TP
---enumerate | -e
+\fB\-e\fR, \fB\-\-enumerate\fR
 lists out descriptive information about the pages and attributes known
-to this utility. Ignores the <scsi_device> argument and other options
-apart from the '--all', '--inquiry', '--long', '--page=', '--transport='
-and '--vendor=' options.
-If '--enumerate' is given without other options then the known (generic)
-mode pages are listed. See the ENUMERATE section below.
+to this utility. Ignores the \fIDEVICE\fR argument and other options
+apart from the \fI\-\-all\fR, \fI\-\-inquiry\fR, \fI\-\-long\fR,
+\fI\-\-page=PG[,SPG]\fR, \fI\-\-transport=TN\fR and \fI\-\-vendor=VN\fR.
+If \fI\-\-enumerate\fR is given without other options then the
+known (generic) mode pages are listed. See the ENUMERATE section below.
 .TP
---flexible | -f
+\fB\-f\fR, \fB\-\-flexible\fR
 Some devices, bridges and/or drivers attempt crude transformations between
 mode sense 6 and 10 byte commands without correctly rebuilding the response.
-This will cause the response to be mis-interpreted (usually with an
+This will cause the response to be mis\-interpreted (usually with an
 error saying the response is malformed). With this option, the length
 of the response is checked, and if it looks wrong, various corrections
 are attempted. This option will also allow mode pages that don't belong
 to the current device's peripheral type to be listed.
 .TP
---get=<str> | -g <str>
-The <str> contains a comma separated list of attribute acronyms whose
-values are to be fetched. See the PARAMETERS section below. The '--long'
-and '--hex' options effect the output format. Also if a value of "1" is
-given (e.g. '--get=WCE=1') only the current value is output.
+\fB\-g\fR, \fB\-\-get\fR=\fISTR\fR
+The \fISTR\fR contains a comma separated list of attribute acronyms whose values
+are to be fetched. See the PARAMETERS section below. The \fI\-\-long\fR
+and \fI\-\-hex\fR options effect the output format. Also if a value of "1" is
+given (e.g. '\-\-get=WCE=1') only the current value is output.
 .TP
---help | -h
+\fB\-h\fR, \fB\-\-help\fR
 output the usage message then exit.
 .TP
---hex | -H
+\fB\-H\fR, \fB\-\-hex\fR
 rather than trying to decode mode (or VPD) pages, print them out in
-hex. When used with the '-get=' option the corresponding current,
-changeable, default and saved values are output in hex, prefixed
-by "0x" and space separated. If a value of "1" is given with
-the '--get=' option (e.g. '--get=WCE=1') then only the current value
-is output in hex, prefixed by "0x". If a value of "2" is given with
-the '--get=' option then only the current value is output as 
-a (signed) integer. This option can be used multiple times (e.g. '-HH').
-Useful with the ATA Information VPD page which usually outputs its
-IDENTIFY (PACKET) DEVICE response in 16 bit hex words; with '-HH' outputs
-that response in hex bytes; with -HHH outputs the same response in a
-format suitable for 'hdparm --Istdin' to decode.
+hex. When used with the \fI\-\-get=STR\fR option the corresponding current,
+changeable, default and saved values are output in hex, prefixed by "0x"
+and space separated. If a value of "1" is given with the \fI\-\-get=STR\fR
+option (e.g. '\-\-get=WCE=1') then only the current value is output in hex,
+prefixed by "0x". If a value of "2" is given with the \fI\-\-get=STR\fR
+option then only the current value is output as a (signed) integer. This
+option can be used multiple times (e.g. '\-HH'). Useful with the ATA
+Information VPD page which usually outputs its IDENTIFY (PACKET) DEVICE
+response in 16 bit hex words; with '\-HH' outputs that response in hex
+bytes; with '\-HHH' outputs the same response in a format suitable
+for 'hdparm \-\-Istdin' to decode.
 .TP
---inquiry | -i
+\fB\-i\fR, \fB\-\-inquiry\fR
 output INQUIRY VPD pages. In the absence of this option the default action
-is to output mode pages. If the '--inquiry' option is given without
-the '--page=' option then the device identification VPD page (0x83) is
-decoded and output. If this option and the '--all' option are given then
-the supported VPD pages page (0x0) is decoded and output.
+is to output mode pages. If the \fI\-\-inquiry\fR option is given without
+the \fI\-\-page=PG[,SPG]\fR option then the device identification VPD
+page (0x83) is decoded and output. If this option and the \fI\-\-all\fR
+option are given then the supported VPD pages page (0x0) is decoded and
+output.
 .TP
---long | -l
+\fB\-l\fR, \fB\-\-long\fR
 output extra information. In the case of mode page attributes a
-description (with units if applicable) is output to the right.
-If used twice, then for some attributes more information about
-its values is given on one or more following lines, each prefixed
-by a tab character. For usage with '--enumerate' see the ENUMERATE
-section below.
+description (with units if applicable) is output to the right. If used twice,
+then for some attributes more information about its values is given on one
+or more following lines, each prefixed by a tab character. For usage with
+\fI\-\-enumerate\fR see the ENUMERATE section below.
 .TP
---page=<pg>[,<spg>] | -p <pg>[,<spg>]
-supply the page number and optionally the sub page number of the
-mode (or VPD) page to fetch. These numbers are interpreted as decimal
-unless prefixed with "0x". Sub page numbers are only valid for mode
-pages (not VPD pages). Alternatively an abbreviation for a page can
-be given (see next entry).
+\fB\-p\fR, \fB\-\-page\fR=\fIPG[,SPG]\fR
+supply the page number (\fIPG\fR) and optionally the sub page 
+number (\fISPG\fR) of the mode (or VPD) page to fetch. These numbers are
+interpreted as decimal unless prefixed with "0x" or a trailing. Sub page
+numbers are only valid for mode pages (not VPD pages). Alternatively an
+abbreviation for a page can be given (see next entry).
 .TP
---page=<str> | -p <str>
-a two or three letter abbreviation for a page can be given. Known mode
-page abbreviations are checked first followed by known VPD page
-abbreviations.  For example '--page=ca' matches the caching
-mode page. If no match is found then an error is issued and a list of
-possibilities in the current context is given (so '-p x' can be quite
-useful). If the <str> matches a known VPD page abbreviation then
-the '--inquiry' option is assumed. For usage with '--enumerate' see
-the ENUMERATE section below.
+\fB\-p\fR, \fB\-\-page\fR=\fISTR\fR
+a two or three letter abbreviation for a page can be given. Known mode page
+abbreviations are checked first followed by known VPD page abbreviations.
+For example '\-\-page=ca' matches the caching mode page. If no match is found
+then an error is issued and a list of possibilities in the current context
+is given (so '\-p x' can be quite useful). If the \fISTR\fR matches a known
+VPD page abbreviation then the \fI\-\-inquiry\fR option is assumed. For
+usage with \fI\-\-enumerate\fR see the ENUMERATE section below.
 .TP
---quiet | -q
-suppress output of device name followed by the vendor, product and
-revision strings fetched from an INQUIRY response. Without this option
-such a line is typically the first line output by sdparm. Reduces
-output from the device identification VPD page, typically to one
-line (or none) for each of di_lu, di_port, di_target and di_asis.
+\fB\-q\fR, \fB\-\-quiet\fR
+suppress output of device name followed by the vendor, product and revision
+strings fetched from an INQUIRY response. Without this option such a line is
+typically the first line output by sdparm. Reduces output from the device
+identification VPD page, typically to one line (or none) for each of di_lu,
+di_port, di_target and di_asis.
 .TP
---save | -S
-when a mode page is being modified (by using the '--clear=' and/or '--set="
-options) then the default action is to modify only the current values
-mode page. When this option is given then the corresponding value(s) in
-the saved values mode page is also changed. The next time the device is
-power cycled (or reset) the saved values mode page becomes (i.e. is
+\fB\-S\fR, \fB\-\-save\fR
+when a mode page is being modified (by using the \fI\-\-clear=STR\fR and/or
+\fI\-\-set=STR\fR options) then the default action is to modify only the
+current values mode page. When this option is given then the corresponding
+value(s) in the saved values mode page is also changed. The next time the
+device is power cycled (or reset) the saved values mode page becomes (i.e. is
 copied to) the current values mode page. See NOTES section below.
 .TP
---set=<str> | -s <str>
-The <str> contains a comma separated list of attribute acronyms. In
+\fB\-s\fR, \fB\-\-set\fR=\fISTR\fR
+The \fISTR\fR contains a comma separated list of attribute acronyms. In
 the absence of an explicit value, each acronym has its value set
 to (all) ones. This means a 16 bit field will be set to 0xffff which
 is 65535 in decimal. Alternatively each acronym may be followed by "=<n>"
 where <n> is the value to set that attribute to. This utility exits with
 process status 0 if successful, else 1. See the PARAMETERS section below.
 .TP
---six | -6
-The default action of this utility is to issue MODE SENSE and MODE
-SELECT SCSI commands with 10 byte cdbs. When this option is given the
-6 byte cdb variants are used. RBC and old SCSI devices may need this
-option. This utility outputs a suggestion to use this option if
-the SCSI status indicates that the 10 byte cdb variant is not
-supported.
+\fB\-6\fR, \fB\-\-six\fR
+The default action of this utility is to issue MODE SENSE and MODE SELECT
+SCSI commands with 10 byte cdbs. When this option is given the 6 byte cdb
+variants are used. RBC and old SCSI devices may need this option. This
+utility outputs a suggestion to use this option if the SCSI status indicates
+that the 10 byte cdb variant is not supported.
 .TP
---transport=<tn> | -t <tn>
-Specifies the transport protocol where <tn> is either a number in
+\fB\-t\fR, \fB\-\-transport\fR=\fITN\fR
+Specifies the transport protocol where \fITN\fR is either a number in
 the range 0 to 15 (inclusive) or an abbreviation (e.g. "fcp" for
 the Fibre Channel Protocol). One way to list available transport protocols
 numbers and their associated abbreviations is to give an invalid
-transport protocol number such as '-t x'; another way is '-e -l'.
+transport protocol number such as '\-t x'; another way is '\-e \-l'.
 .TP
---vendor=<tn> | -M <vn>
-Specifies the vendor (i.e. manufacturer) where <vn> is either a
-number (o or more) or an abbreviation (e.g. "sea" for Seagate disk
-vendor specific). One way to list available vendor numbers and their
-associated abbreviations is to give an invalid vendor number such
-as '-M x'; another way is '-e -l'.
+\fB\-M\fR, \fB\-\-vendor\fR=\fIVN\fR
+Specifies the vendor (i.e. manufacturer) where \fIVN\fR is either a number (0
+or more) or an abbreviation (e.g. "sea" for Seagate disk vendor specific).
+One way to list available vendor numbers and their associated abbreviations
+is to give an invalid vendor number such as '\-M x'; another way is '\-e \-l'.
 .TP
---verbose | -v
+\fB\-v\fR, \fB\-\-verbose\fR
 increase the level of verbosity, (i.e. debug output). In some cases
 more decoding is done (e.g. fields within a standard INQUIRY response).
 .TP
---version | -V
+\fB\-V\fR, \fB\-\-version\fR
 print the version string and then exit.
 .TP
---wscan | -w
+\fB\-w\fR, \fB\-\-wscan\fR
 this option is available in Windows only. It lists the device names that are
 available. In many cases there is more than one device name for a given
 device. Attempts to group all device names for one device on a single
 line (exceptions: USB and IEEE 1394 devices). See the "Win32 port" section
 in the README file.
-.PP
+.SH NOTES
 A mode page for which no abbreviation is known (e.g. a vendor specific mode
 page) can be listed in hexadecimal by using the option
-combination '--page=<pn> --hex'.
+combination '\-\-page=PG \-\-hex'.
 .PP
 Numbers input to sdparm (e.g. in the command line arguments) are assumed
 to be in decimal unless there is a hexadecimal indicator. A hexadecimal
 indicator is either a leading '0x' or '0X' (i.e. the C language convention)
 or a trailing 'h' or 'H' (i.e. the convention used at www.t10.org ). In
-the case of '--page=' either a string or number is expected, so hex numbers
-like 'ch' (12) should be prefixed by a zero (e.g. '0ch').
-.SH PARAMETERS
-The '--clear=', '--get=' and '--set=" options can take a string argument
-which is a comma separated list of attributes. Each attribute can
-be either an acronym name or a <start_byte>:<start_bit>:<num_bits> tuple.
-Either form can optionally be followed by "=<val>". Acronyms (e.g.
-WCE for "Writeback Cache Enable") that this utility supports can be listed
-with the '--enumerate' option.  Alternatively, a mode page attribute
-to be changed can be described in terms of a <start_byte> (origin 0)
-within the mode page, a <start_bit> (0 to 7 inclusive) and <num_bits> (1
-to 64 inclusive). For example, the low level representation of the RCD
-bit (in the caching mode page) is "2:0:1". The <start_byte> and 
-the <val> can optionally be given in hex (e.g. '--set=0x2:0:1=0x1'
-or '--set=2h:0:1=1h').
+the case of \fI\-\-page\fR= either a string or number is expected, so hex
+numbers like 'ch' (12) should be prefixed by a zero (e.g. '0ch').
 .PP
-When the attribute(s) following '--clear=' is not given an
-explicit '=<val>' then the value defaults to zero. When the attribute(s)
-following '--set=' is not given an explicit '=<val>' then the value
-defaults to "all ones" (i.e. as many as <num_bits> permits). For
-example '--clear=WCE' and '--clear=WCE=0' have the same meaning: clear
-Writeback Cache Enable or, put more simply: turn off the writeback cache.
-.PP
-When an acronym is given then the mode page is imputed from that acronym (e.g.
-WCE is in the caching mode page). When only the start_byte:start_bit:num_bits
-form is used then the '--page=' option must be given to establish
-which mode page is to be used. A restriction placed on '--clear='
-and '--set=' is that if multiple parameters are given, they must all be in
-the same mode page. Hence an invocation of this utility can only modify one
-mode page.
-.SH ENUMERATE
-The '--enumerate' option essentially dumps out static information held
-by this utility. A list of '--enumerate' variants and their actions
-follows. For brevity subsequent examples of options are shown in their
-shorter form.
-.PP
-    --enumerate          list generic mode page information
-.br
-    -e --all             list generic mode page contents
-.br
-                         (i.e. parameters)
-.br
-    -e --page=rw         list contents of read write error
-.br
-                         recovery mode page
-.br
-    -e --inquiry         list VPD pages this utility can decode
-.br
-    -e --long            list generic mode pages, transport
-.br
-                         protocols, mode pages for each
-.br
-                         supported transport protocol and
-.br
-                         supported commands
-.br
-    -e -l --all          additionally list the contents of
-.br
-                         each mode page
-.br
-    -e --transport=fcp   list mode pages for the fcp
-.br
-                         transport protocol
-.br
-    -e -t fcp --all      additionally list the contents of
-.br
-                         each mode page
-.PP
-When known mode pages are listed (via the '--enumerate' option) each
-line starts with a two or three letter abbreviation. This is followed by
-the page number (in hex prefixed by "0x") optionally followed by a
-comma and the subpage number. Finally the descriptive name of the mode
-page (e.g. as found in SPC-4) is output.
-.PP
-When known parameters (fields) of a mode page are listed, each line
-starts with an acronym (indented a few spaces). This will match (or
-be an acronym for) the description for that field found in the (draft)
-standards. Next are three numbers, separated by colons, surrounded by
-brackets. These are the start byte (in hex, prefixed by "0x") of the
-beginning of the field within the mode page; the starting bit (0 through 7
-inclusive) and then the number of bits. The descriptive name of the
-parameter (field) is then given. If appropriate the descriptive name
-includes units (e.g. "(ms)" means the units are milliseconds). Adding
-the '-ll' option will list information about possible field value
-for selected mode page parameters.
-.PP
-Mode parameters for which the num_bits is greater than 1 can be
-viewed as unsigned integers. Often 16 and 32 bit fields are set
-to 0xffff and 0xffffffff respectively (all ones) which usually
-has a special meaning (see drafts). This utility outputs such values
-as "-1" to save space (rather than their unsigned integer
-equivalents). "-1" can also be given as the value to a mode page
-field acronym (e.g. '--set=INTT=-1' sets the interval timer field
-in the Informational Exceptions control mode page to 0xffffffff).
-.SH TRANSPORTS
-SCSI transport protocols are a relatively specialized area
-that can be safely ignored by the majority of users.
-.PP
-Some transport protocols have protocol specific mode pages.
-These are usually the disconnect-reconnect (0x2), the protocol
-specific logical unit (0x18) and the protocol specific port (0x19)
-mode pages. In some cases the latter mode page has several subpages.
-The most common transport protocol abbreviations likely to be used
-are "fcp", "spi" and "sas".
-.PP
-Many of the field names are re-used in the same position so
-the acronym namespaces have been divided between generic
-mode pages (i.e. when the '--transport=' option is _not_ given)
-and a namespace for each transport protocol. A LUPID field 
-from the protocol specific logical unit (0x18) mode page and
-the PPID field from protocol specific port (0x19) mode page are
-included in the generic modes pages; this is so the
-respective (transport) protocol identifiers can be seen. In most
-cases the user will know what the "port" transport is (i.e.
-the same transport as the HBA in the computer) but the logical
-unit's transport could be different.
-.PP
-The logic in sdparm requires acronyms to be unique within a
-namespace. This becomes difficult if a mode page has multiple
-descriptors each of which has the same set of acronyms. The SAS phy
-control and discover page is an example of this. The current
-solution is to prepend "2_" to the second set of acronyms.
-.SH VENDORS
-SCSI leaves a lot of space for vendor specific information. Often
-this is described in product manuals. The '--vendor=<n>' (or '-M <vn>')
-option allows known vendor specific mode pages to be examined and/or
-modified by acronym.
-.PP
-In this utility the syntax and semantics of vendor specific
-mode pages is very similar to those of transport protocol specific
-mode pages. Both cannot be specified together. Vendor specific
-modes pages can still be accessed numerically (as shown at the
-end of the EXAMPLES section).
-.SH COMMANDS
-The command option sends a SCSI command to the given device. If the
-command fails then this is reflected in the non-zero exit status.
-To obtain more information about the error use the '-v' option.
-.PP
-The 'capacity' command sends a READ CAPACITY command (valid for
-disks and cd/dvd media). If successful yields "blocks: " [the number
-of blocks], "block_length: " [typically either 512 or 2048]
-and "capacity_mib: " [capacity in MibiBytes (1048576 byte units)].
-.PP
-The 'eject' command stops the medium and ejects it from the device.
-Note that ejection (by command or button) may be prevented in which case
-the 'unlock' command may be useful in extreme cases.
-Typically only appropriate for cd/dvd drives and disk drives with removable
-media. Objects if sent to another peripheral device type (but objection
-can be overridden with '-f' option).
-.PP
-The 'load' command loads the medium and and starts it (i.e. spins it up).
-See 'eject' command for supported device types.
-.PP
-The 'ready' command sends the "Test Unit Ready" SCSI command to the
-given device. No error is reported if the device will respond to data
-requests (e.g. READ) in a reasonable timescale. For example, if a disk
-is stopped then it will report "not ready". All devices should respond
-to this command.
-.PP
-The 'sense' command sends a REQUEST SENSE command. Reports hardware
-threshold exceeded, warning or low power condition if flagged. If
-progress indication is present (e.g. during a format) then it will
-be output as a percentage. Yields a process status of 0 if command
-succeeds and the sense key is 0; else yields 1. The '--quiet'
-option can be used to lessen output, and '--hex' to output sense
-data in hex.
-.PP
-The 'start' command starts the medium (i.e. spins it up). Harmless if
-medium has already been started. See 'eject' command for supported device
-types.
-.PP
-The 'stop' command stops the medium (i.e. spins it down). Harmless if
-medium has already been stopped. See 'eject' command for supported device
-types.
-.PP
-The 'sync' command sends a SYNCHRONIZE CACHE command. The device should
-flush any data held in its (volatile) buffers to the media.
-.PP
-The 'unlock' command tells a device to allow medium removal. It uses
-the SCSI "prevent allow medium removal" command. This is desperation stuff,
-possibly overriding a prevention applied by the OS on a mounted file system.
-The "eject" utility (from the "eject" package) is more graceful and should be
-tried first. This command is only appropriate for devices with removable
-media.
-.PP
-For loading and ejecting tapes the mt utility should be used (i.e. not
-these commands). The 'ready' command is valid for tape devices.
-.SH NOTES
-The SPC-4 draft (rev 2) says that devices that implement no
+The SPC\-4 draft (rev 2) says that devices that implement no
 distinction between current and saved pages can return an
 error (ILLEGAL REQUEST, invalid field in cdb) if the SP bit (which
-corresponds to the '--save' option) is _not_ set. In such cases
-the '--save' option needs to be given.
+corresponds to the \fI\-\-save\fR option) is _not_ set. In such cases
+the \fI\-\-save\fR option needs to be given.
 .PP
-If the '--save' option is given but the existing mode page indicates (via
+If the \fI\-\-save\fR option is given but the existing mode page indicates (via
 its PS bit) that the page is not savable, then this utility generates
-an error message. That message suggests to try again without the '--save'
-option.
-.PP
-The functionality of this utility overlaps, somewhat, with another
-utility called blktool. This utility can be considered as
-more "SCSI-centric". For example, with ATAPI CD/DVD drives this utility
-will concentrate on the command level as such drives use the Multi Media
-Command set (MMC) which is a SCSI command set. This utility ignores
-transport related settings at the ATA(PI) transport level. Such settings
-can be accessed with blktool (and viewed with 'sg_inq -A').
+an error message. That message suggests to try again without the
+\fI\-\-save\fR option.
 .PP
 Since the device identification VPD page (acronym "di") potentially
 contains a lot of diverse designators, several associated acronyms are
@@ -463,6 +279,195 @@ at /dev/hdc then 'sdparm /dev/hdc' will only work in the lk 2.6 series.
 .PP
 In FreeBSD the "atapicam" device may need to be configured into the kernel
 in order that sdparm can access (s)ATAPI cd/dvd drives.
+.SH PARAMETERS
+The \fI\-\-clear\fR=, \fI\-\-get\fR= and \fI\-\-set\fR= options can take a
+string argument which is a comma separated list of attributes. Each attribute
+can be either an acronym name or a <start_byte>:<start_bit>:<num_bits> tuple.
+Either form can optionally be followed by "=<val>". Acronyms (e.g.
+WCE for "Writeback Cache Enable") that this utility supports can be listed
+with the \fI\-\-enumerate\fR option.  Alternatively, a mode page attribute
+to be changed can be described in terms of a <start_byte> (origin 0)
+within the mode page, a <start_bit> (0 to 7 inclusive) and <num_bits> (1
+to 64 inclusive). For example, the low level representation of the RCD
+bit (in the caching mode page) is "2:0:1". The <start_byte> and 
+the <val> can optionally be given in hex (e.g. '\-\-set=0x2:0:1=0x1'
+or '\-\-set=2h:0:1=1h').
+.PP
+When the attribute(s) following \fI\-\-clear\fR= is not given an
+explicit '=<val>' then the value defaults to zero. When the attribute(s)
+following \fI\-\-set\fR= is not given an explicit '=<val>' then the value
+defaults to "all ones" (i.e. as many as <num_bits> permits). For
+example '\-\-clear=WCE' and '\-\-clear=WCE=0' have the same meaning: clear
+Writeback Cache Enable or, put more simply: turn off the writeback cache.
+.PP
+When an acronym is given then the mode page is imputed from that acronym (e.g.
+WCE is in the caching mode page). When only the start_byte:start_bit:num_bits
+form is used then the \fI\-\-page\fR= option must be given to establish
+which mode page is to be used. A restriction placed on \fI\-\-clear\fR=
+and \fI\-\-set\fR= is that if multiple parameters are given, they must all be
+in the same mode page. Hence an invocation of this utility can only modify
+one mode page.
+.SH ENUMERATE
+The \fI\-\-enumerate\fR option essentially dumps out static information held
+by this utility. A list of \fI\-\-enumerate\fR variants and their actions
+follows. For brevity subsequent examples of options are shown in their
+shorter form.
+.PP
+    \-\-enumerate          list generic mode page information
+.br
+    \-e \-\-all             list generic mode page contents
+.br
+                         (i.e. parameters)
+.br
+    \-e \-\-page=rw         list contents of read write error
+.br
+                         recovery mode page
+.br
+    \-e \-\-inquiry         list VPD pages this utility can decode
+.br
+    \-e \-\-long            list generic mode pages, transport
+.br
+                         protocols, mode pages for each
+.br
+                         supported transport protocol and
+.br
+                         supported commands
+.br
+    \-e \-l \-\-all          additionally list the contents of
+.br
+                         each mode page
+.br
+    \-e \-\-transport=fcp   list mode pages for the fcp
+.br
+                         transport protocol
+.br
+    \-e \-t fcp \-\-all      additionally list the contents of
+.br
+                         each mode page
+.br
+    \-e \-\-vendor=sea      list vendor specific mode pages for
+.br
+                         "sea" (Seagate)
+.br
+    \-e \-M sea \-\-all      additionally list the contents of vendor
+.br
+                         specific mode pages for "sea" (Seagate)
+.PP
+When known mode pages are listed (via the \fI\-\-enumerate \fR option) each
+line starts with a two or three letter abbreviation. This is followed by
+the page number (in hex prefixed by "0x") optionally followed by a
+comma and the subpage number. Finally the descriptive name of the mode
+page (e.g. as found in SPC\-4) is output.
+.PP
+When known parameters (fields) of a mode page are listed, each line
+starts with an acronym (indented a few spaces). This will match (or
+be an acronym for) the description for that field found in the (draft)
+standards. Next are three numbers, separated by colons, surrounded by
+brackets. These are the start byte (in hex, prefixed by "0x") of the
+beginning of the field within the mode page; the starting bit (0 through 7
+inclusive) and then the number of bits. The descriptive name of the
+parameter (field) is then given. If appropriate the descriptive name
+includes units (e.g. "(ms)" means the units are milliseconds). Adding
+the '\-ll' option will list information about possible field value
+for selected mode page parameters.
+.PP
+Mode parameters for which the num_bits is greater than 1 can be
+viewed as unsigned integers. Often 16 and 32 bit fields are set
+to 0xffff and 0xffffffff respectively (all ones) which usually
+has a special meaning (see drafts). This utility outputs such values
+as "\-1" to save space (rather than their unsigned integer
+equivalents). "\-1" can also be given as the value to a mode page
+field acronym (e.g. '\-\-set=INTT=\-1' sets the interval timer field
+in the Informational Exceptions control mode page to 0xffffffff).
+.SH TRANSPORTS
+SCSI transport protocols are a relatively specialized area
+that can be safely ignored by the majority of users.
+.PP
+Some transport protocols have protocol specific mode pages. These are usually
+the disconnect\-reconnect (0x2), the protocol specific logical unit (0x18)
+and the protocol specific port (0x19) mode pages. In some cases the latter
+mode page has several subpages. The most common transport protocol
+abbreviations likely to be used are "fcp", "spi" and "sas".
+.PP
+Many of the field names are re\-used in the same position so the acronym
+namespaces have been divided between generic mode pages (i.e. when the
+\fI\-\-transport\fR= option is _not_ given) and a namespace for each
+transport protocol. A LUPID field from the protocol specific logical
+unit (0x18) mode page and the PPID field from protocol specific
+port (0x19) mode page are included in the generic modes pages; this is so
+the respective (transport) protocol identifiers can be seen. In most cases
+the user will know what the "port" transport is (i.e. the same transport as
+the HBA in the computer) but the logical unit's transport could be different.
+.PP
+The logic in sdparm requires acronyms to be unique within a
+namespace. This becomes difficult if a mode page has multiple
+descriptors each of which has the same set of acronyms. The SAS phy
+control and discover page is an example of this. The current
+solution is to prepend "2_" to the second set of acronyms.
+.SH VENDORS
+SCSI leaves a lot of space for vendor specific information. Often this is
+described in product manuals. The \fI\-\-vendor=VN\fR (or \fI\-M=VN\fR)
+option allows known vendor specific mode pages to be examined and/or
+modified by acronym.
+.PP
+In this utility the syntax and semantics of vendor specific
+mode pages is very similar to those of transport protocol specific
+mode pages. Both cannot be specified together. Vendor specific
+modes pages can still be accessed numerically (as shown at the
+end of the EXAMPLES section).
+.SH COMMANDS
+The command option sends a SCSI command to the given device. If the
+command fails then this is reflected in the non\-zero exit status.
+To obtain more information about the error use the \fI\-v\fR option.
+.PP
+The 'capacity' command sends a READ CAPACITY command (valid for
+disks and cd/dvd media). If successful yields "blocks: " [the number
+of blocks], "block_length: " [typically either 512 or 2048]
+and "capacity_mib: " [capacity in MibiBytes (1048576 byte units)].
+.PP
+The 'eject' command stops the medium and ejects it from the device.
+Note that ejection (by command or button) may be prevented in which case
+the 'unlock' command may be useful in extreme cases.
+Typically only appropriate for cd/dvd drives and disk drives with removable
+media. Objects if sent to another peripheral device type (but objection
+can be overridden with '\-f' option).
+.PP
+The 'load' command loads the medium and and starts it (i.e. spins it up).
+See 'eject' command for supported device types.
+.PP
+The 'ready' command sends the "Test Unit Ready" SCSI command to the
+given device. No error is reported if the device will respond to data
+requests (e.g. READ) in a reasonable timescale. For example, if a disk
+is stopped then it will report "not ready". All devices should respond
+to this command.
+.PP
+The 'sense' command sends a REQUEST SENSE command. It reports a hardware
+threshold exceeded, warning or low power condition if flagged. If a progress
+indication is present (e.g. during a format) then it will be output as a
+percentage. Yields a process status of 0 if the command succeeds and the
+sense key is 0; else yields 1. The \fI\-\-quiet\fR option can be used to
+lessen output, and \fI\-\-hex\fR to output sense data in hex.
+.PP
+The 'start' command starts the medium (i.e. spins it up). Harmless if
+medium has already been started. See 'eject' command for supported device
+types.
+.PP
+The 'stop' command stops the medium (i.e. spins it down). Harmless if
+medium has already been stopped. See 'eject' command for supported device
+types.
+.PP
+The 'sync' command sends a SYNCHRONIZE CACHE command. The device should
+flush any data held in its (volatile) buffers to the media.
+.PP
+The 'unlock' command tells a device to allow medium removal. It uses
+the SCSI "prevent allow medium removal" command. This is desperation stuff,
+possibly overriding a prevention applied by the OS on a mounted file system.
+The "eject" utility (from the "eject" package) is more graceful and should be
+tried first. This command is only appropriate for devices with removable
+media.
+.PP
+For loading and ejecting tapes the mt utility should be used (i.e. not
+these commands). The 'ready' command is valid for tape devices.
 .SH EXAMPLES
 To list the common (generic) mode parameters of a disk:
 .PP
@@ -471,49 +476,49 @@ To list the common (generic) mode parameters of a disk:
 To list the designators within the device identification VPD page
 of a disk:
 .PP
-   sdparm --inquiry /dev/sda
+   sdparm \-\-inquiry /dev/sda
 .PP
 To see all parameters for the caching mode page:
 .PP
-   sdparm --page=ca /dev/sda
+   sdparm \-\-page=ca /dev/sda
 .PP
 To see all parameters for the caching mode page
 with parameter descriptions to the right:
 .PP
-   sdparm --page=ca --long /dev/sda
+   sdparm \-\-page=ca \-\-long /dev/sda
 .PP
 To get the WCE values (current changeable default and saved) in hex:
 .PP
-   sdparm -g WCE -H /dev/sda
+   sdparm \-g WCE \-H /dev/sda
 .br
 0x01 0x00 0x01 0x01
 .PP
 To get the WCE current value in hex:
 .PP
-   sdparm -g WCE=1 -H /dev/sda
+   sdparm \-g WCE=1 \-H /dev/sda
 .br
 0x01
 .PP
 To set the "Writeback Cache Enable" bit in the current values page:
 .PP
-   sdparm --set=WCE /dev/sda
+   sdparm \-\-set=WCE /dev/sda
 .PP
 To set the "Writeback Cache Enable" bit in the current and saved values page:
 .PP
-   sdparm --set=WCE --save /dev/sda
+   sdparm \-\-set=WCE \-\-save /dev/sda
 .PP
 To set the "Writeback Cache Enable" and clear "Read Cache Disable":
 .PP
-   sdparm --set=WCE --clear=RCD --save /dev/sda
+   sdparm \-\-set=WCE \-\-clear=RCD \-\-save /dev/sda
 .PP
 The previous example can also by written as:
 .PP
-   sdparm -s WCE=1,RCD=0 -S /dev/sda
+   sdparm \-s WCE=1,RCD=0 \-S /dev/sda
 .PP
-To re-establish the manufacturer's defaults in the current and saved
+To re\-establish the manufacturer's defaults in the current and saved
 values of the caching mode page:
 .PP
-   sdparm --page=ca --defaults --save /dev/sda
+   sdparm \-\-page=ca \-\-defaults \-\-save /dev/sda
 .PP
 If an ATAPI cd/dvd drive is at /dev/hdc then its common (mode) parameters
 could be listed in the lk 2.6 series with:
@@ -523,22 +528,25 @@ could be listed in the lk 2.6 series with:
 If there is a DVD in the drive at /dev/hdc then it could be ejected in the
 lk 2.6 series with:
 .PP
-   sdparm --command=eject /dev/hdc
+   sdparm \-\-command=eject /dev/hdc
 .PP
 If the ejection is being prevented by software then that can be
 overridden with:
 .PP
-   sdparm --command=unlock /dev/hdc
+   sdparm \-\-command=unlock /dev/hdc
 .PP
 One disk vendor has a "Performance Mode" bit (PM) in the vendor specific
 unit attention mode page [0x0,0x0]. PM=0 is server mode (the default)
 while PM=1 is desktop mode. Desktop mode can be set (both current and
 saved values) with: 
 .PP
-   sdparm --page=0 --set=2:7:1=1 --save /dev/sda
+   sdparm \-\-page=0 \-\-set=2:7:1=1 \-\-save /dev/sda
 .PP
-The resultant change can be viewed in hex with the '--hex' option as
-there are no acronyms for vendor extensions yet.
+The resultant change can be viewed in hex with the \fI\-\-hex\fR option as
+there are no acronyms for vendor extensions yet. The PM bit is now covered
+by vendor specific mode pages and the above can also be accomplished with:
+.PP
+   sdparm \-\-vendor=sea \-\-set=PM \-\-save /dev/sda
 .SH EXIT STATUS
 To aid scripts that call these utilities, the exit status is set to
 indicate success (0) or failure (1 or more). Note that some of the
@@ -553,24 +561,24 @@ syntax error. Either illegal command line options, options with bad
 arguments or a combination of options that is not permitted.
 .TP
 .B 2
-the <scsi_device> reports that it is not ready for the operation
+the \fIDEVICE\fR reports that it is not ready for the operation
 requested. The device may be in the process of becoming ready (e.g.
 spinning up but not at speed) so the utility may work after a wait.
 .TP
 .B 3
-the <scsi_device> reports a medium or hardware error (or a blank
+the \fIDEVICE\fR reports a medium or hardware error (or a blank
 check). For example an attempt to read a corrupted block on a disk
 will yield this value.
 .TP
 .B 5
-the <scsi_device> reports an "illegal request" with an additional
+the \fIDEVICE\fR reports an "illegal request" with an additional
 sense code other than "invalid operation code". This is often a
 supported command with a field set requesting an unsupported
 capability. For commands that require a "service action" field
 this value can indicate that the command is not supported.
 .TP
 .B 6
-the <scsi_device> reports a "unit attention" condition. This usually
+the \fIDEVICE\fR reports a "unit attention" condition. This usually
 indicates that something unrelated to the requested command has
 occurred (e.g. a device reset) potentially before the current SCSI
 command was sent. The requested command has not been executed by the
@@ -578,33 +586,33 @@ device. Note that unit attention conditions are usually only reported
 once by a device.
 .TP
 .B 9
-the <scsi_device> reports an illegal request with an additional
+the \fIDEVICE\fR reports an illegal request with an additional
 sense code of "invalid operation code" which means that it doesn't
 support the requested command.
 .TP
 .B 11
-the <scsi_device> reports an aborted command. In some cases aborted
+the \fIDEVICE\fR reports an aborted command. In some cases aborted
 commands can be retried immediately (e.g. if the transport aborted
 the command due to congestion).
 .TP
 .B 15
-the utility is unable to open, close or use the given <scsi_device>.
+the utility is unable to open, close or use the given \fIDEVICE\fR.
 The given file name could be incorrect or there may be permission
-problems. Adding the '-v' option may give more information.
+problems. Adding the \fI\-v\fR option may give more information.
 .TP
 .B 20
-the <scsi_device> reports it has a check condition but "no sense".
+the \fIDEVICE\fR reports it has a check condition but "no sense".
 Some polling commands (e.g. REQUEST SENSE) can react this way.
 It is unlikely that this value will occur as an exit status.
 .TP
 .B 21
-the <scsi_device> reports a "recovered error". The requested command
+the \fIDEVICE\fR reports a "recovered error". The requested command
 was successful. Most likely a utility will report a recovered error
 to stderr and continue, probably leaving the utility with an exit
 status of 0 .
 .TP
 .B 33
-the command sent to <scsi_device> has timed out. This occurs in Linux
+the command sent to \fIDEVICE\fR has timed out. This occurs in Linux
 only; in other ports a command timeout will appear as a transport (or OS)
 error.
 .TP
@@ -612,7 +620,7 @@ error.
 the response to a SCSI command failed sanity checks.
 .TP
 .B 98
-the <scsi_device> reports it has a check condition but the error
+the \fIDEVICE\fR reports it has a check condition but the error
 doesn't fit into any of the above categories.
 .TP
 .B 99
@@ -622,14 +630,14 @@ after the command has been sent to the device.
 .PP
 Most of the error conditions reported above will be repeatable (an
 example of one that is not is "unit attention") so the utility can
-be run again with the '-v' option (or several) to obtain more
+be run again with the \fI\-v\fR option (or several) to obtain more
 information.
 .SH AUTHORS
 Written by Douglas Gilbert.
 .SH "REPORTING BUGS"
 Report bugs to <dgilbert at interlog dot com>.
 .SH COPYRIGHT
-Copyright \(co 2005-2006 Douglas Gilbert
+Copyright \(co 2005\-2007 Douglas Gilbert
 .br
 This software is distributed under a FreeBSD license. There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -637,4 +645,3 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 .B hdparm(hdparm),
 .B sg_modes, sg_wr_mode, sginfo, sg_inq, sg_vpd(all in sg3_utils),
 .B smartmontools(smartmontools.sourceforge.net), mt, eject(eject),
-.B blktool(sourceforge.net/projects/gkernel)

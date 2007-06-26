@@ -2,7 +2,7 @@
 #define SG_LIB_H
 
 /*
- * Copyright (c) 2004-2006 Douglas Gilbert.
+ * Copyright (c) 2004-2007 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@
  *
  */
 
-/* Version 1.26 [20051015]
+/* Version 1.31 [20070121]
  *
  * On 5th October 2004 a FreeBSD license was added to this file.
  * The intention is to keep this file and the related sg_lib.c file
@@ -51,14 +51,18 @@
 
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef SAM_STAT_GOOD
 /* The SCSI status codes as found in SAM-4 at www.t10.org */
 #define SAM_STAT_GOOD 0x0
 #define SAM_STAT_CHECK_CONDITION 0x2
 #define SAM_STAT_CONDITION_MET 0x4
 #define SAM_STAT_BUSY 0x8
-#define SAM_STAT_INTERMEDIATE 0x10
-#define SAM_STAT_INTERMEDIATE_CONDITION_MET 0x14
+#define SAM_STAT_INTERMEDIATE 0x10              /* obsolete in SAM-4 */
+#define SAM_STAT_INTERMEDIATE_CONDITION_MET 0x14  /* obsolete in SAM-4 */
 #define SAM_STAT_RESERVATION_CONFLICT 0x18
 #define SAM_STAT_COMMAND_TERMINATED 0x22        /* obsolete in SAM-3 */
 #define SAM_STAT_TASK_SET_FULL 0x28
@@ -296,5 +300,8 @@ extern long long sg_get_llnum(const char * buf);
 
 extern const char * sg_lib_version();
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

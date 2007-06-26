@@ -38,6 +38,9 @@
 #define IEC_MP 0x1c
 #define MED_CONF_MP 0x1d
 #define TIMEOUT_PROT_MP 0x1d
+#define ELE_ADDR_ASS_MP 0x1d
+#define TRANS_GEO_PAR_MP 0x1e
+#define DEV_CAP_MP 0x1f
 #define MMCMS_MP 0x2a
 #define ALL_MPAGES 0x3f
 
@@ -53,6 +56,7 @@
 #define MSP_BACK_CTL 1
 #define MSP_SAT_PATA 0xf1       /* SAT PATA Control */
 #define MSP_DEV_CONF_EXT 1      /* device conf extension (ssc) */
+#define MSP_EXT_DEV_CAP 0x41    /* extended device capabilities (smc) */
 
 #define MODE_DATA_OVERHEAD 128
 #define EBUFF_SZ 256
