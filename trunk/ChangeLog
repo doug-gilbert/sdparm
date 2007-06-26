@@ -2,6 +2,24 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
+ChangeLog for sdparm-0.96 [20051119]
+  - add di_lu, di_port and di_target variants of di VPD
+  - re-factor sdparm.c: add sdparm_access.c + sdparm_vpd.c +
+    sdparm_cmd.c
+  - add CORR_D_SUP to Extended INQUIRY VPD page
+  - for ATA information VPD page, '-HHH' output is
+    suitable for "hdparm --Istdin" to decode
+  - add <cmd>s; 'capacity', 'sense" and 'sync' for READ CAPACITY,
+    REQUEST SENSE and SYNCHRONIZE CACHE respectively
+  - 'ready' command gives progress indication if available
+  - add '--quiet' option to suppress output of INQUIRY strings
+  - add decode for Control extension mode page
+  - add decode for SAS SSP shared port mode subpage
+  - change '-ll' to add explanation of some complex mode page
+    attribute values (e.g. MRIE in Informational exceptions mp)
+  - decode disk specific parameters (wp+dpofua) when '-l' given
+    for full mode page
+
 ChangeLog for sdparm-0.95 [20050920]
   - add debian directory (for builds)
   - add decode for extended inquiry data VPD page

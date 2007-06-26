@@ -34,15 +34,17 @@
 #define IEC_MP 0x1c
 #define TIMEOUT_PROT_MP 0x1d
 #define MMCMS_MP 0x2a
+#define ALL_MPAGES 0x3f
 
 /* Mode subpage numbers */
 #define MSP_CONTROL_EXT 1       /* unused */
-#define MSP_SPC_CE 1
+#define MSP_SPC_CE 1            /* control extension */
 #define MSP_SPI_MC 1
 #define MSP_SPI_STC 2
 #define MSP_SPI_NS 3
 #define MSP_SPI_RTC 4
 #define MSP_SAS_PCD 1
+#define MSP_SAS_SHA 2
 #define MSP_BACK_CTL 1
 
 #define MODE_DATA_OVERHEAD 128
@@ -68,6 +70,10 @@
 #define VPD_ASSOC_TPORT 1
 #define VPD_ASSOC_TDEVICE 2
 
+#define VPD_DI_SEL_LU 2
+#define VPD_DI_SEL_TPORT 4
+#define VPD_DI_SEL_TARGET 8
+
 /* Transport protocol identifiers */
 #define TP_FCP 0
 #define TP_SPI 1
@@ -91,6 +97,9 @@
 #define CMD_LOAD 4
 #define CMD_EJECT 5
 #define CMD_UNLOCK 6
+#define CMD_SENSE 7
+#define CMD_SYNC 8
+#define CMD_CAPACITY 9
 
 
 struct sdparm_opt_coll {
@@ -106,6 +115,7 @@ struct sdparm_opt_coll {
     int flexible;
     int transport;
     int dbd;
+    int quiet;
 };
 
 struct sdparm_values_name_t {
@@ -129,6 +139,7 @@ struct sdparm_mode_page_item {
     int num_bits;
     int flags;       /* bit settings or-ed, see MF_* */
     const char * description;
+    const char * extra;
 };
 
 struct sdparm_mode_page_it_val {
@@ -168,5 +179,58 @@ extern const char * sdparm_id_type_arr[];
 extern const char * sdparm_ansi_version_arr[];
 extern const char * sdparm_network_service_type_arr[];
 extern const char * sdparm_mode_page_policy_arr[];
+
+
+/*
+ * Declarations for access functions found in sdparm_access.c
+ */
+
+extern int sdp_get_mp_len(unsigned char * mp);
+extern const struct sdparm_values_name_t * sdp_get_mode_detail(
+                int page_num, int subpage_num, int pdt, int transp_proto);
+extern void sdp_get_mpage_name(int page_num, int subpage_num, int pdt,
+                int transp_proto, int hex, char * bp, int max_b_len);
+extern const struct sdparm_values_name_t * sdp_find_mp_by_acron(
+                const char * ap, int transp_proto);
+extern const char * sdp_get_vpd_name(int page_num);
+extern const struct sdparm_values_name_t * sdp_find_vpd_by_acron(
+                const char * ap);
+extern const char * sdp_get_transport_name(int proto_num);
+extern const struct sdparm_values_name_t * sdp_find_transport_by_acron(
+                const char * ap);
+extern const struct sdparm_mode_page_item * sdp_find_mitem_by_acron(
+                const char * ap, int * from, int transp_proto);
+extern unsigned long long sdp_get_big_endian(const unsigned char * from,
+                int start_bit, int num_bits);
+extern void sdp_set_big_endian(unsigned long long val, unsigned char * to,
+                int start_bit, int num_bits);
+extern unsigned long long sdp_mp_get_value(
+                const struct sdparm_mode_page_item *mpi,
+                const unsigned char * mp);
+extern unsigned long long sdp_mp_get_value_check(
+                const struct sdparm_mode_page_item *mpi,
+                const unsigned char * mp, int * all_set);
+extern void sdp_mp_set_value(unsigned long long val,
+                struct sdparm_mode_page_item *mpi, unsigned char * mp);
+extern const char * sdp_get_ansi_version_str(int version, char * buff,
+                int buff_len);
+
+/*
+ * Declarations for functions found in sdparm_vpd.c
+ */
+
+extern int sdp_process_vpd_page(int sg_fd, int pn, int spn,
+                 const struct sdparm_opt_coll * opts, int verbose);
+
+/*
+ * Declarations for functions found in sdparm_cmd.c
+ */
+
+extern const struct sdparm_command * sdp_build_cmd(const char * cmd_str,
+                int * rwp);
+extern void sdp_enumerate_commands();
+extern int sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp,
+                int pdt, const struct sdparm_opt_coll * opts,
+                int verbose);
 
 #endif
