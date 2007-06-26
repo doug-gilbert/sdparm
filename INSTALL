@@ -5,3 +5,13 @@ Build
     make
     make install (you may need to be root to do this)
 
+
+If configure.in, Makefile.am or src/Makefile.am are changed
+then ./autogen.sh should be run prior to the above sequence.
+
+An rpm spec file called sdparm.spec is included in the main
+directory. This spec file expects to find a tarball
+called "sdparm-<version_num>.tgz" in the appropriate place.
+The author uses the alien utility to convert the sdparm binary
+rpm into the equivalent debian package.
+
