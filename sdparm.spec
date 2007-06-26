@@ -1,5 +1,5 @@
 %define	name	sdparm
-%define	version	0.92
+%define	version	0.93
 %define	release	1
 
 Summary:	List or change SCSI disk parameters
@@ -52,6 +52,9 @@ make install \
 %{_mandir}/man8/*
 
 %changelog
+* Thu Jun 02 2005 - dgilbert at interlog dot com
+- add '--transport=' and '--dbd' options
+  * sdparm-0.93
 * Fri May 20 2005 - dgilbert at interlog dot com
 - add some tape, cd/dvd, disk, ses and rbc mode pages
   * sdparm-0.92

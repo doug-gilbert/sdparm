@@ -8,7 +8,7 @@ drives and SCSI enclosures.
 
 Relationship to sg3_utils
 -------------------------
-This package shares code with sg3_utils (version 1.14 of the latter).
+This package shares code with sg3_utils (version 1.15).
 sg3_utils is a package of utilities that typically act at the SCSI
 command level and is written by the same author. The shared code
 (sg_lib.[hc] and sg_cmds.[hc]) includes tables of SCSI command names
@@ -58,4 +58,4 @@ The contents of INSTALL have been replaced by more specific instructions.
 
 
 Douglas Gilbert
-20th May 2005
+2nd June 2005
