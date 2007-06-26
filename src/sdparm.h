@@ -52,7 +52,7 @@
 #define MSP_SPI_NS 3
 #define MSP_SPI_RTC 4
 #define MSP_SAS_PCD 1
-#define MSP_SAS_SHA 2
+#define MSP_SAS_SPC 2
 #define MSP_BACK_CTL 1
 #define MSP_SAT_PATA 0xf1       /* SAT PATA Control */
 #define MSP_DEV_CONF_EXT 1      /* device conf extension (ssc) */
@@ -106,6 +106,7 @@
 #define VENDOR_SEAGATE 0x0
 #define VENDOR_HITACHI 0x1
 #define VENDOR_MAXTOR 0x2
+#define VENDOR_FUJITSU 0x3
 
 /* bit flag settings for sdparm_mode_page_item::flags */
 #define MF_COMMON 0x1   /* output in summary mode */

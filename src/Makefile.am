@@ -8,6 +8,7 @@ AM_CFLAGS = -Wall -W
 sdparm_SOURCES =	sdparm.c	\
 			sdparm.h	\
 			sdparm_data.c	\
+			sdparm_data_vendor.c	\
 			sdparm_access.c	\
 			sdparm_vpd.c	\
 			sdparm_cmd.c	\

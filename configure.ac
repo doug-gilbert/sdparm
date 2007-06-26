@@ -1,4 +1,4 @@
-AC_INIT(sdparm, 1.01, dgilbert@interlog.com)
+AC_INIT(sdparm, 1.02, dgilbert@interlog.com)
 
 AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER(config.h)
@@ -31,6 +31,10 @@ case "${host}" in
                 AC_SUBST([os_deps], ['sg_pt_freebsd.o'])
 		AC_DEFINE_UNQUOTED(SDPARM_FREEBSD, 1, [sdparm on FreeBSD])
                 AC_SUBST([os_libs], ['-lcam']);;
+        *-*-solaris*)
+                AC_SUBST([os_deps], ['sg_pt_solaris.o'])
+		AC_DEFINE_UNQUOTED(SDPARM_FREEBSD, 1, [sdparm on Solaris])
+                AC_SUBST([os_libs], ['']);;
         *-*-osf*)
                 AC_SUBST([os_deps], ['sg_pt_osf1.o'])
 		AC_DEFINE_UNQUOTED(SDPARM_OSF1, 1, [sdparm on Tru64 UNIX])
