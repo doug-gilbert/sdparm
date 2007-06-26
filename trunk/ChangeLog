@@ -1,9 +1,31 @@
-The version number is hardcoded into sdparm.c (in a C string) and
-the rpm spec file: sdparm.spec
+The version number is hardcoded into sdparm.c (in a C string);
+the rpm spec file: sdparm.spec ; the debian/changelog file;
+and the configure.ac file (in the AC_INIT item).
+
+ChangeLog for sdparm-0.95 [20050920]
+  - add debian directory (for builds)
+  - add decode for extended inquiry data VPD page
+  - add decode for management network addresses VPD page
+  - add decode for mode page policy VPD page
+  - add decode for ATA information VPD page
+  - add decode for Block limits VPD page
+  - fix DRA and LBCSS bits in caching mode page
+  - sync with SPC-4 rev 02
+  - add EBACKERR in Informational exceptions mode page
+  - add some defensive code into SCSI INQUIRY response processing
+  - about 10 fixes to mode page items as a result of chk_sdparm_data
+    <see notes.txt file for more information>
+  - when changing mode pages, check modification position does not
+    exceed actual page length
+  - process '-p' option last since it depends on '-t' and '-i'
+    - output available arguments when '-p' or '-t' arguments
+      don't match
+  - fix command line problem with '--dbd', '--defaults' and 
+    '--dummy'
 
 ChangeLog for sdparm-0.94 [20050728]
   - add CD/DVD (MM) capabilities and mechanical status mode page
-  - add Background medium scan (SBC-2 pending) mode subpage
+  - add Background medium scan (SBC-3) mode subpage
   - add '--command=<cmd>' option with these <cmd>s:
       ready, start, stop, load, eject and unlock
   - add decoding for SCSI Ports VPD page

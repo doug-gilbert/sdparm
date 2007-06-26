@@ -1,0 +1,18 @@
+sdparm (0.95-0.1) unstable; urgency=low
+
+  * Add debian directory in original sdparm-0.95
+
+ -- Douglas Gilbert <dgilbert@interlog.org>  Tue, 20 Sep 2005 11:00:00 +1000
+
+sdparm (0.94-0.1) unstable; urgency=low
+
+  * Track sdparm-0.94 original
+
+ -- Douglas Gilbert <dgilbert@interlog.org>  Thu, 28 Jul 2005 22:00:00 +1000
+
+sdparm (0.93-1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Tomas Fasth <tomfa@debian.org>  Wed,  8 Jun 2005 23:48:13 +0000
+
