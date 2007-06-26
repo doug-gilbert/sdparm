@@ -42,7 +42,8 @@
  */
 
 
-/* Mode pages that aren't specific to any transport protocol or vendor */
+/* Mode pages that aren't specific to any transport protocol or vendor.
+   They are listed in acronym alphabetical order. */
 struct sdparm_values_name_t sdparm_gen_mode_pg[] = {
     {IEC_MP, MSP_BACK_CTL, 0, 0, "bc", "Background control (SBC)"},
     {CACHING_MP, 0, 0, 0, "ca", "Caching (SBC)"},
@@ -54,6 +55,7 @@ struct sdparm_values_name_t sdparm_gen_mode_pg[] = {
     {DEV_CONF_MP, 0, 1, 0, "dc", "Device configuration (SSC)"},
     {DEV_CONF_MP, MSP_DEV_CONF_EXT, 1, 0, "dce", "Device configuration "
         "extension (SSC)"},
+    {ELE_ADDR_ASS_MP, 0, 0x8, 0, "eaa", "Element address assignment (SMC)"},
     {ES_MAN_MP, 0, 0xd, 0, "esm", "Enclosure services management (SES)"},
     {FORMAT_MP, 0, 0, 0, "fo", "Format (SBC)"},
     {IEC_MP, 0, -1, 0, "ie", "Informational exceptions control"},
@@ -719,6 +721,25 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"G2MT", TIMEOUT_PROT_MP, 0, 5, 8, 7, 16, 0,
         "Group 2 minimum timeout (sec)", NULL},
 
+
+    /* Element address assignment mode page [0x1d] smc2 */
+    {"FMTEA", ELE_ADDR_ASS_MP, 0, 8, 2, 7, 16, 0,
+        "First medium transport element address", NULL},
+    {"NMTE", ELE_ADDR_ASS_MP, 0, 8, 4, 7, 16, 0,
+        "Number of medium transport elements", NULL},
+    {"FSEA", ELE_ADDR_ASS_MP, 0, 8, 6, 7, 16, 0,
+        "First storage element address", NULL},
+    {"NSE", ELE_ADDR_ASS_MP, 0, 8, 8, 7, 16, 0,
+        "Number of storage elements", NULL},
+    {"FIEEA", ELE_ADDR_ASS_MP, 0, 8, 10, 7, 16, 0,
+        "First import/export element address", NULL},
+    {"NIEE", ELE_ADDR_ASS_MP, 0, 8, 12, 7, 16, 0,
+        "Number of import/export elements", NULL},
+    {"FDTEA", ELE_ADDR_ASS_MP, 0, 8, 14, 7, 16, 0,
+        "First data transfer element address", NULL},
+    {"NDTE", ELE_ADDR_ASS_MP, 0, 8, 16, 7, 16, 0,
+        "Number of data transfer elements", NULL},
+
     /* CD/DVD (MM) capabilities and mechanical status mode page */
     /* [0x2a] obsolete in mmc4 and mmc5, last valid in mmc3 */
     {"D_RAM_R", MMCMS_MP, 0, 5, 2, 5, 1, 0,
@@ -1081,7 +1102,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "0: no device attached; 1: end device\t"
         "2: edge expander device; 3: fanout expander device"},
     {"NPLR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 13, 3, 4, 0, 
-        "Negotiated physical link rate",
+        "Negotiated logical link rate",		/* sas2r07 */
         "0: unknown; 1: disabled; 2: phy reset problem; 3: spinup hold\t"
         "4: port selector; 8: 1.5 Gbps; 9: 3 Gbps; 0xa: 6 Gbps"},
     {"ASIP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 14, 3, 1, 0, 
