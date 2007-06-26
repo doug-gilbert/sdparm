@@ -2,7 +2,21 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-0.97 [20060125]
+ChangeLog for sdparm-0.98 [20060518]
+  - add decode for Medium configuration mode page, "mco" (ssc)
+  - sync with SPC-4 rev 04
+  - fix trailing "h" parsing (e.g. "-p 19h,1") 
+  - fix vpd 0x83 designator code 8 name 
+    - clean vpd 0x83 output format
+  - fix tape vpd page 0xb0 and 0xb2 mix-up
+  - fix unit serial number vpd length
+  - add di_asis to output device identification designators
+    in the order they appear in the VPD page
+  - when doing mode page work, start with a REQUEST SENSE
+    to flush out any Unit Attention pending
+  - fix '--quiet' option which was consuming next argument
+
+ChangeLog for sdparm-0.97 [20060127]
   - add decode for SAT pATA control mode subpage
   - add decode for Medium partition mode page (ssc)
   - add decode for Device configuration extension mode subpage (ssc)

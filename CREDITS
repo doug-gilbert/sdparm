@@ -1,8 +1,11 @@
-The author of sg3_utils would like to thank the following people who
+The author of sdparm would like to thank the following people who
 have made contributions:
 
-Kai Makisara <Kai dot Makisara at kolumbus dot fi> for tape mode
-pages and interface usability suggestions [20050517]
+Hayashi Naoyuki <titan at culzean dot org>
+        port to Tru64 [20060127]
+
+Kai Makisara <Kai dot Makisara at kolumbus dot fi>
+        for tape mode pages and interface usability suggestions [20050517]
 
 Doug Gilbert
-20th May 2005
+3rd February 2006
