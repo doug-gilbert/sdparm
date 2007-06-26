@@ -1,0 +1,61 @@
+Introduction
+------------
+sdparm is a utility for listing and potentially changing SCSI disk
+parameters. More generally it can be used on any device that uses
+a SCSI command set. Apart form SCSI disks, examples of devices that
+use SCSI command sets are ATAPI CD/DVD drives, SCSI and ATAPI tape
+drives and SCSI enclosures.
+
+Relationship to sg3_utils
+-------------------------
+This package shares code with sg3_utils (version 1.14 of the latter).
+sg3_utils is a package of utilities that typically act at the SCSI
+command level and is written by the same author. The shared code
+(sg_lib.[hc] and sg_cmds.[hc]) includes tables of SCSI command names
+and additional sense code descriptions as well as functions for
+issuing common SCSI commands.
+
+Currently the shared code is statically compiled in to each package.
+It is the intention of the author to make a common library called
+libsgutils.so in a separate package that both sdparm and sg3_utils
+will depend on at some point in the future.
+
+Documentation
+-------------
+The executable outputs a usage message when the "--help" option is
+given. Many syntax errors also result in the usage message being
+printed. There is also a man page which is in chapter 8. It can be
+accessed with "man sdparm" once this package is installed. Prior
+to installation the man page can be viewed from this package's
+main directory with "man ./sdparm.8".
+
+There is a web page at http://www.torque.net/sg/sdparm.html
+
+Build infrastructure
+--------------------
+This is the first time the author has used the automake and autoconf
+tools. So anybody who has problems or suggestions please contact the
+author. The generating files (scripts) are configure.in, Makefile.am,
+src/Makefile.am and autogen.sh . The autogen.sh script only needs
+to be executed if one of the other generating files in the above list
+is changed.
+
+There is a rpm "spec" file in the main directory: sdparm.spec .
+
+Notes
+-----
+The following files were symlinks to /usr/share/automake-1.9 generic
+files on the author's system. That doesn't seem useful to put in
+a tarball so versions were copied. The symlinks:
+   - config.guess
+   - config.sub
+   - COPYING
+   - depcomp
+   - INSTALL
+   - install-sh
+   - missing
+The contents of INSTALL have been replaced by more specific instructions.
+
+
+Douglas Gilbert
+18th April 2005
