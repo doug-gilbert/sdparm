@@ -35,7 +35,7 @@
 
 #include "sdparm.h"
 #include "sg_lib.h"
-#include "sg_cmds.h"
+#include "sg_cmds_basic.h"
 
 /* sdparm_cmd.c : contains code to implement commands
  * (i.e "--command=<cmd>") in sdparm.
@@ -151,6 +151,8 @@ static int do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
         fprintf(stderr, "bad field in Request Sense cdb\n");
     else if (SG_LIB_CAT_NOT_READY == res)
         fprintf(stderr, "Request Sense failed, device not ready\n");
+    else if (SG_LIB_CAT_ABORTED_COMMAND == res)
+        fprintf(stderr, "Request Sense failed, aborted command\n");
     else {
         fprintf(stderr, "Request Sense command failed\n");
         if (0 == verbose)
