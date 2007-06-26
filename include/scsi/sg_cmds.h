@@ -68,6 +68,11 @@ extern int sg_ll_sync_cache_10(int sg_fd, int sync_nv, int immed, int group,
 extern int sg_ll_test_unit_ready(int sg_fd, int pack_id, int noisy,
                                  int verbose);
 
+extern int sg_ll_start_stop_unit(int sg_fd, int immed, int power_cond,
+                                 int loej, int start, int verbose);
+
+extern int sg_ll_prevent_allow(int sg_fd, int prevent, int verbose);
+
 
 struct sg_simple_inquiry_resp {
     unsigned char peripheral_qualifier;

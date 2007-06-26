@@ -1,6 +1,15 @@
 The version number is hardcoded into sdparm.c (in a C string) and
 the rpm spec file: sdparm.spec
 
+ChangeLog for sdparm-0.94 [20050728]
+  - add CD/DVD (MM) capabilities and mechanical status mode page
+  - add Background medium scan (SBC-2 pending) mode subpage
+  - add '--command=<cmd>' option with these <cmd>s:
+      ready, start, stop, load, eject and unlock
+  - add decoding for SCSI Ports VPD page
+  - updated to automake version 1.9.5
+  - copy of sdparm.html placed in doc directory
+
 ChangeLog for sdparm-0.93 [20050602]
   - add '--dbd' option for those pesky RBC devices
   - add '--transport=' option for transport (protocol) specific
