@@ -4,7 +4,7 @@ non-root user. Since hdparm is mainly used on disks, this is an appropriate
 place.
 
 Currently sdparm is placed in the /usr/bin directory (by the sdparm.spec
-file) or /usr/local bin (by 'make install'). This allows both root and
+file) or /usr/local/bin (by 'make install'). This allows both root and
 non-root users to access sdparm. Permissions on SCSI disks devices should
 be sufficient to stop a non-root user changing parameters unless they have
 both read and write permissions. Non-root users should be able read SCSI
@@ -46,4 +46,4 @@ the source file. The sdparm_data.c file only needs to be checked for
 integrity after a lot of new mode page items are added or changed.
 
 Doug Gilbert
-20th September 2005
+13th November 2005
