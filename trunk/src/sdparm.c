@@ -74,34 +74,34 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
 
-static char * version_str = "1.02 20070606";
+static char * version_str = "1.02 20070707";
 
 
 static struct option long_options[] = {
-    {"six", 0, 0, '6'},
-    {"all", 0, 0, 'a'},
-    {"dbd", 0, 0, 'B'},
-    {"clear", 1, 0, 'c'},
-    {"command", 1, 0, 'C'},
-    {"defaults", 0, 0, 'D'},
-    {"dummy", 0, 0, 'd'},
-    {"enumerate", 0, 0, 'e'},
-    {"flexible", 0, 0, 'f'},
-    {"get", 1, 0, 'g'},
-    {"help", 0, 0, 'h'},
-    {"hex", 0, 0, 'H'},
-    {"inquiry", 0, 0, 'i'},
-    {"long", 0, 0, 'l'},
-    {"page", 1, 0, 'p'},
-    {"quiet", 0, 0, 'q'},
-    {"set", 1, 0, 's'},
-    {"save", 0, 0, 'S'},
-    {"transport", 1, 0, 't'},
-    {"vendor", 1, 0, 'M'},
-    {"verbose", 0, 0, 'v'},
-    {"version", 0, 0, 'V'},
+    {"six", no_argument, 0, '6'},
+    {"all", no_argument, 0, 'a'},
+    {"dbd", no_argument, 0, 'B'},
+    {"clear", required_argument, 0, 'c'},
+    {"command", required_argument, 0, 'C'},
+    {"defaults", no_argument, 0, 'D'},
+    {"dummy", no_argument, 0, 'd'},
+    {"enumerate", no_argument, 0, 'e'},
+    {"flexible", no_argument, 0, 'f'},
+    {"get", required_argument, 0, 'g'},
+    {"help", no_argument, 0, 'h'},
+    {"hex", no_argument, 0, 'H'},
+    {"inquiry", no_argument, 0, 'i'},
+    {"long", no_argument, 0, 'l'},
+    {"page", required_argument, 0, 'p'},
+    {"quiet", no_argument, 0, 'q'},
+    {"set", required_argument, 0, 's'},
+    {"save", no_argument, 0, 'S'},
+    {"transport", required_argument, 0, 't'},
+    {"vendor", required_argument, 0, 'M'},
+    {"verbose", no_argument, 0, 'v'},
+    {"version", no_argument, 0, 'V'},
 #ifdef SDPARM_WIN32
-    {"wscan", 0, 0, 'w'},
+    {"wscan", no_argument, 0, 'w'},
 #endif
     {0, 0, 0, 0},
 };
