@@ -155,6 +155,8 @@ struct sdparm_values_name_t sdparm_vpd_pg[] = {
     {VPD_ASCII_OP_DEF, 0, -1, 1, "aod",
      "ASCII implemented operating definition (obs)"},
     {VPD_BLOCK_LIMITS, 0, 0, 1, "bl", "Block limits (SBC)"},
+    {VPD_BLOCK_DEV_CHAR, 0, 0, 1, "bdc", "Block device characteristics "
+     "(SBC)"},
     {VPD_DEVICE_ID, 0, -1, 1, "di", "Device identification"},
     {VPD_DEVICE_ID, VPD_DI_SEL_AS_IS, -1, 1, "di_asis", "Like 'di' "
      "but designators ordered as found"},
@@ -169,6 +171,8 @@ struct sdparm_values_name_t sdparm_vpd_pg[] = {
      "Implemented operating definition (obs)"},
     {VPD_MAN_ASS_SN, 0, 1, 1, "mas",
      "Manufacturer assigned serial number (SSC)"},
+    {VPD_MAN_ASS_SN, 0, 0x12, 1, "masa",
+     "Manufacturer assigned serial number (ADC)"},
     {VPD_MAN_NET_ADDR, 0, -1, 1, "mna", "Management network addresses"},
     {VPD_MODE_PG_POLICY, 0, -1, 1, "mpp", "Mode page policy"},
     {VPD_SA_DEV_CAP, 0, 1, 1, "sad",

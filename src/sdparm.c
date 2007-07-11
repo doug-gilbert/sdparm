@@ -74,7 +74,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
 
-static char * version_str = "1.02 20070707";
+static char * version_str = "1.02 20070711";
 
 
 static struct option long_options[] = {

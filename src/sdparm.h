@@ -77,7 +77,10 @@
 #define VPD_ATA_INFO 0x89
 #define VPD_BLOCK_LIMITS 0xb0   /* SBC-3 */
 #define VPD_SA_DEV_CAP 0xb0     /* SSC-3 */
-#define VPD_MAN_ASS_SN 0xb1     /* SSC-3 */
+#define VPD_OSD_INFO 0xb0       /* OSD */
+#define VPD_BLOCK_DEV_CHAR 0xb1 /* SBC-3 */
+#define VPD_MAN_ASS_SN 0xb1     /* SSC-3, ADC-2 */
+#define VPD_SECURITY_TOKEN 0xb1 /* OSD */
 #define VPD_TA_SUPPORTED 0xb2   /* SSC-3 */
 
 #define VPD_ASSOC_LU 0
