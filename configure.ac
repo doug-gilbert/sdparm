@@ -33,7 +33,7 @@ case "${host}" in
                 AC_SUBST([os_libs], ['-lcam']);;
         *-*-solaris*)
                 AC_SUBST([os_deps], ['sg_pt_solaris.o'])
-		AC_DEFINE_UNQUOTED(SDPARM_FREEBSD, 1, [sdparm on Solaris])
+		AC_DEFINE_UNQUOTED(SDPARM_SOLARIS, 1, [sdparm on Solaris])
                 AC_SUBST([os_libs], ['']);;
         *-*-osf*)
                 AC_SUBST([os_deps], ['sg_pt_osf1.o'])
