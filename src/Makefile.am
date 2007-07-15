@@ -25,5 +25,6 @@ EXTRA_sdparm_SOURCES =	sg_pt_linux.c	\
 			sg_pt_freebsd.c	\
 			sg_pt_osf1.c	\
 			sg_pt_win32.c	\
+			sg_pt_win32.h	\
 			getopt_long.c	\
 			port_getopt.h
