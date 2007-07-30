@@ -33,11 +33,7 @@
 
 /*
  * sdparm is a utility program to access and change SCSI device
- * (logical unit) metadata and do some other housekeeping.
- *
- * This utility fetches various attributes associated with a given
- * SCSI disk (or a disk that uses, or translates the SCSI command
- * set). In some cases these attributes can be changed.
+ * (logical unit) mode page fields and do some other housekeeping.
  *
  * This file contains vendor data tables that may be useful for other
  * programs.
@@ -45,17 +41,17 @@
 
 
 /* Vendor specific mode pages */
-struct sdparm_values_name_t sdparm_vendor_id[] = {
-    {VENDOR_SEAGATE, 0, -1, 0, "sea", "Seagate disk"},
-    {VENDOR_HITACHI, 0, -1, 0, "hit", "Hitachi disk"},
-    {VENDOR_MAXTOR, 0, -1, 0, "max", "Maxtor disk"},
-    {VENDOR_FUJITSU, 0, -1, 0, "fuj", "Fujitsu disk"},
-    {0, 0, 0, 0, NULL, NULL},
+struct sdparm_vendor_name_t sdparm_vendor_id[] = {
+    {VENDOR_SEAGATE, "sea", "Seagate disk"},
+    {VENDOR_HITACHI, "hit", "Hitachi disk"},
+    {VENDOR_MAXTOR, "max", "Maxtor disk"},
+    {VENDOR_FUJITSU, "fuj", "Fujitsu disk"},
+    {0, NULL, NULL},
 };
 
-static struct sdparm_values_name_t sdparm_v_seagate_mode_pg[] = {
-    {UNIT_ATTENTION_MP, 0, 0, 0, "ua", "Unit attention (seagate)"},
-    {0, 0, 0, 0, NULL, NULL},
+static struct sdparm_mode_page_t sdparm_v_seagate_mode_pg[] = {
+    {UNIT_ATTENTION_MP, 0, 0, 0, "ua", "Unit attention (seagate)", NULL},
+    {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
 static struct sdparm_mode_page_item sdparm_mitem_v_seagate_arr[] = {
@@ -116,9 +112,10 @@ static struct sdparm_mode_page_item sdparm_mitem_v_seagate_arr[] = {
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
 };
 
-static struct sdparm_values_name_t sdparm_v_hitachi_mode_pg[] = {
-    {UNIT_ATTENTION_MP, 0, 0, 0, "vup", "Vendor unique parameters (hitachi)"},
-    {0, 0, 0, 0, NULL, NULL},
+static struct sdparm_mode_page_t sdparm_v_hitachi_mode_pg[] = {
+    {UNIT_ATTENTION_MP, 0, 0, 0, "vup", "Vendor unique parameters (hitachi)",
+        NULL},
+    {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
 static struct sdparm_mode_page_item sdparm_mitem_v_hitachi_arr[] = {
@@ -163,9 +160,10 @@ static struct sdparm_mode_page_item sdparm_mitem_v_hitachi_arr[] = {
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
 };
 
-static struct sdparm_values_name_t sdparm_v_maxtor_mode_pg[] = {
-    {UNIT_ATTENTION_MP, 0, 0, 0, "uac", "Unit attention condition (maxtor)"},
-    {0, 0, 0, 0, NULL, NULL},
+static struct sdparm_mode_page_t sdparm_v_maxtor_mode_pg[] = {
+    {UNIT_ATTENTION_MP, 0, 0, 0, "uac", "Unit attention condition (maxtor)",
+        NULL},
+    {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
 static struct sdparm_mode_page_item sdparm_mitem_v_maxtor_arr[] = {
@@ -174,9 +172,10 @@ static struct sdparm_mode_page_item sdparm_mitem_v_maxtor_arr[] = {
         "Disable unit attention", NULL},
 };
 
-static struct sdparm_values_name_t sdparm_v_fujitsu_mode_pg[] = {
-    {0x21, 0, 0, 0, "aerp", "Additional error recovery parameters (fujitsu)"},
-    {0, 0, 0, 0, NULL, NULL},
+static struct sdparm_mode_page_t sdparm_v_fujitsu_mode_pg[] = {
+    {0x21, 0, 0, 0, "aerp", "Additional error recovery parameters (fujitsu)",
+        NULL},
+    {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
 static struct sdparm_mode_page_item sdparm_mitem_v_fujitsu_arr[] = {

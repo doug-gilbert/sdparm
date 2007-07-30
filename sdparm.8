@@ -1,6 +1,6 @@
-.TH SDPARM "8" "January 2007" "sdparm\-1.01" SDPARM
+.TH SDPARM "8" "July 2007" "sdparm\-1.02" SDPARM
 .SH NAME
-sdparm \- fetch and potentially change SCSI device attributes. Send commands.
+sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
 .B sdparm
 [\fI\-\-all\fR] [\fI\-\-clear=STR\fR] [\fI\-\-command=CMD\fR]
@@ -32,13 +32,12 @@ variant is for Windows only and lists the available device names;
 see the OPTIONS entry for \fI\-\-wscan\fR. 
 .PP
 If no options (other than \fIDEVICE\fR) are given then a selection of
-common mode page attributes for that device are listed. If the
-\fI\-\-long\fR option is also given then a description of the attributes
-is placed on the right of each line. If the \fI\-\-all\fR option is given
-then all known mode page attributes for that device are listed. Individual
-attributes can be displayed with the \fI\-\-get=STR\fR
-option (e.g. '\-\-get=WCE' to fetch the state of the Writeback Cache Enable
-attribute).
+common mode page fields for that device are listed. If the \fI\-\-long\fR
+option is also given then a description of the fields is placed on the
+right of each line. If the \fI\-\-all\fR option is given then all known
+mode page fields for that device are listed. Individual fields can be
+displayed with the \fI\-\-get=STR\fR option (e.g. '\-\-get=WCE' to fetch
+the state of the Writeback Cache Enable field).
 .PP
 By default this utility shows mode pages that are common to all
 transport protocols. These are termed as "generic" mode pages.
@@ -62,6 +61,9 @@ the VPD page can be specified as an abbreviation (e.g. "sp" for the SCSI
 ports VPD page) or numerically (e.g. "0x88"). If a VPD page is returned
 by the \fIDEVICE\fR but sdparm cannot decode it or the \fI\-\-hex\fR
 option is given then it is output in hex.
+.PP
+This utility completes with an exit status of 0 when successful. For other
+values see the EXIT STATUS section below.
 .SH OPTIONS
 Mandatory arguments to long options are mandatory for short options as well.
 If an option takes a numeric argument then that argument is assumed to
@@ -69,25 +71,23 @@ be decimal unless otherwise indicated (e.g. with a leading "0x" or a
 trailing "h").
 .TP
 \fB\-a\fR, \fB\-\-all\fR
-output all recognized attributes for the device type (e.g. disk) of the
-given device. Without this option (or the \fI\-\-page=PG[,SPG]\fR option)
-the default action is to output a relatively small number of commonly used
-attributes from different pages. When a specific (mode) page number is
-given with the \fI\-\-page=PG[,SPG]\fR option then all the attributes of
-that page are output (irrespective of the setting of this option). For
-this option's action when used with the \fI\-\-enumerate\fR option see the
-ENUMERATE section below.
+output all recognized fields for the device type (e.g. disk) of the given
+device. Without this option (or the \fI\-\-page=PG[,SPG]\fR option) the
+default action is to output a relatively small number of commonly used fields
+from different pages. When a specific (mode) page number is given with the
+\fI\-\-page=PG[,SPG]\fR option then all the fields of that page are
+output (irrespective of the setting of this option). For this option's action
+when used with the \fI\-\-enumerate\fR option see the ENUMERATE section below.
 .TP
 \fB\-c\fR, \fB\-\-clear\fR=\fISTR\fR
-The \fISTR\fR contains a comma separated list of attribute acronyms. In the
-absence of an explicit value argument (e.g. '\-\-clear=WCE=1'), each
-acronym has its value cleared to zero. Utility completes with exit status 0
-if successful.  See the PARAMETERS section below.
+In its simplest form \fISTR\fR contains a field acronym_name or a field
+numerical descriptor. In the absence of an explicit value argument (e.g.
+'\-\-clear=WCE=1'), the field has its value cleared to zero. See the
+PARAMETERS section below.
 .TP
 \fB\-C\fR, \fB\-\-command\fR=\fICMD\fR
-Perform given \fICMD\fR. See section below on COMMANDS. If successful then
-the exit status is 0. To enumerate supported commands
-use '\-e \-C x' (using any CMD name, valid or otherwise).
+Perform given \fICMD\fR. See section below on COMMANDS. To enumerate supported
+commands use '\-e \-C x' (using any CMD name, valid or otherwise).
 .TP
 \fB\-B\fR, \fB\-\-dbd\fR
 disable block descriptors. This is a bit in MODE SENSE cdbs that
@@ -108,12 +108,12 @@ command, is output in ASCII hex to the console. This option is mainly
 for testing.
 .TP
 \fB\-e\fR, \fB\-\-enumerate\fR
-lists out descriptive information about the pages and attributes known
-to this utility. Ignores the \fIDEVICE\fR argument and other options
-apart from the \fI\-\-all\fR, \fI\-\-inquiry\fR, \fI\-\-long\fR,
-\fI\-\-page=PG[,SPG]\fR, \fI\-\-transport=TN\fR and \fI\-\-vendor=VN\fR.
-If \fI\-\-enumerate\fR is given without other options then the
-known (generic) mode pages are listed. See the ENUMERATE section below.
+lists out descriptive information about the pages and fields known to this
+utility. Ignores the \fIDEVICE\fR argument and other options apart from
+the \fI\-\-all\fR, \fI\-\-inquiry\fR, \fI\-\-long\fR, \fI\-\-page=PG[,SPG]\fR,
+\fI\-\-transport=TN\fR and \fI\-\-vendor=VN\fR. If \fI\-\-enumerate\fR is
+given without other options then the known (generic) mode pages are listed.
+See the ENUMERATE section below.
 .TP
 \fB\-f\fR, \fB\-\-flexible\fR
 Some devices, bridges and/or drivers attempt crude transformations between
@@ -125,10 +125,12 @@ are attempted. This option will also allow mode pages that don't belong
 to the current device's peripheral type to be listed.
 .TP
 \fB\-g\fR, \fB\-\-get\fR=\fISTR\fR
-The \fISTR\fR contains a comma separated list of attribute acronyms whose values
-are to be fetched. See the PARAMETERS section below. The \fI\-\-long\fR
-and \fI\-\-hex\fR options effect the output format. Also if a value of "1" is
-given (e.g. '\-\-get=WCE=1') only the current value is output.
+In its simplest form \fISTR\fR contains a field acronym_name or a field
+numerical descriptor. The field is fetched from mode page. See the PARAMETERS
+section below. The \fI\-\-long\fR and \fI\-\-hex\fR options effect the output
+format. Also if a value of "1" is given (e.g. '\-\-get=WCE=1') only the
+current value is output (i.e. not the change mask, the default value and the
+saved value).
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 output the usage message then exit.
@@ -156,14 +158,14 @@ option are given then the supported VPD pages page (0x0) is decoded and
 output.
 .TP
 \fB\-l\fR, \fB\-\-long\fR
-output extra information. In the case of mode page attributes a
-description (with units if applicable) is output to the right. If used twice,
-then for some attributes more information about its values is given on one
-or more following lines, each prefixed by a tab character. For usage with
-\fI\-\-enumerate\fR see the ENUMERATE section below.
+output extra information. In the case of mode page fields a description (with
+units if applicable) is output to the right. If used twice, then for some
+fields more information about its values is given on one or more following
+lines, each prefixed by a tab character. For usage with \fI\-\-enumerate\fR
+see the ENUMERATE section below.
 .TP
 \fB\-p\fR, \fB\-\-page\fR=\fIPG[,SPG]\fR
-supply the page number (\fIPG\fR) and optionally the sub page 
+supply the page number (\fIPG\fR) and optionally the sub page
 number (\fISPG\fR) of the mode (or VPD) page to fetch. These numbers are
 interpreted as decimal unless prefixed with "0x" or a trailing. Sub page
 numbers are only valid for mode pages (not VPD pages). Alternatively an
@@ -194,12 +196,12 @@ device is power cycled (or reset) the saved values mode page becomes (i.e. is
 copied to) the current values mode page. See NOTES section below.
 .TP
 \fB\-s\fR, \fB\-\-set\fR=\fISTR\fR
-The \fISTR\fR contains a comma separated list of attribute acronyms. In
-the absence of an explicit value, each acronym has its value set
-to (all) ones. This means a 16 bit field will be set to 0xffff which
-is 65535 in decimal. Alternatively each acronym may be followed by "=<n>"
-where <n> is the value to set that attribute to. This utility exits with
-process status 0 if successful, else 1. See the PARAMETERS section below.
+in its simplest form \fISTR\fR contains a field acronym_name or a field
+numerical descriptor. In the absence of an explicit value, each acronym_name
+has its value set to (all) ones. This means a 16 bit field will be set to
+0xffff which is 65535 in decimal. Alternatively each acronym_name or numerical
+descriptor may be followed by "=<n>" where <n> is the value to set that field
+to. See the PARAMETERS section below.
 .TP
 \fB\-6\fR, \fB\-\-six\fR
 The default action of this utility is to issue MODE SENSE and MODE SELECT
@@ -257,7 +259,7 @@ its PS bit) that the page is not savable, then this utility generates
 an error message. That message suggests to try again without the
 \fI\-\-save\fR option.
 .PP
-Since the device identification VPD page (acronym "di") potentially
+Since the device identification VPD page (acronym_name "di") potentially
 contains a lot of diverse designators, several associated acronyms are
 available. They are "di_lu" for designators associated with the
 addressed logical unit, "di_port" for designators associated with the
@@ -276,37 +278,48 @@ mapped within this utility to their corresponding sg device nodes. So if
 there is a SCSI disk at /dev/sda then 'sdparm /dev/sda' will work in both
 the lk 2.6 and lk 2.4 series. However if there is an ATAPI cd/dvd drive
 at /dev/hdc then 'sdparm /dev/hdc' will only work in the lk 2.6 series.
-.PP
-In FreeBSD the "atapicam" device may need to be configured into the kernel
-in order that sdparm can access (s)ATAPI cd/dvd drives.
 .SH PARAMETERS
-The \fI\-\-clear\fR=, \fI\-\-get\fR= and \fI\-\-set\fR= options can take a
-string argument which is a comma separated list of attributes. Each attribute
-can be either an acronym name or a <start_byte>:<start_bit>:<num_bits> tuple.
-Either form can optionally be followed by "=<val>". Acronyms (e.g.
-WCE for "Writeback Cache Enable") that this utility supports can be listed
-with the \fI\-\-enumerate\fR option.  Alternatively, a mode page attribute
-to be changed can be described in terms of a <start_byte> (origin 0)
-within the mode page, a <start_bit> (0 to 7 inclusive) and <num_bits> (1
-to 64 inclusive). For example, the low level representation of the RCD
-bit (in the caching mode page) is "2:0:1". The <start_byte> and 
-the <val> can optionally be given in hex (e.g. '\-\-set=0x2:0:1=0x1'
-or '\-\-set=2h:0:1=1h').
+In their simplest form the \fI\-\-clear\fR=, \fI\-\-get\fR= and
+\fI\-\-set\fR= options (or their short forms) take an acronym_name such
+as "WCE". In the case of '\-\-get=WCE' the value of "Writeback Cache Enable"
+in the caching mode page will be fetched. In the case of '\-\-set=WCE'
+that bit will be set (to one). In the case of '\-\-clear=WCE' that bit
+will be cleared (to zero). When an acronym_name is given then the mode page
+is imputed from that acronym_name (e.g. WCE is in the caching mode page).
 .PP
-When the attribute(s) following \fI\-\-clear\fR= is not given an
-explicit '=<val>' then the value defaults to zero. When the attribute(s)
+Instead of an acronym_name a field within a mode page can be described
+numerically with a <start_byte>:<start_bit>:<num_bits> tuple. These
+are the <start_byte> (origin 0) within the mode page, a <start_bit> (0 to
+7 inclusive) and <num_bits> (1 to 64 inclusive). For example, the low level
+representation of the RCD bit (the "Read Cache Disable bit in the caching
+mode page) is "2:0:1". The <start_byte> can optionally be given in
+hex (e.g. '\-\-set=0x2:0:1' or '\-\-set=2h:0:1'). With this form the
+\fI\-\-page\fR= option is required to establish which mode page is to be
+used.
+.PP
+Either form can optionally be followed by "=<val>". By default <val> is
+decimal but can be given in hex in the normal fashion. Here are some
+examples: '\-\-set=2h:0:1=1h' and '\-s MRIE=0x3'. When the acronym_name
+or numeric form following \fI\-\-clear\fR= is not given an explicit '=<val>'
+then the value defaults to zero. When the acronym_name or numeric form
 following \fI\-\-set\fR= is not given an explicit '=<val>' then the value
 defaults to "all ones" (i.e. as many as <num_bits> permits). For
 example '\-\-clear=WCE' and '\-\-clear=WCE=0' have the same meaning: clear
 Writeback Cache Enable or, put more simply: turn off the writeback cache.
 .PP
-When an acronym is given then the mode page is imputed from that acronym (e.g.
-WCE is in the caching mode page). When only the start_byte:start_bit:num_bits
-form is used then the \fI\-\-page\fR= option must be given to establish
-which mode page is to be used. A restriction placed on \fI\-\-clear\fR=
-and \fI\-\-set\fR= is that if multiple parameters are given, they must all be
-in the same mode page. Hence an invocation of this utility can only modify
-one mode page.
+Multiple fields within the same mode page can be changed by giving a comma
+separated list of acronym_names and/or the numerical form. For
+example: '\-\-set=TEST,MRIE=6'.
+.PP
+Some mode page have multiple descriptors. They typically have a fixed header
+section at the start of the mode page that includes a field containing the
+number of descriptors. Following the header is a variable number of
+descriptors. An example is the SAS Phy Control and Discover mode page. An
+acronym_name may include a trailing '.<num>' where "<num>" is a descriptor
+number (origin 0). For example '\-t sas \-g PHID.0' and '\-t sas \-g PHID'
+will yield the phy identifier of the first descriptor of the above mode
+page; '\-t sas \-g PHID.1' will yield the phy identifier of the second
+descriptor.
 .SH ENUMERATE
 The \fI\-\-enumerate\fR option essentially dumps out static information held
 by this utility. A list of \fI\-\-enumerate\fR variants and their actions
@@ -389,7 +402,7 @@ and the protocol specific port (0x19) mode pages. In some cases the latter
 mode page has several subpages. The most common transport protocol
 abbreviations likely to be used are "fcp", "spi" and "sas".
 .PP
-Many of the field names are re\-used in the same position so the acronym
+Many of the field names are re\-used in the same position so the acronym_name
 namespaces have been divided between generic mode pages (i.e. when the
 \fI\-\-transport\fR= option is _not_ given) and a namespace for each
 transport protocol. A LUPID field from the protocol specific logical
@@ -398,12 +411,6 @@ port (0x19) mode page are included in the generic modes pages; this is so
 the respective (transport) protocol identifiers can be seen. In most cases
 the user will know what the "port" transport is (i.e. the same transport as
 the HBA in the computer) but the logical unit's transport could be different.
-.PP
-The logic in sdparm requires acronyms to be unique within a
-namespace. This becomes difficult if a mode page has multiple
-descriptors each of which has the same set of acronyms. The SAS phy
-control and discover page is an example of this. The current
-solution is to prepend "2_" to the second set of acronyms.
 .SH VENDORS
 SCSI leaves a lot of space for vendor specific information. Often this is
 described in product manuals. The \fI\-\-vendor=VN\fR (or \fI\-M=VN\fR)
@@ -548,10 +555,9 @@ by vendor specific mode pages and the above can also be accomplished with:
 .PP
    sdparm \-\-vendor=sea \-\-set=PM \-\-save /dev/sda
 .SH EXIT STATUS
-To aid scripts that call these utilities, the exit status is set to
-indicate success (0) or failure (1 or more). Note that some of the
-lower values correspond to the SCSI sense key values to which they
-correspond. The exit status values are:
+To aid scripts that call sdparm, the exit status is set to indicate
+success (0) or failure (1 or more). Note that some of the lower values
+correspond to the SCSI sense key values. The exit status values are:
 .TP
 .B 0
 success
