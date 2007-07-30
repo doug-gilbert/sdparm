@@ -2,8 +2,8 @@ bin_PROGRAMS = sdparm
 
 # INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/include/scsi
 
-AM_CFLAGS = -Wall -W
-# AM_CFLAGS = -Wall -W -pedantic -std=c99
+# AM_CFLAGS = -Wall -W
+AM_CFLAGS = -Wall -W -pedantic -std=c99
 
 sdparm_SOURCES =	sdparm.c	\
 			sdparm.h	\

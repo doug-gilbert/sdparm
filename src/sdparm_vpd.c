@@ -801,7 +801,7 @@ int sdp_process_vpd_page(int sg_fd, int pn, int spn,
     unsigned char b[VPD_ATA_INFO_RESP_LEN];
     int sz;
     unsigned char * up;
-    const struct sdparm_values_name_t * vnp;
+    const struct sdparm_vpd_page_t * vpp;
 
     verb = (verbose > 0) ? verbose - 1 : 0;
     sz = sizeof(b);
@@ -838,13 +838,13 @@ int sdp_process_vpd_page(int sg_fd, int pn, int spn,
         }
         if (len > 0) {
             for (k = 0; k < len; ++k) {
-                vnp = sdp_get_vpd_detail(b[4 + k], -1, pdt);
-                if (vnp) {
+                vpp = sdp_get_vpd_detail(b[4 + k], -1, pdt);
+                if (vpp) {
                     if (opts->long_out)
                         printf("  [0x%02x] %s [%s]\n", b[4 + k],
-                               vnp->name, vnp->acron);
+                               vpp->name, vpp->acron);
                     else
-                        printf("  %s [%s]\n", vnp->name, vnp->acron);
+                        printf("  %s [%s]\n", vpp->name, vpp->acron);
                 } else
                     printf("  0x%x\n", b[4 + k]);
             }
@@ -1168,9 +1168,9 @@ int sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (b[1] != pn)
             goto dumb_inq;
         len = (b[2] << 8) + b[3] + 4;
-        vnp = sdp_get_vpd_detail(pn, -1, pdt);
-        if (vnp)
-            fprintf(stderr, "%s VPD page in hex:\n", vnp->name);
+        vpp = sdp_get_vpd_detail(pn, -1, pdt);
+        if (vpp)
+            fprintf(stderr, "%s VPD page in hex:\n", vpp->name);
         else
             fprintf(stderr, "VPD page 0x%x in hex:\n", pn);
         if (len > (int)sizeof(b)) {

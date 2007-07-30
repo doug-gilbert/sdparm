@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2006 Douglas Gilbert.
+ * Copyright (c) 2005-2007 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,28 +44,28 @@ int sdp_get_mp_len(unsigned char * mp)
     return (mp[0] & 0x40) ? ((mp[2] << 8) + mp[3] + 4) : (mp[1] + 2);
 }
 
-const struct sdparm_values_name_t *
+const struct sdparm_mode_page_t *
         sdp_get_mode_detail(int page_num, int subpage_num, int pdt,
                             int transp_proto, int vendor_num)
 {
-    const struct sdparm_values_name_t * vnp;
+    const struct sdparm_mode_page_t * mpp;
 
     if (vendor_num >= 0) {
         const struct sdparm_vendor_pair * vpp;
 
         vpp = sdp_get_vendor_pair(vendor_num);
-        vnp = (vpp ? vpp->mpage : NULL);
+        mpp = (vpp ? vpp->mpage : NULL);
     } else if ((transp_proto >= 0) && (transp_proto < 16))
-        vnp = sdparm_transport_mp[transp_proto].mpage;
+        mpp = sdparm_transport_mp[transp_proto].mpage;
     else
-        vnp = sdparm_gen_mode_pg;
-    if (NULL == vnp)
+        mpp = sdparm_gen_mode_pg;
+    if (NULL == mpp)
         return NULL;
 
-    for ( ; vnp->acron; ++vnp) {
-        if ((page_num == vnp->value) && (subpage_num == vnp->subvalue)) {
-            if ((pdt < 0) || (vnp->pdt < 0) || (vnp->pdt == pdt))
-                return vnp;
+    for ( ; mpp->acron; ++mpp) {
+        if ((page_num == mpp->page) && (subpage_num == mpp->subpage)) {
+            if ((pdt < 0) || (mpp->pdt < 0) || (mpp->pdt == pdt))
+                return mpp;
         }
     }
     return NULL;
@@ -76,41 +76,41 @@ void sdp_get_mpage_name(int page_num, int subpage_num, int pdt,
                         int hex, char * bp, int max_b_len)
 {
     int len = max_b_len - 1;
-    const struct sdparm_values_name_t * vnp;
+    const struct sdparm_mode_page_t * mpp;
     const char * cp;
 
     if (len < 0)
         return;
     bp[len] = '\0';
-    vnp = sdp_get_mode_detail(page_num, subpage_num, pdt, transp_proto,
+    mpp = sdp_get_mode_detail(page_num, subpage_num, pdt, transp_proto,
                               vendor_num);
-    if (NULL == vnp)
-        vnp = sdp_get_mode_detail(page_num, subpage_num, -1, transp_proto,
+    if (NULL == mpp)
+        mpp = sdp_get_mode_detail(page_num, subpage_num, -1, transp_proto,
                                   vendor_num);
-    if (vnp && vnp->name) {
-        cp = vnp->acron;
+    if (mpp && mpp->name) {
+        cp = mpp->acron;
         if (NULL == cp)
             cp = "";
         if (hex) {
             if (0 == subpage_num) {
                 if (plus_acron)
-                    snprintf(bp, len, "%s [%s: 0x%x]", vnp->name, cp,
+                    snprintf(bp, len, "%s [%s: 0x%x]", mpp->name, cp,
                              page_num);
                 else
-                    snprintf(bp, len, "%s [0x%x]", vnp->name, page_num);
+                    snprintf(bp, len, "%s [0x%x]", mpp->name, page_num);
             } else {
                 if (plus_acron)
-                    snprintf(bp, len, "%s [%s: 0x%x,0x%x]", vnp->name, cp,
+                    snprintf(bp, len, "%s [%s: 0x%x,0x%x]", mpp->name, cp,
                              page_num, subpage_num);
                 else
-                    snprintf(bp, len, "%s [0x%x,0x%x]", vnp->name, page_num,
+                    snprintf(bp, len, "%s [0x%x,0x%x]", mpp->name, page_num,
                              subpage_num);
             }
         } else {
             if (plus_acron)
-                snprintf(bp, len, "%s [%s]", vnp->name, cp);
+                snprintf(bp, len, "%s [%s]", mpp->name, cp);
             else
-                snprintf(bp, len, "%s", vnp->name);
+                snprintf(bp, len, "%s", mpp->name);
         }
     } else {
         if (0 == subpage_num)
@@ -120,43 +120,43 @@ void sdp_get_mpage_name(int page_num, int subpage_num, int pdt,
     }
 }
 
-const struct sdparm_values_name_t * sdp_find_mp_by_acron(const char * ap,
+const struct sdparm_mode_page_t * sdp_find_mp_by_acron(const char * ap,
                                          int transp_proto, int vendor_num)
 {
-    const struct sdparm_values_name_t * vnp;
+    const struct sdparm_mode_page_t * mpp;
 
     if (vendor_num >= 0) {
         const struct sdparm_vendor_pair * vpp;
 
         vpp = sdp_get_vendor_pair(vendor_num);
-        vnp = (vpp ? vpp->mpage : NULL);
+        mpp = (vpp ? vpp->mpage : NULL);
     } else if ((transp_proto >= 0) && (transp_proto < 16))
-        vnp = sdparm_transport_mp[transp_proto].mpage;
+        mpp = sdparm_transport_mp[transp_proto].mpage;
     else
-        vnp = sdparm_gen_mode_pg;
-    if (NULL == vnp)
+        mpp = sdparm_gen_mode_pg;
+    if (NULL == mpp)
         return NULL;
 
-    for ( ; vnp->acron; ++vnp) {
-        if (0 == strcmp(vnp->acron, ap))
-            return vnp;
+    for ( ; mpp->acron; ++mpp) {
+        if (0 == strcmp(mpp->acron, ap))
+            return mpp;
     }
     return NULL;
 }
 
-const struct sdparm_values_name_t *
+const struct sdparm_vpd_page_t *
         sdp_get_vpd_detail(int page_num, int subvalue, int pdt)
 {
-    const struct sdparm_values_name_t * vnp;
+    const struct sdparm_vpd_page_t * vpp;
     int sv, ty;
 
     sv = (subvalue < 0) ? 1 : 0;
     ty = (pdt < 0) ? 1 : 0;
-    for (vnp = sdparm_vpd_pg; vnp->acron; ++vnp) {
-        if ((page_num == vnp->value) &&
-            (sv || (subvalue == vnp->subvalue)) &&
-            (ty || (pdt == vnp->pdt)))
-            return vnp;
+    for (vpp = sdparm_vpd_pg; vpp->acron; ++vpp) {
+        if ((page_num == vpp->vpd_num) &&
+            (sv || (subvalue == vpp->subvalue)) &&
+            (ty || (pdt == vpp->pdt)))
+            return vpp;
     }
     if (! ty)
         return sdp_get_vpd_detail(page_num, subvalue, -1);
@@ -165,55 +165,55 @@ const struct sdparm_values_name_t *
     return NULL;
 }
 
-const struct sdparm_values_name_t * sdp_find_vpd_by_acron(const char * ap)
+const struct sdparm_vpd_page_t * sdp_find_vpd_by_acron(const char * ap)
 {
-    const struct sdparm_values_name_t * vnp;
+    const struct sdparm_vpd_page_t * vpp;
 
-    for (vnp = sdparm_vpd_pg; vnp->acron; ++vnp) {
-        if (0 == strcmp(vnp->acron, ap))
-            return vnp;
+    for (vpp = sdparm_vpd_pg; vpp->acron; ++vpp) {
+        if (0 == strcmp(vpp->acron, ap))
+            return vpp;
     }
     return NULL;
 }
 
 const char * sdp_get_transport_name(int proto_num)
 {
-    const struct sdparm_values_name_t * vnp;
+    const struct sdparm_transport_id_t * tip;
 
-    for (vnp = sdparm_transport_id; vnp->acron; ++vnp) {
-        if (proto_num == vnp->value)
-            return vnp->name;
+    for (tip = sdparm_transport_id; tip->acron; ++tip) {
+        if (proto_num == tip->proto_num)
+            return tip->name;
     }
     return NULL;
 }
 
-const struct sdparm_values_name_t *
+const struct sdparm_transport_id_t *
                  sdp_find_transport_by_acron(const char * ap)
 {
-    const struct sdparm_values_name_t * vnp;
+    const struct sdparm_transport_id_t * tip;
 
-    for (vnp = sdparm_transport_id; vnp->acron; ++vnp) {
-        if (0 == strcmp(vnp->acron, ap))
-            return vnp;
+    for (tip = sdparm_transport_id; tip->acron; ++tip) {
+        if (0 == strcmp(tip->acron, ap))
+            return tip;
     }
     return NULL;
 }
 
 const char * sdp_get_vendor_name(int vendor_num)
 {
-    const struct sdparm_values_name_t * vnp;
+    const struct sdparm_vendor_name_t * vnp;
 
     for (vnp = sdparm_vendor_id; vnp->acron; ++vnp) {
-        if (vendor_num == vnp->value)
+        if (vendor_num == vnp->vendor_num)
             return vnp->name;
     }
     return NULL;
 }
 
-const struct sdparm_values_name_t *
+const struct sdparm_vendor_name_t *
                  sdp_find_vendor_by_acron(const char * ap)
 {
-    const struct sdparm_values_name_t * vnp;
+    const struct sdparm_vendor_name_t * vnp;
 
     for (vnp = sdparm_vendor_id; vnp->acron; ++vnp) {
         if (0 == strcmp(vnp->acron, ap))

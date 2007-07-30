@@ -25,7 +25,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Version 1.2 20060921
+ * Version 1.3 20070727
  */
 
 #include <stdlib.h>
@@ -38,7 +38,7 @@
  * data in the sdparm_data.c tables.
  *
  * Build with a line like:
- *      gcc -Wall -o chk_sdparm_data sdparm_data.o chk_sdparm_data.c
+ *      gcc -Wall -o chk_sdparm_data sdparm_data.o sdparm_data_vendor.o chk_sdparm_data.c
  *
  */
 
@@ -204,10 +204,10 @@ static void check(const struct sdparm_mode_page_item * mpi)
 
 static const char * get_vendor_name(int vendor_num)
 {
-    const struct sdparm_values_name_t * vnp;
+    const struct sdparm_vendor_name_t * vnp;
 
     for (vnp = sdparm_vendor_id; vnp->acron; ++vnp) {
-        if (vendor_num == vnp->value)
+        if (vendor_num == vnp->vendor_num)
             return vnp->name;
     }
     return NULL;
