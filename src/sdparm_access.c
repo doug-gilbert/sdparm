@@ -39,14 +39,15 @@
  * sdparm_data.c
  */
 
-int sdp_get_mp_len(unsigned char * mp)
+int
+sdp_get_mp_len(unsigned char * mp)
 {
     return (mp[0] & 0x40) ? ((mp[2] << 8) + mp[3] + 4) : (mp[1] + 2);
 }
 
 const struct sdparm_mode_page_t *
-        sdp_get_mode_detail(int page_num, int subpage_num, int pdt,
-                            int transp_proto, int vendor_num)
+sdp_get_mode_detail(int page_num, int subpage_num, int pdt, int transp_proto,
+                    int vendor_num)
 {
     const struct sdparm_mode_page_t * mpp;
 
@@ -71,16 +72,17 @@ const struct sdparm_mode_page_t *
     return NULL;
 }
 
-void sdp_get_mpage_name(int page_num, int subpage_num, int pdt,
-                        int transp_proto, int vendor_num, int plus_acron,
-                        int hex, char * bp, int max_b_len)
+const struct sdparm_mode_page_t *
+sdp_get_mpage_name(int page_num, int subpage_num, int pdt, int transp_proto,
+                   int vendor_num, int plus_acron, int hex, char * bp,
+                   int max_b_len)
 {
     int len = max_b_len - 1;
-    const struct sdparm_mode_page_t * mpp;
+    const struct sdparm_mode_page_t * mpp = NULL;
     const char * cp;
 
     if (len < 0)
-        return;
+        return mpp;
     bp[len] = '\0';
     mpp = sdp_get_mode_detail(page_num, subpage_num, pdt, transp_proto,
                               vendor_num);
@@ -118,10 +120,11 @@ void sdp_get_mpage_name(int page_num, int subpage_num, int pdt,
         else
             snprintf(bp, len, "[0x%x,0x%x]", page_num, subpage_num);
     }
+    return mpp;
 }
 
-const struct sdparm_mode_page_t * sdp_find_mp_by_acron(const char * ap,
-                                         int transp_proto, int vendor_num)
+const struct sdparm_mode_page_t *
+sdp_find_mp_by_acron(const char * ap, int transp_proto, int vendor_num)
 {
     const struct sdparm_mode_page_t * mpp;
 
@@ -145,7 +148,7 @@ const struct sdparm_mode_page_t * sdp_find_mp_by_acron(const char * ap,
 }
 
 const struct sdparm_vpd_page_t *
-        sdp_get_vpd_detail(int page_num, int subvalue, int pdt)
+sdp_get_vpd_detail(int page_num, int subvalue, int pdt)
 {
     const struct sdparm_vpd_page_t * vpp;
     int sv, ty;
@@ -165,7 +168,8 @@ const struct sdparm_vpd_page_t *
     return NULL;
 }
 
-const struct sdparm_vpd_page_t * sdp_find_vpd_by_acron(const char * ap)
+const struct sdparm_vpd_page_t *
+sdp_find_vpd_by_acron(const char * ap)
 {
     const struct sdparm_vpd_page_t * vpp;
 
@@ -176,7 +180,8 @@ const struct sdparm_vpd_page_t * sdp_find_vpd_by_acron(const char * ap)
     return NULL;
 }
 
-const char * sdp_get_transport_name(int proto_num)
+const char *
+sdp_get_transport_name(int proto_num)
 {
     const struct sdparm_transport_id_t * tip;
 
@@ -188,7 +193,7 @@ const char * sdp_get_transport_name(int proto_num)
 }
 
 const struct sdparm_transport_id_t *
-                 sdp_find_transport_by_acron(const char * ap)
+sdp_find_transport_by_acron(const char * ap)
 {
     const struct sdparm_transport_id_t * tip;
 
@@ -199,7 +204,8 @@ const struct sdparm_transport_id_t *
     return NULL;
 }
 
-const char * sdp_get_vendor_name(int vendor_num)
+const char *
+sdp_get_vendor_name(int vendor_num)
 {
     const struct sdparm_vendor_name_t * vnp;
 
@@ -211,7 +217,7 @@ const char * sdp_get_vendor_name(int vendor_num)
 }
 
 const struct sdparm_vendor_name_t *
-                 sdp_find_vendor_by_acron(const char * ap)
+sdp_find_vendor_by_acron(const char * ap)
 {
     const struct sdparm_vendor_name_t * vnp;
 
@@ -222,15 +228,16 @@ const struct sdparm_vendor_name_t *
     return NULL;
 }
 
-const struct sdparm_vendor_pair * sdp_get_vendor_pair(int vendor_num)
+const struct sdparm_vendor_pair *
+sdp_get_vendor_pair(int vendor_num)
 {
      return ((vendor_num >= 0) && (vendor_num < sdparm_vendor_mp_len))
             ? (sdparm_vendor_mp + vendor_num) : NULL;
 }
 
 const struct sdparm_mode_page_item *
-                 sdp_find_mitem_by_acron(const char * ap, int * from,
-                                         int transp_proto, int vendor_num)
+sdp_find_mitem_by_acron(const char * ap, int * from, int transp_proto,
+                        int vendor_num)
 {
     int k = 0;
     const struct sdparm_mode_page_item * mpi;
@@ -263,8 +270,8 @@ const struct sdparm_mode_page_item *
     return mpi;
 }
 
-unsigned long long sdp_get_big_endian(const unsigned char * from,
-                                      int start_bit, int num_bits)
+unsigned long long
+sdp_get_big_endian(const unsigned char * from, int start_bit, int num_bits)
 {
     unsigned long long res;
     int sbit_o1 = start_bit + 1;
@@ -281,8 +288,9 @@ unsigned long long sdp_get_big_endian(const unsigned char * from,
     return res;
 }
 
-void sdp_set_big_endian(unsigned long long val, unsigned char * to,
-                        int start_bit, int num_bits)
+void
+sdp_set_big_endian(unsigned long long val, unsigned char * to, int start_bit,
+                   int num_bits)
 {
     int sbit_o1 = start_bit + 1;
     int mask, num, k, x;
@@ -306,16 +314,17 @@ void sdp_set_big_endian(unsigned long long val, unsigned char * to,
     }
 }
 
-unsigned long long sdp_mp_get_value(const struct sdparm_mode_page_item *mpi,
-                                    const unsigned char * mp)
+unsigned long long
+sdp_mp_get_value(const struct sdparm_mode_page_item *mpi,
+                 const unsigned char * mp)
 {
     return sdp_get_big_endian(mp + mpi->start_byte, mpi->start_bit,
                               mpi->num_bits);
 }
 
-unsigned long long sdp_mp_get_value_check(
-                const struct sdparm_mode_page_item *mpi,
-                const unsigned char * mp, int * all_set)
+unsigned long long
+sdp_mp_get_value_check(const struct sdparm_mode_page_item *mpi,
+                       const unsigned char * mp, int * all_set)
 {
     unsigned long long res;
 
@@ -334,14 +343,16 @@ unsigned long long sdp_mp_get_value_check(
     return res;
 }
 
-void sdp_mp_set_value(unsigned long long val,
-                      struct sdparm_mode_page_item *mpi, unsigned char * mp)
+void
+sdp_mp_set_value(unsigned long long val, struct sdparm_mode_page_item *mpi,
+                 unsigned char * mp)
 {
     sdp_set_big_endian(val, mp + mpi->start_byte, mpi->start_bit,
                        mpi->num_bits);
 }
  
-char * sdp_get_ansi_version_str(int version, int buff_len, char * buff)
+char *
+sdp_get_ansi_version_str(int version, int buff_len, char * buff)
 {
     version &= 0x7;
     buff[buff_len - 1] = '\0';
@@ -349,7 +360,8 @@ char * sdp_get_ansi_version_str(int version, int buff_len, char * buff)
     return buff;
 }
 
-char * sdp_get_pdt_doc_str(int pdt, int buff_len, char * buff)
+char *
+sdp_get_pdt_doc_str(int pdt, int buff_len, char * buff)
 {
     if ((pdt < -1) || (pdt > 31))
         snprintf(buff, buff_len, "bad pdt");

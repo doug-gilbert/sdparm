@@ -74,7 +74,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
 
-static char * version_str = "1.02 20070730";
+static char * version_str = "1.02 20070731";
 
 
 static struct option long_options[] = {
@@ -106,7 +106,8 @@ static struct option long_options[] = {
     {0, 0, 0, 0},
 };
 
-static void usage()
+static void
+usage()
 {
     fprintf(stderr, "Usage: "
           "sdparm [--all] [--clear=STR] [--command=CMD] [--dbd] "
@@ -168,7 +169,8 @@ static void usage()
           );
 }
 
-static void enumerate_mps(int transp_proto, int vendor_num)
+static void
+enumerate_mps(int transp_proto, int vendor_num)
 {
     const struct sdparm_mode_page_t * mpp;
 
@@ -219,7 +221,8 @@ static void enumerate_mps(int transp_proto, int vendor_num)
     }
 }
 
-static void enumerate_vpds()
+static void
+enumerate_vpds()
 {
     const struct sdparm_vpd_page_t * vpp;
 
@@ -230,7 +233,8 @@ static void enumerate_vpds()
     }
 }
 
-static void enumerate_transports()
+static void
+enumerate_transports()
 {
     const struct sdparm_transport_id_t * tip;
 
@@ -241,7 +245,8 @@ static void enumerate_transports()
     }
 }
 
-static void enumerate_vendors()
+static void
+enumerate_vendors()
 {
     const struct sdparm_vendor_name_t * vnp;
 
@@ -252,7 +257,8 @@ static void enumerate_vendors()
     }
 }
 
-static void print_mp_extra(const char * extra)
+static void
+print_mp_extra(const char * extra)
 {
     int n;
     char b[128];
@@ -270,10 +276,12 @@ static void print_mp_extra(const char * extra)
     printf("\t%s\n", p);
 }
 
-static void enumerate_mitems(int pn, int spn, int pdt, int transp_proto,
-                             int vendor_num, int long_out)
+static void
+enumerate_mitems(int pn, int spn, int pdt, int transp_proto, int vendor_num,
+                 int long_out)
 {
     int t_pn, t_spn, t_pdt;
+    const struct sdparm_mode_page_t * mpp = NULL;
     const struct sdparm_mode_page_item * mpi;
     char buff[128];
     char b[128];
@@ -306,8 +314,9 @@ static void enumerate_mitems(int pn, int spn, int pdt, int transp_proto,
                 continue;
             if ((pdt >= 0) && (pdt != t_pdt))
                 continue;
-            sdp_get_mpage_name(t_pn, t_spn, t_pdt, transp_proto, vendor_num,
-                               long_out, 1, buff, sizeof(buff));
+            mpp = sdp_get_mpage_name(t_pn, t_spn, t_pdt, transp_proto,
+                                     vendor_num, long_out, 1, buff,
+                                     sizeof(buff));
             if (long_out && (transp_proto < 0) && (vendor_num < 0))
                 printf("%s [%s] mode page:\n", buff,
                        sdp_get_pdt_doc_str(t_pdt, sizeof(b), b)); 
@@ -328,9 +337,26 @@ static void enumerate_mitems(int pn, int spn, int pdt, int transp_proto,
                            1, buff, sizeof(buff));
         fprintf(stderr, "%s mode page: no items found\n", buff);
     }
+    if (found && mpp && mpp->mp_desc) {
+        const struct sdparm_mode_descriptor_t * mdp = mpp->mp_desc;
+
+        if (mdp->name)
+            printf("  <<%s mode descriptor>>\n", mdp->name);
+        else
+            printf("  <<mode descriptor>>\n");
+        printf("    <<num_descs_off=%d, num_descs_bytes=%d, "
+               "first_desc_off=%d>>\n", mdp->num_descs_off,
+                mdp->num_descs_bytes, mdp->first_desc_off);
+        if (mdp->desc_len > 0)
+            printf("    <<descriptor_len=%d>>\n", mdp->desc_len);
+        else
+            printf("    <<desc_len_off=%d, desc_len_bytes=%d>>\n",
+                   mdp->desc_len_off, mdp->desc_len_bytes);
+    }
 }
 
-static void list_mp_settings(struct sdparm_mode_page_settings * mps, int get)
+static void
+list_mp_settings(struct sdparm_mode_page_settings * mps, int get)
 {
     struct sdparm_mode_page_item * mpip;
     int k;
@@ -352,14 +378,15 @@ static void list_mp_settings(struct sdparm_mode_page_settings * mps, int get)
     }
 }
 
-static void print_mp_entry(const char * pre, int smask,
-                           const struct sdparm_mode_page_item *mpi,
-                           int descriptor_num,
-                           const unsigned char * cur_mp,
-                           const unsigned char * cha_mp,
-                           const unsigned char * def_mp,
-                           const unsigned char * sav_mp,
-                           int long_out, int force_decimal)
+static void
+print_mp_entry(const char * pre, int smask,
+               const struct sdparm_mode_page_item *mpi,
+               int descriptor_num,
+               const unsigned char * cur_mp,
+               const unsigned char * cha_mp,
+               const unsigned char * def_mp,
+               const unsigned char * sav_mp,
+               int long_out, int force_decimal)
 {
     int sep = 0;
     int all_set;
@@ -429,9 +456,9 @@ static void print_mp_entry(const char * pre, int smask,
         print_mp_extra(mpi->extra);
 }
 
-static int ll_mode_sense(int fd, const struct sdparm_opt_coll * opts, int pn,
-                         int spn, unsigned char * resp, int mx_resp_len,
-                         int noisy, int verb)
+static int
+ll_mode_sense(int fd, const struct sdparm_opt_coll * opts, int pn, int spn,
+              unsigned char * resp, int mx_resp_len, int noisy, int verb)
 {
     if (opts->mode_6)
         return sg_ll_mode_sense6(fd, opts->dbd, 0 /*current */, pn, spn,
@@ -441,8 +468,9 @@ static int ll_mode_sense(int fd, const struct sdparm_opt_coll * opts, int pn,
                                   spn, resp, mx_resp_len, noisy, verb);
 }
 
-static void warn_invalid_mode_page(unsigned char * cur_mp, int pn,
-                                   int rep_len, int flexible, int verbose) 
+static void
+warn_invalid_mode_page(unsigned char * cur_mp, int pn, int rep_len,
+                       int flexible, int verbose) 
 {
     int const pn_in_page = cur_mp[0] & 0x3f;
 
@@ -470,8 +498,9 @@ static void warn_invalid_mode_page(unsigned char * cur_mp, int pn,
     }
 }
 
-static int print_mode_info(int sg_fd, int pn, int spn, int pdt,
-                           const struct sdparm_opt_coll * opts, int verbose)
+static int
+print_mode_info(int sg_fd, int pn, int spn, int pdt,
+                const struct sdparm_opt_coll * opts, int verbose)
 {
     int res, len, verb, smask, single_pg, fetch_pg, rep_len, orig_pn, warned;
     const struct sdparm_mode_page_item * mpi;
@@ -687,9 +716,9 @@ static int print_mode_info(int sg_fd, int pn, int spn, int pdt,
     return 0;
 }
 
-static int get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
-                         int pdt, const struct sdparm_opt_coll * opts,
-                         int verbose)
+static int
+get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
+              const struct sdparm_opt_coll * opts, int verbose)
 {
     int k, res, verb, smask, pn, spn, warned, rep_len, len, desc_num;
     unsigned long long u;
@@ -860,9 +889,9 @@ static int get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps,
  * SG_LIB_CAT_INVALID_OP -> invalid opcode, SG_LIB_CAT_ILLEGAL_REQ ->
  * bad field in cdb, SG_LIB_CAT_NOT_READY, SG_LIB_CAT_UNIT_ATTENTION,
  * SG_LIB_CAT_ABORTED_COMMAND, -1 -> other failure */
-static int change_mode_page(int sg_fd, int pdt,
-                            struct sdparm_mode_page_settings * mps,
-                            const struct sdparm_opt_coll * opts, int verbose)
+static int
+change_mode_page(int sg_fd, int pdt, struct sdparm_mode_page_settings * mps,
+                 const struct sdparm_opt_coll * opts, int verbose)
 {
     int k, off, md_len, len, res;
     char ebuff[EBUFF_SZ];
@@ -1000,9 +1029,10 @@ static int change_mode_page(int sg_fd, int pdt,
  * SG_LIB_CAT_INVALID_OP -> invalid opcode, SG_LIB_CAT_ILLEGAL_REQ ->
  * bad field in cdb, SG_LIB_CAT_NOT_READY, SG_LIB_CAT_UNIT_ATTENTION,
  * SG_LIB_CAT_ABORTED_COMMAND, -1 -> other failure */
-static int set_def_mode_page(int sg_fd, int pn, int spn, 
-                             unsigned char * mode_pg, int mode_pg_len,
-                             const struct sdparm_opt_coll * opts, int verbose)
+static int
+set_def_mode_page(int sg_fd, int pn, int spn, unsigned char * mode_pg,
+                  int mode_pg_len, const struct sdparm_opt_coll * opts,
+                  int verbose)
 {
     int len, off, md_len;
     unsigned char * mdp;
@@ -1083,9 +1113,9 @@ err_out:
     return ret;
 }
 
-static int set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
-                           const struct sdparm_opt_coll * opts,
-                           int verbose)
+static int
+set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
+                const struct sdparm_opt_coll * opts, int verbose)
 {
     int smask, res, len, rep_len;
     unsigned char cur_mp[DEF_MODE_RESP_LEN];
@@ -1146,7 +1176,8 @@ static int set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
 
 /* Trying to decode multipliers as sg_get_num() [as sg_libs does] would
  * only confuse things here, so use this local trimmed version */
-static int get_num(const char * buf)
+static int
+get_num(const char * buf)
 {
     int res, len, num;
     unsigned int unum;
@@ -1193,10 +1224,9 @@ static long long get_llnum(const char * buf)
     return (1 == res) ? num : -1;
 }
 
-static int build_mp_settings(const char * arg,
-                             struct sdparm_mode_page_settings * mps,
-                             int transp_proto, int vendor_num, int clear,
-                             int get)
+static int
+build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
+                  int transp_proto, int vendor_num, int clear, int get)
 {
     int len, b_sz, num, from, cont, colon;
     unsigned int u;
@@ -1415,10 +1445,9 @@ static int build_mp_settings(const char * arg,
     return 0;
 }
 
-static int open_and_simple_inquiry(const char * device_name, int rw,
-                                   int * pdt,
-                                   const struct sdparm_opt_coll * opts,
-                                   int verbose)
+static int
+open_and_simple_inquiry(const char * device_name, int rw, int * pdt,
+                        const struct sdparm_opt_coll * opts, int verbose)
 {
     int res, verb, sg_fd, l_pdt;
     struct sg_simple_inquiry_resp sir;
@@ -1501,10 +1530,10 @@ err_out:
     return -1;
 }
 
-static int process_mode_page(int sg_fd, struct sdparm_mode_page_settings * mps,
-                             int pn, int spn, int rw, int get,
-                             const struct sdparm_opt_coll * opts, int pdt,
-                             int verbose)
+static int
+process_mode_page(int sg_fd, struct sdparm_mode_page_settings * mps, int pn,
+                  int spn, int rw, int get,
+                  const struct sdparm_opt_coll * opts, int pdt, int verbose)
 {
     int res;
     const struct sdparm_mode_page_t * mpp;
@@ -1551,7 +1580,8 @@ static int process_mode_page(int sg_fd, struct sdparm_mode_page_settings * mps,
 }
 
 
-int main(int argc, char * argv[])
+int
+main(int argc, char * argv[])
 {
     int sg_fd, res, c, pdt, req_pdt, k;
     struct sdparm_opt_coll opts;
