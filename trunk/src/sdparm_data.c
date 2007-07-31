@@ -139,12 +139,12 @@ static struct sdparm_mode_page_t sdparm_srp_mode_pg[] = {    /* SRP */
     {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
-static struct sdparm_mode_descriptor_t sas_pcd_desc = {
-    7, 1, 48, -1, -1, "SAS phy"
+static struct sdparm_mode_descriptor_t sas_pcd_desc = {   /* desc SAS-2 */
+    7, 1, 8, 48, -1, -1, "SAS phy"
 };
 
-static struct sdparm_mode_descriptor_t sas2_phy_desc = {
-    7, 1, 20, -1, -1, "SAS-2 phy"
+static struct sdparm_mode_descriptor_t sas2_phy_desc = {  /* desc SAS-2 */
+    7, 1, 8, -1, 2, 2, "SAS-2 phy"
 };
 
 static struct sdparm_mode_page_t sdparm_sas_mode_pg[] = {    /* SAS-2 */
@@ -1138,8 +1138,10 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"PPID_1", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 5, 3, 4, 0,
         "Port's (transport) protocol identifier",
         "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
+    {"GENC", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 6, 7, 8, 0, 
+        "Generation code", "0: unknown, 1..255: valid"},
     {"NOP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 7, 7, 8, MF_COMMON, 
-        "Number of phys", NULL},
+        "Number of phys", "one descriptor per phy"},
     /* */
     {"PHID", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 9, 7, 8, 0, 
         "Phy identifier", NULL},
@@ -1189,55 +1191,6 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"HMALR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 41, 3, 4, 0, 
         "Hardware maximum link rate",
         "8: 1.5 Gbps; 9: 3 Gbps; 0xa: 6 Gbps"},
-    /* */
-    {"2_PHID", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 57, 7, 8, 0, 
-        "Phy identifier", NULL},
-    {"2_ADT", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 60, 6, 3, 0, 
-        "Attached device type",
-        "0: no device attached; 1: end device\t"
-        "2: edge expander device; 3: fanout expander device"},
-    {"2_AREAS", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 60, 3, 4, 0, 
-        "Attached reason (other end did link reset)",
-        "0: unknown; 1: power on; 2: hard reset; 3: SMP phy control\t"
-        "4: loss of dword sync; 5: mux problem; ..."},
-    {"2_REAS", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 61, 7, 4, 0, 
-        "Reason (for starting link reset)",
-        "0: unknown; 1: power on; 2: hard reset; 3: SMP phy control\t"
-        "4: loss of dword sync; 5: mux problem; ..."},
-    {"2_NPLR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 61, 3, 4, 0, 
-        "Negotiated physical link rate",
-        "0: unknown; 1: disabled; 2: phy reset problem; 3: spinup hold\t"
-        "4: port selector; 8: 1.5 Gbps; 9: 3 Gbps; 0xa: 6 Gbps"},
-    {"2_ASIP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 62, 3, 1, 0, 
-        "Attached SSP initiator port", NULL},
-    {"2_ATIP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 62, 2, 1, 0, 
-        "Attached STP initiator port", NULL},
-    {"2_AMIP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 62, 1, 1, 0, 
-        "Attached SMP initiator port", NULL},
-    {"2_ASTP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 63, 3, 1, 0, 
-        "Attached SSP target port", NULL},
-    {"2_ATTP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 63, 2, 1, 0, 
-        "Attached STP target port", NULL},
-    {"2_AMTP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 63, 1, 1, 0, 
-        "Attached SMP target port", NULL},
-    {"2_SASA", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 64, 7, 64, MF_HEX, 
-        "SAS address", NULL},
-    {"2_ASASA", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 72, 7, 64, MF_HEX, 
-        "Attached SAS address", NULL},
-    {"2_APHID", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 80, 7, 8, 0, 
-        "Attached phy identifier", NULL},
-    {"2_PMILR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 88, 7, 4, 0, 
-        "Programmed minimum link rate",
-        "0: not programmed; 8: 1.5 Gbps; 9: 3 Gbps; 0xa: 6 Gbps"},
-    {"2_HMILR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 88, 3, 4, 0, 
-        "Hardware minimum link rate",
-        "8: 1.5 Gbps; 9: 3 Gbps; 0xa: 6 Gbps"},
-    {"2_PMALR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 89, 7, 4, 0, 
-        "Programmed maximum link rate",
-        "0: not programmed; 8: 1.5 Gbps; 9: 3 Gbps; 0xa: 6 Gbps"},
-    {"2_HMALR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 89, 3, 4, 0, 
-        "Hardware maximum link rate",
-        "8: 1.5 Gbps; 9: 3 Gbps; 0xa: 6 Gbps"},
 
     /* shared port control mode page [0x19,0x2] sas2 */
     {"PPID_2", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 5, 3, 4, 0,
@@ -1245,6 +1198,32 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
     {"PLT", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 6, 7, 16, 0, 
         "Power loss timeout(ms)", NULL},
+
+    /* SAS-2 phy mode page [0x19,0x3] sas2 */
+    {"PPID_3", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 5, 3, 4, 0,
+        "Port's (transport) protocol identifier",
+        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
+    {"GENC_1", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 6, 7, 8, 0, 
+        "Generation code", "0: unknown, 1..255: valid"},
+    {"NOP_1", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 7, 7, 8, MF_COMMON, 
+        "Number of phys", "one descriptor per phy"},
+    /* */
+    {"PHID_1", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 9, 7, 8, 0, 
+        "Phy identifier", NULL},
+    {"PPCAP", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 12, 7, 4, 0, 
+        "Programmed phy capabilities", NULL},
+    {"CPCAP", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 16, 7, 4, 0, 
+        "Current phy capabilities", NULL},
+    {"APCAP", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 20, 7, 4, 0, 
+        "Attached phy capabilities", NULL},
+    {"N_SSC", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 26, 4, 1, 0, 
+        "Negotiated spread spectrum clocking", NULL},
+    {"N_PLR", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 26, 3, 4, 0, 
+        "Negotiated physical link rate",
+        "6: resetting; 7: attached unsupported\t"
+        "8: 1.5 Gbps; 9: 3 Gbps; 0xa: 6 Gbps"},
+    {"HMS", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 27, 0, 1, 0, 
+        "Hardware muxing supported", NULL},
 
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
 };
