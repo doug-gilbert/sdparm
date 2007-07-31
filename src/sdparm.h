@@ -147,11 +147,13 @@ struct sdparm_opt_coll {
 };
 
 struct sdparm_mode_descriptor_t {
-    int num_descriptors_off;
-    int num_descriptors_len;
-    int descriptor_len;         /* -1 for unknown */
-    int descriptor_len_off;     /* active when previous unknown */
-    int first_descriptor_off;
+    int num_descs_off;
+    int num_descs_bytes;
+    int first_desc_off;
+    int desc_len;         /* -1 for unknown otherwise fixed per desc */
+    int desc_len_off;     /* if (-1 == descriptor_len) this is offset */
+    int desc_len_bytes;   /* ... after start of descriptor */
+    /* Hence: <desc_len> = *(d_len_off + base) + d_len_off + d_len_bytes */
     const char * name;
 };
 
@@ -259,9 +261,10 @@ extern int sdp_get_mp_len(unsigned char * mp);
 extern const struct sdparm_mode_page_t * sdp_get_mode_detail(
                 int page_num, int subpage_num, int pdt, int transp_proto,
                 int vendor_num);
-extern void sdp_get_mpage_name(int page_num, int subpage_num, int pdt,
-                int transp_proto, int vendor_num, int plus_acron, int hex,
-                char * bp, int max_b_len);
+extern const struct sdparm_mode_page_t * sdp_get_mpage_name(
+                int page_num, int subpage_num, int pdt, int transp_proto,
+                int vendor_num, int plus_acron, int hex, char * bp,
+                int max_b_len);
 extern const struct sdparm_mode_page_t * sdp_find_mp_by_acron(
                 const char * ap, int transp_proto, int vendor_num);
 const struct sdparm_vpd_page_t *
