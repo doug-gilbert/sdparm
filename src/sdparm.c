@@ -74,7 +74,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
 
-static char * version_str = "1.02 20070731";
+static char * version_str = "1.02 20070801";
 
 
 static struct option long_options[] = {
@@ -371,9 +371,13 @@ list_mp_settings(struct sdparm_mode_page_settings * mps, int get)
         printf("  pdt=%d start_byte=0x%x start_bit=%d num_bits=%d  val=%"
                PRId64 "", mpip->pdt, mpip->start_byte, mpip->start_bit,
                mpip->num_bits, mps->it_vals[k].val);
-        if (mpip->acron)
-            printf("  acronym: %s\n", mpip->acron);
-        else
+        if (mpip->acron) {
+            printf("  acronym: %s", mpip->acron);
+            if (mps->it_vals[k].descriptor_num > 0)
+                printf("  descriptor_num=%d\n", mps->it_vals[k].descriptor_num);
+            else
+                printf("\n");
+        } else
             printf("\n");
     }
 }
@@ -505,6 +509,7 @@ print_mode_info(int sg_fd, int pn, int spn, int pdt,
     int res, len, verb, smask, single_pg, fetch_pg, rep_len, orig_pn, warned;
     const struct sdparm_mode_page_item * mpi;
     const struct sdparm_mode_page_item * init_mpi;
+    const struct sdparm_mode_page_t * mpp = NULL;
     unsigned char cur_mp[DEF_MODE_RESP_LEN];
     unsigned char cha_mp[DEF_MODE_RESP_LEN];
     unsigned char def_mp[DEF_MODE_RESP_LEN];
@@ -513,6 +518,7 @@ print_mode_info(int sg_fd, int pn, int spn, int pdt,
     void * pc_arr[4];
     char buff[128];
 
+    buff[0] = '\0';
     verb = (verbose > 0) ? verbose - 1 : 0;
     if ((0 == pdt) && (opts->long_out > 0) && (0 == opts->quiet)) {
         memset(cur_mp, 0, sizeof(cur_mp));
@@ -597,6 +603,9 @@ print_mode_info(int sg_fd, int pn, int spn, int pdt,
             }
         }
         if (fetch_pg) {
+            mpp = sdp_get_mpage_name(pn, spn, pdt, opts->transport,
+                                     opts->vendor, opts->long_out, opts->hex,
+                                     buff, sizeof(buff));
             smask = 0;
             warned = 0;
             pc_arr[0] = cur_mp;
@@ -627,9 +636,6 @@ print_mode_info(int sg_fd, int pn, int spn, int pdt,
             }
             if (smask & 1) {
                 len = sdp_get_mp_len(cur_mp);
-                sdp_get_mpage_name(pn, spn, pdt, opts->transport,
-                                   opts->vendor, opts->long_out, opts->hex,
-                                   buff, sizeof(buff));
                 printf("%s ", buff);
                 if (verbose) {
                     if (spn)
@@ -667,9 +673,6 @@ print_mode_info(int sg_fd, int pn, int spn, int pdt,
                 }
             } else {
                 if (verbose || single_pg) {
-                    sdp_get_mpage_name(pn, spn, pdt, opts->transport,
-                                       opts->vendor, opts->long_out,
-                                       opts->hex, buff, sizeof(buff));
                     fprintf(stderr, ">> %s mode %spage ", buff,
                             (spn ? "sub" : ""));
                     if (verbose) {
@@ -717,13 +720,14 @@ print_mode_info(int sg_fd, int pn, int spn, int pdt,
 }
 
 static int
-get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
-              const struct sdparm_opt_coll * opts, int verbose)
+print_mode_items(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
+                 const struct sdparm_opt_coll * opts, int verbose)
 {
     int k, res, verb, smask, pn, spn, warned, rep_len, len, desc_num;
     unsigned long long u;
     long long val;
     const struct sdparm_mode_page_item * mpi;
+    const struct sdparm_mode_page_t * mpp = NULL;
     unsigned char cur_mp[DEF_MODE_RESP_LEN];
     unsigned char cha_mp[DEF_MODE_RESP_LEN];
     unsigned char def_mp[DEF_MODE_RESP_LEN];
@@ -739,6 +743,15 @@ get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
         val = ivp->val;
         desc_num = ivp->descriptor_num;
         mpi = &ivp->mpi;
+        mpp = sdp_get_mpage_name(mpi->page_num, mpi->subpage_num, mpi->pdt,
+                                 opts->transport, opts->vendor,
+                                 opts->long_out, opts->hex, buff,
+                                 sizeof(buff));
+        if ((desc_num > 0) && ! (mpp && mpp->mp_desc)) {
+            fprintf(stderr, "can't decode descriptors for %s in %s mode "
+                    "page\n", (mpi->acron ? mpi->acron : ""), buff);
+            return SG_LIB_SYNTAX_ERROR;
+        } 
         if ((0 == k) || (pn != mpi->page_num) || (spn != mpi->subpage_num)) {
             pn = mpi->page_num;
             spn = mpi->subpage_num;
@@ -802,9 +815,6 @@ get_mode_info(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
                 else
                     fprintf(stderr, "error %sin ",
                             (verb ? "" : "(try adding '-vv') "));
-                sdp_get_mpage_name(pn, spn, mpi->pdt, opts->transport,
-                                   opts->vendor, opts->long_out, opts->hex,
-                                   buff, sizeof(buff));
                 fprintf(stderr, "%s mode page\n", buff);
                 return res;
             }
@@ -1287,11 +1297,11 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
                 acron[ecp - acron] = '\0';
                 strcpy(vb, ecp + 1);
                 ivp->descriptor_num = get_llnum(vb);
-                if (-1 == ivp->descriptor_num) {
+                if (ivp->descriptor_num < 0) {
                     fprintf(stderr, "unable to decode: %s descriptor number\n",
                             buff);
                     fprintf(stderr, "    expected: <acronym_name>"
-                            "[.<desc_num][=<val>]\n");
+                            "[.<desc_num>][=<val>]\n");
                     return -1;
                 }
             }
@@ -1556,11 +1566,9 @@ process_mode_page(int sg_fd, struct sdparm_mode_page_settings * mps, int pn,
                     "pdt is 0x%x\n", mpp->pdt, pdt);
         }
     }
-    if (opts->defaults) {
+    if (opts->defaults)
         res = set_mp_defaults(sg_fd, pn, spn, pdt, opts, verbose);
-        if (res)
-            return res;
-    } else if (rw) {
+    else if (rw) {
         if (mps->num_it_vals < 1) {
             fprintf(stderr, "no fields found to set or clear\n");
             return SG_LIB_CAT_OTHER;
@@ -1573,7 +1581,7 @@ process_mode_page(int sg_fd, struct sdparm_mode_page_settings * mps, int pn,
             fprintf(stderr, "no fields found to get\n");
             return SG_LIB_CAT_OTHER;
         }
-        res = get_mode_info(sg_fd, mps, pdt, opts, verbose);
+        res = print_mode_items(sg_fd, mps, pdt, opts, verbose);
     } else
         res = print_mode_info(sg_fd, pn, spn, pdt, opts, verbose);
     return res;
