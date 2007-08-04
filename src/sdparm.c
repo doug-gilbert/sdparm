@@ -74,7 +74,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
 
-static char * version_str = "1.02 20070801";
+static char * version_str = "1.02 20070804";
 
 
 static struct option long_options[] = {
@@ -385,7 +385,6 @@ list_mp_settings(struct sdparm_mode_page_settings * mps, int get)
 static void
 print_mp_entry(const char * pre, int smask,
                const struct sdparm_mode_page_item *mpi,
-               int descriptor_num,
                const unsigned char * cur_mp,
                const unsigned char * cha_mp,
                const unsigned char * def_mp,
@@ -400,15 +399,7 @@ print_mp_entry(const char * pre, int smask,
     all_set = 0;
     acron = (mpi->acron ? mpi->acron : "");
     u = sdp_mp_get_value_check(mpi, cur_mp, &all_set);
-    if (descriptor_num > 0) {
-        char b[64];
-
-        strncpy(b, acron, sizeof(b) - 8);
-        b[sizeof(b) - 8] = '\0';
-        snprintf(b + strlen(b), 8, ".%d", descriptor_num);
-        printf("%s%-10s", pre, b);
-    } else
-        printf("%s%-10s", pre, acron);
+    printf("%s%-10s", pre, acron);
     if (force_decimal)
         printf("%" PRId64 "", (long long)u);
     else if (mpi->flags & MF_HEX)
@@ -473,8 +464,8 @@ ll_mode_sense(int fd, const struct sdparm_opt_coll * opts, int pn, int spn,
 }
 
 static void
-warn_invalid_mode_page(unsigned char * cur_mp, int pn, int rep_len,
-                       int flexible, int verbose) 
+check_mode_page(unsigned char * cur_mp, int pn, int rep_len, int flexible,
+                int verbose) 
 {
     int const pn_in_page = cur_mp[0] & 0x3f;
 
@@ -648,8 +639,7 @@ print_mode_info(int sg_fd, int pn, int spn, int pdt,
                     printf(" [PS=%d]:\n", !!(cur_mp[0] & 0x80));
                 else
                     printf(":\n");
-                warn_invalid_mode_page(cur_mp, pn, rep_len, opts->flexible,
-                                       verbose);
+                check_mode_page(cur_mp, pn, rep_len, opts->flexible, verbose);
                 if (opts->hex) {
                     if (len > (int)sizeof(cur_mp)) {
                         fprintf(stderr, ">> decoded page length too "
@@ -712,7 +702,7 @@ print_mode_info(int sg_fd, int pn, int spn, int pdt,
                 if (0 == opts->flexible)
                     continue;
             }
-            print_mp_entry("  ", smask, mpi, 0, cur_mp, cha_mp, def_mp,
+            print_mp_entry("  ", smask, mpi, cur_mp, cha_mp, def_mp,
                            sav_mp, opts->long_out, 0);
         }
     }
@@ -724,16 +714,20 @@ print_mode_items(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
                  const struct sdparm_opt_coll * opts, int verbose)
 {
     int k, res, verb, smask, pn, spn, warned, rep_len, len, desc_num;
+    int adapt, ok;
     unsigned long long u;
     long long val;
     const struct sdparm_mode_page_item * mpi;
+    struct sdparm_mode_page_item ampi;
     const struct sdparm_mode_page_t * mpp = NULL;
+    const struct sdparm_mode_descriptor_t * mdp;
     unsigned char cur_mp[DEF_MODE_RESP_LEN];
     unsigned char cha_mp[DEF_MODE_RESP_LEN];
     unsigned char def_mp[DEF_MODE_RESP_LEN];
     unsigned char sav_mp[DEF_MODE_RESP_LEN];
     const struct sdparm_mode_page_it_val * ivp;
     char buff[128];
+    char d_acron[32];
     void * pc_arr[4];
 
     warned = 0;
@@ -747,11 +741,23 @@ print_mode_items(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
                                  opts->transport, opts->vendor,
                                  opts->long_out, opts->hex, buff,
                                  sizeof(buff));
-        if ((desc_num > 0) && ! (mpp && mpp->mp_desc)) {
-            fprintf(stderr, "can't decode descriptors for %s in %s mode "
-                    "page\n", (mpi->acron ? mpi->acron : ""), buff);
-            return SG_LIB_SYNTAX_ERROR;
-        } 
+        if (desc_num > 0) {
+            if (mpp && mpp->mp_desc && mpi->acron) {
+                adapt = 1;
+                ampi = *mpi;
+                strncpy(d_acron, mpi->acron, sizeof(d_acron));
+                d_acron[sizeof(d_acron) - 8] = '\0';
+                len = strlen(d_acron);
+                snprintf(d_acron + len, sizeof(d_acron) - len, ".%d", desc_num);
+                ampi.acron = d_acron;
+                mpi = &ampi;
+            } else {
+               fprintf(stderr, "can't decode descriptors for %s in %s mode "
+                       "page\n", (mpi->acron ? mpi->acron : ""), buff);
+               return SG_LIB_SYNTAX_ERROR;
+            }
+        } else
+            adapt = 0; 
         if ((0 == k) || (pn != mpi->page_num) || (spn != mpi->subpage_num)) {
             pn = mpi->page_num;
             spn = mpi->subpage_num;
@@ -819,8 +825,29 @@ print_mode_items(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
                 return res;
             }
             if (smask & 1)
-                warn_invalid_mode_page(cur_mp, pn, rep_len, opts->flexible,
-                                       verbose);
+                check_mode_page(cur_mp, pn, rep_len, opts->flexible, verbose);
+        }
+        if (adapt) {
+            ok = 0;
+            mdp = mpp->mp_desc;
+            if ((mdp->num_descs_off < rep_len) && (mdp->num_descs_off < 9)) {
+                u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
+                    mdp->num_descs_bytes * 8);
+                if ((unsigned long long)desc_num < u) {
+                    if (mdp->desc_len > 0) {
+                        ampi.start_byte += (mdp->desc_len * desc_num);
+                        if (ampi.start_byte < rep_len)
+                            ok = 1;
+                    } else if (mdp->desc_len_off > 0) {
+                        /* need to walk through variable length descriptors */
+                    }
+                }
+            }
+            if (! ok) {
+                fprintf(stderr, ">> failed to find acron: %s in current page\n",
+                        mpi->acron);
+                return SG_LIB_CAT_OTHER;
+            }
         }
         if ((pdt >= 0) && (0 == warned) && mpi->acron &&
             (mpi->pdt >= 0) && (pdt != mpi->pdt)) {
@@ -866,7 +893,7 @@ print_mode_items(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
                     printf("-    ");
                 printf("\n");
             } else
-                print_mp_entry("", smask, mpi, desc_num, cur_mp, cha_mp,
+                print_mp_entry("", smask, mpi, cur_mp, cha_mp,
                                def_mp, sav_mp, opts->long_out, 0);
         } else if (1 == val) {
             if (opts->hex) {
@@ -877,7 +904,7 @@ print_mode_items(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
                     printf("-    ");
                 printf("\n");
             } else
-                print_mp_entry("", smask & 1, mpi, desc_num, cur_mp, NULL,
+                print_mp_entry("", smask & 1, mpi, cur_mp, NULL,
                                NULL, NULL, opts->long_out, 0);
         } else if (2 == val) {
             if (opts->hex) {
@@ -888,7 +915,7 @@ print_mode_items(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
                     printf("-    ");
                 printf("\n");
             } else
-                print_mp_entry("", smask & 1, mpi, desc_num, cur_mp, NULL,
+                print_mp_entry("", smask & 1, mpi, cur_mp, NULL,
                                NULL, NULL, opts->long_out, 1);
         }
     }
