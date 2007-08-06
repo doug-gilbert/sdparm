@@ -74,7 +74,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
 
-static char * version_str = "1.02 20070804";
+static char * version_str = "1.02 20070806";
 
 
 static struct option long_options[] = {
@@ -714,7 +714,7 @@ print_mode_items(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
                  const struct sdparm_opt_coll * opts, int verbose)
 {
     int k, res, verb, smask, pn, spn, warned, rep_len, len, desc_num;
-    int adapt, ok;
+    int adapt, ok, j;
     unsigned long long u;
     long long val;
     const struct sdparm_mode_page_item * mpi;
@@ -840,6 +840,37 @@ print_mode_items(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
                             ok = 1;
                     } else if (mdp->desc_len_off > 0) {
                         /* need to walk through variable length descriptors */
+                        const unsigned char * ucp;
+                        int d_off, sb_off;
+
+                        sb_off = ampi.start_byte - mdp->first_desc_off;
+                        d_off = mdp->first_desc_off;
+                        for (j = 0; ; ++j) {
+                            if (j > desc_num) {
+                                fprintf(stderr,
+                                        ">> descriptor number sanity ...\n");
+                                break;  /* sanity */
+                            }
+                            if (j == desc_num) {
+                                ampi.start_byte = d_off + sb_off;
+                                if (ampi.start_byte < rep_len)
+                                    ok = 1;
+                                else
+                                    fprintf(stderr, ">> new start_byte "
+                                            "exceeds current page ...\n");
+                                break;
+                            }
+                            ucp = cur_mp + d_off + mdp->desc_len_off;
+                            u = sdp_get_big_endian(ucp, 7,
+                                                   mdp->desc_len_bytes * 8);
+                            d_off += mdp->desc_len_off +
+                                     mdp->desc_len_bytes + u;
+                            if (d_off >= rep_len) {
+                                fprintf(stderr, ">> descriptor number too "
+                                        "large for current page ...\n");
+                                break;
+                            }
+                        }
                     }
                 }
             }
