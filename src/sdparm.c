@@ -709,25 +709,99 @@ print_mode_info(int sg_fd, int pn, int spn, int pdt,
     return 0;
 }
 
+/* returns 1 when ok, else 0 */
+static int
+check_desc_convert_mpi(int desc_num, const struct sdparm_mode_page_t * mpp, 
+                       const struct sdparm_mode_page_item * ref_mpi,
+                       struct sdparm_mode_page_item * out_mpi)
+{
+    char d_acron[32];
+    int len;
+
+    if (mpp && mpp->mp_desc && ref_mpi->acron) {
+        *out_mpi = *ref_mpi;
+        strncpy(d_acron, ref_mpi->acron, sizeof(d_acron));
+        d_acron[sizeof(d_acron) - 8] = '\0';
+        len = strlen(d_acron);
+        snprintf(d_acron + len, sizeof(d_acron) - len, ".%d", desc_num);
+        out_mpi->acron = d_acron;
+        return 1;
+    } else
+        return 0;
+}
+
+/* returns 1 when ok, else 0 */
+static int
+desc_adjust_start_byte(int desc_num, const struct sdparm_mode_page_t * mpp, 
+                       unsigned char * cur_mp, int rep_len,
+                       struct sdparm_mode_page_item * mpi)
+{
+    const struct sdparm_mode_descriptor_t * mdp;
+    unsigned long long u;
+    const unsigned char * ucp;
+    int d_off, sb_off, j;
+
+    mdp = mpp->mp_desc;
+    if ((mdp->num_descs_off < rep_len) && (mdp->num_descs_off < 9)) {
+        u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
+            mdp->num_descs_bytes * 8);
+        if ((unsigned long long)desc_num < u) {
+            if (mdp->desc_len > 0) {
+                mpi->start_byte += (mdp->desc_len * desc_num);
+                if (mpi->start_byte < rep_len)
+                    return 1;
+            } else if (mdp->desc_len_off > 0) {
+                /* need to walk through variable length descriptors */
+
+                sb_off = mpi->start_byte - mdp->first_desc_off;
+                d_off = mdp->first_desc_off;
+                for (j = 0; ; ++j) {
+                    if (j > desc_num) {
+                        fprintf(stderr, ">> descriptor number sanity ...\n");
+                        break;  /* sanity */
+                    }
+                    if (j == desc_num) {
+                        mpi->start_byte = d_off + sb_off;
+                        if (mpi->start_byte < rep_len)
+                            return 1;
+                        else
+                            fprintf(stderr, ">> new start_byte "
+                                    "exceeds current page ...\n");
+                        break;
+                    }
+                    ucp = cur_mp + d_off + mdp->desc_len_off;
+                    u = sdp_get_big_endian(ucp, 7,
+                                           mdp->desc_len_bytes * 8);
+                    d_off += mdp->desc_len_off +
+                             mdp->desc_len_bytes + u;
+                    if (d_off >= rep_len) {
+                        fprintf(stderr, ">> descriptor number too "
+                                "large for current page ...\n");
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 static int
 print_mode_items(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
                  const struct sdparm_opt_coll * opts, int verbose)
 {
-    int k, res, verb, smask, pn, spn, warned, rep_len, len, desc_num;
-    int adapt, ok, j;
+    int k, res, verb, smask, pn, spn, warned, rep_len, len, desc_num, adapt;
     unsigned long long u;
     long long val;
     const struct sdparm_mode_page_item * mpi;
     struct sdparm_mode_page_item ampi;
     const struct sdparm_mode_page_t * mpp = NULL;
-    const struct sdparm_mode_descriptor_t * mdp;
     unsigned char cur_mp[DEF_MODE_RESP_LEN];
     unsigned char cha_mp[DEF_MODE_RESP_LEN];
     unsigned char def_mp[DEF_MODE_RESP_LEN];
     unsigned char sav_mp[DEF_MODE_RESP_LEN];
     const struct sdparm_mode_page_it_val * ivp;
     char buff[128];
-    char d_acron[32];
     void * pc_arr[4];
 
     warned = 0;
@@ -742,14 +816,8 @@ print_mode_items(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
                                  opts->long_out, opts->hex, buff,
                                  sizeof(buff));
         if (desc_num > 0) {
-            if (mpp && mpp->mp_desc && mpi->acron) {
+            if (check_desc_convert_mpi(desc_num, mpp, mpi, &ampi)) {
                 adapt = 1;
-                ampi = *mpi;
-                strncpy(d_acron, mpi->acron, sizeof(d_acron));
-                d_acron[sizeof(d_acron) - 8] = '\0';
-                len = strlen(d_acron);
-                snprintf(d_acron + len, sizeof(d_acron) - len, ".%d", desc_num);
-                ampi.acron = d_acron;
                 mpi = &ampi;
             } else {
                fprintf(stderr, "can't decode descriptors for %s in %s mode "
@@ -828,53 +896,7 @@ print_mode_items(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
                 check_mode_page(cur_mp, pn, rep_len, opts->flexible, verbose);
         }
         if (adapt) {
-            ok = 0;
-            mdp = mpp->mp_desc;
-            if ((mdp->num_descs_off < rep_len) && (mdp->num_descs_off < 9)) {
-                u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
-                    mdp->num_descs_bytes * 8);
-                if ((unsigned long long)desc_num < u) {
-                    if (mdp->desc_len > 0) {
-                        ampi.start_byte += (mdp->desc_len * desc_num);
-                        if (ampi.start_byte < rep_len)
-                            ok = 1;
-                    } else if (mdp->desc_len_off > 0) {
-                        /* need to walk through variable length descriptors */
-                        const unsigned char * ucp;
-                        int d_off, sb_off;
-
-                        sb_off = ampi.start_byte - mdp->first_desc_off;
-                        d_off = mdp->first_desc_off;
-                        for (j = 0; ; ++j) {
-                            if (j > desc_num) {
-                                fprintf(stderr,
-                                        ">> descriptor number sanity ...\n");
-                                break;  /* sanity */
-                            }
-                            if (j == desc_num) {
-                                ampi.start_byte = d_off + sb_off;
-                                if (ampi.start_byte < rep_len)
-                                    ok = 1;
-                                else
-                                    fprintf(stderr, ">> new start_byte "
-                                            "exceeds current page ...\n");
-                                break;
-                            }
-                            ucp = cur_mp + d_off + mdp->desc_len_off;
-                            u = sdp_get_big_endian(ucp, 7,
-                                                   mdp->desc_len_bytes * 8);
-                            d_off += mdp->desc_len_off +
-                                     mdp->desc_len_bytes + u;
-                            if (d_off >= rep_len) {
-                                fprintf(stderr, ">> descriptor number too "
-                                        "large for current page ...\n");
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            if (! ok) {
+            if (! desc_adjust_start_byte(desc_num, mpp, cur_mp, rep_len, &ampi)) {
                 fprintf(stderr, ">> failed to find acron: %s in current page\n",
                         mpi->acron);
                 return SG_LIB_CAT_OTHER;
