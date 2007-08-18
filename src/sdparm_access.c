@@ -344,8 +344,8 @@ sdp_mp_get_value_check(const struct sdparm_mode_page_item *mpi,
 }
 
 void
-sdp_mp_set_value(unsigned long long val, struct sdparm_mode_page_item *mpi,
-                 unsigned char * mp)
+sdp_mp_set_value(unsigned long long val,
+                 const struct sdparm_mode_page_item * mpi, unsigned char * mp)
 {
     sdp_set_big_endian(val, mp + mpi->start_byte, mpi->start_bit,
                        mpi->num_bits);

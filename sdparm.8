@@ -1,4 +1,4 @@
-.TH SDPARM "8" "July 2007" "sdparm\-1.02" SDPARM
+.TH SDPARM "8" "August 2007" "sdparm\-1.02" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -55,7 +55,7 @@ When the \fI\-\-inquiry\fR option is given without a page number then the
 Device Identification VPD page (page number 0x83) is requested and
 if found it is decoded and output. If no page number is given and
 the \fI\-\-all\fR option is given then a list of VPD page names (but not
-their contents) supported by the given device is output. When both
+their contents) supported by the \fIDEVICE\fR is output. When both
 the \fI\-\-inquiry\fR and \fI\-\-page=PG\fR options are given then
 the VPD page can be specified as an abbreviation (e.g. "sp" for the SCSI
 ports VPD page) or numerically (e.g. "0x88"). If a VPD page is returned
@@ -71,8 +71,8 @@ be decimal unless otherwise indicated (e.g. with a leading "0x" or a
 trailing "h").
 .TP
 \fB\-a\fR, \fB\-\-all\fR
-output all recognized fields for the device type (e.g. disk) of the given
-device. Without this option (or the \fI\-\-page=PG[,SPG]\fR option) the
+output all recognized fields for the device type (e.g. disk) of the
+\fIDEVICE\fR. Without this option (or the \fI\-\-page=PG[,SPG]\fR option) the
 default action is to output a relatively small number of commonly used fields
 from different pages. When a specific (mode) page number is given with the
 \fI\-\-page=PG[,SPG]\fR option then all the fields of that page are
@@ -313,8 +313,8 @@ example: '\-\-set=TEST,MRIE=6'.
 .PP
 Some mode page have multiple descriptors. They typically have a fixed header
 section at the start of the mode page that includes a field containing the
-number of descriptors. Following the header is a variable number of
-descriptors. An example is the SAS Phy Control and Discover mode page. An
+number of descriptors that follow. Following the header is a variable number
+of descriptors. An example is the SAS Phy Control and Discover mode page. An
 acronym_name may include a trailing '.<num>' where "<num>" is a descriptor
 number (origin 0). For example '\-t sas \-g PHID.0' and '\-t sas \-g PHID'
 will yield the phy identifier of the first descriptor of the above mode
@@ -423,7 +423,7 @@ mode pages. Both cannot be specified together. Vendor specific
 modes pages can still be accessed numerically (as shown at the
 end of the EXAMPLES section).
 .SH COMMANDS
-The command option sends a SCSI command to the given device. If the
+The command option sends a SCSI command to the \fIDEVICE\fR. If the
 command fails then this is reflected in the non\-zero exit status.
 To obtain more information about the error use the \fI\-v\fR option.
 .PP
@@ -443,7 +443,7 @@ The 'load' command loads the medium and and starts it (i.e. spins it up).
 See 'eject' command for supported device types.
 .PP
 The 'ready' command sends the "Test Unit Ready" SCSI command to the
-given device. No error is reported if the device will respond to data
+\fIDEVICE\fR. No error is reported if the device will respond to data
 requests (e.g. READ) in a reasonable timescale. For example, if a disk
 is stopped then it will report "not ready". All devices should respond
 to this command.

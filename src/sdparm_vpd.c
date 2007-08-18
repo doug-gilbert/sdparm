@@ -45,9 +45,9 @@
 
 /* Prints outs an abridged set of device identification designators
    selected by association, designator type and/or code set. */
-static int decode_dev_ids_quiet(unsigned char * buff, int len,
-                                int m_assoc, int m_desig_type,
-                                int m_code_set)
+static int
+decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
+                     int m_desig_type, int m_code_set)
 {
     int m, p_id, c_set, piv, assoc, desig_type, i_len, is_sas;
     int naa, off, u, rtp;
@@ -203,9 +203,10 @@ static int decode_dev_ids_quiet(unsigned char * buff, int len,
 
 /* Prints outs device identification designators selected by association,
    designator type and/or code set. */
-static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
-                          int len, int m_assoc, int m_desig_type,
-                          int m_code_set, int long_out, int quiet)
+static int
+decode_dev_ids(const char * print_if_found, unsigned char * buff, int len,
+               int m_assoc, int m_desig_type, int m_code_set, int long_out,
+               int quiet)
 {
     int m, p_id, c_set, piv, assoc, desig_type, i_len;
     int ci_off, c_id, d_id, naa, vsi, printed, off, u;
@@ -476,7 +477,8 @@ static int decode_dev_ids(const char * print_if_found, unsigned char * buff,
     return 0;
 }
 
-static int decode_mode_policy_vpd(unsigned char * buff, int len)
+static int
+decode_mode_policy_vpd(unsigned char * buff, int len)
 {
     int k, bump;
     unsigned char * ucp;
@@ -506,7 +508,8 @@ static int decode_mode_policy_vpd(unsigned char * buff, int len)
     return 0;
 }
 
-static int decode_man_net_vpd(unsigned char * buff, int len)
+static int
+decode_man_net_vpd(unsigned char * buff, int len)
 {
     int k, bump, na_len;
     unsigned char * ucp;
@@ -536,8 +539,8 @@ static int decode_man_net_vpd(unsigned char * buff, int len)
     return 0;
 }
 
-static int decode_scsi_ports_vpd(unsigned char * buff, int len,
-                                 int long_out, int quiet)
+static int
+decode_scsi_ports_vpd(unsigned char * buff, int len, int long_out, int quiet)
 {
     int k, bump, rel_port, ip_tid_len, tpd_len, res;
     unsigned char * ucp;
@@ -586,7 +589,8 @@ static int decode_scsi_ports_vpd(unsigned char * buff, int len,
     return 0;
 }
 
-static int decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
+static int
+decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
 {
     if (len < 7) {
         fprintf(stderr, "Extended INQUIRY data VPD page length too "
@@ -680,7 +684,8 @@ static int decode_ata_info_vpd(unsigned char * buff, int len, int long_out,
     return 0;
 }
 
-static int decode_block_limits_vpd(unsigned char * buff, int len)
+static int
+decode_block_limits_vpd(unsigned char * buff, int len)
 {
     unsigned int u;
 
@@ -706,7 +711,8 @@ static int decode_block_limits_vpd(unsigned char * buff, int len)
     return 0;
 }
 
-static int decode_block_dev_char_vpd(unsigned char * buff, int len)
+static int
+decode_block_dev_char_vpd(unsigned char * buff, int len)
 {
     unsigned int u;
 
@@ -727,7 +733,8 @@ static int decode_block_dev_char_vpd(unsigned char * buff, int len)
     return 0;
 }
 
-static int decode_tape_dev_caps_vpd(unsigned char * buff, int len)
+static int
+decode_tape_dev_caps_vpd(unsigned char * buff, int len)
 {
     if (len < 6) {
         fprintf(stderr, "Sequential access device capabilities VPD page "
@@ -738,7 +745,8 @@ static int decode_tape_dev_caps_vpd(unsigned char * buff, int len)
     return 0;
 }
 
-static int decode_tape_man_ass_sn_vpd(unsigned char * buff, int len)
+static int
+decode_tape_man_ass_sn_vpd(unsigned char * buff, int len)
 {
     if (len < 64) {
         fprintf(stderr, "Manufacturer-assigned serial number VPD page "
@@ -750,7 +758,8 @@ static int decode_tape_man_ass_sn_vpd(unsigned char * buff, int len)
     return 0;
 }
 
-static int decode_tapealert_supported_vpd(unsigned char * b, int len)
+static int
+decode_tapealert_supported_vpd(unsigned char * b, int len)
 {
     if (len < 12) {
         fprintf(stderr, "TapeAlert supported flags length too short=%d\n",
@@ -793,9 +802,9 @@ static int decode_tapealert_supported_vpd(unsigned char * b, int len)
 }
 
 /* Returns 0 if successful, else error */
-int sdp_process_vpd_page(int sg_fd, int pn, int spn,
-                         const struct sdparm_opt_coll * opts,
-                         int req_pdt, int verbose)
+int
+sdp_process_vpd_page(int sg_fd, int pn, int spn,
+                     const struct sdparm_opt_coll * opts, int req_pdt)
 {
     int res, len, k, verb, dev_pdt, pdt;
     unsigned char b[VPD_ATA_INFO_RESP_LEN];
@@ -803,7 +812,7 @@ int sdp_process_vpd_page(int sg_fd, int pn, int spn,
     unsigned char * up;
     const struct sdparm_vpd_page_t * vpp;
 
-    verb = (verbose > 0) ? verbose - 1 : 0;
+    verb = (opts->verbose > 0) ? opts->verbose - 1 : 0;
     sz = sizeof(b);
     memset(b, 0, sz);
     if (pn < 0) {
@@ -1174,7 +1183,7 @@ int sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             fprintf(stderr, "VPD page 0x%x in hex:\n", pn);
         if (len > (int)sizeof(b)) {
-            if (verbose)
+            if (opts->verbose)
                 fprintf(stderr, "page length=%d too long, trim\n", len);
             len = sizeof(b);
         }
