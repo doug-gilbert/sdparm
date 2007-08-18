@@ -149,7 +149,7 @@ static struct sdparm_mode_descriptor_t sas2_phy_desc = {  /* desc SAS-2 */
 
 static struct sdparm_mode_page_t sdparm_sas_mode_pg[] = {    /* SAS-2 */
     {DISCONNECT_MP, 0, -1, 0, "dr", "Disconnect-reconnect (SAS)", NULL},
-    {PROT_SPEC_LU_MP, 0, -1, 0, "p1", "Protocol specific logical unit (SAS)",
+    {PROT_SPEC_LU_MP, 0, -1, 0, "pl", "Protocol specific logical unit (SAS)",
         NULL},
     {PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 0, "pcd",
         "Phy control and discover (SAS)", &sas_pcd_desc},

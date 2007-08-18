@@ -107,6 +107,8 @@
 #define TP_ATA 8
 #define TP_NONE 0xf
 
+#define DEF_TRANSPORT_PROTOCOL TP_SAS
+
 /* Vendor identifiers */
 #define VENDOR_SEAGATE 0x0
 #define VENDOR_HITACHI 0x1
@@ -140,10 +142,12 @@ struct sdparm_opt_coll {
     int inquiry;
     int long_out;
     int mode_6;
+    int num_descs;
     int quiet;
     int save;
     int transport;
     int vendor;
+    int verbose;
 };
 
 struct sdparm_mode_descriptor_t {
@@ -292,7 +296,7 @@ extern unsigned long long sdp_mp_get_value_check(
                 const struct sdparm_mode_page_item *mpi,
                 const unsigned char * mp, int * all_set);
 extern void sdp_mp_set_value(unsigned long long val,
-                struct sdparm_mode_page_item *mpi, unsigned char * mp);
+                const struct sdparm_mode_page_item *mpi, unsigned char * mp);
 extern char * sdp_get_ansi_version_str(int version, int buff_len,
                 char * buff);
 extern char * sdp_get_pdt_doc_str(int version, int buff_len,
@@ -304,7 +308,7 @@ extern char * sdp_get_pdt_doc_str(int version, int buff_len,
 
 extern int sdp_process_vpd_page(int sg_fd, int pn, int spn,
                                 const struct sdparm_opt_coll * opts,
-                                int req_pdt, int verbose);
+                                int req_pdt);
 
 /*
  * Declarations for functions found in sdparm_cmd.c
@@ -314,8 +318,7 @@ extern const struct sdparm_command * sdp_build_cmd(const char * cmd_str,
                 int * rwp);
 extern void sdp_enumerate_commands();
 extern int sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp,
-                int pdt, const struct sdparm_opt_coll * opts,
-                int verbose);
+                int pdt, const struct sdparm_opt_coll * opts);
 
 /*
  * Declarations for functions that are port dependant

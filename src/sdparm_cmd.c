@@ -47,7 +47,8 @@
 #define RCAP_REPLY_LEN 8
 #define RCAP16_REPLY_LEN 32
 
-static int do_cmd_read_capacity(int sg_fd, int verbose)
+static int
+do_cmd_read_capacity(int sg_fd, int verbose)
 {
     int res, k, do16;
     unsigned int last_blk_addr, block_size;
@@ -103,7 +104,8 @@ static int do_cmd_read_capacity(int sg_fd, int verbose)
     return 0;
 }
 
-static int do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
+static int
+do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
 {
     int res, resp_len, sk, asc, ascq, progress, something;
     unsigned char buff[32];
@@ -172,7 +174,8 @@ static int do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
     return res;
 }
 
-const struct sdparm_command * sdp_build_cmd(const char * cmd_str, int * rwp)
+const struct sdparm_command *
+sdp_build_cmd(const char * cmd_str, int * rwp)
 {
     const struct sdparm_command * scmdp;
 
@@ -194,7 +197,8 @@ const struct sdparm_command * sdp_build_cmd(const char * cmd_str, int * rwp)
         return NULL;
 }
 
-void sdp_enumerate_commands()
+void
+sdp_enumerate_commands()
 {
     const struct sdparm_command * scmdp;
 
@@ -203,9 +207,9 @@ void sdp_enumerate_commands()
 }
 
 /* Returns 0 if successful */
-int sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp,
-                    int pdt, const struct sdparm_opt_coll * opts,
-                    int verbose)
+int
+sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp, int pdt,
+                const struct sdparm_opt_coll * opts)
 {
     int res, progress;
 
@@ -216,27 +220,25 @@ int sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp,
         fprintf(stderr, "this command only valid on a disk or cd/dvd; "
                 "use '--flexible' to override\n");
         return SG_LIB_SYNTAX_ERROR;
-
     }
-
     switch (scmdp->cmd_num)
     {
     case CMD_CAPACITY:
-        res = do_cmd_read_capacity(sg_fd, verbose);
+        res = do_cmd_read_capacity(sg_fd, opts->verbose);
         break;
     case CMD_EJECT:
         res = sg_ll_start_stop_unit(sg_fd, 0 /* immed */, 0 /* fl_num */,
                                     0 /* power cond. */, 0 /* fl */,
                                     1 /*loej */, 0 /* start */, 1 /* noisy */,
-                                    verbose);
+                                    opts->verbose);
         break;
     case CMD_LOAD:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 1, 1, 1, verbose);
+        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 1, 1, 1, opts->verbose);
         break;
     case CMD_READY:
         progress = -1;
         res = sg_ll_test_unit_ready_progress(sg_fd, 0, &progress, 0,
-                                             verbose);
+                                             opts->verbose);
         if (0 == res)
             printf("Ready\n");
         else {
@@ -248,19 +250,19 @@ int sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp,
         }
         break;
     case CMD_SENSE:
-        res = do_cmd_sense(sg_fd, opts->hex, opts->quiet, verbose);
+        res = do_cmd_sense(sg_fd, opts->hex, opts->quiet, opts->verbose);
         break;
     case CMD_START:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 0, 1, 1, verbose);
+        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 0, 1, 1, opts->verbose);
         break;
     case CMD_STOP:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 0, 0, 1, verbose);
+        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 0, 0, 1, opts->verbose);
         break;
     case CMD_SYNC:
-        res = sg_ll_sync_cache_10(sg_fd, 0, 0, 0, 0, 0, 1, verbose);
+        res = sg_ll_sync_cache_10(sg_fd, 0, 0, 0, 0, 0, 1, opts->verbose);
         break;
     case CMD_UNLOCK:
-        res = sg_ll_prevent_allow(sg_fd, 0, 1, verbose);
+        res = sg_ll_prevent_allow(sg_fd, 0, 1, opts->verbose);
         break;
     default:
         fprintf(stderr, "unknown cmd number [%d]\n", scmdp->cmd_num);
@@ -268,4 +270,3 @@ int sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp,
     }
     return res;
 }
-
