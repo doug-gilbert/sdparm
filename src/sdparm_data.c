@@ -41,8 +41,15 @@
  */
 
 
+/* SSC's medium partition mode page has a variable number of
+   partition size fields which are treated as descriptors here */
+static struct sdparm_mode_descriptor_t ssc_mpa_desc = {
+    3, 1, 1, 8, 2, -1, -1, "SSC medium partition"
+};
+
 /* Mode pages that aren't specific to any transport protocol or vendor.
-   They are listed in acronym alphabetical order. */
+   Note that all standard periperal device types are include.
+   The pages are listed in acronym alphabetical order. */
 struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
     {IEC_MP, MSP_BACK_CTL, 0, 0, "bc", "Background control (SBC)", NULL},
     {CACHING_MP, 0, 0, 0, "ca", "Caching (SBC)", NULL},
@@ -63,7 +70,7 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
     {FORMAT_MP, 0, 0, 0, "fo", "Format (SBC)", NULL},
     {IEC_MP, 0, -1, 0, "ie", "Informational exceptions control", NULL},
     {MED_CONF_MP, 0, 1, 0, "mco", "Medium configuration (SSC)", NULL},
-    {MED_PART_MP, 0, 1, 0, "mpa", "Medium partition (SSC)", NULL},
+    {MED_PART_MP, 0, 1, 0, "mpa", "Medium partition (SSC)", &ssc_mpa_desc},
     {MRW_MP, 0, 5, 0, "mrw", "Mount rainier reWritable (MMC)", NULL},
     {CONTROL_MP, MSP_SAT_PATA, -1, 0, "pat", "SAT pATA control", NULL},
     {PROT_SPEC_LU_MP, 0, -1, 0, "pl", "Protocol specific logical unit", NULL},
@@ -140,11 +147,11 @@ static struct sdparm_mode_page_t sdparm_srp_mode_pg[] = {    /* SRP */
 };
 
 static struct sdparm_mode_descriptor_t sas_pcd_desc = {   /* desc SAS-2 */
-    7, 1, 8, 48, -1, -1, "SAS phy"
+    7, 1, 0, 8, 48, -1, -1, "SAS phy"
 };
 
 static struct sdparm_mode_descriptor_t sas2_phy_desc = {  /* desc SAS-2 */
-    7, 1, 8, -1, 2, 2, "SAS-2 phy"
+    7, 1, 0, 8, -1, 2, 2, "SAS-2 phy"
 };
 
 static struct sdparm_mode_page_t sdparm_sas_mode_pg[] = {    /* SAS-2 */
@@ -660,12 +667,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "3: format and partition recognition"},
     {"PART_U", MED_PART_MP, 0, 1, 6, 3, 4, 0,
         "Partition units (exponent of 10, bytes)", NULL},
-    {"P_SZ_0", MED_PART_MP, 0, 1, 8, 7, 16, 0,
-        "Partition size (index 0)", NULL},
-    {"P_SZ_1", MED_PART_MP, 0, 1, 10, 7, 16, 0,
-        "Partition size (index 1)", NULL},
-    {"P_SZ_2", MED_PART_MP, 0, 1, 12, 7, 16, 0,
-        "Partition size (index 2)", NULL},
+    {"P_SZ", MED_PART_MP, 0, 1, 8, 7, 16, 0,
+        "Partition size", NULL},
 
     /* Enclosure services management mode page [0x14] ses2 */
     {"ENBLTC", ES_MAN_MP, 0, 0xd, 5, 0, 1, MF_COMMON,
@@ -1205,16 +1208,16 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
     {"GENC_1", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 6, 7, 8, 0, 
         "Generation code", "0: unknown, 1..255: valid"},
-    {"NOP_1", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 7, 7, 8, MF_COMMON, 
+    {"NOP_1", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 7, 7, 8, 0, 
         "Number of phys", "one descriptor per phy"},
     /* */
     {"PHID_1", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 9, 7, 8, 0, 
         "Phy identifier", NULL},
-    {"PPCAP", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 12, 7, 4, 0, 
+    {"PPCAP", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 12, 7, 4, MF_HEX, 
         "Programmed phy capabilities", NULL},
-    {"CPCAP", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 16, 7, 4, 0, 
+    {"CPCAP", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 16, 7, 4, MF_HEX, 
         "Current phy capabilities", NULL},
-    {"APCAP", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 20, 7, 4, 0, 
+    {"APCAP", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 20, 7, 4, MF_HEX, 
         "Attached phy capabilities", NULL},
     {"N_SSC", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 26, 4, 1, 0, 
         "Negotiated spread spectrum clocking", NULL},
