@@ -153,6 +153,8 @@ struct sdparm_opt_coll {
 struct sdparm_mode_descriptor_t {
     int num_descs_off;
     int num_descs_bytes;
+    int num_descs_inc;    /* number to add to num_descs derived from */
+                          /* first 2 entries */
     int first_desc_off;
     int desc_len;         /* -1 for unknown otherwise fixed per desc */
     int desc_len_off;     /* if (-1 == desc_len) then this is offset */

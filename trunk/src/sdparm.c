@@ -74,7 +74,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
 
-static char * version_str = "1.02 20070822";
+static char * version_str = "1.02 20070824";
 
 
 static struct option long_options[] = {
@@ -327,13 +327,14 @@ enumerate_mitems(int pn, int spn, int pdt,
             printf("  <<%s mode descriptor>>\n", mdp->name);
         else
             printf("  <<mode descriptor>>\n");
-        printf("    <<num_descs_off=%d, num_descs_bytes=%d, "
-               "first_desc_off=%d>>\n", mdp->num_descs_off,
-                mdp->num_descs_bytes, mdp->first_desc_off);
+        printf("    num_descs_off=%d, num_descs_bytes=%d, "
+               "num_descs_inc=%d, first_desc_off=%d\n",
+               mdp->num_descs_off, mdp->num_descs_bytes,
+               mdp->num_descs_inc,  mdp->first_desc_off);
         if (mdp->desc_len > 0)
-            printf("    <<descriptor_len=%d>>\n", mdp->desc_len);
+            printf("    descriptor_len=%d\n", mdp->desc_len);
         else
-            printf("    <<desc_len_off=%d, desc_len_bytes=%d>>\n",
+            printf("    desc_len_off=%d, desc_len_bytes=%d\n",
                    mdp->desc_len_off, mdp->desc_len_bytes);
     }
 }
@@ -502,7 +503,8 @@ print_mpage_extra_desc(void ** pc_arr, int rep_len,
         (mdp->num_descs_off >= rep_len))
         return;
     u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
-                           mdp->num_descs_bytes * 8);
+                           mdp->num_descs_bytes * 8) +
+        mdp->num_descs_inc;
     num = (int)u;
     if (opts->verbose)
         fprintf(stderr, "    >>> mode page says it has %d descriptors\n",
@@ -704,7 +706,8 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
 
                 if (fdesc_mpi && (smask & 1)) {
                     u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
-                                           mdp->num_descs_bytes * 8);
+                                           mdp->num_descs_bytes * 8) +
+                        mdp->num_descs_inc;
                     num = (int)u;
                 }
                 if (opts->long_out)
@@ -835,7 +838,7 @@ desc_adjust_start_byte(int desc_num, const struct sdparm_mode_page_t * mpp,
     mdp = mpp->mp_desc;
     if ((mdp->num_descs_off < rep_len) && (mdp->num_descs_off < 64)) {
         u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
-            mdp->num_descs_bytes * 8);
+            mdp->num_descs_bytes * 8) + mdp->num_descs_inc;
         if ((unsigned long long)desc_num < u) {
             if (mdp->desc_len > 0) {
                 mpi->start_byte += (mdp->desc_len * desc_num);
