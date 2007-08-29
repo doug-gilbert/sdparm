@@ -174,7 +174,7 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_ASCII_OP_DEF, 0, -1, "aod",
      "ASCII implemented operating definition (obs)"},
     {VPD_BLOCK_LIMITS, 0, 0, "bl", "Block limits (SBC)"},
-    {VPD_BLOCK_DEV_CHAR, 0, 0, "bdc", "Block device characteristics "
+    {VPD_BLOCK_DEV_CHARS, 0, 0, "bdc", "Block device characteristics "
      "(SBC)"},
     {VPD_DEVICE_ID, 0, -1, "di", "Device identification"},
     {VPD_DEVICE_ID, VPD_DI_SEL_AS_IS, -1, "di_asis", "Like 'di' "
