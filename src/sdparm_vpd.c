@@ -712,7 +712,7 @@ decode_block_limits_vpd(unsigned char * buff, int len)
 }
 
 static int
-decode_block_dev_char_vpd(unsigned char * buff, int len)
+decode_block_dev_chars_vpd(unsigned char * buff, int len)
 {
     unsigned int u;
 
@@ -1150,7 +1150,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             if (ssc || adc)
                 res = decode_tape_man_ass_sn_vpd(b, len + 4);
             else if (sbc)
-                res = decode_block_dev_char_vpd(b, len + 4);
+                res = decode_block_dev_chars_vpd(b, len + 4);
             else
                 dStrHex((const char *)b, len + 4, 0);
             if (res)
