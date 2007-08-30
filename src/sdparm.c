@@ -489,10 +489,10 @@ print_mpage_extra_desc(void ** pc_arr, int rep_len,
 {
     const struct sdparm_mode_descriptor_t * mdp = mpp->mp_desc;
     const struct sdparm_mode_page_item * mpi;
-    unsigned char * cur_mp = pc_arr[0];
-    unsigned char * cha_mp = pc_arr[1];
-    unsigned char * def_mp = pc_arr[2];
-    unsigned char * sav_mp = pc_arr[3];
+    unsigned char * cur_mp = (unsigned char *)pc_arr[0];
+    unsigned char * cha_mp = (unsigned char *)pc_arr[1];
+    unsigned char * def_mp = (unsigned char *)pc_arr[2];
+    unsigned char * sav_mp = (unsigned char *)pc_arr[3];
     unsigned char * ucp;
     struct sdparm_mode_page_item ampi;
     unsigned long long u;
