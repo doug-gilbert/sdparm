@@ -902,9 +902,9 @@ static struct sdparm_mode_page_item sdparm_mitem_fcp_arr[] = {
         "Disconnect time limit (128 transmission words)", NULL},
     {"CTL", DISCONNECT_MP, 0, -1, 8, 7, 16, MF_COMMON,
         "Connect time limit (128 transmission words)", NULL},
-    {"MBS", DISCONNECT_MP, 0, -1, 10, 7, 16, MF_COMMON,
+    {"MBS", DISCONNECT_MP, 0, -1, 10, 7, 16, MF_COMMON | MF_CLASH_OK,
         "Maximum burst size (512 bytes)", NULL},
-    {"EMDP", DISCONNECT_MP, 0, -1, 12, 7, 1, 0,
+    {"EMDP", DISCONNECT_MP, 0, -1, 12, 7, 1, MF_CLASH_OK,
         "Enable modify data pointers", NULL},
     {"FAA", DISCONNECT_MP, 0, -1, 12, 6, 1, 0,
         "Fairness access A [FCP_DATA]", NULL},
@@ -912,18 +912,18 @@ static struct sdparm_mode_page_item sdparm_mitem_fcp_arr[] = {
         "Fairness access B [FCP_XFER]", NULL},
     {"FAC", DISCONNECT_MP, 0, -1, 12, 4, 1, 0,
         "Fairness access C [FCP_RSP]", NULL},
-    {"FBS", DISCONNECT_MP, 0, -1, 14, 7, 16, 0,
+    {"FBS", DISCONNECT_MP, 0, -1, 14, 7, 16, MF_CLASH_OK,
         "First burst size (512 bytes)", NULL},
 
     /* protocol specific logical unit mode page [0x18] fcp3 */
-    {"LUPID", PROT_SPEC_LU_MP, 0, -1, 2, 3, 4, MF_COMMON,
+    {"LUPID", PROT_SPEC_LU_MP, 0, -1, 2, 3, 4, MF_COMMON | MF_CLASH_OK,
         "Logical unit's (transport) protocol identifier",
         "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
     {"EPDC", PROT_SPEC_LU_MP, 0, -1, 3, 0, 1, MF_COMMON,
         "Enable precise delivery checking", NULL},
 
     /* protocol specific port control page [0x19] fcp3 */
-    {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, MF_COMMON,
+    {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, MF_COMMON | MF_CLASH_OK,
         "Port's (transport) protocol identifier",
         "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
     {"DTFD", PROT_SPEC_PORT_MP, 0, -1, 3, 7, 1, MF_COMMON,
@@ -962,9 +962,9 @@ static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
         "Physical disconnect time limit (100 us)", NULL},
     {"CTL", DISCONNECT_MP, 0, -1, 8, 7, 16, MF_COMMON,
         "Connect time limit (100 us)", NULL},
-    {"MBS", DISCONNECT_MP, 0, -1, 10, 7, 16, MF_COMMON,
+    {"MBS", DISCONNECT_MP, 0, -1, 10, 7, 16, MF_COMMON | MF_CLASH_OK,
         "Maximum burst size (512 bytes)", NULL},
-    {"EMDP", DISCONNECT_MP, 0, -1, 12, 7, 1, 0,
+    {"EMDP", DISCONNECT_MP, 0, -1, 12, 7, 1, MF_CLASH_OK,
         "Enable modify data pointers", NULL},
     {"FA", DISCONNECT_MP, 0, -1, 12, 6, 3, 0,
         "Fair arbitration", NULL},
@@ -974,12 +974,12 @@ static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
         "Data transfer disconnect control", NULL},
 
     /* protocol specific logical unit control mode page [0x18] spi4 */
-    {"LUPID", PROT_SPEC_LU_MP, 0, -1, 2, 3, 4, MF_COMMON,
+    {"LUPID", PROT_SPEC_LU_MP, 0, -1, 2, 3, 4, MF_COMMON | MF_CLASH_OK,
         "Logical unit's (transport) protocol identifier",
         "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
 
     /* protocol specific port control page [0x19] spi4 */
-    {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, MF_COMMON,
+    {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, MF_COMMON | MF_CLASH_OK,
         "Port's (transport) protocol identifier",
         "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
     {"STT", PROT_SPEC_PORT_MP, 0, -1, 4, 7, 16, MF_COMMON,
@@ -1094,11 +1094,11 @@ static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
 
 static struct sdparm_mode_page_item sdparm_mitem_srp_arr[] = {
     /* disconnect-reconnect mode page [0x2] srp */
-    {"MBS", DISCONNECT_MP, 0, -1, 10, 7, 16, MF_COMMON,
+    {"MBS", DISCONNECT_MP, 0, -1, 10, 7, 16, MF_COMMON | MF_CLASH_OK,
         "Maximum burst size (512 bytes)", NULL},
-    {"EMDP", DISCONNECT_MP, 0, -1, 12, 7, 1, 0,
+    {"EMDP", DISCONNECT_MP, 0, -1, 12, 7, 1, MF_CLASH_OK,
         "Enable modify data pointers", NULL},
-    {"FBS", DISCONNECT_MP, 0, -1, 14, 7, 16, 0,
+    {"FBS", DISCONNECT_MP, 0, -1, 14, 7, 16, MF_CLASH_OK,
         "First burst size (512 bytes)", NULL},  /* srp2r00 */
 
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
@@ -1110,20 +1110,20 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Bus inactivity time limit (100us)", NULL},
     {"MCTL", DISCONNECT_MP, 0, -1, 8, 7, 16, MF_COMMON,
         "Maximum connect time limit (100us)", NULL},
-    {"MBS", DISCONNECT_MP, 0, -1, 10, 7, 16, MF_COMMON,
+    {"MBS", DISCONNECT_MP, 0, -1, 10, 7, 16, MF_COMMON | MF_CLASH_OK,
         "Maximum burst size (512 bytes)", NULL},
-    {"FBS", DISCONNECT_MP, 0, -1, 14, 7, 16, 0,
+    {"FBS", DISCONNECT_MP, 0, -1, 14, 7, 16, MF_CLASH_OK,
         "First burst size (512 bytes)", NULL},
 
     /* protocol specific logical unit mode page [0x18] sas2 */
-    {"LUPID", PROT_SPEC_LU_MP, 0, -1, 2, 3, 4, MF_COMMON,
+    {"LUPID", PROT_SPEC_LU_MP, 0, -1, 2, 3, 4, MF_COMMON | MF_CLASH_OK,
         "Logical unit's (transport) protocol identifier",
         "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
     {"TLR", PROT_SPEC_LU_MP, 0, -1, 2, 4, 1, 0,
         "Transport layer retries (supported)", NULL},
 
     /* protocol specific port mode page [0x19] sas2 */
-    {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, MF_COMMON,
+    {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, MF_COMMON | MF_CLASH_OK,
         "Port's (transport) protocol identifier",
         "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
     {"BAE", PROT_SPEC_PORT_MP, 0, -1, 2, 5, 1, MF_COMMON,

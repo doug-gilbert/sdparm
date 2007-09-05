@@ -74,7 +74,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
 
-static char * version_str = "1.02 20070829";
+static char * version_str = "1.02 20070904";
 
 
 static struct option long_options[] = {
@@ -340,9 +340,9 @@ enumerate_mitems(int pn, int spn, int pdt,
 }
 
 static void
-list_mp_settings(struct sdparm_mode_page_settings * mps, int get)
+list_mp_settings(const struct sdparm_mode_page_settings * mps, int get)
 {
-    struct sdparm_mode_page_item * mpip;
+    const struct sdparm_mode_page_item * mpip;
     int k;
 
     printf("mp_settings: page,subpage=0x%x,0x%x  num=%d\n",
@@ -883,8 +883,8 @@ desc_adjust_start_byte(int desc_num, const struct sdparm_mode_page_t * mpp,
 }
 
 static int
-print_mode_items(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
-                 const struct sdparm_opt_coll * opts)
+print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
+                 int pdt, const struct sdparm_opt_coll * opts)
 {
     int k, res, verb, smask, pn, spn, warned, rep_len, len, desc_num, adapt;
     unsigned long long u;
@@ -1079,14 +1079,15 @@ print_mode_items(int sg_fd, struct sdparm_mode_page_settings * mps, int pdt,
  * bad field in cdb, SG_LIB_CAT_NOT_READY, SG_LIB_CAT_UNIT_ATTENTION,
  * SG_LIB_CAT_ABORTED_COMMAND, -1 -> other failure */
 static int
-change_mode_page(int sg_fd, int pdt, struct sdparm_mode_page_settings * mps,
+change_mode_page(int sg_fd, int pdt,
+                 const struct sdparm_mode_page_settings * mps,
                  const struct sdparm_opt_coll * opts)
 {
     int k, off, md_len, len, res, desc_num, pn, spn;
     char ebuff[EBUFF_SZ];
     const struct sdparm_mode_page_t * mpp = NULL;
     unsigned char mdpg[MAX_MODE_DATA_LEN];
-    struct sdparm_mode_page_it_val * ivp;
+    const struct sdparm_mode_page_it_val * ivp;
     const struct sdparm_mode_page_item * mpi;
     struct sdparm_mode_page_item ampi;
     char b[128];
@@ -1425,7 +1426,7 @@ static long long get_llnum(const char * buf)
 
 static int
 build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
-                  int transp_proto, int vendor_num, int clear, int get)
+                  struct sdparm_opt_coll * opts, int clear, int get)
 {
     int len, b_sz, num, from, cont, colon;
     unsigned int u;
@@ -1500,21 +1501,32 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
             prev_mpi = NULL;
             if (get) {
                 do {
-                    mpi = sdp_find_mitem_by_acron(acron, &from, transp_proto,
-                                                  vendor_num);
+                    mpi = sdp_find_mitem_by_acron(acron, &from,
+                                         opts->transport,
+                                         opts->vendor);
                     if (NULL == mpi) {
                         if (cont) {
                             mpi = prev_mpi;
                             break;
-                        } else {
-                            fprintf(stderr, "couldn't find acronym: %s\n",
-                                    acron);
-                            if ((vendor_num < 0) && (transp_proto < 0))
+                        }
+                        if ((opts->vendor < 0) && (opts->transport < 0)) {
+                            from = 0;
+                            mpi = sdp_find_mitem_by_acron(acron, &from,
+                                          DEF_TRANSPORT_PROTOCOL, -1);
+                            if (NULL == mpi) {
+                                fprintf(stderr, "couldn't find acronym: %s\n",
+                                        acron);
                                 fprintf(stderr, "    [perhaps a '--transport="
                                         "<tn>' or '--vendor=<vn>' option is "
                                         "needed]\n");
+                                return -1;
+                            } else /* keep going in this case */
+                                opts->transport = DEF_TRANSPORT_PROTOCOL;
+                        } else {
+                            fprintf(stderr, "couldn't find acronym: %s\n",
+                                    acron);
+                            return -1;
                         }
-                        return -1;
                     }
                     if (mps->page_num < 0) {
                         mps->page_num = mpi->page_num;
@@ -1523,12 +1535,14 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
                     }
                     cont = 1;
                     prev_mpi = mpi;
+                    /* got acronym match but if not at specified pn,spn */
+                    /* then keep searching */
                 } while ((mps->page_num != mpi->page_num) ||
                          (mps->subpage_num != mpi->subpage_num));
-            } else {
+            } else {    /* --set or --clear */
                 do {
-                    mpi = sdp_find_mitem_by_acron(acron, &from, transp_proto,
-                                                  vendor_num);
+                    mpi = sdp_find_mitem_by_acron(acron, &from,
+                                 opts->transport, opts->vendor);
                     if (NULL == mpi) {
                         if (cont) {
                             fprintf(stderr, "mode page of acronym: %s "
@@ -1540,15 +1554,26 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
                             fprintf(stderr, "For '--set' and '--clear' all "
                                     "fields must be in the same mode "
                                     "page\n");
-                        } else {
-                            fprintf(stderr, "couldn't find acronym: %s\n",
-                                    acron);
-                            if ((vendor_num < 0) && (transp_proto < 0))
+                            return -1;
+                        }
+                        if ((opts->vendor < 0) && (opts->transport < 0)) {
+                            from = 0;
+                            mpi = sdp_find_mitem_by_acron(acron, &from,
+                                          DEF_TRANSPORT_PROTOCOL, -1);
+                            if (NULL == mpi) {
+                                fprintf(stderr, "couldn't find acronym: %s\n",
+                                        acron);
                                 fprintf(stderr, "    [perhaps a '--transport="
                                         "<tn>' or '--vendor=<vn>' option is "
                                         "needed]\n");
+                                return -1;
+                            } else /* keep going in this case */
+                                opts->transport = DEF_TRANSPORT_PROTOCOL;
+                        } else {
+                            fprintf(stderr, "couldn't find acronym: %s\n",
+                                    acron);
+                            return -1;
                         }
-                        return -1;
                     }
                     if (mps->page_num < 0) {
                         mps->page_num = mpi->page_num;
@@ -1557,6 +1582,8 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
                     }
                     cont = 1;
                     prev_mpi = mpi;
+                    /* got acronym match but if not at specified pn,spn */
+                    /* then keep searching */
                 } while ((mps->page_num != mpi->page_num) ||
                          (mps->subpage_num != mpi->subpage_num));
             }
@@ -1730,8 +1757,8 @@ err_out:
 }
 
 static int
-process_mode_page(int sg_fd, struct sdparm_mode_page_settings * mps, int pn,
-                  int spn, int rw, int get,
+process_mode_page(int sg_fd, const struct sdparm_mode_page_settings * mps,
+                  int pn, int spn, int rw, int get,
                   const struct sdparm_opt_coll * opts, int pdt)
 {
     int res;
@@ -2121,8 +2148,7 @@ main(int argc, char * argv[])
                         "or " "'--clear='\n");
                 return SG_LIB_SYNTAX_ERROR;
             }
-            if (build_mp_settings(get_str, &mp_settings, opts.transport,
-                                  opts.vendor, 0, 1))
+            if (build_mp_settings(get_str, &mp_settings, &opts, 0, 1))
                 return SG_LIB_SYNTAX_ERROR;
         }
         if (opts.enumerate) {
@@ -2235,13 +2261,11 @@ main(int argc, char * argv[])
         }
 
         if (set_str) {
-            if (build_mp_settings(set_str, &mp_settings, opts.transport,
-                                  opts.vendor, 0, 0))
+            if (build_mp_settings(set_str, &mp_settings, &opts, 0, 0))
                 return SG_LIB_SYNTAX_ERROR;
         }
         if (clear_str) {
-            if (build_mp_settings(clear_str, &mp_settings, opts.transport,
-                                  opts.vendor, 1, 0))
+            if (build_mp_settings(clear_str, &mp_settings, &opts, 1, 0))
                 return SG_LIB_SYNTAX_ERROR;
         }
  
