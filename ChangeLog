@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.02 [20070826]
+ChangeLog for sdparm-1.02 [20070904]
   - support mode page descriptors with
     <acronym_name>[.<descriptor_num] syntax
     - "2_<acronym>" type entries replaced by new syntax
@@ -12,6 +12,9 @@ ChangeLog for sdparm-1.02 [20070826]
     port address with '-iq' option
   - add solaris port
   - place vendor specific data in sdparm_data_vendor.c
+  - in the absence of an explicit transport or vendor,
+    and if no match on mode page name or field, then try
+    SAS transport
   - add block device characteristics VPD page
 
 ChangeLog for sdparm-1.01 [20070405]

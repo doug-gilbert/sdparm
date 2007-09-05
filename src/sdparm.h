@@ -118,6 +118,7 @@
 /* bit flag settings for sdparm_mode_page_item::flags */
 #define MF_COMMON 0x1   /* output in summary mode */
 #define MF_HEX 0x2
+#define MF_CLASH_OK 0x4 /* know this overlaps safely with generic */
 
 /* enumerations for commands */
 #define CMD_READY 1
