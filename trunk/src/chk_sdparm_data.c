@@ -25,7 +25,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Version 1.3 20070727
+ * Version 1.4 20070904
  */
 
 #include <stdlib.h>
@@ -90,16 +90,27 @@ static void set_cl(int off, int pdt, unsigned char mask)
     }
 }
 
-static void check(const struct sdparm_mode_page_item * mpi)
+static void check(const struct sdparm_mode_page_item * mpi,
+                  const struct sdparm_mode_page_item * mpi_b)
 {
     unsigned char mask;
     const struct sdparm_mode_page_item * kp = mpi;
     const struct sdparm_mode_page_item * jp = mpi;
     const char * acron;
     int res, prev_mp, prev_msp, prev_pdt, sbyte, sbit, nbits;
+    int second_k = 0;
+    int second_j = 0;
 
     clear_cl();
-    for (prev_mp = 0, prev_msp = 0, prev_pdt = -1; kp->acron; ++kp) {
+    for (prev_mp = 0, prev_msp = 0, prev_pdt = -1; ; ++kp) {
+        if (NULL == kp->acron) {
+            if ((NULL == mpi_b) || second_k)
+                break;
+            prev_mp = 0;
+            prev_msp = 0;
+            kp = mpi_b;
+            second_k = 1;
+        }
         acron = kp->acron ? kp->acron : "?";
         if ((prev_mp != kp->page_num) || (prev_msp != kp->subpage_num)) {
             if (prev_mp > kp->page_num)
@@ -119,10 +130,18 @@ static void check(const struct sdparm_mode_page_item * mpi)
                        prev_pdt, kp->pdt);
             prev_pdt = kp->pdt;
         }
-        for (jp = kp + 1; jp->acron; ++jp) {
-            if (0 == strcmp(acron, jp->acron))
-                printf("  acronym with this description: %s clashes with "
-                       "%s\n", kp->description, jp->description);
+        for (jp = kp + 1, second_j = second_k; ; ++jp) {
+            if (NULL == jp->acron) {
+                if ((NULL == mpi_b) || second_j)
+                    break;
+                jp = mpi_b;
+                second_j = 1;
+            }
+            if ((0 == strcmp(acron, jp->acron)) &&
+                (! (jp->flags & MF_CLASH_OK)))
+                printf("  acronym '%s' with this description: '%s'\n    "
+                       "clashes with '%s'\n", acron, kp->description,
+                       jp->description);
         }
         sbyte = kp->start_byte;
         if ((unsigned)sbyte + 8 > MAX_MP_LEN) {
@@ -223,13 +242,13 @@ int main(int argc, char ** argv)
     printf("    Check integrity of mode page item tables in sdparm\n");
     printf("    ==================================================\n\n");
     printf("Generic (i.e. non-transport specific) mode page items:\n");
-    check(sdparm_mitem_arr);
+    check(sdparm_mitem_arr, NULL);
     printf("\n");
     tp = sdparm_transport_mp;
     for (k = 0; k < 16; ++k, ++tp) {
         if (tp->mitem) {
             printf("%s mode page items:\n", sdparm_transport_id[k].name);
-            check(tp->mitem);
+            check(tp->mitem, NULL);
             printf("\n");
         }
     }
@@ -241,9 +260,11 @@ int main(int argc, char ** argv)
                 printf("%s mode page items:\n", ccp);
             else
                 printf("0x%x mode page items:\n", k);
-            check(vp->mitem);
+            check(vp->mitem, NULL);
             printf("\n");
         }
     }
+    printf("Cross check Generic with SAS mode page items:\n");
+    check(sdparm_mitem_arr, sdparm_transport_mp[6].mitem);
     return 0;
 }

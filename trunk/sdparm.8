@@ -1,4 +1,4 @@
-.TH SDPARM "8" "August 2007" "sdparm\-1.02" SDPARM
+.TH SDPARM "8" "September 2007" "sdparm\-1.02" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -41,6 +41,8 @@ the state of the Writeback Cache Enable field).
 .PP
 By default this utility shows mode pages that are common to all
 transport protocols. These are termed as "generic" mode pages.
+If there is no match on a generic mode page name or field then
+those pages specific to the SAS transport are checked.
 Transport protocol specific mode pages are selected with
 the \fI\-\-transport=TN\fR option. See the TRANSPORT section below.
 Vendor specific mode pages are selected with the \fI\-\-vendor=VN\fR option.
