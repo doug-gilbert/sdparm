@@ -996,8 +996,8 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
         if (adapt) {
             if (! desc_adjust_start_byte(desc_num, mpp, cur_mp, rep_len,
                                          &ampi, opts)) {
-                fprintf(stderr, ">> failed to find acron: %s in current "
-                        "page\n", mpi->acron);
+                fprintf(stderr, ">> failed to find field acronym: %s in "
+                        "current page\n", mpi->acron);
                 return SG_LIB_CAT_OTHER;
             }
         }
@@ -1164,8 +1164,8 @@ change_mode_page(int sg_fd, int pdt,
                 mpi = &ampi;
                 if (! desc_adjust_start_byte(desc_num, mpp, mdpg + off, len,
                                              &ampi, opts)) {
-                    fprintf(stderr, ">> failed to find acron: %s in current "
-                            "page\n", mpi->acron);
+                    fprintf(stderr, ">> failed to find field acronym: %s in "
+                            "current page\n", mpi->acron);
                     return SG_LIB_CAT_OTHER;
                 }
             } else {
@@ -1514,8 +1514,8 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
                             mpi = sdp_find_mitem_by_acron(acron, &from,
                                           DEF_TRANSPORT_PROTOCOL, -1);
                             if (NULL == mpi) {
-                                fprintf(stderr, "couldn't find acronym: %s\n",
-                                        acron);
+                                fprintf(stderr, "couldn't find field "
+                                        "acronym: %s\n", acron);
                                 fprintf(stderr, "    [perhaps a '--transport="
                                         "<tn>' or '--vendor=<vn>' option is "
                                         "needed]\n");
@@ -1523,8 +1523,8 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
                             } else /* keep going in this case */
                                 opts->transport = DEF_TRANSPORT_PROTOCOL;
                         } else {
-                            fprintf(stderr, "couldn't find acronym: %s\n",
-                                    acron);
+                            fprintf(stderr, "couldn't find field acronym: "
+                                    "%s\n", acron);
                             return -1;
                         }
                     }
@@ -1561,8 +1561,8 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
                             mpi = sdp_find_mitem_by_acron(acron, &from,
                                           DEF_TRANSPORT_PROTOCOL, -1);
                             if (NULL == mpi) {
-                                fprintf(stderr, "couldn't find acronym: %s\n",
-                                        acron);
+                                fprintf(stderr, "couldn't find field "
+                                        "acronym: %s\n", acron);
                                 fprintf(stderr, "    [perhaps a '--transport="
                                         "<tn>' or '--vendor=<vn>' option is "
                                         "needed]\n");
@@ -1570,8 +1570,8 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
                             } else /* keep going in this case */
                                 opts->transport = DEF_TRANSPORT_PROTOCOL;
                         } else {
-                            fprintf(stderr, "couldn't find acronym: %s\n",
-                                    acron);
+                            fprintf(stderr, "couldn't find field acronym: "
+                                    "%s\n", acron);
                             return -1;
                         }
                     }
