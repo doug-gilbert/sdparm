@@ -159,8 +159,8 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 
 # INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/include/scsi
-AM_CFLAGS = -Wall -W
-# AM_CFLAGS = -Wall -W -pedantic -std=c99
+AM_CFLAGS = -I$(top_srcdir)/include -Wall -W
+# AM_CFLAGS = -I$(top_srcdir)/include -Wall -W -pedantic -std=c99
 sdparm_SOURCES = sdparm.c	\
 			sdparm.h	\
 			sdparm_data.c	\
@@ -168,20 +168,20 @@ sdparm_SOURCES = sdparm.c	\
 			sdparm_access.c	\
 			sdparm_vpd.c	\
 			sdparm_cmd.c	\
-			sg_lib.c	\
-			sg_lib.h	\
-			sg_cmds_basic.c	\
-			sg_cmds_basic.h	\
-			sg_pt.h
+			../lib/sg_lib.c	\
+			../include/sg_lib.h	\
+			../lib/sg_cmds_basic.c	\
+			../include/sg_cmds_basic.h	\
+			../include/sg_pt.h
 
 sdparm_LDADD = @os_deps@ @GETOPT_O_FILES@ @os_libs@
 sdparm_DEPENDENCIES = @os_deps@ @GETOPT_O_FILES@
-EXTRA_sdparm_SOURCES = sg_pt_linux.c	\
-			sg_linux_inc.h	\
-			sg_pt_freebsd.c	\
-			sg_pt_osf1.c	\
-			sg_pt_win32.c	\
-			sg_pt_win32.h	\
+EXTRA_sdparm_SOURCES = ../lib/sg_pt_linux.c	\
+			../include/sg_linux_inc.h	\
+			../lib/sg_pt_freebsd.c	\
+			../lib/sg_pt_osf1.c	\
+			../lib/sg_pt_win32.c	\
+			../include/sg_pt_win32.h	\
 			getopt_long.c	\
 			port_getopt.h
 
@@ -278,6 +278,90 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+
+sg_lib.o: ../lib/sg_lib.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sg_lib.o -MD -MP -MF $(DEPDIR)/sg_lib.Tpo -c -o sg_lib.o `test -f '../lib/sg_lib.c' || echo '$(srcdir)/'`../lib/sg_lib.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/sg_lib.Tpo $(DEPDIR)/sg_lib.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../lib/sg_lib.c' object='sg_lib.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sg_lib.o `test -f '../lib/sg_lib.c' || echo '$(srcdir)/'`../lib/sg_lib.c
+
+sg_lib.obj: ../lib/sg_lib.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sg_lib.obj -MD -MP -MF $(DEPDIR)/sg_lib.Tpo -c -o sg_lib.obj `if test -f '../lib/sg_lib.c'; then $(CYGPATH_W) '../lib/sg_lib.c'; else $(CYGPATH_W) '$(srcdir)/../lib/sg_lib.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/sg_lib.Tpo $(DEPDIR)/sg_lib.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../lib/sg_lib.c' object='sg_lib.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sg_lib.obj `if test -f '../lib/sg_lib.c'; then $(CYGPATH_W) '../lib/sg_lib.c'; else $(CYGPATH_W) '$(srcdir)/../lib/sg_lib.c'; fi`
+
+sg_cmds_basic.o: ../lib/sg_cmds_basic.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sg_cmds_basic.o -MD -MP -MF $(DEPDIR)/sg_cmds_basic.Tpo -c -o sg_cmds_basic.o `test -f '../lib/sg_cmds_basic.c' || echo '$(srcdir)/'`../lib/sg_cmds_basic.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/sg_cmds_basic.Tpo $(DEPDIR)/sg_cmds_basic.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../lib/sg_cmds_basic.c' object='sg_cmds_basic.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sg_cmds_basic.o `test -f '../lib/sg_cmds_basic.c' || echo '$(srcdir)/'`../lib/sg_cmds_basic.c
+
+sg_cmds_basic.obj: ../lib/sg_cmds_basic.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sg_cmds_basic.obj -MD -MP -MF $(DEPDIR)/sg_cmds_basic.Tpo -c -o sg_cmds_basic.obj `if test -f '../lib/sg_cmds_basic.c'; then $(CYGPATH_W) '../lib/sg_cmds_basic.c'; else $(CYGPATH_W) '$(srcdir)/../lib/sg_cmds_basic.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/sg_cmds_basic.Tpo $(DEPDIR)/sg_cmds_basic.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../lib/sg_cmds_basic.c' object='sg_cmds_basic.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sg_cmds_basic.obj `if test -f '../lib/sg_cmds_basic.c'; then $(CYGPATH_W) '../lib/sg_cmds_basic.c'; else $(CYGPATH_W) '$(srcdir)/../lib/sg_cmds_basic.c'; fi`
+
+sg_pt_linux.o: ../lib/sg_pt_linux.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sg_pt_linux.o -MD -MP -MF $(DEPDIR)/sg_pt_linux.Tpo -c -o sg_pt_linux.o `test -f '../lib/sg_pt_linux.c' || echo '$(srcdir)/'`../lib/sg_pt_linux.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/sg_pt_linux.Tpo $(DEPDIR)/sg_pt_linux.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../lib/sg_pt_linux.c' object='sg_pt_linux.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sg_pt_linux.o `test -f '../lib/sg_pt_linux.c' || echo '$(srcdir)/'`../lib/sg_pt_linux.c
+
+sg_pt_linux.obj: ../lib/sg_pt_linux.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sg_pt_linux.obj -MD -MP -MF $(DEPDIR)/sg_pt_linux.Tpo -c -o sg_pt_linux.obj `if test -f '../lib/sg_pt_linux.c'; then $(CYGPATH_W) '../lib/sg_pt_linux.c'; else $(CYGPATH_W) '$(srcdir)/../lib/sg_pt_linux.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/sg_pt_linux.Tpo $(DEPDIR)/sg_pt_linux.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../lib/sg_pt_linux.c' object='sg_pt_linux.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sg_pt_linux.obj `if test -f '../lib/sg_pt_linux.c'; then $(CYGPATH_W) '../lib/sg_pt_linux.c'; else $(CYGPATH_W) '$(srcdir)/../lib/sg_pt_linux.c'; fi`
+
+sg_pt_freebsd.o: ../lib/sg_pt_freebsd.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sg_pt_freebsd.o -MD -MP -MF $(DEPDIR)/sg_pt_freebsd.Tpo -c -o sg_pt_freebsd.o `test -f '../lib/sg_pt_freebsd.c' || echo '$(srcdir)/'`../lib/sg_pt_freebsd.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/sg_pt_freebsd.Tpo $(DEPDIR)/sg_pt_freebsd.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../lib/sg_pt_freebsd.c' object='sg_pt_freebsd.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sg_pt_freebsd.o `test -f '../lib/sg_pt_freebsd.c' || echo '$(srcdir)/'`../lib/sg_pt_freebsd.c
+
+sg_pt_freebsd.obj: ../lib/sg_pt_freebsd.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sg_pt_freebsd.obj -MD -MP -MF $(DEPDIR)/sg_pt_freebsd.Tpo -c -o sg_pt_freebsd.obj `if test -f '../lib/sg_pt_freebsd.c'; then $(CYGPATH_W) '../lib/sg_pt_freebsd.c'; else $(CYGPATH_W) '$(srcdir)/../lib/sg_pt_freebsd.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/sg_pt_freebsd.Tpo $(DEPDIR)/sg_pt_freebsd.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../lib/sg_pt_freebsd.c' object='sg_pt_freebsd.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sg_pt_freebsd.obj `if test -f '../lib/sg_pt_freebsd.c'; then $(CYGPATH_W) '../lib/sg_pt_freebsd.c'; else $(CYGPATH_W) '$(srcdir)/../lib/sg_pt_freebsd.c'; fi`
+
+sg_pt_osf1.o: ../lib/sg_pt_osf1.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sg_pt_osf1.o -MD -MP -MF $(DEPDIR)/sg_pt_osf1.Tpo -c -o sg_pt_osf1.o `test -f '../lib/sg_pt_osf1.c' || echo '$(srcdir)/'`../lib/sg_pt_osf1.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/sg_pt_osf1.Tpo $(DEPDIR)/sg_pt_osf1.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../lib/sg_pt_osf1.c' object='sg_pt_osf1.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sg_pt_osf1.o `test -f '../lib/sg_pt_osf1.c' || echo '$(srcdir)/'`../lib/sg_pt_osf1.c
+
+sg_pt_osf1.obj: ../lib/sg_pt_osf1.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sg_pt_osf1.obj -MD -MP -MF $(DEPDIR)/sg_pt_osf1.Tpo -c -o sg_pt_osf1.obj `if test -f '../lib/sg_pt_osf1.c'; then $(CYGPATH_W) '../lib/sg_pt_osf1.c'; else $(CYGPATH_W) '$(srcdir)/../lib/sg_pt_osf1.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/sg_pt_osf1.Tpo $(DEPDIR)/sg_pt_osf1.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../lib/sg_pt_osf1.c' object='sg_pt_osf1.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sg_pt_osf1.obj `if test -f '../lib/sg_pt_osf1.c'; then $(CYGPATH_W) '../lib/sg_pt_osf1.c'; else $(CYGPATH_W) '$(srcdir)/../lib/sg_pt_osf1.c'; fi`
+
+sg_pt_win32.o: ../lib/sg_pt_win32.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sg_pt_win32.o -MD -MP -MF $(DEPDIR)/sg_pt_win32.Tpo -c -o sg_pt_win32.o `test -f '../lib/sg_pt_win32.c' || echo '$(srcdir)/'`../lib/sg_pt_win32.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/sg_pt_win32.Tpo $(DEPDIR)/sg_pt_win32.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../lib/sg_pt_win32.c' object='sg_pt_win32.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sg_pt_win32.o `test -f '../lib/sg_pt_win32.c' || echo '$(srcdir)/'`../lib/sg_pt_win32.c
+
+sg_pt_win32.obj: ../lib/sg_pt_win32.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sg_pt_win32.obj -MD -MP -MF $(DEPDIR)/sg_pt_win32.Tpo -c -o sg_pt_win32.obj `if test -f '../lib/sg_pt_win32.c'; then $(CYGPATH_W) '../lib/sg_pt_win32.c'; else $(CYGPATH_W) '$(srcdir)/../lib/sg_pt_win32.c'; fi`
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/sg_pt_win32.Tpo $(DEPDIR)/sg_pt_win32.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../lib/sg_pt_win32.c' object='sg_pt_win32.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sg_pt_win32.obj `if test -f '../lib/sg_pt_win32.c'; then $(CYGPATH_W) '../lib/sg_pt_win32.c'; else $(CYGPATH_W) '$(srcdir)/../lib/sg_pt_win32.c'; fi`
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
