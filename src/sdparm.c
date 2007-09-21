@@ -74,7 +74,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
 
-static char * version_str = "1.02 20070906";
+static char * version_str = "1.02 20070920";
 
 
 static struct option long_options[] = {
@@ -1731,7 +1731,7 @@ open_and_simple_inquiry(const char * device_name, int rw, int * pdt,
                    !!(sir.byte_3 & 0x80), !!(sir.byte_3 & 0x40),
                    !!(sir.byte_3 & 0x20), !!(sir.byte_3 & 0x10),
                    sir.byte_3 & 0x0f, !!(sir.byte_5 & 0x80));
-            printf("ACC=%d  TGPS=%d  3PC=%d  Protect=%d ",
+            printf("ACC=%d  TPGS=%d  3PC=%d  Protect=%d ",
                    !!(sir.byte_5 & 0x40), ((sir.byte_5 & 0x30) >> 4),
                    !!(sir.byte_5 & 0x08), !!(sir.byte_5 & 0x01));
             printf(" BQue=%d\n  EncServ=%d  ", !!(sir.byte_6 & 0x80),
