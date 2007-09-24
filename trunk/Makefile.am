@@ -1,6 +1,4 @@
-man_MANS = sdparm.8
-
-SUBDIRS =	src
+SUBDIRS =	src doc
 
 EXTRA_DIST=autogen.sh
 
