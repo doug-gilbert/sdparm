@@ -74,7 +74,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
 
-static char * version_str = "1.02 20070920";
+static char * version_str = "1.02 20070923";
 
 
 static struct option long_options[] = {
@@ -1374,36 +1374,6 @@ set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
     }
 }
 
-/* Trying to decode multipliers as sg_get_num() [as sg_libs does] would
- * only confuse things here, so use this local trimmed version */
-static int
-get_num(const char * buf)
-{
-    int res, len, num;
-    unsigned int unum;
-    const char * commap;
-
-    if ((NULL == buf) || ('\0' == buf[0]))
-        return -1;
-    len = strlen(buf);
-    commap = strchr(buf + 1, ',');
-    if (('0' == buf[0]) && (('x' == buf[1]) || ('X' == buf[1]))) {
-        res = sscanf(buf + 2, "%x", &unum);
-        num = unum;
-    } else if (commap && ('H' == toupper(*(commap - 1)))) {
-        res = sscanf(buf, "%x", &unum);
-        num = unum;
-    } else if ((NULL == commap) && ('H' == toupper(buf[len - 1]))) {
-        res = sscanf(buf, "%x", &unum);
-        num = unum;
-    } else
-        res = sscanf(buf, "%d", &num);
-    if (1 == res)
-        return num;
-    else
-        return -1;
-}
-
 static long long get_llnum(const char * buf)
 {
     int res, len;
@@ -1910,7 +1880,7 @@ main(int argc, char * argv[])
             } else {
                 const struct sdparm_vendor_pair * vpp;
 
-                res = get_num(optarg);
+                res = sg_get_num_nomult(optarg);
                 vpp = sdp_get_vendor_pair(res);
                 if (NULL == vpp) {
                     fprintf(stderr, "Bad vendor value after '-M' "
@@ -1955,7 +1925,7 @@ main(int argc, char * argv[])
                 } else
                     opts.transport = tip->proto_num;
             } else {
-                res = get_num(optarg);
+                res = sg_get_num_nomult(optarg);
                 if ((res < 0) || (res > 15)) {
                     fprintf(stderr, "Bad transport value after '-t' "
                             "option\n");
@@ -2066,7 +2036,7 @@ main(int argc, char * argv[])
             }
         } else {        /* got page_str and first char probably numeric */
             cp = strchr(page_str, ',');
-            pn = get_num(page_str);
+            pn = sg_get_num_nomult(page_str);
             if ((pn < 0) || (pn > 255)) {
                 fprintf(stderr, "Bad page code value after '-p' "
                         "option\n");
@@ -2087,7 +2057,7 @@ main(int argc, char * argv[])
                 }
             }
             if (cp) {
-                spn = get_num(cp + 1);
+                spn = sg_get_num_nomult(cp + 1);
                 if ((spn < 0) || (spn > 255)) {
                     fprintf(stderr, "Bad second value after "
                             "'-p' option\n");
