@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.02 [20070923]
+ChangeLog for sdparm-1.02 [20070924]
   - support mode page descriptors with
     <acronym_name>[.<descriptor_num] syntax
     - "2_<acronym>" type entries replaced by new syntax
@@ -17,6 +17,10 @@ ChangeLog for sdparm-1.02 [20070923]
     SAS transport
   - add block device characteristics VPD page
   - use new sg_lib sg_get_num_nomult()
+  - place source in subversion repository
+    - use svn:externals property to point to sg3_utils'
+      include/ and lib/ directories
+    - move some files around (e.g. sdparm.8)
 
 ChangeLog for sdparm-1.01 [20070405]
   - add element address assignment mode page (smc)

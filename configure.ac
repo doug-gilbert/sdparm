@@ -54,4 +54,4 @@ case "${host}" in
 esac
 
 # AC_PROG_LIBTOOL
-AC_OUTPUT(Makefile src/Makefile)
+AC_OUTPUT(Makefile src/Makefile doc/Makefile)
