@@ -540,6 +540,85 @@ decode_man_net_vpd(unsigned char * buff, int len)
 }
 
 static int
+decode_proto_lu_vpd(unsigned char * buff, int len)
+{
+    int k, bump, rel_port, desc_len, proto;
+    unsigned char * ucp;
+
+    if (len < 4) {
+        fprintf(stderr, "Protocol-specific logical unit information VPD "
+                "page length too short=%d\n", len);
+        return SG_LIB_CAT_MALFORMED;
+    }
+    len -= 4;
+    ucp = buff + 4;
+    for (k = 0; k < len; k += bump, ucp += bump) {
+        rel_port = (ucp[0] << 8) + ucp[1];
+        printf("Relative port=%d\n", rel_port);
+        proto = ucp[2] & 0xf;
+        desc_len = (ucp[6] << 8) + ucp[7];
+        bump = 8 + desc_len;
+        if ((k + bump) > len) {
+            fprintf(stderr, "Protocol-specific logical unit information VPD "
+                    "page, short descriptor length=%d, left=%d\n", bump,
+                    (len - k));
+            return SG_LIB_CAT_MALFORMED;
+        }
+        if (desc_len > 0) {
+            switch (proto) {
+            case TP_SAS:
+                printf(" Protocol identifier: SAS\n");
+                printf(" TLR control supported: %d\n", !!(ucp[8] & 0x1));
+                break;
+            default:
+                fprintf(stderr, "Unexpected proto=%d\n", proto);
+                dStrHex((const char *)ucp, bump, 1);
+                break;
+            }
+        }
+    }
+    return 0;
+}
+
+static int
+decode_proto_port_vpd(unsigned char * buff, int len)
+{
+    int k, bump, rel_port, desc_len, proto;
+    unsigned char * ucp;
+
+    if (len < 4) {
+        fprintf(stderr, "Protocol-specific port information VPD "
+                "page length too short=%d\n", len);
+        return SG_LIB_CAT_MALFORMED;
+    }
+    len -= 4;
+    ucp = buff + 4;
+    for (k = 0; k < len; k += bump, ucp += bump) {
+        rel_port = (ucp[0] << 8) + ucp[1];
+        printf("Relative port=%d\n", rel_port);
+        proto = ucp[2] & 0xf;
+        desc_len = (ucp[6] << 8) + ucp[7];
+        bump = 8 + desc_len;
+        if ((k + bump) > len) {
+            fprintf(stderr, "Protocol-specific port information VPD "
+                    "page, short descriptor length=%d, left=%d\n", bump,
+                    (len - k));
+            return SG_LIB_CAT_MALFORMED;
+        }
+        if (desc_len > 0) {
+            switch (proto) {
+            case TP_SAS:
+            default:
+                fprintf(stderr, "Unexpected proto=%d\n", proto);
+                dStrHex((const char *)ucp, bump, 1);
+                break;
+            }
+        }
+    }
+    return 0;
+}
+
+static int
 decode_scsi_ports_vpd(unsigned char * buff, int len, int long_out, int quiet)
 {
     int k, bump, rel_port, ip_tid_len, tpd_len, res;
@@ -982,6 +1061,50 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             return 0;
         }
         res = decode_mode_policy_vpd(b, len + 4);
+        if (res)
+            return res;
+        break;
+    case VPD_PROTO_LU:
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = (b[2] << 8) + b[3];
+        if (len > sz) {
+            fprintf(stderr, "Response to Protocol-specific logical unit "
+                    "information VPD page truncated\n");
+            len = sz;
+        }
+        if (opts->long_out)
+            printf("Protocol-specific logical unit information [0x90] VPD "
+                   "page:\n");
+        else
+            printf("Protocol-specific logical unit information VPD page:\n");
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        res = decode_proto_lu_vpd(b, len + 4);
+        if (res)
+            return res;
+        break;
+    case VPD_PROTO_PORT:
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = (b[2] << 8) + b[3];
+        if (len > sz) {
+            fprintf(stderr, "Response to Protocol-specific port "
+                    "information VPD page truncated\n");
+            len = sz;
+        }
+        if (opts->long_out)
+            printf("Protocol-specific port information [0x91] VPD "
+                   "page:\n");
+        else
+            printf("Protocol-specific port information VPD page:\n");
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        res = decode_proto_port_vpd(b, len + 4);
         if (res)
             return res;
         break;

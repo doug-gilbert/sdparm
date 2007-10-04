@@ -57,7 +57,7 @@ make install \
 %{_mandir}/man8/*
 
 %changelog
-* Sun Sep 23 2007 - dgilbert at interlog dot com
+* Thu Oct 04 2007 - dgilbert at interlog dot com
 - add block device characteristics VPD page, descriptor based mpages
   * sdparm-1.02
 * Thu Apr 05 2007 - dgilbert at interlog dot com
