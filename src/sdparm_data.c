@@ -194,6 +194,10 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
      "Manufacturer assigned serial number (ADC)"},
     {VPD_MAN_NET_ADDR, 0, -1, "mna", "Management network addresses"},
     {VPD_MODE_PG_POLICY, 0, -1, "mpp", "Mode page policy"},
+    {VPD_OSD_INFO, 0, 0x11, "oi", "OSD information"},
+    {VPD_PROTO_LU, 0, 0x0, "pslu", "Protocol-specific logical unit "
+     "information"},
+    {VPD_PROTO_PORT, 0, 0x0, "pspo", "Protocol-specific port information"},
     {VPD_SA_DEV_CAP, 0, 1, "sad",
      "Sequential access device capabilities (SSC)"},
     {VPD_SOFTW_INF_ID, 0, -1, "sii", "Software interface identification"},

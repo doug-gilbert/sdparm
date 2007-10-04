@@ -77,6 +77,8 @@
 #define VPD_MODE_PG_POLICY 0x87
 #define VPD_SCSI_PORTS 0x88
 #define VPD_ATA_INFO 0x89
+#define VPD_PROTO_LU 0x90
+#define VPD_PROTO_PORT 0x91
 #define VPD_BLOCK_LIMITS 0xb0   /* SBC-3 */
 #define VPD_SA_DEV_CAP 0xb0     /* SSC-3 */
 #define VPD_OSD_INFO 0xb0       /* OSD */
