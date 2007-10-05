@@ -97,19 +97,7 @@
 #define VPD_DI_SEL_TARGET 4
 #define VPD_DI_SEL_AS_IS 32
 
-/* Transport protocol identifiers */
-#define TP_FCP 0
-#define TP_SPI 1
-#define TP_SSA 2
-#define TP_1394 3
-#define TP_SRP 4
-#define TP_ISCSI 5
-#define TP_SAS 6
-#define TP_ADT 7
-#define TP_ATA 8
-#define TP_NONE 0xf
-
-#define DEF_TRANSPORT_PROTOCOL TP_SAS
+#define DEF_TRANSPORT_PROTOCOL TPROTO_SAS
 
 /* Vendor identifiers */
 #define VENDOR_SEAGATE 0x0

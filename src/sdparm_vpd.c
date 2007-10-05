@@ -566,7 +566,7 @@ decode_proto_lu_vpd(unsigned char * buff, int len)
         }
         if (desc_len > 0) {
             switch (proto) {
-            case TP_SAS:
+            case TPROTO_SAS:
                 printf(" Protocol identifier: SAS\n");
                 printf(" TLR control supported: %d\n", !!(ucp[8] & 0x1));
                 break;
@@ -607,7 +607,7 @@ decode_proto_port_vpd(unsigned char * buff, int len)
         }
         if (desc_len > 0) {
             switch (proto) {
-            case TP_SAS:
+            case TPROTO_SAS:
             default:
                 fprintf(stderr, "Unexpected proto=%d\n", proto);
                 dStrHex((const char *)ucp, bump, 1);

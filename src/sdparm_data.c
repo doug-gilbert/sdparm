@@ -29,6 +29,7 @@
 
 #include <stdlib.h>
 #include "sdparm.h"
+#include "sg_lib.h"
 
 
 /*
@@ -93,15 +94,15 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
 /* Those transports commented with "none" don't have transport specific */
 /* mode pages. */
 struct sdparm_transport_id_t sdparm_transport_id[] = {
-    {TP_FCP, "fcp", "Fibre channel (FCP)"},
-    {TP_SPI, "spi", "SCSI parallel interface (SPI)"},
-    {TP_SSA, "ssa", "Serial storage architecture (SSA)"},
-    {TP_1394, "sbp", "Serial bus (SBP)"}, /* none */
-    {TP_SRP, "srp", "SCSI remote DMA (SRP)"},
-    {TP_ISCSI, "iscsi", "Internet SCSI (iSCSI)"}, /* none */
-    {TP_SAS, "sas", "Serial attached SCSI (SAS)"},
-    {TP_ADT, "adt", "Automation/Drive interface (ADT)"},
-    {TP_ATA, "ata", "AT attachment interface (ATA/ATAPI)"},
+    {TPROTO_FCP, "fcp", "Fibre channel (FCP)"},
+    {TPROTO_SPI, "spi", "SCSI parallel interface (SPI)"},
+    {TPROTO_SSA, "ssa", "Serial storage architecture (SSA)"},
+    {TPROTO_1394, "sbp", "Serial bus (SBP)"}, /* none */
+    {TPROTO_SRP, "srp", "SCSI remote DMA (SRP)"},
+    {TPROTO_ISCSI, "iscsi", "Internet SCSI (iSCSI)"}, /* none */
+    {TPROTO_SAS, "sas", "Serial attached SCSI (SAS)"},
+    {TPROTO_ADT, "adt", "Automation/Drive interface (ADT)"},
+    {TPROTO_ATA, "ata", "AT attachment interface (ATA/ATAPI)"},
                                                          /* none */
     {0x9, "u0x9", NULL},      /* leading "u" so not number */
     {0xa, "u0xa", NULL},
@@ -109,7 +110,7 @@ struct sdparm_transport_id_t sdparm_transport_id[] = {
     {0xc, "u0xc", NULL},
     {0xd, "u0xd", NULL},
     {0xe, "u0xe", NULL},
-    {TP_NONE, "none", "No specific"},
+    {TPROTO_NONE, "none", "No specific"},
     {0, NULL, NULL},
 };
 
