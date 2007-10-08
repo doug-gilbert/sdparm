@@ -74,7 +74,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
 
-static char * version_str = "1.02 20071007";
+static char * version_str = "1.02 20071008";
 
 
 static struct option long_options[] = {
@@ -143,7 +143,8 @@ usage()
           "    --inquiry | -i        output INQUIRY VPD page(s) (def: mode "
           "page(s))\n"
           "    --long | -l           add description to field output\n"
-          "    --num-desc | -n       report number of descriptors\n"
+          "    --num-desc | -n       report number of mode page "
+          "descriptors\n"
           "    --page=PG[,SPG] | -p PG[,SPG]    page (and optionally "
           "subpage) number\n"
           "                          [or abbrev] to output, change or "
