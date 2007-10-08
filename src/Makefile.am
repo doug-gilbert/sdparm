@@ -24,6 +24,7 @@ EXTRA_sdparm_SOURCES =	../lib/sg_pt_linux.c	\
 			../include/sg_linux_inc.h	\
 			../lib/sg_pt_freebsd.c	\
 			../lib/sg_pt_osf1.c	\
+			../lib/sg_pt_solaris.c	\
 			../lib/sg_pt_win32.c	\
 			../include/sg_pt_win32.h	\
 			getopt_long.c	\
