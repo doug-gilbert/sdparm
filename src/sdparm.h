@@ -133,7 +133,7 @@ struct sdparm_opt_coll {
     int inquiry;
     int long_out;
     int mode_6;
-    int num_descs;
+    int num_desc;
     int quiet;
     int save;
     int transport;

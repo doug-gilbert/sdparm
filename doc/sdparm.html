@@ -35,16 +35,18 @@ sdparm utility</a>
       </li>
       <li><a href="#mozTocId378082">Vendor specific mode
 pages</a></li>
-      <li><a href="#mozTocId67897">Supported operating systems</a>
+      <li><a href="#mozTocId67897">Supported operating
+systems</a>
         <ol>
-          <li><a href="#mozTocId600630"> Linux</a>
+          <li><a href="#mozTocId600630"> Linux </a>
             <ol>
               <li><a href="#mozTocId262297">hdparm mapping</a></li>
             </ol>
           </li>
-          <li><a href="#mozTocId197336">FreeBSD</a></li>
-          <li><a href="#mozTocId997981">Tru64</a></li>
-          <li><a href="#mozTocId891504">Windows</a></li>
+          <li><a href="#mozTocId197336">FreeBSD </a></li>
+          <li><a href="#mozTocId284244">Solaris</a></li>
+          <li><a href="#mozTocId997981">Tru64 </a></li>
+          <li><a href="#mozTocId891504">Windows </a></li>
         </ol>
       </li>
       <li><a href="#mozTocId786906">Examples</a></li>
@@ -54,12 +56,13 @@ pages</a></li>
   </li>
 </ol>
 <h2><a class="mozTocH2" name="mozTocId812196"></a>Introduction</h2>
-The <span style="font-weight: bold;">sdparm</span> utility outputs and
-in some cases modifies SCSI device parameters. When the SCSI device is
+The <span style="font-weight: bold;">sdparm</span> utility accesses
+SCSI device parameters. When the SCSI device is
 a disk, <span style="font-weight: bold;">sdparm</span>'s role is
 similar
 to its namesake: the Linux <span style="font-weight: bold;">hdparm</span>
-utility which is for ATA disks that usually have device names starting
+utility which is primarily designed for ATA disks that had device names
+starting
 with
 "hd".
 More generally <span style="font-weight: bold;">sdparm</span> can be
@@ -73,7 +76,7 @@ be sent with this utility.<br>
 <br>
 This utility currently contains over 500 entries spread across generic
 mode pages, transport specific mode pages, vendor specific mode pages,
-Vital Product Data (VPD) pages and their attributes. Rather than try
+Vital Product Data (VPD) pages and their fields. Rather than try
 and document all of these here (or in the man page), another approach
 is taken. This utility's internal tables can be searched and output
 with the '<span style="font-family: monospace;">--enumerate</span>'
@@ -83,7 +86,9 @@ more if the '<span style="font-family: monospace;">--long</span>'
 option is used twice).<br>
 <br>
 The information in this page corresponds to <span
- style="font-weight: bold;">sdparm</span> version 1.01 .<br>
+ style="font-weight: bold;">sdparm</span> version 1.02 . This utility
+was originally written for Linux and now has been ported to FreeBSD,
+Solaris, Tru64, and Windows.<br>
 <h2><a class="mozTocH2" name="mozTocId783733"></a>SCSI mode pages</h2>
 Mode pages hold meta data about a SCSI device which can, in some cases,
 be changed by the user. In SCSI parlance the "device" is a <span
@@ -97,16 +102,30 @@ using <span style="font-weight: bold;">sdparm</span> which is a SCSI
  style="font-style: italic;">initiator</span>. The
 SCSI initiator is found in the HBA. At the command level SCSI is a
 client-server protocol with the logical unit (or target device) being
-the server that responds to commands sent by the application client via
+the server that responds to commands sent by the <span
+ style="font-style: italic;">application client</span> via
 the SCSI initiator.<br>
 <br>
 Mode pages are defined in SCSI (draft) standards found at <a
- href="http://www.t10.org">www.t10.org</a> . Mode pages common to all
+ href="http://www.t10.org/">www.t10.org</a> . Mode pages common to all
 SCSI devices are found in the SCSI Primary Commands document (SPC-4)
 while those specific to block devices
 (e.g. disks) are found in SBC-3 and those for CD/DVD drives are found
 in MMC-5. This <a href="http://www.t10.org/scsi-3.htm">diagram</a>
-shows how various SCSI and associated standards interrelate. Often
+shows how various SCSI and associated standards interrelate.<br>
+<br>
+Below is a representation of the control mode page taken from
+SPC-3 (draft revision 23). The page is 12 bytes long with bytes
+numbered from 0 to 11. The bits within each byte are numbered from 0 to
+7 (with 0 on the right and 7 on the left). Note that some fields occupy
+a single bit, others multiple bits,
+while the last two fields occupy two bytes (i.e. 16 bits) each.<br>
+<br>
+<img style="width: 528px; height: 268px;"
+ alt="control mode page representation" src="control_mode_page.jpg"
+ align="top"><br>
+<br>
+Often
 device product manuals detail precisely which mode pages (and parts
 thereof) are supported by a particular model and describe the way that
 the
@@ -129,6 +148,13 @@ information about
 use (for example) '<span style="font-family: monospace;">sdparm -e -t
 sas</span>'. Both lists are sorted
 alphabetically by mode page abbreviation.<br>
+<br>
+The majority of mode pages are fixed length, like the control mode page
+shown above. There are some mode pages that are variable length,
+typically with a fixed header at the top of the mode page (often 8
+bytes long) followed by a variable number of descriptors. The
+descriptors themselves may be either be fixed length or contain a
+length field.<br>
 <br>
 Mode pages are not the only mechanism in SCSI devices for holding
 meta data. Information which seldom if ever changes for a particular
@@ -179,14 +205,16 @@ The <span style="font-weight: bold;">sdparm</span> utility has a
 '<span style="font-family: monospace;">--get</span>', '<span
  style="font-family: monospace;">--set</span>', '<span
  style="font-family: monospace;">--clear</span>' type of command
-line interface in which mode page fields are identified by an acronym.
-In many cases these acronyms will correspond precisely to the standard
+line interface in which mode page fields are identified by an
+acronym_name.
+In many cases these acronym_names will correspond precisely to the
+standard
 (e.g. "WCE" for Writeback Cache Enable in the caching mode page of
 SBC-3).
 For some longer fields the standards "spell out" a field name (e.g.
 "Write Retention Priority" in the caching mode page of SBC-3). In such
 cases the <span style="font-weight: bold;">sdparm</span> utility uses
-an acronym (e.g. "WRP"). In <span style="font-weight: bold;">sdparm</span>,
+an acronym_name (e.g. "WRP"). In <span style="font-weight: bold;">sdparm</span>,
 acronyms&nbsp;<span style="font-weight: bold;"></span>across all
 generic mode pages are unique
 (i.e. an acronym matches at most one field of
@@ -205,6 +233,17 @@ to the manufacturer's defaults with the '<span
 '<span style="font-family: monospace;">--save</span>' option here will
 additionally change the saved values back to
 the manufacturer's defaults).<br>
+<br>
+For mode pages that are variable length, fields that are in the header
+section or the first descriptor appear as normal. For example the "PID"
+(phy identifier) field in the first descriptor of the SAS phy control
+and discover mode page appears as is (e.g. '<span
+ style="font-family: monospace;">--get PID</span>'). The same field in
+subsequent descriptors is addressed by a
+"&lt;acronym&gt;.&lt;desc_num&gt;" format. Hence that field in the
+second descriptor is named "PID.1" and if there is a third descriptor
+the corresponsing acronym_name will be "PID.2 ". So the
+"&lt;desc_num&gt;" is origin zero and is assumed to be 0 if not given.<br>
 <br>
 Changing some mode page fields is like jumping off a cliff holding
 onto a rope which you are not sure is properly secured.&nbsp; If in
@@ -319,7 +358,10 @@ information.<br>
   </li>
   <li>Block limits [page 0xb0 (SBC)]; page abbreviation: "bl". Defines
 maximum and optimal number of blocks to transfer in a single SCSI
-command (either a READ or WRITE command)<br>
+command (either a READ or WRITE command)</li>
+  <li>Block device characteristics [page 0xb1 (SBC)]; page abbreviation
+"bdc". Contains the rotating media revolutions per minute (rpm) where
+relevant.<br>
   </li>
 </ul>
 VPD pages for which <span style="font-weight: bold;">sdparm</span>
@@ -330,7 +372,7 @@ in ASCII hex, assuming the device responds. VPD page abbreviations can
 be listed with '<span style="font-family: monospace;">sdparm
 --enumerate --inquiry</span>'.<br>
 <br>
-The sg3_utils package (from version 1.21 onwards) contains a utility
+The sg3_utils package contains a utility
 called <span style="font-weight: bold;">sg_vpd</span> that overlaps
 with <span style="font-weight: bold;">sdparm</span>'s VPD
 capabilities. Additionally <span style="font-weight: bold;">sg_vpd</span>
@@ -590,6 +632,16 @@ information about selected mode parameter values (e.g. MRIE).<br>
       </td>
     </tr>
     <tr>
+      <td style="vertical-align: top;">--num-desc<br>
+      </td>
+      <td style="vertical-align: top;">-n<br>
+      </td>
+      <td style="vertical-align: top;">for a mode page that can have
+descriptors, the number of descriptors in the given page on DEVICE is
+output. Otherwise 0 is output.<br>
+      </td>
+    </tr>
+    <tr>
       <td style="vertical-align: top;">--page=<span
  style="font-style: italic;">PG</span>[,<span
  style="font-style: italic;">SPG</span>]<br>
@@ -668,7 +720,9 @@ default action is to use the 10 byte cdb variants.<br>
       </td>
       <td style="vertical-align: top;">transport protocol identifier;
 either a number or an abbreviation (e.g. "fcp", "spi" or "sas") can be
-given. See <a href="#mozTocId808937">transports</a> section.<br>
+given. See <a href="#mozTocId808937">transports</a> section. In the
+absence of an explicit transport and if a page or field name does not
+match a generic name then the SAS transport is assumed.<br>
       </td>
     </tr>
     <tr>
@@ -706,7 +760,9 @@ date of last code change then exits<br>
       </td>
       <td style="vertical-align: top;">-w<br>
       </td>
-      <td style="vertical-align: top;">[Windows only] scan for device
+      <td style="vertical-align: top;">[<span
+ style="text-decoration: underline;">Windows only</span>] scan for
+device
 names, show one device per line. Each device can have multiple device
 names. If a <span style="font-style: italic;">DEVICE</span> name is
 given (on the command line) then it will
@@ -714,6 +770,14 @@ be ignored. </td>
     </tr>
   </tbody>
 </table>
+<br>
+If neither '<span style="font-family: monospace;">--transport=</span>'
+nor '<span style="font-family: monospace;">--vendor=</span>' options
+are given for mode page related operations then generic mode pages and
+fields are checked first for matches. If there is no match then the SAS
+transport is checked. This means that in most cases the '<span
+ style="font-family: monospace;">--transport=sas</span>' option is not
+required when accessing SAS mode pages and fields.<br>
 <br>
 The '<span style="font-family: monospace;">--clear=</span>', '<span
  style="font-family: monospace;">--get=</span>' and '<span
@@ -884,7 +948,7 @@ pass-through interface for carrying packet oriented command sets and
 that is called ATAPI. ATAPI is used almost exclusively to carry SCSI
 command sets (e.g. MMC for CD/DVD drives). SAS and FCP are considered
 "SCSI" transports yet they can also carry (or tunnel) the ATA
-non-packet command set for disks.<br>
+non-packet command set for disks as well as other non-SCSI protocols.<br>
 <br>
 Should we name devices in an operating system by transport or command
 set? That is a
@@ -1034,9 +1098,12 @@ of <span style="font-weight: bold;">hdparm</span> this sequence may be
 more stable: '<span style="font-family: monospace;">sdparm --page=ai
 -HHH /dev/sda &gt; t
 ;
-hdparm --Istdin &lt; t</span>' .<br>
+hdparm --Istdin &lt; t</span>' . <span style="font-weight: bold;">hdparm</span>
+version 7.0 and later can detect a SATL so '<span
+ style="font-family: monospace;">hdparm -I /dev/sda</span>' should work
+if /dev/sda is a SATA disk or a S-ATAPI device (e.g. a CD/DVD drive).<br>
 <br>
-The SAT standard only defines a few attributes that can be changed
+The SAT standard only defines a few fields that can be changed
 (e.g.
 DRA and WCE). Setting these requires either:<br>
 <ul>
@@ -1055,7 +1122,7 @@ while MODE SELECT is required for S-ATAPI
 devices that use SCSI command sets (e.g. DVD drives which use MMC). If
 the SATL implements the SCSI MODE SELECT command then <span
  style="font-weight: bold;">sdparm</span> can be used to change the
-attributes.<br>
+fields.<br>
 <h2><a class="mozTocH2" name="mozTocId378082"></a>Vendor specific mode
 pages</h2>
 Mode page 0 is reserved for vendor specific information and it is
@@ -1065,12 +1132,12 @@ use '<span style="font-family: monospace;">sdparm -e -M xxx</span>'. To
 see which mode pages a specific vendor documents (and <span
  style="font-weight: bold;">sdparm</span> has information for) use
 something like '<span style="font-family: monospace;">sdparm -e -M sea</span>'.
-Getting, setting and clearing mode page attributes follows the same
+Getting, setting and clearing of mode page fields follow the same
 pattern as all mode pages in <span style="font-weight: bold;">sdparm.</span>
 For example '<span style="font-family: monospace;">sdparm -M sea -p ua
 -s PM /dev/sdc</span>'.<br>
 <br>
-The information for the vendor specific mode pages and their attributes
+The information for the vendor specific mode pages and their fields
 was obtained from (disk) product manuals available on the internet.<br>
 <h2><a class="mozTocH2" name="mozTocId67897"></a>Supported operating
 systems</h2>
@@ -1110,21 +1177,22 @@ ide-scsi driver.<br>
 The Linux <span style="font-weight: bold;">hdparm</span> utility uses
 command line options in many cases to
 change or fetch a
-specific attribute. These attributes can be looked up in the "man page"
+specific field. These fields can be looked up in the "man page"
 for&nbsp; hdparm. The sdparm utility uses more generic command
-line options with acronyms for attributes; these acronyms are <span
+line options with acronyms for fields; these acronyms are <span
  style="font-style: italic;">not</span>
 defined in <span style="font-weight: bold;">sdparm</span>'s man page
 but can be listed (with a short
 description)
 with the '<span style="font-family: monospace;">--enumerate</span>'
 option. In both cases the relevant standards
-and/or product manuals should be consulted before some of these
-attributes are <span style="font-style: italic;">changed</span>.<br>
+and/or product manuals should be consulted before some of these fields
+are <span style="font-style: italic;">changed</span>.<br>
 <br>
-hdparm covers a wide sweep of attributes: for the&nbsp; kernel block
+<span style="font-weight: bold;">hdparm</span> covers a wide sweep of
+attributes: for the&nbsp; kernel block
 subsystem, for the host interface (to the PATA or SATA transport), for
-the transport specific attributes of the device (at the other end of
+the transport specific fields of the device (at the other end of
 the cable) and the more general attributes of the device. Even though
 ATAPI (but not ATA) is recognised as a SCSI
 transport, there are no standard transport specific mode pages
@@ -1135,7 +1203,7 @@ device attributes. For directly attached ATAPI devices (e.g. DVD
 drive) hdparm can be used to probe and perhaps change transport
 characteristics while <span style="font-weight: bold;">sdparm</span>
 can be used for more general attributes
-(e.g. setting the TST_W (test write) attribute for DVD writing
+(e.g. setting the TST_W (test write) field for DVD writing
 code).<br>
 <br>
 <table style="width: 100%; text-align: left;" border="1" cellpadding="2"
@@ -1244,7 +1312,7 @@ decoding of the standard INQUIRY response. </td>
       <td style="vertical-align: top;">--save<br>
       </td>
       <td style="vertical-align: top;">keep_features_over_reset is a
-global flag in ATA but per attribute in SCSI. Hence not an exact match.<br>
+global flag in ATA but per field in SCSI. Hence not an exact match.<br>
       </td>
     </tr>
     <tr>
@@ -1294,7 +1362,7 @@ drive, in standby mode<br>
 <br>
 As noted in an earlier section, even though <span
  style="font-weight: bold;">sdparm</span> can fetch the
-response to an IDENTIFY (PACKET) DEVICE ATA command (with '<span
+response to an ATA IDENTIFY (PACKET) DEVICE command (with '<span
  style="font-family: monospace;">--page=ai</span>'
 to get the ATA information VPD page), it dumps
 it
@@ -1308,6 +1376,16 @@ as it has a specific format (which is the format seen with '<span
  style="font-family: monospace;">--Istdin</span>' option is given.
 See the earlier <a href="#mozTocId752074">SATA</a> section for more
 details.<br>
+<br>
+Note that <span style="font-weight: bold;">hdparm</span> version 7.3
+and later (currently at version 7.7) can detect a SATL. This yields a
+more
+direct way to decode the ATA IDENTIFY (PACKET) DEVICE command response
+and
+set features. For example '<span style="font-family: monospace;">hdparm
+-I /dev/sda</span>' should work if <span
+ style="font-family: monospace;">/dev/sda</span> is a SATA disk or a
+S-ATAPI device (e.g. a CD/DVD drive).
 <h3><a class="mozTocH2" name="mozTocId197336"></a>FreeBSD<br>
 </h3>
 Version 0.97 has been ported to the FreeBSD operating system. Virtually
@@ -1327,6 +1405,9 @@ device may also be accessed via the "pass" device. To see the mapping
 between the "pass" device name and the corresponding higher level
 device node try "<span style="font-family: monospace;">camcontrol
 devlist</span>".<br>
+<h3><a class="mozTocH3" name="mozTocId284244"></a>Solaris</h3>
+Version 1.02 has been ported to Solaris. The "uscsi" SCSI pass-through
+interface is used.<br>
 <h3><a class="mozTocH2" name="mozTocId997981"></a>Tru64<br>
 </h3>
 An experimental port to Tru64 (OSF) was added in version 0.97 .<br>
@@ -1391,9 +1472,9 @@ MinGW environment (and its MSYS
 shell) produces freestanding console applications. The executables
 produced in either environment can run in a cygwin, MSYS or "cmd" shell.<br>
 <h2><a class="mozTocH2" name="mozTocId786906"></a>Examples</h2>
-These examples use Linux device names. Simply use device names
-appropriate to the Operating System for other ports of <span
- style="font-weight: bold;">sdparm</span>.<br>
+These examples use Linux device names. For other ports of <span
+ style="font-weight: bold;">sdparm</span> use the appropriate device
+names<br>
 <br>
 List the common (mode) parameters of a disk:<br>
 <span style="font-family: monospace;"># sdparm /dev/sda</span><br
@@ -1564,7 +1645,7 @@ RTL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -1&nbsp; [cha: y, def:
  style="font-family: monospace;"><br>
 </span>The '<span style="font-family: monospace;">--long</span>' option
 can be used twice to get more information on
-selected mode page attribute values. The next example uses the
+selected mode page field values. The next example uses the
 '<span style="font-family: monospace;">--enumerate</span>' option so
 that tables within <span style="font-weight: bold;">sdparm</span> are
 being probed
@@ -1619,7 +1700,7 @@ ie</span>'. Notice that the MRIE field has its possible values listed
 on
 the next, tab indented, lines. Only fields with non-obvious values
 supply this extra information.<br>
-<br>
+<span style="font-family: monospace;"></span><br>
 To get the
 Writeback Cache Enable (WCE) values from the caching control mode
 page:<br>
@@ -1729,7 +1810,13 @@ in byte 2 of the current and saved values to be set:<br>
 <br>
 So where acronyms are available, values can be fetched and set in a
 relatively straight forward manner. In the absence of acronyms, the
-lower level numeric descriptors can be used.<br>
+lower level numeric descriptors can be used. Here is an example of
+using a numeric descriptor to set the single bit at bit postion 7 in
+byte 2 in mode page 0 to the value 1. The corresponding saved value is
+also set:<br>
+<br>
+<span style="font-family: monospace;">sdparm --page=0 --set=2:7:1=1
+--save /dev/sda</span><br>
 <br>
 Here is an example of common transport parameters fetched from a SAS
 disk. The '<span style="font-family: monospace;">--long</span>' option
@@ -1767,9 +1854,261 @@ Phy control and discover (SAS) [pcd] mode page:<br>
 &nbsp; NOP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2&nbsp;
 [cha: n, def:&nbsp; 2, sav:&nbsp; 2]&nbsp; Number of phys<br>
 <br>
-</span>Here is a command example; ejecting a CD:<span
- style="font-family: monospace;"><br>
-# sdparm --command=eject /dev/hdc<br>
+</span>Say we want to look closer at the SAS "phy control and discover"
+mode page. It
+has variable length with a header portion (containing PPID_1, GENC, and
+NOP) followed by two
+descriptors (as indicated by the current value of NOP). The first
+descriptor (which could have the ".0" extension but it is not displayed
+on output) ranges from PHID to HMALR inclusive. The second descriptor
+has the ".1" suffix:<br>
+<br>
+<span style="font-family: monospace;">$ sdparm -t sas -p pcd -l /dev/sdc</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;&nbsp;&nbsp; /dev/sg0:
+Linux&nbsp;&nbsp;&nbsp;&nbsp;
+scsi_debug&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1.82</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;&nbsp;&nbsp; Direct access
+device specific parameters: WP=0&nbsp; DPOFUA=1</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">Phy control and discover (SAS)
+[pcd] mode page:</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+PPID_1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 6&nbsp; [cha: n, def:&nbsp;
+6]&nbsp; Port's (transport) protocol identifier</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+GENC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 7&nbsp; [cha: n,
+def:&nbsp; 7]&nbsp; Generation code</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+NOP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2&nbsp; [cha: n,
+def:&nbsp; 2]&nbsp; Number of phys</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+PHID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n,
+def:&nbsp; 0]&nbsp; Phy identifier</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+ADT&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1&nbsp; [cha: n,
+def:&nbsp; 1]&nbsp; Attached device type</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+AREAS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n, def:&nbsp;
+0]&nbsp; Attached reason (other end did link reset)</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+REAS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n,
+def:&nbsp; 0]&nbsp; Reason (for starting link reset)</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+NPLR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9&nbsp; [cha: n,
+def:&nbsp; 9]&nbsp; Negotiated logical link rate</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+ASIP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1&nbsp; [cha: n,
+def:&nbsp; 1]&nbsp; Attached SSP initiator port</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+ATIP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n,
+def:&nbsp; 0]&nbsp; Attached STP initiator port</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+AMIP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n,
+def:&nbsp; 0]&nbsp; Attached SMP initiator port</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+ASTP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n,
+def:&nbsp; 0]&nbsp; Attached SSP target port</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+ATTP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n,
+def:&nbsp; 0]&nbsp; Attached STP target port</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+AMTP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n,
+def:&nbsp; 0]&nbsp; Attached SMP target port</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+SASA&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0x52222220000007ce&nbsp; [cha: n,
+def:0x52222220000007ce]&nbsp; SAS address</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+ASASA&nbsp;&nbsp;&nbsp;&nbsp; 0x5111111000000001&nbsp; [cha: n,
+def:0x5111111000000001]&nbsp; Attached SAS address</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+APHID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2&nbsp; [cha: n, def:&nbsp;
+2]&nbsp; Attached phy identifier</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+PMILR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp; [cha: n, def:&nbsp;
+8]&nbsp; Programmed minimum link rate</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+HMILR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp; [cha: n, def:&nbsp;
+8]&nbsp; Hardware minimum link rate</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+PMALR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9&nbsp; [cha: n, def:&nbsp;
+9]&nbsp; Programmed maximum link rate</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+HMALR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9&nbsp; [cha: n, def:&nbsp;
+9]&nbsp; Hardware maximum link rate</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+PHID.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1&nbsp; [cha: n, def:&nbsp;
+1]&nbsp; Phy identifier</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+ADT.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1&nbsp; [cha: n, def:&nbsp;
+1]&nbsp; Attached device type</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+AREAS.1&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n, def:&nbsp; 0]&nbsp;
+Attached reason (other end did link reset)</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+REAS.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n, def:&nbsp;
+0]&nbsp; Reason (for starting link reset)</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+NPLR.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9&nbsp; [cha: n, def:&nbsp;
+9]&nbsp; Negotiated logical link rate</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+ASIP.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 1&nbsp; [cha: n, def:&nbsp;
+1]&nbsp; Attached SSP initiator port</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+ATIP.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n, def:&nbsp;
+0]&nbsp; Attached STP initiator port</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+AMIP.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n, def:&nbsp;
+0]&nbsp; Attached SMP initiator port</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+ASTP.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n, def:&nbsp;
+0]&nbsp; Attached SSP target port</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+ATTP.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n, def:&nbsp;
+0]&nbsp; Attached STP target port</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+AMTP.1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 0&nbsp; [cha: n, def:&nbsp;
+0]&nbsp; Attached SMP target port</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp; SASA.1&nbsp;&nbsp;&nbsp;
+0x52222220000007cf&nbsp; [cha: n, def:0x52222220000007cf]&nbsp; SAS
+address</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp; ASASA.1&nbsp;&nbsp;
+0x5111111000000001&nbsp; [cha: n, def:0x5111111000000001]&nbsp;
+Attached SAS address</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+APHID.1&nbsp;&nbsp;&nbsp;&nbsp; 3&nbsp; [cha: n, def:&nbsp; 3]&nbsp;
+Attached phy identifier</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+PMILR.1&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp; [cha: n, def:&nbsp; 8]&nbsp;
+Programmed minimum link rate</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+HMILR.1&nbsp;&nbsp;&nbsp;&nbsp; 8&nbsp; [cha: n, def:&nbsp; 8]&nbsp;
+Hardware minimum link rate</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+PMALR.1&nbsp;&nbsp;&nbsp;&nbsp; 9&nbsp; [cha: n, def:&nbsp; 9]&nbsp;
+Programmed maximum link rate</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+HMALR.1&nbsp;&nbsp;&nbsp;&nbsp; 9&nbsp; [cha: n, def:&nbsp; 9]&nbsp;
+Hardware maximum link rate</span><br>
+<br>
+The '<span style="font-family: monospace;">--long</span>' with '<span
+ style="font-family: monospace;">--enumerate</span>'
+options on a mode page that can have descriptors appends descriptor
+format information after the fields. The SAS phy control and discovery
+mode page can have descriptors (one for each phy). A '<span
+ style="font-family: monospace;">--transport=sas</span>'
+option is not required (from version 1.02 onwards) because "pcd"
+doesn't match any generic mode page (or VPD page) abbreviation, so SAS
+mode page abbreviations are checked and a match is found.<br>
+<span style="font-family: monospace;"># sdparm --enumerate --page=pcd
+--long</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">Phy control and discover (SAS)
+[pcd: 0x19,0x1] mode page:</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+PPID_1&nbsp;&nbsp;&nbsp;&nbsp; [0x05:3:4 ]&nbsp; Port's (transport)
+protocol identifier</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+GENC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x06:7:8 ]&nbsp; Generation
+code</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+NOP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x07:7:8 ]&nbsp; Number
+of phys</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+PHID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x09:7:8 ]&nbsp; Phy
+identifier</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+ADT&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x0c:6:3 ]&nbsp;
+Attached device type</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+AREAS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x0c:3:4 ]&nbsp; Attached reason
+(other end did link reset)</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+REAS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x0d:7:4 ]&nbsp; Reason (for
+starting link reset)</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+NPLR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x0d:3:4 ]&nbsp; Negotiated
+logical link rate</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+ASIP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x0e:3:1 ]&nbsp; Attached SSP
+initiator port</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+ATIP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x0e:2:1 ]&nbsp; Attached STP
+initiator port</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+AMIP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x0e:1:1 ]&nbsp; Attached SMP
+initiator port</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+ASTP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x0f:3:1 ]&nbsp; Attached SSP
+target port</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+ATTP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x0f:2:1 ]&nbsp; Attached STP
+target port</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+AMTP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x0f:1:1 ]&nbsp; Attached SMP
+target port</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+SASA&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x10:7:64]&nbsp; SAS address</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+ASASA&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x18:7:64]&nbsp; Attached SAS
+address</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+APHID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x20:7:8 ]&nbsp; Attached phy
+identifier</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+PMILR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x28:7:4 ]&nbsp; Programmed
+minimum link rate</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+HMILR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x28:3:4 ]&nbsp; Hardware minimum
+link rate</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+PMALR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x29:7:4 ]&nbsp; Programmed
+maximum link rate</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;
+HMALR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [0x29:3:4 ]&nbsp; Hardware maximum
+link rate</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp; &lt;&lt;SAS phy mode
+descriptor&gt;&gt;</span><br style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;
+num_descs_off=7, num_descs_bytes=1, num_descs_inc=0, first_desc_off=8</span><br
+ style="font-family: monospace;">
+<span style="font-family: monospace;">&nbsp;&nbsp;&nbsp;
+descriptor_len=48<br>
+<br>
+</span>Here is a command example; for ejecting a DVD from a drive:<br>
+<br>
+<span style="font-family: monospace;"># sdparm --command=eject /dev/hdc<br>
 &nbsp;&nbsp;&nbsp; /dev/hdc: HITACHI&nbsp;&nbsp; DVD-ROM
 GD-S200&nbsp;&nbsp; 0034&nbsp; [pdt=0x5]<br>
 # echo $?<br>
@@ -1929,7 +2268,18 @@ exe</span><br>
  href="p/sdparm-1.01-1.i386.rpm">sdparm-1.01-1.i386.rpm</a> </td>
       <td style="vertical-align: top;"><a
  href="p/sdparm_1.01-0.1_i386.deb">sdparm_1.01-0.1_i386.deb</a> </td>
-      <td style="vertical-align: top;"><a href="p/sdparm.exe">sdparm.exe</a></td>
+      <td style="vertical-align: top;"><a href="p/sdparm101.exe">sdparm101.exe</a></td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;"><span style="font-weight: bold;">1.02</span><br>
+      </td>
+      <td style="vertical-align: top;"><a href="p/sdparm-1.02.tgz">sdparm-1.02.tgz</a></td>
+      <td style="vertical-align: top;"><a
+ href="p/sdparm-1.02-1.i386.rpm">sdparm-1.02-1.i386.rpm</a> </td>
+      <td style="vertical-align: top;"><a
+ href="p/sdparm_1.02-0.1_i386.deb">sdparm_1.02-0.1_i386.deb</a> </td>
+      <td style="vertical-align: top;"><a href="p/sdparm.exe">sdparm.exe</a>
+      </td>
     </tr>
   </tbody>
 </table>
@@ -1957,7 +2307,7 @@ representation similar to the table representations found in the SCSI
 <br>
 <p>Return to <a href="index.html">main</a> page. </p>
 <center>
-<p>Last updated: 5th April 2007<br>
+<p>Last updated: 7th October 2007<br>
 <br>
 </p>
 </center>

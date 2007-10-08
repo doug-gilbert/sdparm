@@ -1,4 +1,4 @@
-.TH SDPARM "8" "September 2007" "sdparm\-1.02" SDPARM
+.TH SDPARM "8" "October 2007" "sdparm\-1.02" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -6,9 +6,10 @@ sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 [\fI\-\-all\fR] [\fI\-\-clear=STR\fR] [\fI\-\-command=CMD\fR]
 [\fI\-\-dbd\fR] [\fI\-\-defaults\fR] [\fI\-\-dummy\fR] [\fI\-\-flexible\fR]
 [\fI\-\-get=STR\fR] [\fI\-\-help\fR] [\fI\-\-hex\fR] [\fI\-\-inquiry\fR]
-[\fI\-\-long\fR] [\fI\-\-page=PG[,SPG]\fR] [\fI\-\-quiet\fR] [\fI\-\-save\fR]
-[\fI\-\-set=STR\fR] [\fI\-\-six\fR] [\fI\-\-transport=TN\fR]
-[\fI\-\-vendor=VN\fR] [\fI\-\-verbose\fR] [\fI\-\-version\fR] \fIDEVICE\fR
+[\fI\-\-long\fR] [\fI\-\-num\-desc\fR] [\fI\-\-page=PG[,SPG]\fR]
+[\fI\-\-quiet\fR] [\fI\-\-save\fR] [\fI\-\-set=STR\fR] [\fI\-\-six\fR]
+[\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR] [\fI\-\-verbose\fR]
+[\fI\-\-version\fR] \fIDEVICE\fR
 .PP
 .B sdparm
 \fI\-\-enumerate\fR [\fI\-\-all\fR] [\fI\-\-inquiry\fR] [\fI\-\-long\fR]
@@ -165,6 +166,10 @@ units if applicable) is output to the right. If used twice, then for some
 fields more information about its values is given on one or more following
 lines, each prefixed by a tab character. For usage with \fI\-\-enumerate\fR
 see the ENUMERATE section below.
+.TP
+\fB\-n\fR, \fB\-\-num\-desc\fR
+for a mode page that can have descriptors, the number of descriptors for the
+given page on the \fIDEVICE\fR is output. Otherwise 0 is output.
 .TP
 \fB\-p\fR, \fB\-\-page\fR=\fIPG[,SPG]\fR
 supply the page number (\fIPG\fR) and optionally the sub page
@@ -367,6 +372,12 @@ shorter form.
     \-e \-M sea \-\-all      additionally list the contents of vendor
 .br
                          specific mode pages for "sea" (Seagate)
+.br
+    \-e \-p pcd \-l         list contents of SAS phy control and
+.br
+                         discovery mode page plus (due to "\-l")
+.br
+                         some descfriptor format information
 .PP
 When known mode pages are listed (via the \fI\-\-enumerate \fR option) each
 line starts with a two or three letter abbreviation. This is followed by
@@ -383,7 +394,7 @@ beginning of the field within the mode page; the starting bit (0 through 7
 inclusive) and then the number of bits. The descriptive name of the
 parameter (field) is then given. If appropriate the descriptive name
 includes units (e.g. "(ms)" means the units are milliseconds). Adding
-the '\-ll' option will list information about possible field value
+the '\-ll' option will list information about possible field values
 for selected mode page parameters.
 .PP
 Mode parameters for which the num_bits is greater than 1 can be

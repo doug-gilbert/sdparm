@@ -1,5 +1,6 @@
 Building from source
 ====================
+
 Linux
 -----
 Once the source tarball has been untarred move to its top
@@ -27,11 +28,11 @@ directory (of the sdparm source directory) if all goes well.
 
 FreeBSD
 -------
-In FreeBSD, the configure/make/make_install method should work.
+In FreeBSD, the "./configure;make;make install" method should work.
 
 Solaris
 -------
-In Solaris, the configure/make/make_install method should work.
+In Solaris, the "./configure;make;make install" method should work.
 It is assumed gcc is present.
 
 Tru64 (OSF)
@@ -62,6 +63,6 @@ The executable is called sdparm.exe and is in the 'src' subdirectory.
 It can be executed in a MSYS or DOS ("cmd") shell.
    
 
-3rd May 2007
+7th October 2007
 Douglas Gilbert
 
