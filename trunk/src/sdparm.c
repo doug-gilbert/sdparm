@@ -74,7 +74,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
 
-static char * version_str = "1.02 20071005";
+static char * version_str = "1.02 20071007";
 
 
 static struct option long_options[] = {
@@ -700,7 +700,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                 if (0 == res)
                     fdesc_mpi = NULL;
             }
-            if (opts->num_descs) {
+            if (opts->num_desc) {
                 int num = 0;
                 unsigned long long u;
 
@@ -1893,7 +1893,7 @@ main(int argc, char * argv[])
             }
             break;
         case 'n':
-            ++opts.num_descs;
+            ++opts.num_desc;
             break;
         case 'q':
             opts.quiet = 1;
@@ -2222,6 +2222,12 @@ main(int argc, char * argv[])
             } else      /* given mode page number */ 
                 enumerate_mitems(pn, spn, pdt, &opts);
             return 0;
+        }
+
+        if ((opts.num_desc > 0) && (pn < 0)) {
+            fprintf(stderr, "when '--num-desc' is given an explicit mode "
+                    "page is required\n");
+            return SG_LIB_SYNTAX_ERROR;
         }
 
         if (opts.defaults && (set_str || clear_str || get_str)) {
