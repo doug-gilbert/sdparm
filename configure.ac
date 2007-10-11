@@ -1,4 +1,4 @@
-AC_INIT(sdparm, 1.02, dgilbert@interlog.com)
+AC_INIT(sdparm, 1.03, dgilbert@interlog.com)
 
 AM_INIT_AUTOMAKE
 AM_CONFIG_HEADER(config.h)

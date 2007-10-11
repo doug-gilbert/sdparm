@@ -74,7 +74,9 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
 
-static char * version_str = "1.02 20071008";
+#define MAX_DEV_NAMES 256
+
+static char * version_str = "1.03 20071011";
 
 
 static struct option long_options[] = {
@@ -119,7 +121,7 @@ usage()
           "[--save]\n"
           "              [--set=STR] [--six] [--transport=TN] [--vendor=VN] "
           "[--verbose]\n"
-          "              [--version] DEVICE\n\n"
+          "              [--version] DEVICE [DEVICE...]\n\n"
           "       sdparm --enumerate [--all] [--inquiry] [--long] "
           "[--page=PG[,SPG]]\n"
           "              [--transport=TN] [--vendor=VN]\n"
@@ -1785,7 +1787,8 @@ main(int argc, char * argv[])
     const char * get_str = NULL;
     const char * set_str = NULL;
     const char * page_str = NULL;
-    char device_name[256];
+    const char * device_name_arr[MAX_DEV_NAMES];
+    int num_devices = 0;
     int pn = -1;
     int spn = -1;
     int rw = 0;
@@ -1805,7 +1808,7 @@ main(int argc, char * argv[])
     memset(&opts, 0, sizeof(opts));
     opts.transport = -1;
     opts.vendor = -1;
-    memset(device_name, 0, sizeof(device_name));
+    memset(device_name_arr, 0, sizeof(device_name_arr));
     memset(&mp_settings, 0, sizeof(mp_settings));
     pdt = -1;
     while (1) {
@@ -1954,13 +1957,11 @@ main(int argc, char * argv[])
             return SG_LIB_SYNTAX_ERROR;
         }
     }
-    if (optind < argc) {
-        if ('\0' == device_name[0]) {
-            strncpy(device_name, argv[optind], sizeof(device_name) - 1);
-            device_name[sizeof(device_name) - 1] = '\0';
+    while (optind < argc) {
+        if (num_devices < MAX_DEV_NAMES) {
+            device_name_arr[num_devices++] = argv[optind];
             ++optind;
-        }
-        if (optind < argc) {
+        } else {
             for (; optind < argc; ++optind)
                 fprintf(stderr, "Unexpected extra argument: %s\n",
                         argv[optind]);
@@ -2123,7 +2124,7 @@ main(int argc, char * argv[])
                 return SG_LIB_SYNTAX_ERROR;
         }
         if (opts.enumerate) {
-            if (device_name[0] || set_str || clear_str || get_str ||
+            if ((num_devices > 0) || set_str || clear_str || get_str ||
                 opts.save)
                 /* think about --get= with --enumerate */
                 printf("<scsi_device> as well as most options are ignored "
@@ -2256,34 +2257,41 @@ main(int argc, char * argv[])
         }
     }
 
-    if (0 == device_name[0]) {
-        fprintf(stderr, "missing device name!\n");
+    if (0 == num_devices) {
+        fprintf(stderr, "one or more device names required\n");
         usage();
         return SG_LIB_SYNTAX_ERROR;
     }
 
     req_pdt = pdt;
-    pdt = -1;
-    sg_fd = open_and_simple_inquiry(device_name, rw, &pdt, &opts);
-    if (sg_fd < 0) 
-        return SG_LIB_FILE_ERROR;
+    for (k = 0, ret = 0; (0 == ret) && (k < num_devices); ++k) {
+        pdt = -1;
+        if (opts.verbose > 0)
+            fprintf(stderr, ">>> about to open device name: %s\n",
+                    device_name_arr[k]);
+        sg_fd = open_and_simple_inquiry(device_name_arr[k], rw, &pdt, &opts);
+        if (sg_fd < 0) { 
+            ret = SG_LIB_FILE_ERROR;
+            continue;
+        }
 
-    if (opts.inquiry)
-        ret = sdp_process_vpd_page(sg_fd, pn, ((spn < 0) ? 0: spn), &opts,
-                                   req_pdt);
-    else {
-        if (cmd_str && scmdp)   /* process command */
-            ret = sdp_process_cmd(sg_fd, scmdp, pdt, &opts);
-        else                    /* mode page */
-            ret = process_mode_page(sg_fd, &mp_settings, pn, spn, rw,
-                                    (NULL != get_str), &opts, pdt);
-    }
+        if (opts.inquiry)
+            ret = sdp_process_vpd_page(sg_fd, pn, ((spn < 0) ? 0: spn), &opts,
+                                       req_pdt);
+        else {
+            if (cmd_str && scmdp)   /* process command */
+                ret = sdp_process_cmd(sg_fd, scmdp, pdt, &opts);
+            else                    /* mode page */
+                ret = process_mode_page(sg_fd, &mp_settings, pn, spn, rw,
+                                        (NULL != get_str), &opts, pdt);
+        }
 
-    res = sg_cmds_close_device(sg_fd);
-    if (res < 0) {
-        fprintf(stderr, "close error: %s\n", safe_strerror(-sg_fd));
-        if (0 == ret)
-            return SG_LIB_FILE_ERROR;
+        res = sg_cmds_close_device(sg_fd);
+        if (res < 0) {
+            fprintf(stderr, "close error: %s\n", safe_strerror(-sg_fd));
+            if (0 == ret)
+                ret = SG_LIB_FILE_ERROR;
+        }
     }
     return (ret >= 0) ? ret : SG_LIB_CAT_OTHER;
 }
