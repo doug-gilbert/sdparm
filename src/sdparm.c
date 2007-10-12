@@ -76,7 +76,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.03 20071011";
+static char * version_str = "1.03 20071012";
 
 
 static struct option long_options[] = {
@@ -1780,7 +1780,7 @@ process_mode_page(int sg_fd, const struct sdparm_mode_page_settings * mps,
 int
 main(int argc, char * argv[])
 {
-    int sg_fd, res, c, pdt, req_pdt, k, orig_transport;
+    int sg_fd, res, c, pdt, req_pdt, k, orig_transport, r;
     struct sdparm_opt_coll opts;
     const char * clear_str = NULL;
     const char * cmd_str = NULL;
@@ -2264,34 +2264,40 @@ main(int argc, char * argv[])
     }
 
     req_pdt = pdt;
-    for (k = 0, ret = 0; (0 == ret) && (k < num_devices); ++k) {
+    ret = 0;
+    for (k = 0; k < num_devices; ++k) {
+        r = 0;
         pdt = -1;
         if (opts.verbose > 0)
             fprintf(stderr, ">>> about to open device name: %s\n",
                     device_name_arr[k]);
         sg_fd = open_and_simple_inquiry(device_name_arr[k], rw, &pdt, &opts);
         if (sg_fd < 0) { 
-            ret = SG_LIB_FILE_ERROR;
+            r = SG_LIB_FILE_ERROR;
+            if (0 == ret)
+                ret = r;
             continue;
         }
 
         if (opts.inquiry)
-            ret = sdp_process_vpd_page(sg_fd, pn, ((spn < 0) ? 0: spn), &opts,
-                                       req_pdt);
+            r = sdp_process_vpd_page(sg_fd, pn, ((spn < 0) ? 0: spn), &opts,
+                                     req_pdt);
         else {
             if (cmd_str && scmdp)   /* process command */
-                ret = sdp_process_cmd(sg_fd, scmdp, pdt, &opts);
+                r = sdp_process_cmd(sg_fd, scmdp, pdt, &opts);
             else                    /* mode page */
-                ret = process_mode_page(sg_fd, &mp_settings, pn, spn, rw,
-                                        (NULL != get_str), &opts, pdt);
+                r = process_mode_page(sg_fd, &mp_settings, pn, spn, rw,
+                                      (NULL != get_str), &opts, pdt);
         }
 
         res = sg_cmds_close_device(sg_fd);
         if (res < 0) {
             fprintf(stderr, "close error: %s\n", safe_strerror(-sg_fd));
-            if (0 == ret)
-                ret = SG_LIB_FILE_ERROR;
+            if (0 == r)
+                r = SG_LIB_FILE_ERROR;
         }
+        if (r  && ((0 == ret) || (SG_LIB_FILE_ERROR == ret)))
+            ret = r;
     }
     return (ret >= 0) ? ret : SG_LIB_CAT_OTHER;
 }

@@ -40,10 +40,16 @@ mode page fields for that device are listed. Individual fields can be
 displayed with the \fI\-\-get=STR\fR option (e.g. '\-\-get=WCE' to fetch
 the state of the Writeback Cache Enable field).
 .PP
-One or more \fIDEVICE\fR arguments can be given. The logic is applied
-to each \fIDEVICE\fR in the order they appear. The utility will
-continue until an error is detected or the \fIDEVICE\fR arguments are
-exhausted.
+This utility completes with an exit status of 0 when successful. For other
+values see the EXIT STATUS section below.
+.PP
+One or more \fIDEVICE\fR arguments can be given. The utility will
+essentially apply the given options to each \fIDEVICE\fR in the list.
+If an error is detected, it is noted and the utility continues.
+Error value 5 (file open or close problem) is treated as lower priority
+when other errors are detected. The exit status is the most recently
+detected error value (excluding error value 5 if other errors have
+been detected). If all actions succeed the exit status is zero.
 .PP
 By default this utility shows mode pages that are common to all
 transport protocols. These are termed as "generic" mode pages.
@@ -69,9 +75,6 @@ the VPD page can be specified as an abbreviation (e.g. "sp" for the SCSI
 ports VPD page) or numerically (e.g. "0x88"). If a VPD page is returned
 by the \fIDEVICE\fR but sdparm cannot decode it or the \fI\-\-hex\fR
 option is given then it is output in hex.
-.PP
-This utility completes with an exit status of 0 when successful. For other
-values see the EXIT STATUS section below.
 .SH OPTIONS
 Mandatory arguments to long options are mandatory for short options as well.
 If an option takes a numeric argument then that argument is assumed to
