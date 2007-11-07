@@ -2,7 +2,7 @@ sdparm (1.03-0.1) unstable; urgency=low
 
   * allow multiple devices to be given
 
- -- Douglas Gilbert <dgilbert@interlog.org>  Fri, 02 Nov 2007 15:00:00 +0100
+ -- Douglas Gilbert <dgilbert@interlog.org>  Wed, 07 Nov 2007 08:00:00 -0500
 
 sdparm (1.02-1) unstable; urgency=low
 
