@@ -120,6 +120,7 @@
 #define CMD_SENSE 7
 #define CMD_SYNC 8
 #define CMD_CAPACITY 9
+#define CMD_SPEED 10
 
 
 struct sdparm_opt_coll {
@@ -308,10 +309,10 @@ extern int sdp_process_vpd_page(int sg_fd, int pn, int spn,
  */
 
 extern const struct sdparm_command * sdp_build_cmd(const char * cmd_str,
-                int * rwp);
+                int * rwp, int * argp);
 extern void sdp_enumerate_commands();
 extern int sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp,
-                int pdt, const struct sdparm_opt_coll * opts);
+                int cmd_arg, int pdt, const struct sdparm_opt_coll * opts);
 
 /*
  * Declarations for functions that are port dependant

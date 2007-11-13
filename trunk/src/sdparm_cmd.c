@@ -38,6 +38,7 @@
 #include "sdparm.h"
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
+#include "sg_cmds_extra.h"
 
 /* sdparm_cmd.c : contains code to implement commands
  * (i.e "--command=<cmd>") in sdparm.
@@ -175,12 +176,32 @@ do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
 }
 
 const struct sdparm_command *
-sdp_build_cmd(const char * cmd_str, int * rwp)
+sdp_build_cmd(const char * cmd_str, int * rwp, int * argp)
 {
     const struct sdparm_command * scmdp;
+    const char * eq_cp;
+    const char * cp;
+    char buff[16];
+    int len;
+    int arg = -1;
+
+    eq_cp = strchr(cmd_str, '=');
+    if (eq_cp) {
+        len = eq_cp - cmd_str;
+        if (len >= (int)sizeof(buff))
+            return NULL;
+        strncpy(buff, cmd_str, len);
+        buff[len] = '\0';
+        if (1 != sscanf(eq_cp + 1, "%d", &arg))
+            return NULL;
+        cp = buff;
+    } else
+        cp = cmd_str;
+    if (argp)
+        *argp = arg;
 
     for (scmdp = sdparm_command_arr; scmdp->name; ++scmdp) {
-        if (0 == strcmp(scmdp->name, cmd_str))
+        if (0 == strcmp(scmdp->name, cp))
             break;
     }
     if (scmdp->name) {
@@ -208,8 +229,8 @@ sdp_enumerate_commands()
 
 /* Returns 0 if successful */
 int
-sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp, int pdt,
-                const struct sdparm_opt_coll * opts)
+sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp, int cmd_arg,
+                int pdt, const struct sdparm_opt_coll * opts)
 {
     int res, progress;
 
@@ -251,6 +272,22 @@ sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp, int pdt,
         break;
     case CMD_SENSE:
         res = do_cmd_sense(sg_fd, opts->hex, opts->quiet, opts->verbose);
+        break;
+    case CMD_SPEED:
+        if (cmd_arg >= 0) {
+            fprintf(stderr, "Not implemented yet ...\n");
+            res = 1;
+        } else {
+            const int max_num_desc = 16;
+            unsigned char buff[8 + (16 * 16)];
+
+            /* performance (type=0), tolerance 10% nominal, read speed */
+            res = sg_ll_get_performance(sg_fd, 0x10 /* data_type */,
+                                        0 /* starting_lba */,
+                                        max_num_desc,
+                                        0 /* type */, buff, sizeof(buff),
+                                        1, opts->verbose);
+        }
         break;
     case CMD_START:
         res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 0, 1, 1, opts->verbose);

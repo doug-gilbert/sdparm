@@ -76,7 +76,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.03 20071107";
+static char * version_str = "1.03 20071112";
 
 
 static struct option long_options[] = {
@@ -1792,6 +1792,7 @@ main(int argc, char * argv[])
     int pn = -1;
     int spn = -1;
     int rw = 0;
+    int cmd_arg = -1;
     const struct sdparm_mode_page_t * mpp = NULL;
     const struct sdparm_transport_id_t * tip;
     const struct sdparm_vpd_page_t * vpp = NULL;
@@ -2098,7 +2099,7 @@ main(int argc, char * argv[])
             sdp_enumerate_commands();
             return 0;
         }
-        scmdp = sdp_build_cmd(cmd_str, &rw);
+        scmdp = sdp_build_cmd(cmd_str, &rw, &cmd_arg);
         if (NULL == scmdp) {
             fprintf(stderr, "'--command=%s' not found\n", cmd_str);
             printf("available commands\n");
@@ -2284,7 +2285,7 @@ main(int argc, char * argv[])
                                      req_pdt);
         else {
             if (cmd_str && scmdp)   /* process command */
-                r = sdp_process_cmd(sg_fd, scmdp, pdt, &opts);
+                r = sdp_process_cmd(sg_fd, scmdp, cmd_arg, pdt, &opts);
             else                    /* mode page */
                 r = process_mode_page(sg_fd, &mp_settings, pn, spn, rw,
                                       (NULL != get_str), &opts, pdt);
