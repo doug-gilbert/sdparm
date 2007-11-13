@@ -16,6 +16,8 @@ sdparm_SOURCES =	sdparm.c	\
 			../include/sg_lib.h	\
 			../lib/sg_cmds_basic.c	\
 			../include/sg_cmds_basic.h	\
+			../lib/sg_cmds_extra.c	\
+			../include/sg_cmds_extra.h	\
 			../include/sg_pt.h
 
 sdparm_LDADD = @os_deps@ @GETOPT_O_FILES@ @os_libs@
