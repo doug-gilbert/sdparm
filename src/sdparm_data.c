@@ -1378,6 +1378,7 @@ struct sdparm_command sdparm_command_arr[] =
     {CMD_LOAD, "load"},
     {CMD_READY, "ready"},
     {CMD_SENSE, "sense"},
+    {CMD_SPEED, "speed"},
     {CMD_START, "start"},
     {CMD_STOP, "stop"},
     {CMD_SYNC, "sync"},
