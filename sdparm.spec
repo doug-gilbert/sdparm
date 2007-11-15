@@ -57,7 +57,7 @@ make install \
 %{_mandir}/man8/*
 
 %changelog
-* Mon Nov 12 2007 - dgilbert at interlog dot com
+* Sat Nov 17 2007 - dgilbert at interlog dot com
 - allow multiple devices to be given
   * sdparm-1.03
 * Mon Oct 08 2007 - dgilbert at interlog dot com
