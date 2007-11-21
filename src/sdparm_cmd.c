@@ -175,6 +175,49 @@ do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
     return res;
 }
 
+static int
+do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * opts)
+{
+    int res, kbps;
+    unsigned int u;
+
+    if (cmd_arg >= 0) {
+        if (0 == cmd_arg)
+            kbps = 0xffff;
+        else
+            kbps = cmd_arg / 1024;
+        res = sg_ll_set_cd_speed(sg_fd, 0 /* rot_control */, kbps,
+                                 0 /* drv_write_speed */, 1, opts->verbose);
+    } else {
+        const int max_num_desc = 16;
+        unsigned char buff[8 + (16 * 16)];
+
+        /* performance (type=0), tolerance 10% nominal, read speed */
+        res = sg_ll_get_performance(sg_fd, 0x10 /* data_type */,
+                                    0 /* starting_lba */,
+                                    max_num_desc,
+                                    0 /* type */, buff, sizeof(buff),
+                                    1, opts->verbose);
+        if (0 == res) {
+            u = ((buff[12] << 24) + (buff[13] << 16) + (buff[14] << 8) +
+                 buff[15]) * 1000;
+            if (opts->quiet)
+                printf("%u\n", u);
+            else
+                printf("Nominal speed at starting LBA: %u bytes per second\n",
+                       u);
+            u = ((buff[20] << 24) + (buff[21] << 16) + (buff[22] << 8) +
+                 buff[23]) * 1000;
+            if (1 == opts->quiet)
+                printf("%u\n", u);
+            else if (0 == opts->quiet)
+                printf("Nominal speed at ending LBA: %u bytes per second\n",
+                       u);
+        }
+    }
+    return res;
+}
+
 const struct sdparm_command *
 sdp_build_cmd(const char * cmd_str, int * rwp, int * argp)
 {
@@ -223,8 +266,12 @@ sdp_enumerate_commands()
 {
     const struct sdparm_command * scmdp;
 
-    for (scmdp = sdparm_command_arr; scmdp->name; ++scmdp)
-        printf("  %s\n", scmdp->name);
+    for (scmdp = sdparm_command_arr; scmdp->name; ++scmdp) {
+        if (scmdp->extra_arg)
+            printf("  %s[=%s]\n", scmdp->name, scmdp->extra_arg);
+        else
+            printf("  %s\n", scmdp->name);
+    }
 }
 
 /* Returns 0 if successful */
@@ -274,20 +321,7 @@ sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp, int cmd_arg,
         res = do_cmd_sense(sg_fd, opts->hex, opts->quiet, opts->verbose);
         break;
     case CMD_SPEED:
-        if (cmd_arg >= 0) {
-            fprintf(stderr, "Not implemented yet ...\n");
-            res = 1;
-        } else {
-            const int max_num_desc = 16;
-            unsigned char buff[8 + (16 * 16)];
-
-            /* performance (type=0), tolerance 10% nominal, read speed */
-            res = sg_ll_get_performance(sg_fd, 0x10 /* data_type */,
-                                        0 /* starting_lba */,
-                                        max_num_desc,
-                                        0 /* type */, buff, sizeof(buff),
-                                        1, opts->verbose);
-        }
+        res = do_cmd_speed(sg_fd, cmd_arg, opts);
         break;
     case CMD_START:
         res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 0, 1, 1, opts->verbose);

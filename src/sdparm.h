@@ -229,6 +229,7 @@ struct sdparm_vendor_pair {
 struct sdparm_command {
     int cmd_num;
     const char * name;
+    const char * extra_arg;
 };
 
 extern struct sdparm_mode_page_t sdparm_gen_mode_pg[];
