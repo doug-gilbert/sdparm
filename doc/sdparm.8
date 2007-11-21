@@ -1,4 +1,4 @@
-.TH SDPARM "8" "October 2007" "sdparm\-1.03" SDPARM
+.TH SDPARM "8" "November 2007" "sdparm\-1.03" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -476,6 +476,12 @@ indication is present (e.g. during a format) then it will be output as a
 percentage. Yields a process status of 0 if the command succeeds and the
 sense key is 0; else yields 1. The \fI\-\-quiet\fR option can be used to
 lessen output, and \fI\-\-hex\fR to output sense data in hex.
+.PP
+The 'speed' command outputs the nominal speed, in bytes per second
+of a cd or dvd drive, or the media in the drive. The speed can be
+set with \fI\-\-command=speed=SPEED\fR where SPEED is the minimum speed
+to set the media within the drive to. If SPEED is zero then the drive
+is set to the speed that it considers gives optimal performance.
 .PP
 The 'start' command starts the medium (i.e. spins it up). Harmless if
 medium has already been started. See 'eject' command for supported device

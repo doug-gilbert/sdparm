@@ -76,7 +76,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.03 20071117";
+static char * version_str = "1.03 20071127";
 
 
 static struct option long_options[] = {
@@ -1827,13 +1827,13 @@ main(int argc, char * argv[])
 
         switch (c) {
         case '6':
-            opts.mode_6 = 1;
+            ++opts.mode_6;
             break;
         case 'a':
-            opts.all = 1;
+            ++opts.all;
             break;
         case 'B':
-            opts.dbd = 1;
+            ++opts.dbd;
             break;
         case 'c':
             clear_str = optarg;
@@ -1841,19 +1841,18 @@ main(int argc, char * argv[])
             break;
         case 'C':
             cmd_str = optarg;
-            break;
         case 'd':
-            opts.dummy = 1;
+            ++opts.dummy;
             break;
         case 'D':
-            opts.defaults = 1;
+            ++opts.defaults;
             rw = 1;
             break;
         case 'e':
-            opts.enumerate = 1;
+            ++opts.enumerate;
             break;
         case 'f':
-            opts.flexible = 1;
+            ++opts.flexible;
             break;
         case 'g':
             get_str = optarg;
@@ -1866,7 +1865,7 @@ main(int argc, char * argv[])
             ++opts.hex;
             break;
         case 'i':
-            opts.inquiry = 1;
+            ++opts.inquiry;
             break;
         case 'l':
             ++opts.long_out;
@@ -1901,7 +1900,7 @@ main(int argc, char * argv[])
             ++opts.num_desc;
             break;
         case 'q':
-            opts.quiet = 1;
+            ++opts.quiet;
             break;
         case 'p':
             if (page_str) {
@@ -1916,7 +1915,7 @@ main(int argc, char * argv[])
             rw = 1;
             break;
         case 'S':
-            opts.save = 1;
+            ++opts.save;
             break;
         case 't':
             if (isalpha(optarg[0])) {
@@ -2124,7 +2123,7 @@ main(int argc, char * argv[])
             if (build_mp_settings(get_str, &mp_settings, &opts, 0, 1))
                 return SG_LIB_SYNTAX_ERROR;
         }
-        if (opts.enumerate) {
+        if (1 == opts.enumerate) {
             if ((num_devices > 0) || set_str || clear_str || get_str ||
                 opts.save)
                 /* think about --get= with --enumerate */
@@ -2224,6 +2223,10 @@ main(int argc, char * argv[])
                 }
             } else      /* given mode page number */ 
                 enumerate_mitems(pn, spn, pdt, &opts);
+            return 0;
+        } else if (opts.enumerate) {
+            printf("Available commands:\n");
+            sdp_enumerate_commands();
             return 0;
         }
 
