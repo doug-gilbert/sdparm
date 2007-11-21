@@ -1375,15 +1375,15 @@ const char * sdparm_mode_page_policy_arr[] =
 
 struct sdparm_command sdparm_command_arr[] =
 {
-    {CMD_CAPACITY, "capacity"},
-    {CMD_EJECT, "eject"},
-    {CMD_LOAD, "load"},
-    {CMD_READY, "ready"},
-    {CMD_SENSE, "sense"},
-    {CMD_SPEED, "speed"},
-    {CMD_START, "start"},
-    {CMD_STOP, "stop"},
-    {CMD_SYNC, "sync"},
-    {CMD_UNLOCK, "unlock"},
-    {-1, NULL},
+    {CMD_CAPACITY, "capacity", NULL},
+    {CMD_EJECT, "eject", NULL},
+    {CMD_LOAD, "load", NULL},
+    {CMD_READY, "ready", NULL},
+    {CMD_SENSE, "sense", NULL},
+    {CMD_SPEED, "speed", "new_speed_bps"},
+    {CMD_START, "start", NULL},
+    {CMD_STOP, "stop", NULL},
+    {CMD_SYNC, "sync", NULL},
+    {CMD_UNLOCK, "unlock", NULL},
+    {-1, NULL, NULL},
 };
