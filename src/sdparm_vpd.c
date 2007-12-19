@@ -210,8 +210,8 @@ decode_dev_ids(const char * print_if_found, unsigned char * buff, int len,
 {
     int m, p_id, c_set, piv, assoc, desig_type, i_len;
     int ci_off, c_id, d_id, naa, vsi, printed, off, u;
-    unsigned long long vsei;
-    unsigned long long id_ext;
+    uint64_t vsei;
+    uint64_t id_ext;
     const unsigned char * ucp;
     const unsigned char * ip;
 
