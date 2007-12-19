@@ -54,7 +54,7 @@ do_cmd_read_capacity(int sg_fd, int verbose)
     int res, k, do16;
     unsigned int last_blk_addr, block_size;
     unsigned char resp_buff[RCAP16_REPLY_LEN];
-    unsigned long long llast_blk_addr;
+    uint64_t llast_blk_addr;
     double sz_mib;
 
     do16 = 0;

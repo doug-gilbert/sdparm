@@ -8,6 +8,7 @@
  * set). In some cases these parameters can be changed.
  */
 
+#include <stdint.h>
 
 #define DEF_MODE_RESP_LEN 252
 #define DEF_INQ_RESP_LEN 252
@@ -204,8 +205,8 @@ struct sdparm_mode_page_item {
 
 struct sdparm_mode_page_it_val {
     struct sdparm_mode_page_item mpi;
-    long long val;
-    long long orig_val;
+    int64_t val;
+    int64_t orig_val;
     int descriptor_num;
 };
 
@@ -280,17 +281,16 @@ extern const struct sdparm_vendor_pair * sdp_get_vendor_pair(int vendor_num);
 extern const struct sdparm_mode_page_item * sdp_find_mitem_by_acron(
                 const char * ap, int * from, int transp_proto,
                 int vendor_num);
-extern unsigned long long sdp_get_big_endian(const unsigned char * from,
-                int start_bit, int num_bits);
-extern void sdp_set_big_endian(unsigned long long val, unsigned char * to,
-                int start_bit, int num_bits);
-extern unsigned long long sdp_mp_get_value(
-                const struct sdparm_mode_page_item *mpi,
-                const unsigned char * mp);
-extern unsigned long long sdp_mp_get_value_check(
+extern uint64_t sdp_get_big_endian(const unsigned char * from, int start_bit,
+                                   int num_bits);
+extern void sdp_set_big_endian(uint64_t val, unsigned char * to, int start_bit,
+                               int num_bits);
+extern uint64_t sdp_mp_get_value(const struct sdparm_mode_page_item *mpi,
+                                 const unsigned char * mp);
+extern uint64_t sdp_mp_get_value_check(
                 const struct sdparm_mode_page_item *mpi,
                 const unsigned char * mp, int * all_set);
-extern void sdp_mp_set_value(unsigned long long val,
+extern void sdp_mp_set_value(uint64_t val,
                 const struct sdparm_mode_page_item *mpi, unsigned char * mp);
 extern char * sdp_get_ansi_version_str(int version, int buff_len,
                 char * buff);
