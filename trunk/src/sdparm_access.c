@@ -270,10 +270,10 @@ sdp_find_mitem_by_acron(const char * ap, int * from, int transp_proto,
     return mpi;
 }
 
-unsigned long long
+uint64_t
 sdp_get_big_endian(const unsigned char * from, int start_bit, int num_bits)
 {
-    unsigned long long res;
+    uint64_t res;
     int sbit_o1 = start_bit + 1;
 
     res = (*from++ & ((1 << sbit_o1) - 1));
@@ -289,7 +289,7 @@ sdp_get_big_endian(const unsigned char * from, int start_bit, int num_bits)
 }
 
 void
-sdp_set_big_endian(unsigned long long val, unsigned char * to, int start_bit,
+sdp_set_big_endian(uint64_t val, unsigned char * to, int start_bit,
                    int num_bits)
 {
     int sbit_o1 = start_bit + 1;
@@ -314,7 +314,7 @@ sdp_set_big_endian(unsigned long long val, unsigned char * to, int start_bit,
     }
 }
 
-unsigned long long
+uint64_t
 sdp_mp_get_value(const struct sdparm_mode_page_item *mpi,
                  const unsigned char * mp)
 {
@@ -322,11 +322,11 @@ sdp_mp_get_value(const struct sdparm_mode_page_item *mpi,
                               mpi->num_bits);
 }
 
-unsigned long long
+uint64_t
 sdp_mp_get_value_check(const struct sdparm_mode_page_item *mpi,
                        const unsigned char * mp, int * all_set)
 {
-    unsigned long long res;
+    uint64_t res;
 
     res = sdp_get_big_endian(mp + mpi->start_byte, mpi->start_bit,
                              mpi->num_bits);
@@ -344,8 +344,8 @@ sdp_mp_get_value_check(const struct sdparm_mode_page_item *mpi,
 }
 
 void
-sdp_mp_set_value(unsigned long long val,
-                 const struct sdparm_mode_page_item * mpi, unsigned char * mp)
+sdp_mp_set_value(uint64_t val, const struct sdparm_mode_page_item * mpi,
+                 unsigned char * mp)
 {
     sdp_set_big_endian(val, mp + mpi->start_byte, mpi->start_bit,
                        mpi->num_bits);

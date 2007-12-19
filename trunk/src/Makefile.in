@@ -159,8 +159,9 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 
 # INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/include/scsi
-AM_CFLAGS = -I$(top_srcdir)/include -Wall -W
-# AM_CFLAGS = -I$(top_srcdir)/include -Wall -W -pedantic -std=c99
+
+# AM_CFLAGS = -I$(top_srcdir)/include -Wall -W
+AM_CFLAGS = -I$(top_srcdir)/include -Wall -W -pedantic -std=c99
 sdparm_SOURCES = sdparm.c	\
 			sdparm.h	\
 			sdparm_data.c	\

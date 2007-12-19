@@ -76,7 +76,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.03 20071127";
+static char * version_str = "1.03 20071219";
 
 
 static struct option long_options[] = {
@@ -380,7 +380,7 @@ print_mp_entry(const char * pre, int smask,
 {
     int sep = 0;
     int all_set;
-    unsigned long long u;
+    uint64_t u;
     const char * acron;
 
     all_set = 0;
@@ -388,7 +388,7 @@ print_mp_entry(const char * pre, int smask,
     u = sdp_mp_get_value_check(mpi, cur_mp, &all_set);
     printf("%s%-10s", pre, acron);
     if (force_decimal)
-        printf("%" PRId64 "", (long long)u);
+        printf("%" PRId64 "", (int64_t)u);
     else if (mpi->flags & MF_HEX)
         printf("0x%" PRIx64 "", u);
     else if (all_set)
@@ -407,7 +407,7 @@ print_mp_entry(const char * pre, int smask,
             u = sdp_mp_get_value_check(mpi, def_mp, &all_set);
             printf("%sdef:", (sep ? ", " : " "));
             if (force_decimal)
-                printf("%" PRId64 "", (long long)u);
+                printf("%" PRId64 "", (int64_t)u);
             else if (mpi->flags & MF_HEX)
                 printf("0x%" PRIx64 "", u);
             else if (all_set)
@@ -421,7 +421,7 @@ print_mp_entry(const char * pre, int smask,
             u = sdp_mp_get_value_check(mpi, sav_mp, &all_set);
             printf("%ssav:", (sep ? ", " : " "));
             if (force_decimal)
-                printf("%" PRId64 "", (long long)u);
+                printf("%" PRId64 "", (int64_t)u);
             else if (mpi->flags & MF_HEX)
                 printf("0x%" PRIx64 "", u);
             else if (all_set)
@@ -498,7 +498,7 @@ print_mpage_extra_desc(void ** pc_arr, int rep_len,
     unsigned char * sav_mp = (unsigned char *)pc_arr[3];
     unsigned char * ucp;
     struct sdparm_mode_page_item ampi;
-    unsigned long long u;
+    uint64_t u;
     int k, num, len, d_off, n, bad;
     char b[32];
 
@@ -705,7 +705,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
             }
             if (opts->num_desc) {
                 int num = 0;
-                unsigned long long u;
+                uint64_t u;
 
                 if (fdesc_mpi && (smask & 1)) {
                     u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
@@ -834,7 +834,7 @@ desc_adjust_start_byte(int desc_num, const struct sdparm_mode_page_t * mpp,
                        const struct sdparm_opt_coll * opts)
 {
     const struct sdparm_mode_descriptor_t * mdp;
-    unsigned long long u;
+    uint64_t u;
     const unsigned char * ucp;
     int d_off, sb_off, j;
 
@@ -842,7 +842,7 @@ desc_adjust_start_byte(int desc_num, const struct sdparm_mode_page_t * mpp,
     if ((mdp->num_descs_off < rep_len) && (mdp->num_descs_off < 64)) {
         u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
             mdp->num_descs_bytes * 8) + mdp->num_descs_inc;
-        if ((unsigned long long)desc_num < u) {
+        if ((uint64_t)desc_num < u) {
             if (mdp->desc_len > 0) {
                 mpi->start_byte += (mdp->desc_len * desc_num);
                 if (mpi->start_byte < rep_len)
@@ -890,8 +890,8 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
                  int pdt, const struct sdparm_opt_coll * opts)
 {
     int k, res, verb, smask, pn, spn, warned, rep_len, len, desc_num, adapt;
-    unsigned long long u;
-    long long val;
+    uint64_t u;
+    int64_t val;
     const struct sdparm_mode_page_item * mpi;
     struct sdparm_mode_page_item ampi;
     const struct sdparm_mode_page_t * mpp = NULL;
@@ -1065,7 +1065,7 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
             if (opts->hex) {
                 if (smask & 1) {
                     u = sdp_mp_get_value(mpi, cur_mp);
-                    printf("%02" PRId64 " ", (long long)u);
+                    printf("%02" PRId64 " ", (int64_t)u);
                 } else
                     printf("-    ");
                 printf("\n");
@@ -1377,11 +1377,11 @@ set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
     }
 }
 
-static long long get_llnum(const char * buf)
+static int64_t get_llnum(const char * buf)
 {
     int res, len;
-    long long num;
-    unsigned long long unum;
+    int64_t num;
+    uint64_t unum;
 
     if ((NULL == buf) || ('\0' == buf[0]))
         return -1;
@@ -1403,7 +1403,7 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
 {
     int len, b_sz, num, from, cont, colon;
     unsigned int u;
-    long long ll;
+    int64_t ll;
     char buff[64];
     char acron[64];
     char vb[64];
@@ -1630,7 +1630,7 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
             }
             ivp->orig_val = ivp->val;
             if (ivp->mpi.num_bits < 64) {
-                long long ll = 1;
+                int64_t ll = 1;
 
                 ivp->val &= (ll << ivp->mpi.num_bits) - 1;
             }
