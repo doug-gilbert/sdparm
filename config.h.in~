@@ -33,6 +33,9 @@
 /* sdparm on Tru64 UNIX */
 #undef SDPARM_OSF1
 
+/* sdparm on Solaris */
+#undef SDPARM_SOLARIS
+
 /* sdparm on Win32 */
 #undef SDPARM_WIN32
 

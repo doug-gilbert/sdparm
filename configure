@@ -4186,6 +4186,11 @@ cat >>confdefs.h <<_ACEOF
 #define SDPARM_WIN32 1
 _ACEOF
 
+
+cat >>confdefs.h <<_ACEOF
+#define SDPARM_MINGW 1
+_ACEOF
+
                 os_libs=''
  ;;
         *)

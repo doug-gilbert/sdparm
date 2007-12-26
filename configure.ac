@@ -46,6 +46,7 @@ case "${host}" in
         *-*-mingw*)
                 AC_SUBST([os_deps], ['sdparm_wscan.o sg_pt_win32.o'])
 		AC_DEFINE_UNQUOTED(SDPARM_WIN32, 1, [sdparm on Win32])
+		AC_DEFINE_UNQUOTED(SDPARM_MINGW, 1, [sg3_utils on Win32])
                 AC_SUBST([os_libs], ['']) ;;
         *)
                 AC_SUBST([os_deps], ['sg_pt_linux.o'])
