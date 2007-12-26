@@ -30,6 +30,9 @@
 /* assume sdparm on linux */
 #undef SDPARM_LINUX
 
+/* also MinGW environment */
+#undef SDPARM_MINGW
+
 /* sdparm on Tru64 UNIX */
 #undef SDPARM_OSF1
 
@@ -38,9 +41,6 @@
 
 /* sdparm on Win32 */
 #undef SDPARM_WIN32
-
-/* sg3_utils on Win32 */
-#undef SG3_UTILS_MINGW
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
