@@ -14,6 +14,8 @@ sdparm_SOURCES =	sdparm.c	\
 			sdparm_cmd.c	\
 			../lib/sg_lib.c	\
 			../include/sg_lib.h	\
+			../lib/sg_lib_data.c	\
+			../include/sg_lib_data.h	\
 			../lib/sg_cmds_basic.c	\
 			../include/sg_cmds_basic.h	\
 			../lib/sg_cmds_extra.c	\
