@@ -1287,21 +1287,6 @@ const char * sdparm_pdt_doc_strs[] = {
     "SPC-4",            /* no physical device on this lu */
 };
 
-const char * sdparm_transport_proto_arr[] =
-{
-    "Fibre Channel (FCP-2)",
-    "Parallel SCSI (SPI-4)",
-    "SSA (SSA-S3P)",
-    "IEEE 1394 (SBP-3)",
-    "Remote Direct Memory Access (RDMA)",
-    "Internet SCSI (iSCSI)",
-    "Serial Attached SCSI (SAS)",
-    "Automation/Drive Interface (ADT)",
-    "ATA Packet Interface (ATA/ATAPI-7)",
-    "Ox9", "Oxa", "Oxb", "Oxc", "Oxd", "Oxe",
-    "No specific protocol"
-};
-
 const char * sdparm_code_set_arr[] =
 {
     "Reserved [0x0]",
