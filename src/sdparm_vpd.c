@@ -214,6 +214,7 @@ decode_dev_ids(const char * print_if_found, unsigned char * buff, int len,
     uint64_t id_ext;
     const unsigned char * ucp;
     const unsigned char * ip;
+    char b[64];
 
     if (quiet)
         return decode_dev_ids_quiet(buff, len, m_assoc, m_desig_type,
@@ -244,7 +245,8 @@ decode_dev_ids(const char * print_if_found, unsigned char * buff, int len,
         printf("    designator type: %s,  code set: %s\n",
                sdparm_desig_type_arr[desig_type], sdparm_code_set_arr[c_set]);
         if (piv && ((1 == assoc) || (2 == assoc)))
-            printf("     transport: %s\n", sdparm_transport_proto_arr[p_id]);
+            printf("     transport: %s\n",
+                   sg_get_trans_proto_str(p_id, sizeof(b), b));
         /* printf("    associated with the %s\n", sdparm_assoc_arr[assoc]); */
         switch (desig_type) {
         case 0: /* vendor specific */
