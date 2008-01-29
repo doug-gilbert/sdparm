@@ -2,11 +2,12 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.03 [20080116]
+ChangeLog for sdparm-1.03 [20080129]
   - allow more than one DEVICE arguments on command line
   - sync with debian unstable files: debian/rules+changelog
   - add speed[=val] command
-  - add CAWT to protocol specific port mode page (sas2r13)
+  - SAS protocol-specific port mpage (subpage=0)
+    - add CAWT (sas2r13) and RTOL (sas2r14)
   - change 'long long' to int64_t to stress only require
     64 bit integers (similar change to uint64_t)
   - define SDPARM_MINGW when configure detects it
