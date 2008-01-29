@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2007 Douglas Gilbert.
+ * Copyright (c) 2005-2008 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1140,9 +1140,15 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "0: usually on, flash when command processing; off when stopped\t"
         "1: usually off, flash when command processing"},
     {"ITNLT", PROT_SPEC_PORT_MP, 0, -1, 4, 7, 16, MF_COMMON, 
-        "I_T nexus loss time (ms)", NULL},
+        "I_T nexus loss time (ms)",
+        "0: vendor specific\t"
+        "0ffffh: never recognize IT nexus loss"},
     {"IRT", PROT_SPEC_PORT_MP, 0, -1, 6, 7, 16, MF_COMMON, 
-        "Initiator response timeout (ms)", NULL},
+        "Initiator response timeout (ms)",
+        "0: disable initiator response timeout timer"},
+    {"RTOL", PROT_SPEC_PORT_MP, 0, -1, 8, 7, 16, MF_COMMON, 
+        "Reject to open limit (10 us)",         /* added in sas2r14 */
+        "0: vendor specific"},
 
     /* phy control and discover mode page [0x19,0x1] sas2 */
     {"PPID_1", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 5, 3, 4, 0,
