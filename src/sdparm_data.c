@@ -497,7 +497,9 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "1: loaded for medium auxiliary access only\t"
         "2: medium shall not be loaded"},
     {"BTP", CONTROL_MP, 0, -1, 8, 7, 16, 0,
-        "Busy timeout period (100us)", NULL},
+        "Busy timeout period (100us)",
+        "0: undefined\t"
+        "0ffffh (-1): unlimited"},
     {"ESTCT", CONTROL_MP, 0, -1, 10, 7, 16, 0,
         "Extended self test completion time (sec)", NULL},
 
@@ -1142,7 +1144,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"ITNLT", PROT_SPEC_PORT_MP, 0, -1, 4, 7, 16, MF_COMMON, 
         "I_T nexus loss time (ms)",
         "0: vendor specific\t"
-        "0ffffh: never recognize IT nexus loss"},
+        "0ffffh (-1): never recognize IT nexus loss"},
     {"IRT", PROT_SPEC_PORT_MP, 0, -1, 6, 7, 16, MF_COMMON, 
         "Initiator response timeout (ms)",
         "0: disable initiator response timeout timer"},
