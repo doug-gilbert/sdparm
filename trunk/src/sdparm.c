@@ -76,7 +76,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.03 20080129";
+static char * version_str = "1.03 20080218";
 
 
 static struct option long_options[] = {
@@ -1154,7 +1154,7 @@ change_mode_page(int sg_fd, int pdt,
     mdpg[0] = 0;        /* mode data length reserved for mode select */
     if (! opts->mode_6)
         mdpg[1] = 0;    /* mode data length reserved for mode select */
-    if (0 == pdt)       /* entire disk specific parameters is ... */
+    if (PDT_DISK == pdt)       /* entire disk specific parameters is ... */
         mdpg[opts->mode_6 ? 2 : 3] = 0x00;     /* reserved for mode select */
 
     for (k = 0; k < mps->num_it_vals; ++k) {
@@ -1682,8 +1682,8 @@ open_and_simple_inquiry(const char * device_name, int rw, int * pdt,
         }
     }
     l_pdt = sir.peripheral_type;
-    if ((4 == l_pdt) || (7 == l_pdt))
-        *pdt = 0;       /* map disk like pdt's to zero */
+    if ((PDT_WO == l_pdt) || (PDT_OPTICAL == l_pdt))
+        *pdt = PDT_DISK;       /* map disk-like pdt's to PDT_DOSK */
     else
         *pdt = l_pdt;
     if ((0 == opts->hex) && (0 == opts->quiet)) {
