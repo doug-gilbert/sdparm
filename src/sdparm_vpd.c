@@ -1184,15 +1184,15 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
 
             switch (pdt)
             {
-            case 0: case 4: case 7:
+            case PDT_DISK: case PDT_WO: case PDT_OPTICAL:
                 vpd_name = "Block limits";
                 sbc = 1;
                 break;
-            case 1: case 8:
+            case PDT_TAPE: case PDT_MCHANGER:
                 vpd_name = "Sequential access device capabilities";
                 ssc = 1;
                 break;
-            case 0x11:
+            case PDT_OSD:
                 vpd_name = "OSD information";
                 osd = 1;
                 break;
@@ -1236,19 +1236,19 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
 
             switch (pdt)
             {
-            case 0: case 4: case 7:
+            case PDT_DISK: case PDT_WO: case PDT_OPTICAL:
                 vpd_name = "Block device characteristics";
                 sbc = 1;
                 break;
-            case 1: case 8:
+            case PDT_TAPE: case PDT_MCHANGER:
                 vpd_name = "Manufactured assigned serial number";
                 ssc = 1;
                 break;
-            case 0x11:
+            case PDT_OSD:
                 vpd_name = "Security token";
                 osd = 1;
                 break;
-            case 0x12:
+            case PDT_ADC:
                 vpd_name = "Manufactured assigned serial number";
                 adc = 1;
                 break;
