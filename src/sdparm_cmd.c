@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2007 Douglas Gilbert.
+ * Copyright (c) 2005-2008 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,7 @@
 #include "sdparm.h"
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
-#include "sg_cmds_extra.h"
+#include "sg_cmds_mmc.h"
 
 /* sdparm_cmd.c : contains code to implement commands
  * (i.e "--command=<cmd>") in sdparm.

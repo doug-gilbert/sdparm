@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2006 Douglas Gilbert.
+ * Copyright (c) 2005-2008 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,7 +25,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Version 1.4 20070904
+ * Version 1.5 20080218
  */
 
 #include <stdlib.h>
@@ -43,7 +43,7 @@
  */
 
 #define MAX_MP_LEN 1024
-#define MAX_PDT  0x12
+#define MAX_PDT  0x1f
 
 static unsigned char cl_pdt_arr[MAX_PDT + 1][MAX_MP_LEN];
 static unsigned char cl_common_arr[MAX_MP_LEN];
