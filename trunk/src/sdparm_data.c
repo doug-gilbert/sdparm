@@ -800,6 +800,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
 
     /* CD/DVD (MM) capabilities and mechanical status mode page */
     /* [0x2a] obsolete in mmc4 and mmc5, last valid in mmc3 */
+    /* MRSS field was already obsolete in mmc3 */
     {"D_RAM_R", MMCMS_MP, 0, PDT_MMC, 2, 5, 1, 0,
         "DVD-RAM read", NULL},
     {"D_R_R", MMCMS_MP, 0, PDT_MMC, 2, 4, 1, 0,
@@ -876,6 +877,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Separate channel mute", NULL},
     {"SVL", MMCMS_MP, 0, PDT_MMC, 7, 0, 1, 0,
         "Separate volume levels", NULL},
+    {"MRSS", MMCMS_MP, 0, PDT_MMC, 8, 7, 16, 0,
+        "Maximum read speed supported (kBps) (obs)", NULL},
     {"NVLS", MMCMS_MP, 0, PDT_MMC, 10, 7, 16, 0,
         "Number of volume levels supported", NULL},
     {"BSS", MMCMS_MP, 0, PDT_MMC, 12, 7, 16, 0,
