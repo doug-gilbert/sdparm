@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.03 [20080218]
+ChangeLog for sdparm-1.03 [20080219]
   - allow more than one DEVICE arguments on command line
   - sync with debian unstable files: debian/rules+changelog
   - add speed[=val] command
@@ -12,6 +12,7 @@ ChangeLog for sdparm-1.03 [20080218]
     64 bit integers (similar change to uint64_t)
   - define SDPARM_MINGW when configure detects it
   - cleanup to use sg_cmds_mmc and PDT_* defines
+  - 'di' VPD page: decode "NAA Locally administered"
 
 ChangeLog for sdparm-1.02 [20071008]
   - support mode page descriptors with
