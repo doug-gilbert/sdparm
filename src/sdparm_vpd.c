@@ -113,7 +113,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                     printf("%02x", (unsigned int)ip[m]);
                 printf("\n");
             } else if ((3 == naa ) || (5 == naa)) {
-                /* NAA=3 Locally administered; NAA=5 IEEE Registered */
+                /* NAA=3 Locally assigned; NAA=5 IEEE Registered */
                 if (8 != i_len) {
                     fprintf(stderr, "      << unexpected NAA 3 or 5 "
                             "identifier length: 0x%x>>\n", i_len);
