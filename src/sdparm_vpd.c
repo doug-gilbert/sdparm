@@ -96,12 +96,12 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                 break;
             }
             naa = (ip[0] >> 4) & 0xff;
-            if (! ((2 == naa) || (5 == naa) || (6 == naa))) {
+            if ((naa < 2) || (naa > 6) || (4 == naa)) {
                 fprintf(stderr, "      << unexpected NAA [0x%x]>>\n", naa);
                 dStrHex((const char *)ip, i_len, 0);
                 break;
             }
-            if (2 == naa) {
+            if (2 == naa) {             /* NAA IEEE Extended */
                 if (8 != i_len) {
                     fprintf(stderr, "      << unexpected NAA 2 identifier "
                             "length: 0x%x>>\n", i_len);
@@ -112,10 +112,11 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                 for (m = 0; m < 8; ++m)
                     printf("%02x", (unsigned int)ip[m]);
                 printf("\n");
-            } else if (5 == naa) {
+            } else if ((3 == naa ) || (5 == naa)) {
+                /* NAA=3 Locally administered; NAA=5 IEEE Registered */
                 if (8 != i_len) {
-                    fprintf(stderr, "      << unexpected NAA 5 identifier "
-                            "length: 0x%x>>\n", i_len);
+                    fprintf(stderr, "      << unexpected NAA 3 or 5 "
+                            "identifier length: 0x%x>>\n", i_len);
                     dStrHex((const char *)ip, i_len, 0);
                     break;
                 }
@@ -139,7 +140,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                     }
                     memcpy(sas_tport_addr, ip, sizeof(sas_tport_addr));
                 }
-            } else if (6 == naa) {
+            } else if (6 == naa) {      /* NAA IEEE Registered extended */
                 if (16 != i_len) {
                     fprintf(stderr, "      << unexpected NAA 6 identifier "
                             "length: 0x%x>>\n", i_len);
