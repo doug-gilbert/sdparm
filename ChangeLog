@@ -5,7 +5,7 @@ and the configure.ac file (in the AC_INIT item).
 ChangeLog for sdparm-1.03 [20080220]
   - allow more than one DEVICE arguments on command line
   - sync with debian unstable files: debian/rules+changelog
-  - add speed[=val] command
+  - add speed[=val] and profile commands for MMC
   - SAS protocol-specific port mpage (subpage=0)
     - add CAWT (sas2r13) and RTOL (sas2r14)
   - change 'long long' to int64_t to stress only require

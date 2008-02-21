@@ -122,6 +122,7 @@
 #define CMD_SYNC 8
 #define CMD_CAPACITY 9
 #define CMD_SPEED 10
+#define CMD_PROFILE 11
 
 
 struct sdparm_opt_coll {
@@ -233,6 +234,11 @@ struct sdparm_command {
     const char * extra_arg;
 };
 
+struct sdparm_val_desc_t {
+        int val;
+        const char * desc;
+};
+
 extern struct sdparm_mode_page_t sdparm_gen_mode_pg[];
 extern struct sdparm_vpd_page_t sdparm_vpd_pg[];
 extern struct sdparm_transport_id_t sdparm_transport_id[];
@@ -242,6 +248,7 @@ extern struct sdparm_vendor_pair sdparm_vendor_mp[];
 extern int sdparm_vendor_mp_len;
 extern struct sdparm_mode_page_item sdparm_mitem_arr[];
 extern struct sdparm_command sdparm_command_arr[];
+extern struct sdparm_val_desc_t sdparm_profile_arr[];
 
 extern const char * sdparm_pdt_doc_strs[];
 extern const char * sdparm_transport_proto_arr[];

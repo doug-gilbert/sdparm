@@ -175,22 +175,60 @@ do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
     return res;
 }
 
+/* cmd_arg is kBytes/sec if given (i.e. 1000 bytes per second */
 static int
 do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * opts)
 {
     int res, kbps;
     unsigned int u;
+    unsigned int last_lba = 0xfffffffe;
+    unsigned int rw_time = 1000;
 
     if (cmd_arg >= 0) {
+        unsigned char perf_desc[28];
+
+#if 0
         if (0 == cmd_arg)
             kbps = 0xffff;
         else
-            kbps = cmd_arg / 1024;
+            kbps = cmd_arg;
         res = sg_ll_set_cd_speed(sg_fd, 0 /* rot_control */, kbps,
                                  0 /* drv_write_speed */, 1, opts->verbose);
+#else
+        memset(perf_desc, 0, sizeof(perf_desc));
+        if (0 == cmd_arg)
+            perf_desc[0] |= 0x4;  /* set RDD bit: restore drive defaults */
+        else {
+            perf_desc[8] = (last_lba >> 24) & 0xff;
+            perf_desc[9] = (last_lba >> 16) & 0xff;
+            perf_desc[10] = (last_lba >> 8) & 0xff;
+            perf_desc[11] = last_lba & 0xff;
+            perf_desc[12] = (cmd_arg >> 24) & 0xff;
+            perf_desc[13] = (cmd_arg >> 16) & 0xff;
+            perf_desc[14] = (cmd_arg >> 8) & 0xff;
+            perf_desc[15] = cmd_arg & 0xff;
+            perf_desc[16] = (rw_time >> 24) & 0xff;
+            perf_desc[17] = (rw_time >> 16) & 0xff;
+            perf_desc[18] = (rw_time >> 8) & 0xff;
+            perf_desc[19] = rw_time & 0xff;
+            perf_desc[20] = (cmd_arg >> 24) & 0xff;
+            perf_desc[21] = (cmd_arg >> 16) & 0xff;
+            perf_desc[22] = (cmd_arg >> 8) & 0xff;
+            perf_desc[23] = cmd_arg & 0xff;
+            perf_desc[24] = (rw_time >> 24) & 0xff;
+            perf_desc[25] = (rw_time >> 16) & 0xff;
+            perf_desc[26] = (rw_time >> 8) & 0xff;
+            perf_desc[27] = rw_time & 0xff;
+        }
+        /* performance (type=0), tolerance 10% nominal, read speed */
+        res = sg_ll_set_streaming(sg_fd, 0x0 /* type */, perf_desc,
+                                  sizeof(perf_desc), 1, opts->verbose);
+        if (0 == res)
+            printf("sg_ll_set_streaming: ok\n");
     } else {
         const int max_num_desc = 16;
         unsigned char buff[8 + (16 * 16)];
+        unsigned int lba;
 
         /* performance (type=0), tolerance 10% nominal, read speed */
         res = sg_ll_get_performance(sg_fd, 0x10 /* data_type */,
@@ -199,21 +237,119 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * opts)
                                     0 /* type */, buff, sizeof(buff),
                                     1, opts->verbose);
         if (0 == res) {
+            if (opts->verbose) {
+                lba = ((buff[8] << 24) + (buff[9] << 16) + (buff[10] << 8) +
+                       buff[11]);
+                printf("starting LBA: %u\n", lba);
+            }
             u = ((buff[12] << 24) + (buff[13] << 16) + (buff[14] << 8) +
-                 buff[15]) * 1000;
+                 buff[15]);
             if (opts->quiet)
                 printf("%u\n", u);
             else
-                printf("Nominal speed at starting LBA: %u bytes per second\n",
+                printf("Nominal speed at starting LBA: %u kiloBytes/sec\n",
                        u);
+            if (opts->verbose) {
+                lba = ((buff[16] << 24) + (buff[17] << 16) + (buff[18] << 8) +
+                       buff[19]);
+                printf("ending LBA: %u\n", lba);
+            }
             u = ((buff[20] << 24) + (buff[21] << 16) + (buff[22] << 8) +
-                 buff[23]) * 1000;
+                 buff[23]);
             if (1 == opts->quiet)
                 printf("%u\n", u);
             else if (0 == opts->quiet)
-                printf("Nominal speed at ending LBA: %u bytes per second\n",
+                printf("Nominal speed at ending LBA: %u kiloBytes/sec\n",
                        u);
         }
+    }
+    return res;
+#endif
+}
+
+static const char *
+get_profile_str(int profile_num, char * buff)
+{
+    const struct sdparm_val_desc_t * pdp;
+
+    for (pdp = sdparm_profile_arr; pdp->desc; ++pdp) {
+        if (pdp->val == profile_num) {
+            strcpy(buff, pdp->desc);
+            return buff;
+        }
+    }
+    snprintf(buff, 64, "0x%x", profile_num);
+    return buff;
+}
+
+static void
+decode_get_config_feature(int feature, unsigned char * ucp, int len)
+{
+    int k, profile;
+    char buff[128];
+    const char * cp;
+
+    cp = "";
+    switch (feature) {
+    case 0:     /* Profile list */
+        printf("Available profiles, profile of current media marked "
+               "with * \n");
+        for (k = 4; k < len; k += 4) {
+            profile = (ucp[k] << 8) + ucp[k + 1];
+            printf("    %s   %s\n", get_profile_str(profile, buff),
+                   ((ucp[k + 2] & 1) ? "*" : ""));
+        }
+        break;
+    default:
+        /* ignore other features */
+        break;
+    }
+}
+
+
+static void
+decode_get_config(unsigned char * resp, int max_resp_len, int len)
+{
+    int k, extra, feature;
+    unsigned char * ucp;
+
+    if (max_resp_len < len) {
+        printf("get_config: response to long for buffer, resp_len=%d>>>\n",
+               len);
+            len = max_resp_len;
+    }
+    if (len < 8) {
+        printf("get_config: response length too short: %d\n", len);
+        return;
+    }
+    ucp = resp + 8;
+    len -= 8;
+    for (k = 0; k < len; k += extra, ucp += extra) {
+        extra = 4 + ucp[3];
+        feature = (ucp[0] << 8) + ucp[1];
+        if (0 != (extra % 4))
+            printf("    get_config: additional length [%d] not a multiple "
+                   "of 4, ignore\n", extra - 4);
+        else
+            decode_get_config_feature(feature, ucp, extra);
+    }
+}
+
+#define MAX_CONFIG_RESPLEN 2048
+
+static int
+do_cmd_profile(int sg_fd, const struct sdparm_opt_coll * opts)
+{
+    int res, len;
+    unsigned char resp[MAX_CONFIG_RESPLEN];
+
+    /* performance (type=0), tolerance 10% nominal, read speed */
+    res = sg_ll_get_config(sg_fd, 0x0 /* rt */, 0 /* starting_lba */,
+                           resp, sizeof(resp), 1, opts->verbose);
+    if (0 == res) {
+        len = (resp[0] << 24) + (resp[1] << 16) + (resp[2] << 8) +
+              resp[3] + 4;
+        decode_get_config(resp, sizeof(resp), len);
     }
     return res;
 }
@@ -302,6 +438,9 @@ sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp, int cmd_arg,
         break;
     case CMD_LOAD:
         res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 1, 1, 1, opts->verbose);
+        break;
+    case CMD_PROFILE:
+        res = do_cmd_profile(sg_fd, opts);
         break;
     case CMD_READY:
         progress = -1;
