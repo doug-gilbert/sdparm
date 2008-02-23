@@ -1,4 +1,4 @@
-.TH SDPARM "8" "January 2008" "sdparm\-1.03" SDPARM
+.TH SDPARM "8" "February 2008" "sdparm\-1.03" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -448,58 +448,77 @@ end of the EXAMPLES section).
 The command option sends a SCSI command to the \fIDEVICE\fR. If the
 command fails then this is reflected in the non\-zero exit status.
 To obtain more information about the error use the \fI\-v\fR option.
-.PP
-The 'capacity' command sends a READ CAPACITY command (valid for
+.TP
+capacity
+sends a READ CAPACITY command (valid for
 disks and cd/dvd media). If successful yields "blocks: " [the number
 of blocks], "block_length: " [typically either 512 or 2048]
 and "capacity_mib: " [capacity in MibiBytes (1048576 byte units)].
-.PP
-The 'eject' command stops the medium and ejects it from the device.
+.TP
+eject
+stops the medium and ejects it from the device.
 Note that ejection (by command or button) may be prevented in which case
 the 'unlock' command may be useful in extreme cases.
 Typically only appropriate for cd/dvd drives and disk drives with removable
 media. Objects if sent to another peripheral device type (but objection
 can be overridden with '\-f' option).
-.PP
-The 'load' command loads the medium and and starts it (i.e. spins it up).
+.TP
+load
+loads the medium and and starts it (i.e. spins it up).
 See 'eject' command for supported device types.
-.PP
-The 'ready' command sends the "Test Unit Ready" SCSI command to the
+.TP
+profile
+lists the various formats that a CD/DVD/HD-DVD/BD drive supports. These are
+called "profiles" in the MMC standard. The profiles are list one per line.
+If media is in the drive then the profile that matches the media (if any)
+has n "*" to the right of the line.
+.TP
+ready
+sends the "Test Unit Ready" SCSI command to the
 \fIDEVICE\fR. No error is reported if the device will respond to data
 requests (e.g. READ) in a reasonable timescale. For example, if a disk
 is stopped then it will report "not ready". All devices should respond
 to this command.
-.PP
-The 'sense' command sends a REQUEST SENSE command. It reports a hardware
+.TP
+sense
+sends a REQUEST SENSE command. It reports a hardware
 threshold exceeded, warning or low power condition if flagged. If a progress
 indication is present (e.g. during a format) then it will be output as a
 percentage. Yields a process status of 0 if the command succeeds and the
 sense key is 0; else yields 1. The \fI\-\-quiet\fR option can be used to
 lessen output, and \fI\-\-hex\fR to output sense data in hex.
-.PP
-The 'speed' command outputs the nominal speed, in bytes per second
-of a cd or dvd drive, or the media in the drive. The speed can be
-set with \fI\-\-command=speed=SPEED\fR where SPEED is the minimum speed
-to set the media within the drive to. If SPEED is zero then the drive
-is set to the speed that it considers gives optimal performance.
-.PP
-The 'start' command starts the medium (i.e. spins it up). Harmless if
-medium has already been started. See 'eject' command for supported device
-types.
-.PP
-The 'stop' command stops the medium (i.e. spins it down). Harmless if
+.TP
+speed=SPEED
+permits the speed of a CD, DVD, HD_DVD or BD disc in a drive to be set (or
+at least influenced). It has this format: \fI\-\-command=speed=SPEED\fR
+where SPEED is in kilobytes per second. In this case a kilobyte is 1000
+bytes. The "times one" speed for a CD is 176.4 kB/s, for a DVD is
+1350 kB/s and for both HD-DVD and BD it is 4500 kB/s. If SPEED is zero then
+the drive is set to the speed that it considers gives optimal performance.
+This command sends a SET STREAMING multi-media command (MMC) to the drive.
+The EXACT bit is clear so the drive will round the given SPEED as necessary.
+The command is designed to control read speed; setting write speed should
+be left to "burning" programs.
+.TP
+start
+starts the medium (i.e. spins it up). Harmless if medium has already been
+started. See 'eject' command for supported device types.
+.TP
+stop
+stops the medium (i.e. spins it down). Harmless if
 medium has already been stopped. See 'eject' command for supported device
 types.
-.PP
-The 'sync' command sends a SYNCHRONIZE CACHE command. The device should
+.TP
+sync
+sends a SYNCHRONIZE CACHE command. The device should
 flush any data held in its (volatile) buffers to the media.
-.PP
-The 'unlock' command tells a device to allow medium removal. It uses
-the SCSI "prevent allow medium removal" command. This is desperation stuff,
-possibly overriding a prevention applied by the OS on a mounted file system.
-The "eject" utility (from the "eject" package) is more graceful and should be
-tried first. This command is only appropriate for devices with removable
-media.
+.TP
+unlock
+tells a device to allow medium removal. It uses the SCSI "prevent allow
+medium removal" command. This is desperation stuff, possibly overriding a
+prevention applied by the OS on a mounted file system. The "eject" utility
+(from the "eject" package) is more graceful and should be tried first. This
+command is only appropriate for devices with removable media.
 .PP
 For loading and ejecting tapes the mt utility should be used (i.e. not
 these commands). The 'ready' command is valid for tape devices.
