@@ -226,8 +226,6 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * opts)
                                   sizeof(perf_desc), 1, opts->verbose);
         if (0 == res)
             printf("sg_ll_set_streaming: ok\n");
-else
-fprintf(stderr, "sg_ll_set_streaming: failed res=%d\n", res);
     } else {
         const int max_num_desc = 16;
         unsigned char buff[8 + (16 * 16)];
