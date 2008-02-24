@@ -76,7 +76,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.03 20080220";
+static char * version_str = "1.03 20080223";
 
 
 static struct option long_options[] = {
@@ -1800,7 +1800,7 @@ main(int argc, char * argv[])
     struct sdparm_mode_page_settings mp_settings; 
     char * cp;
     const char * ccp;
-    const struct sdparm_command * scmdp = NULL;
+    const struct sdparm_command_t * scmdp = NULL;
     int ret = 0;
 #ifdef SDPARM_WIN32
     int do_wscan = 0;

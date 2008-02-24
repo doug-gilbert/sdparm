@@ -1374,20 +1374,20 @@ const char * sdparm_mode_page_policy_arr[] =
     "per I_T nexus",
 };
 
-struct sdparm_command sdparm_command_arr[] =
+struct sdparm_command_t sdparm_command_arr[] =
 {
-    {CMD_CAPACITY, "capacity", NULL},
-    {CMD_EJECT, "eject", NULL},
-    {CMD_LOAD, "load", NULL},
-    {CMD_PROFILE, "profile", NULL},
-    {CMD_READY, "ready", NULL},
-    {CMD_SENSE, "sense", NULL},
-    {CMD_SPEED, "speed", "new_speed_kbps"},
-    {CMD_START, "start", NULL},
-    {CMD_STOP, "stop", NULL},
-    {CMD_SYNC, "sync", NULL},
-    {CMD_UNLOCK, "unlock", NULL},
-    {-1, NULL, NULL},
+    {CMD_CAPACITY, "capacity", "ca", NULL},
+    {CMD_EJECT, "eject", "ej", NULL},
+    {CMD_LOAD, "load", "lo", NULL},
+    {CMD_PROFILE, "profile", "pr", NULL},
+    {CMD_READY, "ready", "re", NULL},
+    {CMD_SENSE, "sense", "se", NULL},
+    {CMD_SPEED, "speed", "sp", "new_speed_kbps"},
+    {CMD_START, "start", "sta", NULL},
+    {CMD_STOP, "stop", "sto", NULL},
+    {CMD_SYNC, "sync", "sy", NULL},
+    {CMD_UNLOCK, "unlock", "un", NULL},
+    {-1, NULL, NULL, NULL},
 };
 
 struct sdparm_val_desc_t sdparm_profile_arr[] = {
