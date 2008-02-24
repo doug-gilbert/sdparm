@@ -66,7 +66,7 @@ starting
 with
 "hd".
 More generally <span style="font-weight: bold;">sdparm</span> can be
-used to output and modify parameters on any device that uses a SCSI
+used to access parameters on any device that uses a SCSI
 command set. Apart from SCSI disks, such devices include CD/DVD drives
 (irrespective of transport), SCSI and ATAPI tape drives and SCSI
 enclosures. A small set of commands associated with starting and
@@ -82,11 +82,11 @@ is taken. This utility's internal tables can be searched and output
 with the '<span style="font-family: monospace;">--enumerate</span>'
 option. Additional explanatory information is output when the '<span
  style="font-family: monospace;">--long</span>' option is used (and
-more if the '<span style="font-family: monospace;">--long</span>'
+still more if the '<span style="font-family: monospace;">--long</span>'
 option is used twice).<br>
 <br>
 The information in this page corresponds to <span
- style="font-weight: bold;">sdparm</span> version 1.02 . This utility
+ style="font-weight: bold;">sdparm</span> version 1.03 . This utility
 was originally written for Linux and now has been ported to FreeBSD,
 Solaris, Tru64, and Windows.<br>
 <h2><a class="mozTocH2" name="mozTocId783733"></a>SCSI mode pages</h2>
@@ -95,15 +95,15 @@ be changed by the user. In SCSI parlance the "device" is a <span
  style="font-style: italic;">logical unit</span>
 of which there may be several in a SCSI <span
  style="font-style: italic;">target</span>. In the case of a SCSI
-disk connected directly to a Host Bus Adapter (HBA) the disk is both a
+disk directly connected to a Host Bus Adapter (HBA) the disk is both a
 SCSI target and a logical unit. The "user" in this case is the person
-using <span style="font-weight: bold;">sdparm</span> which is a SCSI
-"application client" and it feeds commands into a SCSI <span
- style="font-style: italic;">initiator</span>. The
-SCSI initiator is found in the HBA. At the command level SCSI is a
+using <span style="font-weight: bold;">sdparm</span> which is a SCSI <span
+ style="font-style: italic;">application client</span> and it feeds
+commands into a SCSI <span style="font-style: italic;">initiator</span>.
+The
+SCSI initiator is found in the HBA. At the command level, SCSI is a
 client-server protocol with the logical unit (or target device) being
-the server that responds to commands sent by the <span
- style="font-style: italic;">application client</span> via
+the server that responds to commands sent by the application client via
 the SCSI initiator.<br>
 <br>
 Mode pages are defined in SCSI (draft) standards found at <a
@@ -111,7 +111,7 @@ Mode pages are defined in SCSI (draft) standards found at <a
 SCSI devices are found in the SCSI Primary Commands document (SPC-4)
 while those specific to block devices
 (e.g. disks) are found in SBC-3 and those for CD/DVD drives are found
-in MMC-5. This <a href="http://www.t10.org/scsi-3.htm">diagram</a>
+in MMC-6. This <a href="http://www.t10.org/scsi-3.htm">diagram</a>
 shows how various SCSI and associated standards interrelate.<br>
 <br>
 Below is a representation of the control mode page taken from
@@ -126,8 +126,9 @@ while the last two fields occupy two bytes (i.e. 16 bits) each.<br>
  align="top"><br>
 <br>
 Often
-device product manuals detail precisely which mode pages (and parts
-thereof) are supported by a particular model and describe the way that
+device product manuals detail precisely which mode pages (and fields
+within those pages) are supported by a particular model. They describe
+the way that
 the
 device will react if the generic description in the SCSI (draft)
 standard needs amplification. There are also transport protocol
@@ -135,7 +136,8 @@ specific mode pages for transports such as "spi" (the 25 year old SCSI
 Parallel Interface), "fcp" (Fibre Channel Protocol) and "sas" (Serial
 Attached SCSI). There are also vendor specific mode pages. Mode pages
 that are <span style="font-style: italic;">not</span> transport
-protocol specific or vendor specific are sometimes referred to as
+protocol specific and are not vendor specific are sometimes referred to
+as
 "generic" in <span style="font-weight: bold;">sdparm</span>'s
 documentation.<br>
 <br>
@@ -190,7 +192,22 @@ changeable
 values mask indicates the corresponding bit in the current values (and
 saved values) may be changed. At the point when a current value is
 changed, the user may also choose to change the corresponding saved
-value. <br>
+value.<br>
+<br>
+If all of the bits in a changeable mask corresponding to a field are
+zero then this is indicated in most sdparm output by the string "cha:
+n" on the same line as the field name. For example: "<span
+ style="font-family: monospace;">SWP 0 [cha: n, def:&nbsp; 0,
+sav:&nbsp; 0]". </span>If any bits in a changeable mask corresponding
+to a field are one (i.e. set) then this is indicated in sdparm output
+by "cha: y". sdparm will <span style="font-style: italic;">not</span>
+stop a user from trying to change a field marked as not changeable.
+Most often the result will be no error reported but also no change to
+the current field value either. Sometimes an error is reported (and at
+least one vendor has a setting in a vendor specific mode page to
+control whether such a futile action is just ignored or causes an
+error). In some rare cases the changeable mask may be wrong and a
+change will be accepted.<br>
 <br>
 The manufacturer obviously knows a lot about the characteristics of its
 devices. Hence if a current field value (and saved field value) is
@@ -407,7 +424,14 @@ section below).<br>
 can include power condition information, a progress indication for a
 time consuming command (e.g. format) or a report an informational
 exception (when
-MRIE=6)<br>
+MRIE=6)</li>
+  <li><span style="font-weight: bold;">speed</span>: takes and argument
+(e.g. <span style="font-family: monospace;">--command=speed=1350</span>
+or <span style="font-family: monospace;">-C sp=1350</span> ) which is
+in kilobytes per second (1000 bytes per second units). Attempts to set
+CD/DVD/BD media to given read speed. If argument is zero then set drive
+back to its optimum setting. "Times one" speeds are 177 kB/s for CD,
+1350&nbsp; kB/s for DVD and 4500 kB/s for HD-DVD and BD.<br>
   </li>
   <li><span style="font-weight: bold;">start</span>: spin up the medium</li>
   <li><span style="font-weight: bold;">stop</span>: spin down the medium</li>
@@ -421,6 +445,9 @@ removal of the medium (e.g. it contains a mounted file system). Use at
 your own risk.<br>
   </li>
 </ul>
+The command names can be abbreviated to two letters unless that leads
+to ambiguity (e.g. start and stop can be abbreviated to sta and sto).<br>
+<br>
 These <span style="font-weight: bold;">sdparm</span> commands send
 SCSI commands to the given <span style="font-style: italic;">DEVICE</span>.
 If they
@@ -2281,6 +2308,17 @@ exe</span><br>
       <td style="vertical-align: top;"><a href="p/sdparm.exe">sdparm.exe</a>
       </td>
     </tr>
+    <tr>
+      <td style="vertical-align: top;">1.03 beta<br>
+      </td>
+      <td style="vertical-align: top;"><a href="p/sdparm-1.03.tgz">sdparm-1.03.tgz</a></td>
+      <td style="vertical-align: top;">&nbsp;<br>
+      </td>
+      <td style="vertical-align: top;">&nbsp;<br>
+      </td>
+      <td style="vertical-align: top;">&nbsp;<br>
+      </td>
+    </tr>
   </tbody>
 </table>
 <br>
@@ -2307,7 +2345,7 @@ representation similar to the table representations found in the SCSI
 <br>
 <p>Return to <a href="index.html">main</a> page. </p>
 <center>
-<p>Last updated: 7th October 2007<br>
+<p>Last updated: 24th February 2008<br>
 <br>
 </p>
 </center>
