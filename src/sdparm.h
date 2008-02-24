@@ -228,9 +228,10 @@ struct sdparm_vendor_pair {
     struct sdparm_mode_page_item * mitem;
 };
 
-struct sdparm_command {
+struct sdparm_command_t {
     int cmd_num;
     const char * name;
+    const char * min_abbrev;
     const char * extra_arg;
 };
 
@@ -247,7 +248,7 @@ extern struct sdparm_vendor_name_t sdparm_vendor_id[];
 extern struct sdparm_vendor_pair sdparm_vendor_mp[];
 extern int sdparm_vendor_mp_len;
 extern struct sdparm_mode_page_item sdparm_mitem_arr[];
-extern struct sdparm_command sdparm_command_arr[];
+extern struct sdparm_command_t sdparm_command_arr[];
 extern struct sdparm_val_desc_t sdparm_profile_arr[];
 
 extern const char * sdparm_pdt_doc_strs[];
@@ -316,10 +317,10 @@ extern int sdp_process_vpd_page(int sg_fd, int pn, int spn,
  * Declarations for functions found in sdparm_cmd.c
  */
 
-extern const struct sdparm_command * sdp_build_cmd(const char * cmd_str,
+extern const struct sdparm_command_t * sdp_build_cmd(const char * cmd_str,
                 int * rwp, int * argp);
 extern void sdp_enumerate_commands();
-extern int sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp,
+extern int sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp,
                 int cmd_arg, int pdt, const struct sdparm_opt_coll * opts);
 
 /*

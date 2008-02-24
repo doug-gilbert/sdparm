@@ -179,15 +179,16 @@ do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
 static int
 do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * opts)
 {
-    int res, kbps;
+    int res;
     unsigned int u;
     unsigned int last_lba = 0xfffffffe;
     unsigned int rw_time = 1000;
 
     if (cmd_arg >= 0) {
         unsigned char perf_desc[28];
-
 #if 0
+        int kbps;
+
         if (0 == cmd_arg)
             kbps = 0xffff;
         else
@@ -225,6 +226,8 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * opts)
                                   sizeof(perf_desc), 1, opts->verbose);
         if (0 == res)
             printf("sg_ll_set_streaming: ok\n");
+else
+fprintf(stderr, "sg_ll_set_streaming: failed res=%d\n", res);
     } else {
         const int max_num_desc = 16;
         unsigned char buff[8 + (16 * 16)];
@@ -354,10 +357,10 @@ do_cmd_profile(int sg_fd, const struct sdparm_opt_coll * opts)
     return res;
 }
 
-const struct sdparm_command *
+const struct sdparm_command_t *
 sdp_build_cmd(const char * cmd_str, int * rwp, int * argp)
 {
-    const struct sdparm_command * scmdp;
+    const struct sdparm_command_t * scmdp;
     const char * eq_cp;
     const char * cp;
     char buff[16];
@@ -383,6 +386,13 @@ sdp_build_cmd(const char * cmd_str, int * rwp, int * argp)
         if (0 == strcmp(scmdp->name, cp))
             break;
     }
+    if ((NULL == scmdp->name) && (strlen(cp) >= 2)) {
+        for (scmdp = sdparm_command_arr; scmdp->name; ++scmdp) {
+            len = strlen(scmdp->min_abbrev);
+            if (0 == memcmp(scmdp->min_abbrev, cp, 2))
+                break;
+        }
+    }
     if (scmdp->name) {
         if (rwp) {
             if ((CMD_READY  == scmdp->cmd_num) ||
@@ -400,7 +410,7 @@ sdp_build_cmd(const char * cmd_str, int * rwp, int * argp)
 void
 sdp_enumerate_commands()
 {
-    const struct sdparm_command * scmdp;
+    const struct sdparm_command_t * scmdp;
 
     for (scmdp = sdparm_command_arr; scmdp->name; ++scmdp) {
         if (scmdp->extra_arg)
@@ -412,7 +422,7 @@ sdp_enumerate_commands()
 
 /* Returns 0 if successful */
 int
-sdp_process_cmd(int sg_fd, const struct sdparm_command * scmdp, int cmd_arg,
+sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp, int cmd_arg,
                 int pdt, const struct sdparm_opt_coll * opts)
 {
     int res, progress;
