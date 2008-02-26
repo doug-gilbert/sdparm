@@ -224,8 +224,13 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * opts)
         /* performance (type=0), tolerance 10% nominal, read speed */
         res = sg_ll_set_streaming(sg_fd, 0x0 /* type */, perf_desc,
                                   sizeof(perf_desc), 1, opts->verbose);
-        if (0 == res)
-            printf("sg_ll_set_streaming: ok\n");
+        if (res) {
+            if (SG_LIB_CAT_NOT_READY == res)
+                fprintf(stderr, "Set Streaming failed, device not ready\n");
+	    else
+                fprintf(stderr, "Set Streaming failed, add '-v' for more "
+			"information\n");
+	}
     } else {
         const int max_num_desc = 16;
         unsigned char buff[8 + (16 * 16)];
