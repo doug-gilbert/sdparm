@@ -227,10 +227,10 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * opts)
         if (res) {
             if (SG_LIB_CAT_NOT_READY == res)
                 fprintf(stderr, "Set Streaming failed, device not ready\n");
-	    else
+            else
                 fprintf(stderr, "Set Streaming failed, add '-v' for more "
-			"information\n");
-	}
+                        "information\n");
+        }
     } else {
         const int max_num_desc = 16;
         unsigned char buff[8 + (16 * 16)];
