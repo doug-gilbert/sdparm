@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2007 Douglas Gilbert.
+ * Copyright (c) 2005-2008 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -684,25 +684,28 @@ decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
         printf("grd_chk=%d\n", !!(buff[4] & 0x4));
         printf("app_chk=%d\n", !!(buff[4] & 0x2));
         printf("ref_chk=%d\n", !!(buff[4] & 0x1));
-        printf("GRP_SUP=%d\n", !!(buff[5] & 0x10));
+        printf("uask_sup=%d\n", !!(buff[5] & 0x20));
+        printf("group_sup=%d\n", !!(buff[5] & 0x10));
         printf("prior_sup=%d\n", !!(buff[5] & 0x8));
         printf("headsup=%d\n", !!(buff[5] & 0x4));
         printf("ordsup=%d\n", !!(buff[5] & 0x2));
         printf("simpsup=%d\n", !!(buff[5] & 0x1)); 
-        printf("corr_d_sup=%d\n", !!(buff[6] & 0x4));
+        printf("wu_sup=%d\n", !!(buff[6] & 0x8));
+        printf("crd_sup=%d\n", !!(buff[6] & 0x4));
         printf("nv_sup=%d\n", !!(buff[6] & 0x2));
         printf("v_sup=%d\n", !!(buff[6] & 0x1));
         printf("luiclr=%d\n", !!(buff[7] & 0x1));
     } else {
-        printf("  SPT: %d  GRD_CHK: %d  APP_CHK: %d  REF_CHK: %d\n",
+        printf("  SPT=%d GRD_CHK=%d APP_CHK=%d REF_CHK=%d\n",
                ((buff[4] >> 3) & 0x7), !!(buff[4] & 0x4), !!(buff[4] & 0x2),
                !!(buff[4] & 0x1));
-        printf("  GRP_SUP: %d  PRIOR_SUP: %d  HEADSUP: %d  ORDSUP: %d  "
-               "SIMPSUP: %d\n", !!(buff[5] & 0x10), !!(buff[5] & 0x8),
-               !!(buff[5] & 0x4), !!(buff[5] & 0x2), !!(buff[5] & 0x1));
-        printf("  CORR_D_SUP: %d  NV_SUP: %d  V_SUP: %d  LUICLR: %d\n",
-               !!(buff[6] & 0x4), !!(buff[6] & 0x2), !!(buff[6] & 0x1),
-               !!(buff[7] & 0x1));
+        printf("  UASK_SUP=%d GROUP_SUP=%d PRIOR_SUP=%d HEADSUP=%d ORDSUP=%d "
+               "SIMPSUP=%d\n", !!(buff[5] & 0x20), !!(buff[5] & 0x10),
+               !!(buff[5] & 0x8), !!(buff[5] & 0x4), !!(buff[5] & 0x2),
+               !!(buff[5] & 0x1));
+        printf("  WU_SUP=%d CRD_SUP=%d NV_SUP=%d V_SUP=%d LUICLR=%d\n",
+               !!(buff[6] & 0x8), !!(buff[6] & 0x4), !!(buff[6] & 0x2),
+               !!(buff[6] & 0x1), !!(buff[7] & 0x1));
     }
     return 0;
 }
