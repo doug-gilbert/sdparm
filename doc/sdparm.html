@@ -272,6 +272,11 @@ then the <span style="font-weight: bold;">sdparm</span> utility can be
 re-executed with the '<span style="font-family: monospace;">--save</span>'
 option
 added.<br>
+<br>
+The <span style="font-weight: bold;">sdparm</span> utility does not
+decode SCSI log pages. The <span style="font-weight: bold;">sg_logs</span>
+utility in the <a href="sg3_utils.html">sg3_utils</a> package decodes
+log pages.<br>
 <h2><a class="mozTocH2" name="mozTocId968100"></a>VPD pages</h2>
 Vital Product Data (VPD) pages are fetched with the SCSI INQUIRY
 command. While support for a "standard" INQUIRY response is mandatory,
@@ -389,7 +394,7 @@ in ASCII hex, assuming the device responds. VPD page abbreviations can
 be listed with '<span style="font-family: monospace;">sdparm
 --enumerate --inquiry</span>'.<br>
 <br>
-The sg3_utils package contains a utility
+The <a href="sg3_utils.html">sg3_utils</a> package contains a utility
 called <span style="font-weight: bold;">sg_vpd</span> that overlaps
 with <span style="font-weight: bold;">sdparm</span>'s VPD
 capabilities. Additionally <span style="font-weight: bold;">sg_vpd</span>
@@ -2350,7 +2355,7 @@ representation similar to the table representations found in the SCSI
 <br>
 <p>Return to <a href="index.html">main</a> page. </p>
 <center>
-<p>Last updated: 6th March 2008<br>
+<p>Last updated: 13th March 2008<br>
 <br>
 </p>
 </center>
