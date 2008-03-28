@@ -61,11 +61,13 @@ do_cmd_read_capacity(int sg_fd, int verbose)
     res = sg_ll_readcap_10(sg_fd, 0 /* pmi */, 0 /* lba */, resp_buff,
                            RCAP_REPLY_LEN, 1, verbose);
     if (0 == res) {
-        last_blk_addr = ((resp_buff[0] << 24) | (resp_buff[1] << 16) |
-                         (resp_buff[2] << 8) | resp_buff[3]);
+        last_blk_addr = (((unsigned int)resp_buff[0] << 24) |
+                         (resp_buff[1] << 16) | (resp_buff[2] << 8) |
+                         resp_buff[3]);
         if (0xffffffff != last_blk_addr) {
-            block_size = ((resp_buff[4] << 24) | (resp_buff[5] << 16) |
-                         (resp_buff[6] << 8) | resp_buff[7]);
+            block_size = (((unsigned int)resp_buff[4] << 24) |
+                          (resp_buff[5] << 16) | (resp_buff[6] << 8) |
+                          resp_buff[7]);
             printf("blocks: %u\n", last_blk_addr + 1);
             printf("block_length: %u\n", block_size);
             sz_mib = ((double)(last_blk_addr + 1) * block_size) / 
@@ -88,8 +90,9 @@ do_cmd_read_capacity(int sg_fd, int verbose)
                 llast_blk_addr <<= 8;
                 llast_blk_addr |= resp_buff[k];
             }
-            block_size = ((resp_buff[8] << 24) | (resp_buff[9] << 16) |
-                          (resp_buff[10] << 8) | resp_buff[11]);
+            block_size = (((unsigned int)resp_buff[8] << 24) |
+                          (resp_buff[9] << 16) | (resp_buff[10] << 8) |
+                          resp_buff[11]);
             printf("blocks: %" PRIu64 "\n", llast_blk_addr + 1);
             printf("block_length: %u\n", block_size);
             sz_mib = ((double)(llast_blk_addr + 1) * block_size) / 
@@ -244,24 +247,24 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * opts)
                                     1, opts->verbose);
         if (0 == res) {
             if (opts->verbose) {
-                lba = ((buff[8] << 24) + (buff[9] << 16) + (buff[10] << 8) +
-                       buff[11]);
+                lba = (((unsigned int)buff[8] << 24) + (buff[9] << 16) +
+                       (buff[10] << 8) + buff[11]);
                 printf("starting LBA: %u\n", lba);
             }
-            u = ((buff[12] << 24) + (buff[13] << 16) + (buff[14] << 8) +
-                 buff[15]);
+            u = (((unsigned int)buff[12] << 24) + (buff[13] << 16) +
+                 (buff[14] << 8) + buff[15]);
             if (opts->quiet)
                 printf("%u\n", u);
             else
                 printf("Nominal speed at starting LBA: %u kiloBytes/sec\n",
                        u);
             if (opts->verbose) {
-                lba = ((buff[16] << 24) + (buff[17] << 16) + (buff[18] << 8) +
-                       buff[19]);
+                lba = (((unsigned int)buff[16] << 24) + (buff[17] << 16) +
+                       (buff[18] << 8) + buff[19]);
                 printf("ending LBA: %u\n", lba);
             }
-            u = ((buff[20] << 24) + (buff[21] << 16) + (buff[22] << 8) +
-                 buff[23]);
+            u = (((unsigned int)buff[20] << 24) + (buff[21] << 16) +
+                 (buff[22] << 8) + buff[23]);
             if (1 == opts->quiet)
                 printf("%u\n", u);
             else if (0 == opts->quiet)
@@ -353,8 +356,8 @@ do_cmd_profile(int sg_fd, const struct sdparm_opt_coll * opts)
     res = sg_ll_get_config(sg_fd, 0x0 /* rt */, 0 /* starting_lba */,
                            resp, sizeof(resp), 1, opts->verbose);
     if (0 == res) {
-        len = (resp[0] << 24) + (resp[1] << 16) + (resp[2] << 8) +
-              resp[3] + 4;
+        len = ((unsigned int)resp[0] << 24) + (resp[1] << 16) +
+               (resp[2] << 8) + resp[3] + 4;
         decode_get_config(resp, sizeof(resp), len);
     }
     return res;

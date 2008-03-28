@@ -306,8 +306,8 @@ decode_dev_ids(const char * print_if_found, unsigned char * buff, int len,
             printf("      Vendor Specific Extension Identifier: 0x%" PRIx64
                    "\n", vsei);
             if (12 == i_len) {
-                d_id = ((ip[8] << 24) | (ip[9] << 16) | (ip[10] << 8) |
-                        ip[11]);
+                d_id = (((unsigned int)ip[8] << 24) | (ip[9] << 16) |
+                        (ip[10] << 8) | ip[11]);
                 printf("      Directory ID: 0x%x\n", d_id);
             }
             break;
@@ -781,15 +781,15 @@ decode_block_limits_vpd(unsigned char * buff, int len)
     }
     u = (buff[6] << 8) | buff[7];
     printf("  Optimal transfer length granularity: %u blocks\n", u);
-    u = (buff[8] << 24) | (buff[9] << 16) | (buff[10] << 8) |
-        buff[11];
+    u = ((unsigned int)buff[8] << 24) | (buff[9] << 16) |
+        (buff[10] << 8) | buff[11];
     printf("  Maximum transfer length: %u blocks\n", u);
-    u = (buff[12] << 24) | (buff[13] << 16) | (buff[14] << 8) |
-        buff[15];
+    u = ((unsigned int)buff[12] << 24) | (buff[13] << 16) |
+        (buff[14] << 8) | buff[15];
     printf("  Optimal transfer length: %u blocks\n", u);
     if (len > 19) {     /* added in sbc3r09 */
-        u = (buff[16] << 24) | (buff[17] << 16) | (buff[18] << 8) |
-            buff[19];
+        u = ((unsigned int)buff[16] << 24) | (buff[17] << 16) |
+            (buff[18] << 8) | buff[19];
         printf("  Maximum prefetch, xdread, xdwrite transfer length: %u "
                "blocks\n", u);
     }
