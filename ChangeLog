@@ -2,8 +2,8 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.03 [20080313]
-  - update Extended Inquiry VPD page t0 spc4r13
+ChangeLog for sdparm-1.03 [20080327]
+  - update Extended Inquiry VPD page to spc4r13
   - allow more than one DEVICE arguments on command line
   - sync with debian unstable files: debian/rules+changelog
   - add speed[=val] and profile commands for MMC
