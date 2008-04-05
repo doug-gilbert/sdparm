@@ -2,18 +2,18 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.03 [20080327]
-  - update Extended Inquiry VPD page to spc4r13
-  - allow more than one DEVICE arguments on command line
-  - sync with debian unstable files: debian/rules+changelog
+ChangeLog for sdparm-1.03 [20080404]
+  - allow more than one DEVICE argument on command line
   - add speed[=val] and profile commands for MMC
+  - update Extended Inquiry VPD page to spc4r14
+  - 'di' VPD page: decode "NAA Locally assigned"
   - SAS protocol-specific port mpage (subpage=0)
     - add CAWT (sas2r13) and RTOL (sas2r14)
   - change 'long long' to int64_t to stress only require
     64 bit integers (similar change to uint64_t)
-  - define SDPARM_MINGW when configure detects it
   - cleanup to use sg_cmds_mmc and PDT_* defines
-  - 'di' VPD page: decode "NAA Locally assigned"
+  - define SDPARM_MINGW when configure detects it
+  - sync with debian unstable files: debian/rules+changelog
 
 ChangeLog for sdparm-1.02 [20071008]
   - support mode page descriptors with

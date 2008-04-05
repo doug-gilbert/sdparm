@@ -695,6 +695,7 @@ decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
         printf("nv_sup=%d\n", !!(buff[6] & 0x2));
         printf("v_sup=%d\n", !!(buff[6] & 0x1));
         printf("luiclr=%d\n", !!(buff[7] & 0x1));
+        printf("mitnd=%d\n", (buff[9] & 0xf));
     } else {
         printf("  SPT=%d GRD_CHK=%d APP_CHK=%d REF_CHK=%d\n",
                ((buff[4] >> 3) & 0x7), !!(buff[4] & 0x4), !!(buff[4] & 0x2),
@@ -706,6 +707,7 @@ decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
         printf("  WU_SUP=%d CRD_SUP=%d NV_SUP=%d V_SUP=%d LUICLR=%d\n",
                !!(buff[6] & 0x8), !!(buff[6] & 0x4), !!(buff[6] & 0x2),
                !!(buff[6] & 0x1), !!(buff[7] & 0x1));
+        printf("  Multi I_T nexus microcode download=%d\n", buff[9] & 0xf);
     }
     return 0;
 }
