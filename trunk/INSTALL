@@ -14,6 +14,12 @@ level directory and issue these commands:
 If configure.ac, Makefile.am or src/Makefile.am have changed
 then ./autogen.sh should be run prior to the above sequence.
 
+If the architecture supports shared libraries (in Unix/Linux) then
+the default './configure' generates a Makefile that will build
+executables that use a shared library. The name of that shared library
+starts with 'libsgutils'. To build without that shared library use this
+invocation: './configure --disable-shared' .
+
 A linux rpm spec file called sdparm.spec is included in the main
 directory. This spec file expects to find a tarball
 called "sdparm-<version_num>.tgz" in the appropriate place.
@@ -63,6 +69,6 @@ The executable is called sdparm.exe and is in the 'src' subdirectory.
 It can be executed in a MSYS or DOS ("cmd") shell.
    
 
-7th October 2007
+4th June 2008
 Douglas Gilbert
 

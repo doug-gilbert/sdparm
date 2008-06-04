@@ -30,7 +30,7 @@ Of the three invocations shown in the synopsis, the first is the
 most general. The second variant that uses \fI\-\-enumerate\fR is
 for dumping information held in sdparm's internal tables. The last
 variant is for Windows only and lists the available device names;
-see the OPTIONS entry for \fI\-\-wscan\fR. 
+see the OPTIONS entry for \fI\-\-wscan\fR.
 .PP
 If no options (other than \fIDEVICE\fR) are given then a selection of
 common mode page fields for that device are listed. If the \fI\-\-long\fR
@@ -108,7 +108,7 @@ Reduced Block Commands (RBC) device where the RBC standard says it
 shall be set.
 .TP
 \fB\-D\fR, \fB\-\-defaults\fR
-sets the given mode page to its default values. Requires the 
+sets the given mode page to its default values. Requires the
 \fI\-\-page=PG[,SPG]\fR option to be given to specify the mode page. To make
 the default mode page values also the saved mode page values, use the
 \fI\-\-save\fR option as well.
@@ -592,7 +592,7 @@ overridden with:
 One disk vendor has a "Performance Mode" bit (PM) in the vendor specific
 unit attention mode page [0x0,0x0]. PM=0 is server mode (the default)
 while PM=1 is desktop mode. Desktop mode can be set (both current and
-saved values) with: 
+saved values) with:
 .PP
    sdparm \-\-page=0 \-\-set=2:7:1=1 \-\-save /dev/sda
 .PP

@@ -75,7 +75,7 @@ struct option {
 
 int getopt_long(int, char * const *, const char *,
     const struct option *, int *);
- 
+
 #endif /* !HAVE_GETOPT_LONG */
 
 #endif /* !_MYPROXY_GETOPT_H_ */
