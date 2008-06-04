@@ -307,7 +307,7 @@ sdp_set_big_endian(uint64_t val, unsigned char * to, int start_bit,
             x = (val >> ((num - k - 1) * 8)) & 0xff;
         else
             x = val & 0xff;
-        to[k] = (to[k] & ~mask) | (x & mask); 
+        to[k] = (to[k] & ~mask) | (x & mask);
         mask = 0xff;
         num_bits -= sbit_o1;
         sbit_o1 = 8;
@@ -350,7 +350,7 @@ sdp_mp_set_value(uint64_t val, const struct sdparm_mode_page_item * mpi,
     sdp_set_big_endian(val, mp + mpi->start_byte, mpi->start_bit,
                        mpi->num_bits);
 }
- 
+
 char *
 sdp_get_ansi_version_str(int version, int buff_len, char * buff)
 {

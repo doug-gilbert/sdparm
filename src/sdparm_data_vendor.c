@@ -192,6 +192,6 @@ struct sdparm_vendor_pair sdparm_vendor_mp[] = {
     {sdparm_v_fujitsu_mode_pg, sdparm_mitem_v_fujitsu_arr},
 };
 
-int sdparm_vendor_mp_len = 
+int sdparm_vendor_mp_len =
         sizeof(sdparm_vendor_mp) / sizeof(sdparm_vendor_mp[0]);
 

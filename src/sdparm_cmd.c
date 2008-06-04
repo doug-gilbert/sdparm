@@ -70,7 +70,7 @@ do_cmd_read_capacity(int sg_fd, int verbose)
                           resp_buff[7]);
             printf("blocks: %u\n", last_blk_addr + 1);
             printf("block_length: %u\n", block_size);
-            sz_mib = ((double)(last_blk_addr + 1) * block_size) / 
+            sz_mib = ((double)(last_blk_addr + 1) * block_size) /
                       (double)(1048576);
 #ifdef SG3_UTILS_MINGW
             printf("capacity_mib: %g\n", sz_mib);
@@ -95,7 +95,7 @@ do_cmd_read_capacity(int sg_fd, int verbose)
                           resp_buff[11]);
             printf("blocks: %" PRIu64 "\n", llast_blk_addr + 1);
             printf("block_length: %u\n", block_size);
-            sz_mib = ((double)(llast_blk_addr + 1) * block_size) / 
+            sz_mib = ((double)(llast_blk_addr + 1) * block_size) /
                       (double)(1048576);
 #ifdef SG3_UTILS_MINGW
             printf("capacity_mib: %g\n", sz_mib);

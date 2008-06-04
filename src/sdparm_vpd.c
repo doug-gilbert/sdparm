@@ -355,7 +355,7 @@ decode_dev_ids(const char * print_if_found, unsigned char * buff, int len,
                     dStrHex((const char *)ip, i_len, 0);
                     break;
                 }
-                c_id = (((ip[0] & 0xf) << 20) | (ip[1] << 12) | 
+                c_id = (((ip[0] & 0xf) << 20) | (ip[1] << 12) |
                         (ip[2] << 4) | ((ip[3] & 0xf0) >> 4));
                 vsei = ip[3] & 0xf;
                 for (m = 1; m < 5; ++m) {
@@ -383,7 +383,7 @@ decode_dev_ids(const char * print_if_found, unsigned char * buff, int len,
                     dStrHex((const char *)ip, i_len, 0);
                     break;
                 }
-                c_id = (((ip[0] & 0xf) << 20) | (ip[1] << 12) | 
+                c_id = (((ip[0] & 0xf) << 20) | (ip[1] << 12) |
                         (ip[2] << 4) | ((ip[3] & 0xf0) >> 4));
                 vsei = ip[3] & 0xf;
                 for (m = 1; m < 5; ++m) {
@@ -644,7 +644,7 @@ decode_scsi_ports_vpd(unsigned char * buff, int len, int long_out, int quiet)
             return SG_LIB_CAT_MALFORMED;
         }
         if (ip_tid_len > 0) {
-            /* 
+            /*
              * SCSI devices that are both target and initiator are rare.
              * Only target devices can receive this command, so if they
              * are also initiators then print out the "Initiator port
@@ -689,7 +689,7 @@ decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
         printf("prior_sup=%d\n", !!(buff[5] & 0x8));
         printf("headsup=%d\n", !!(buff[5] & 0x4));
         printf("ordsup=%d\n", !!(buff[5] & 0x2));
-        printf("simpsup=%d\n", !!(buff[5] & 0x1)); 
+        printf("simpsup=%d\n", !!(buff[5] & 0x1));
         printf("wu_sup=%d\n", !!(buff[6] & 0x8));
         printf("crd_sup=%d\n", !!(buff[6] & 0x4));
         printf("nv_sup=%d\n", !!(buff[6] & 0x2));

@@ -305,9 +305,9 @@ enumerate_mitems(int pn, int spn, int pdt,
                                      long_o, 1, buff, sizeof(buff));
             if (long_o && (transp < 0) && (vendor < 0))
                 printf("%s [%s] mode page:\n", buff,
-                       sdp_get_pdt_doc_str(t_pdt, sizeof(b), b)); 
+                       sdp_get_pdt_doc_str(t_pdt, sizeof(b), b));
             else
-                printf("%s mode page:\n", buff); 
+                printf("%s mode page:\n", buff);
         } else {
             if ((pn >= 0) && ((pn != t_pn) || (spn != t_spn)))
                 continue;
@@ -807,7 +807,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
 
 /* returns 1 when ok, else 0 */
 static int
-check_desc_convert_mpi(int desc_num, const struct sdparm_mode_page_t * mpp, 
+check_desc_convert_mpi(int desc_num, const struct sdparm_mode_page_t * mpp,
                        const struct sdparm_mode_page_item * ref_mpi,
                        struct sdparm_mode_page_item * out_mpi,
                        char * b, int b_len)
@@ -828,7 +828,7 @@ check_desc_convert_mpi(int desc_num, const struct sdparm_mode_page_t * mpp,
 
 /* returns 1 when ok, else 0 */
 static int
-desc_adjust_start_byte(int desc_num, const struct sdparm_mode_page_t * mpp, 
+desc_adjust_start_byte(int desc_num, const struct sdparm_mode_page_t * mpp,
                        unsigned char * cur_mp, int rep_len,
                        struct sdparm_mode_page_item * mpi,
                        const struct sdparm_opt_coll * opts)
@@ -926,7 +926,7 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
                return SG_LIB_SYNTAX_ERROR;
             }
         } else
-            adapt = 0; 
+            adapt = 0;
         if ((0 == k) || (pn != mpi->page_num) || (spn != mpi->subpage_num)) {
             pn = mpi->page_num;
             spn = mpi->subpage_num;
@@ -1658,7 +1658,7 @@ open_and_simple_inquiry(const char * device_name, int rw, int * pdt,
         fprintf(stderr, "open error: %s [%s]: %s\n", device_name,
                 (rw ? "read/write" : "read only"), safe_strerror(-sg_fd));
         return -1;
-    } 
+    }
     res = sg_simple_inquiry(sg_fd, &sir, 0, verb);
     if (res) {
 #ifdef SDPARM_LINUX
@@ -1797,7 +1797,7 @@ main(int argc, char * argv[])
     const struct sdparm_transport_id_t * tip;
     const struct sdparm_vpd_page_t * vpp = NULL;
     const struct sdparm_vendor_name_t * vnp;
-    struct sdparm_mode_page_settings mp_settings; 
+    struct sdparm_mode_page_settings mp_settings;
     char * cp;
     const char * ccp;
     const struct sdparm_command_t * scmdp = NULL;
@@ -2221,7 +2221,7 @@ main(int argc, char * argv[])
                             enumerate_mitems(pn, spn, pdt, &opts);
                     }
                 }
-            } else      /* given mode page number */ 
+            } else      /* given mode page number */
                 enumerate_mitems(pn, spn, pdt, &opts);
             return 0;
         } else if (opts.enumerate) {
@@ -2250,7 +2250,7 @@ main(int argc, char * argv[])
             if (build_mp_settings(clear_str, &mp_settings, &opts, 1, 0))
                 return SG_LIB_SYNTAX_ERROR;
         }
- 
+
         if (opts.verbose && (mp_settings.num_it_vals > 0))
             list_mp_settings(&mp_settings, (NULL != get_str));
 
@@ -2276,7 +2276,7 @@ main(int argc, char * argv[])
             fprintf(stderr, ">>> about to open device name: %s\n",
                     device_name_arr[k]);
         sg_fd = open_and_simple_inquiry(device_name_arr[k], rw, &pdt, &opts);
-        if (sg_fd < 0) { 
+        if (sg_fd < 0) {
             r = SG_LIB_FILE_ERROR;
             if (0 == ret)
                 ret = r;
@@ -2385,11 +2385,11 @@ static int find_corresponding_sg_fd(int oth_fd, const char * device_name,
                 perror("SCSI_IOCTL_GET_IDLUN failed");
             return -2;
         }
-        if ((bus == bbus) && 
+        if ((bus == bbus) &&
             ((m_idlun.mux4 & 0xff) == (mm_idlun.mux4 & 0xff)) &&
-            (((m_idlun.mux4 >> 8) & 0xff) == 
+            (((m_idlun.mux4 >> 8) & 0xff) ==
                                     ((mm_idlun.mux4 >> 8) & 0xff)) &&
-            (((m_idlun.mux4 >> 16) & 0xff) == 
+            (((m_idlun.mux4 >> 16) & 0xff) ==
                                     ((mm_idlun.mux4 >> 16) & 0xff)))
             break;
         else {
