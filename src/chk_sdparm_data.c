@@ -184,7 +184,7 @@ static void check(const struct sdparm_mode_page_item * mpi,
                        "bit: %d [latest acron: %s]\n", prev_mp,
                        prev_msp, sbyte, sbit, acron);
         }
-        set_cl(sbyte, kp->pdt, mask); 
+        set_cl(sbyte, kp->pdt, mask);
         if ((nbits - 1) > sbit) {
             nbits -= (sbit + 1);
             if ((nbits > 7) && (0 != (nbits % 8)))
@@ -215,7 +215,7 @@ static void check(const struct sdparm_mode_page_item * mpi,
                                "%d, bit: %d [latest acron: %s]\n",
                                prev_mp, prev_msp, sbyte, sbit, acron);
                 }
-                set_cl(sbyte, kp->pdt, mask); 
+                set_cl(sbyte, kp->pdt, mask);
             } while (nbits > 0);
         }
     }
