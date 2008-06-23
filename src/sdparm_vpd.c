@@ -40,7 +40,7 @@
 #include "sg_cmds_basic.h"
 
 /* sdparm_vpd.c : does mainly VPD page processing associated with the
- * INQUIRY SCSI command.
+ * INQUIRY SCSI command. Roughly in sync with spc4r15.
  */
 
 /* Prints outs an abridged set of device identification designators
@@ -695,6 +695,7 @@ decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
         printf("nv_sup=%d\n", !!(buff[6] & 0x2));
         printf("v_sup=%d\n", !!(buff[6] & 0x1));
         printf("luiclr=%d\n", !!(buff[7] & 0x1));
+        printf("cbcs=%d\n", !!(buff[8] & 0x1));
         printf("mitnd=%d\n", (buff[9] & 0xf));
     } else {
         printf("  SPT=%d GRD_CHK=%d APP_CHK=%d REF_CHK=%d\n",
@@ -704,9 +705,10 @@ decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
                "SIMPSUP=%d\n", !!(buff[5] & 0x20), !!(buff[5] & 0x10),
                !!(buff[5] & 0x8), !!(buff[5] & 0x4), !!(buff[5] & 0x2),
                !!(buff[5] & 0x1));
-        printf("  WU_SUP=%d CRD_SUP=%d NV_SUP=%d V_SUP=%d LUICLR=%d\n",
-               !!(buff[6] & 0x8), !!(buff[6] & 0x4), !!(buff[6] & 0x2),
-               !!(buff[6] & 0x1), !!(buff[7] & 0x1));
+        printf("  WU_SUP=%d CRD_SUP=%d NV_SUP=%d V_SUP=%d LUICLR=%d "
+               "CBCS=%d\n", !!(buff[6] & 0x8), !!(buff[6] & 0x4),
+               !!(buff[6] & 0x2), !!(buff[6] & 0x1), !!(buff[7] & 0x1),
+               !!(buff[8] & 0x1));
         printf("  Multi I_T nexus microcode download=%d\n", buff[9] & 0xf);
     }
     return 0;

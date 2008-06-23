@@ -2,10 +2,10 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.03 [20080604]
+ChangeLog for sdparm-1.03 [20080623]
   - allow more than one DEVICE argument on command line
   - add speed[=val] and profile commands for MMC
-  - update Extended Inquiry VPD page to spc4r14
+  - update Extended Inquiry VPD page to spc4r15
   - 'di' VPD page: decode "NAA Locally assigned"
   - SAS protocol-specific port mpage (subpage=0)
     - add CAWT (sas2r13) and RTOL (sas2r14)
