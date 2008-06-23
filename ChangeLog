@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.03 [20080623]
+ChangeLog for sdparm-1.03 [20080623] [svn: r96]
   - allow more than one DEVICE argument on command line
   - add speed[=val] and profile commands for MMC
   - update Extended Inquiry VPD page to spc4r15
@@ -15,7 +15,7 @@ ChangeLog for sdparm-1.03 [20080623]
   - define SDPARM_MINGW when configure detects it
   - sync with debian unstable files: debian/rules+changelog
 
-ChangeLog for sdparm-1.02 [20071008]
+ChangeLog for sdparm-1.02 [20071008] [svn: r59]
   - support mode page descriptors with
     <acronym_name>[.<descriptor_num] syntax
     - "2_<acronym>" type entries replaced by new syntax
