@@ -515,7 +515,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"IALUAE", CONTROL_MP, MSP_SPC_CE, -1, 4, 0, 1, 0,
         "Implicit asymmetric logical unit access enabled", NULL},
     {"INIT_PR", CONTROL_MP, MSP_SPC_CE, -1, 5, 3, 4, 0,
-        "Initial priority", "0: none or vendor\t"
+        "Initial command priority", "0: none or vendor\t"
         "1: highest\t15: lowest"},
 
     /* SAT: pATA control mode subpage [0xa,0xf1] sat-r09 */
