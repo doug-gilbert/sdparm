@@ -11,7 +11,7 @@ to FreeBSD, Solaris, Tru64, and Windows.
 
 Relationship to sg3_utils
 -------------------------
-This package shares code with sg3_utils (version 1.25). With the
+This package shares code with sg3_utils (version 1.26). With the
 subversion revision control system this is done by having sdparm's
 "include/" and "lib/" subdirectories pointing to the correspondingly
 named directories in the sg3_utils package using the "svn:externals"
@@ -164,4 +164,4 @@ may be used but "PD" is obviously quicker to type.
 
 
 Douglas Gilbert
-4th May 2008
+28th May 2008

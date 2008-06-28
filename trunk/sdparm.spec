@@ -1,5 +1,5 @@
 %define	name	sdparm
-%define	version	1.03
+%define	version	1.04
 %define	release	1
 
 Summary:	List or change SCSI disk parameters
@@ -57,7 +57,10 @@ make install \
 %{_mandir}/man8/*
 
 %changelog
-* Wed Jun 04 2008 - dgilbert at interlog dot com
+* Sat Jun 28 2008 - dgilbert at interlog dot com
+- xxxxxxxxxxx
+  * sdparm-1.04
+* Mon Jun 23 2008 - dgilbert at interlog dot com
 - allow multiple devices to be given, profile and speed commands
   * sdparm-1.03
 * Mon Oct 08 2007 - dgilbert at interlog dot com
