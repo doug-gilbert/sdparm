@@ -2,6 +2,9 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
+ChangeLog for sdparm-1.04 [20080628] [svn: r98]
+  - start sdparm-1.04
+
 ChangeLog for sdparm-1.03 [20080623] [svn: r96]
   - allow more than one DEVICE argument on command line
   - add speed[=val] and profile commands for MMC
