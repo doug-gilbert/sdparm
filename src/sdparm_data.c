@@ -78,6 +78,7 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
     {CONTROL_MP, MSP_SAT_PATA, -1, 0, "pat", "SAT pATA control", NULL},
     {PROT_SPEC_LU_MP, 0, -1, 0, "pl", "Protocol specific logical unit", NULL},
     {POWER_MP, 0, -1, 0, "po", "Power condition", NULL},
+    {POWER_MP, MSP_SAT_POWER, -1, 0, "apo", "SAT ATA Power condition", NULL},
     {POWER_OLD_MP, 0, PDT_DISK, 0, "poo", "Power condition - old version", NULL},
         /* POWER_OLD_MP for disks as it clashes with old MMC specs */
     {PROT_SPEC_PORT_MP, 0, -1, 0, "pp", "Protocol specific port", NULL},
@@ -708,6 +709,12 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Idle condition timer (100 ms)", NULL},
     {"SCT", POWER_MP, 0, -1, 8, 7, 32, 0,
         "Standby condition timer (100 ms)", NULL},
+
+    /* SAT ATA Power condition mode page [0x1a,0xf1] sat2 */
+    {"APMP", POWER_MP, MSP_SAT_POWER, -1, 5, 0, 1, 0,
+        "Advanced Power Management (APM) enabled/change", NULL},
+    {"APM", POWER_MP, MSP_SAT_POWER, -1, 6, 7, 8, 0,
+        "Advanced Power Management (APM) value", NULL},
 
     /* Informational exception control mode page [0x1c] spc3 */
     {"PERF", IEC_MP, 0, -1, 2, 7, 1, 0,
