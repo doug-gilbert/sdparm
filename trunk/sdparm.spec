@@ -32,22 +32,21 @@ such that the disk stops operating or is slowed down. Use with care.
 %setup -q
 
 %build
-
-# ./autogen.sh --prefix=%{_prefix} --mandir=%{_mandir}
-./configure --prefix=%{_prefix} --mandir=%{_mandir}
+%configure
 
 %install
-[ "%{buildroot}" != "/" ] && rm -rf %{buildroot}
+if [ "$RPM_BUILD_ROOT" != "/" ]; then
+        rm -rf $RPM_BUILD_ROOT
+fi
 
 make install \
-	DESTDIR=$RPM_BUILD_ROOT
-
-%post
-
-%postun
+        DESTDIR=$RPM_BUILD_ROOT
 
 %clean
-[ "%{buildroot}" != "/" ] && rm -rf %{buildroot}
+if [ "$RPM_BUILD_ROOT" != "/" ]; then
+        rm -rf $RPM_BUILD_ROOT
+fi
+
 
 %files
 %defattr(-,root,root)
@@ -57,8 +56,8 @@ make install \
 %{_mandir}/man8/*
 
 %changelog
-* Sat Jun 28 2008 - dgilbert at interlog dot com
-- xxxxxxxxxxx
+* Tue Aug 05 2008 - dgilbert at interlog dot com
+- change rules in this file
   * sdparm-1.04
 * Mon Jun 23 2008 - dgilbert at interlog dot com
 - allow multiple devices to be given, profile and speed commands
