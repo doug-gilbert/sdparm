@@ -57,6 +57,7 @@
 #define MSP_SAS2_PHY 3
 #define MSP_BACK_CTL 1
 #define MSP_SAT_PATA 0xf1       /* SAT PATA Control */
+#define MSP_SAT_POWER 0xf1      /* SAT ATA Power condition */
 #define MSP_DEV_CONF_EXT 1      /* device conf extension (ssc) */
 #define MSP_EXT_DEV_CAP 0x41    /* extended device capabilities (smc) */
 
