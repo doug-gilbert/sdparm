@@ -8,8 +8,8 @@ Version:	%{version}
 Release:	%{release}
 License:	FreeBSD
 Group:		Utilities/System
-URL:		http://www.torque.net/sg/sdparm.html
-Source0:	http://www.torque.net/sg/p/%{name}-%{version}.tgz
+URL:		http://sg.danny.cz/sg/sdparm.html
+Source0:	http://sg.danny.cz/sg/p/%{name}-%{version}.tgz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-root
 Packager:	Douglas Gilbert <dgilbert at interlog dot com>
 
@@ -56,7 +56,7 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Tue Aug 05 2008 - dgilbert at interlog dot com
+* Sun Oct 26 2008 - dgilbert at interlog dot com
 - change rules in this file
   * sdparm-1.04
 * Mon Jun 23 2008 - dgilbert at interlog dot com
