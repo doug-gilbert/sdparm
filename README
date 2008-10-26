@@ -37,7 +37,7 @@ and privileged commands). It can be accessed with "man sdparm" once this
 package is installed. Prior to installation the man page can be viewed
 from this package's main directory with "man doc/sdparm.8".
 
-There is a web page at http://www.torque.net/sg/sdparm.html and a copy
+There is a web page at http://sg.danny.cz/sg/sdparm.html and a copy
 of that html file is placed in the "doc" directory.
 
 Build infrastructure
@@ -76,7 +76,7 @@ the linux 2.4 series that is only the scsi generic (i.e. /dev/sg* )
 device nodes. In the linux 2.6 series the supported device nodes has
 expanded to all other SCSI device nodes (e.g. /dev/sd* and /dev/sr*)
 plus block devices such as /dev/hdc when the associated device is a
-DVD drive. Most man page and www.torque.net/sg/sdparm.html web page
+DVD drive. Most man page and sg.danny.cz/sg/sdparm.html web page
 examples use linux device node names.
 
 FreeBSD port
@@ -164,4 +164,4 @@ may be used but "PD" is obviously quicker to type.
 
 
 Douglas Gilbert
-5th August 2008
+26th October 2008
