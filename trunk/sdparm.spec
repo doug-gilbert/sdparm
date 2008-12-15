@@ -56,7 +56,7 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Mon Dec 01 2008 - dgilbert at interlog dot com
+* Tue Dec 02 2008 - dgilbert at interlog dot com
 - change rules in this file
   * sdparm-1.04
 * Mon Jun 23 2008 - dgilbert at interlog dot com
