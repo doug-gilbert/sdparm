@@ -11,45 +11,44 @@ to FreeBSD, Solaris, Tru64, and Windows.
 
 Relationship to sg3_utils
 -------------------------
-This package shares code with sg3_utils (version 1.26). With the
-subversion revision control system this is done by having sdparm's
-"include/" and "lib/" subdirectories pointing to the correspondingly
-named directories in the sg3_utils package using the "svn:externals"
-property. These two "external" directories include more files than
-sdparm uses. The excess files include "lib/Makefile.am" and
-"lib/Makefile.in". The "Makfile.am" in sdparm's "src/" directory does
-the main part of the build. When the tarball is generated for this
-utility, various files are "exported" out of the subversion repository
-and "svn:externals" redirection is no longer visible (but the unused
-files are visible).
+This package shares code with sg3_utils (version 1.26). With the subversion
+revision control system this is done by having sdparm's "include/" and "lib/"
+subdirectories pointing to the correspondingly named directories in the
+sg3_utils package using the "svn:externals" property. These two "external"
+directories include more files than sdparm uses. The excess files include
+"lib/Makefile.am" and "lib/Makefile.in". The "Makefile.am" in sdparm's "src/"
+directory does the main part of the build. When the tarball is generated for
+this utility, various files are "exported" out of the subversion repository
+and "svn:externals" redirection is no longer visible (but the unused files
+are visible).
 
-Currently the shared code is statically compiled into each package.
-It is the intention of the author to make a common library called
-libsgutils.so in a separate package that both sdparm and sg3_utils
-will depend on at some point in the future.
+Currently the shared code is statically compiled into sdparm. It is the
+intention of the author to make a common library called libsgutils.so in
+a separate package that both sdparm and sg3_utils will depend on at some
+point in the future.
 
 Documentation
 -------------
-The executable outputs a usage message when the "--help" (or '-h' or '-?')
-option is given. Many syntax errors also result in the usage message being
-printed. There is also a man page which is in section 8 (administration
-and privileged commands). It can be accessed with "man sdparm" once this
-package is installed. Prior to installation the man page can be viewed
-from this package's main directory with "man doc/sdparm.8".
+The utility outputs a usage message when the "--help" (or '-h' or '-?') option
+is given. Many syntax errors also result in the usage message being printed.
+There is also a man page which is in section 8 (administration and privileged
+commands). It can be accessed with "man sdparm" once this package is
+installed. Prior to installation the man page can be viewed from this
+package's main directory with "man doc/sdparm.8".
 
-There is a web page at http://sg.danny.cz/sg/sdparm.html and a copy
-of that html file is placed in the "doc" directory.
+There is a web page at http://sg.danny.cz/sg/sdparm.html and a copy of that
+html file is placed in the "doc" directory.
 
 Build infrastructure
 --------------------
-This packages uses the automake and autoconf tools. The generating
-files (scripts) are configure.ac, Makefile.am, src/Makefile.am and
-autogen.sh . The autogen.sh script only needs to be executed if one of
-the other generating files in the above list is changed.
+This packages uses the automake and autoconf tools. The generating files
+(scripts) are configure.ac, Makefile.am, src/Makefile.am and autogen.sh .
+The autogen.sh script only needs to be executed if one of the other generating
+files in the above list is changed.
 
-There is a rpm "spec" file in the main directory: sdparm.spec .
-There are debian build files in the "debian" directory and a
-script called build_debian.sh in the main directory.
+There is a rpm "spec" file in the main directory: sdparm.spec . There are
+debian build files in the "debian" directory and a script called
+build_debian.sh in the main directory.
 
 License
 -------
@@ -57,27 +56,28 @@ This utility is covered by a FreeBSD license. The intention of the author
 is that both open source and commercial entities can re-use this code.
 Naturally credit and improvement/bug feedback are encouraged. The part
 of this code that others may be able to re-use is the information in
-the tables in sdparm_data.c and sg_lib.c . This is information garnered
-from SCSI drafts and standards at http://www.t10.org (plus some
-information from the ATA drafts and standards at http://www.t13.org ).
-Vendor specific mode page information is found in the sdparm_data_vendor.c
-file and is derived from vendor product manuals.
+the tables in sdparm_data.c , sg_lib.c and sg_lib_data.c . This is
+information garnered from SCSI drafts and standards at http://www.t10.org
+(plus some information from the ATA drafts and standards at
+http://www.t13.org ). Vendor specific mode page information is found in the
+sdparm_data_vendor.c file and is derived from vendor product manuals.
 
 Notes
 -----
-More specific information about building this package can be found in
-the INSTALL file. The contents of COPYING is a FreeBSD license (rather
-than the GPL v2 found in the usual template).
+Generic information about building this package (i.e. './configure ; make; 
+make install') can be found in the INSTALL file. The contents of the COPYING
+file is a FreeBSD license (rather than the GPL v2 found in the usual
+template).
 
 Linux port
 ----------
 The utility can be used on any device that supports the SG_IO ioctl. In
-the linux 2.4 series that is only the scsi generic (i.e. /dev/sg* )
-device nodes. In the linux 2.6 series the supported device nodes has
+the Linux 2.4 series that is only the scsi generic (i.e. /dev/sg* )
+device nodes. In the Linux 2.6 series the supported device nodes has
 expanded to all other SCSI device nodes (e.g. /dev/sd* and /dev/sr*)
 plus block devices such as /dev/hdc when the associated device is a
-DVD drive. Most man page and sg.danny.cz/sg/sdparm.html web page
-examples use linux device node names.
+DVD drive. The man page and sg.danny.cz/sg/sdparm.html web page
+examples use Linux device node names.
 
 FreeBSD port
 ------------
@@ -164,4 +164,4 @@ may be used but "PD" is obviously quicker to type.
 
 
 Douglas Gilbert
-1st December 2008
+4th January 2009
