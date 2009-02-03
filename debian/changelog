@@ -2,7 +2,7 @@ sdparm (1.04-0.1) unstable; urgency=low
 
   * add SAT ATA Power condition mode page
 
- -- Douglas Gilbert <dgilbert@interlog.com>  Tue, 02 Dec 2008 20:30:00 +0100
+ -- Douglas Gilbert <dgilbert@interlog.com>  Mon, 02 Feb 2009 23:30:00 -0500
 
 sdparm (1.03-0.1) unstable; urgency=low
 
