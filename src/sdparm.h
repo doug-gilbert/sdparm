@@ -54,7 +54,7 @@
 #define MSP_SPI_RTC 4
 #define MSP_SAS_PCD 1
 #define MSP_SAS_SPC 2
-#define MSP_SAS2_PHY 3
+#define MSP_SAS_E_PHY 3
 #define MSP_BACK_CTL 1
 #define MSP_SAT_PATA 0xf1       /* SAT PATA Control */
 #define MSP_SAT_POWER 0xf1      /* SAT ATA Power condition */

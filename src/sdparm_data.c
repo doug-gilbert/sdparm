@@ -156,8 +156,8 @@ static struct sdparm_mode_descriptor_t sas_pcd_desc = {   /* desc SAS-2 */
     7, 1, 0, 8, 48, -1, -1, "SAS phy"
 };
 
-static struct sdparm_mode_descriptor_t sas2_phy_desc = {  /* desc SAS-2 */
-    7, 1, 0, 8, -1, 2, 2, "SAS-2 phy"
+static struct sdparm_mode_descriptor_t sas_e_phy_desc = {  /* desc SAS-2 */
+    7, 1, 0, 8, -1, 2, 2, "Enhanced phy"
 };
 
 static struct sdparm_mode_page_t sdparm_sas_mode_pg[] = {    /* SAS-2 */
@@ -167,8 +167,8 @@ static struct sdparm_mode_page_t sdparm_sas_mode_pg[] = {    /* SAS-2 */
     {PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 0, "pcd",
         "Phy control and discover (SAS)", &sas_pcd_desc},
     {PROT_SPEC_PORT_MP, 0, -1, 0, "pp", "Protocol specific port (SAS)", NULL},
-    {PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 0, "s2p",
-        "SAS-2 Phy", &sas2_phy_desc},
+    {PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 0, "sep",
+        "Enhanced phy control (SAS)", &sas_e_phy_desc},
     {PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 0, "spc",
         "Shared port control (SAS)", NULL},
     {0, 0, 0, 0, NULL, NULL, NULL},
@@ -1232,29 +1232,29 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Power loss timeout(ms)", NULL},
 
     /* SAS-2 phy mode page [0x19,0x3] sas2 */
-    {"PPID_3", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 5, 3, 4, 0,
+    {"PPID_3", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 5, 3, 4, 0,
         "Port's (transport) protocol identifier",
         "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
-    {"GENC_1", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 6, 7, 8, 0,
+    {"GENC_1", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 6, 7, 8, 0,
         "Generation code", "0: unknown, 1..255: valid"},
-    {"NOP_1", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 7, 7, 8, 0,
+    {"NOP_1", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 7, 7, 8, 0,
         "Number of phys", "one descriptor per phy"},
     /* */
-    {"PHID_1", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 9, 7, 8, 0,
+    {"PHID_1", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 9, 7, 8, 0,
         "Phy identifier", NULL},
-    {"PPCAP", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 12, 7, 32, MF_HEX,
+    {"PPCAP", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 12, 7, 32, MF_HEX,
         "Programmed phy capabilities", NULL},
-    {"CPCAP", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 16, 7, 32, MF_HEX,
+    {"CPCAP", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 16, 7, 32, MF_HEX,
         "Current phy capabilities", NULL},
-    {"APCAP", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 20, 7, 32, MF_HEX,
+    {"APCAP", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 20, 7, 32, MF_HEX,
         "Attached phy capabilities", NULL},
-    {"N_SSC", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 26, 4, 1, 0,
+    {"N_SSC", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 26, 4, 1, 0,
         "Negotiated spread spectrum clocking", NULL},
-    {"N_PLR", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 26, 3, 4, 0,
+    {"N_PLR", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 26, 3, 4, 0,
         "Negotiated physical link rate",
         "6: resetting; 7: attached unsupported\t"
         "8: 1.5 Gbps; 9: 3 Gbps; 0xa: 6 Gbps"},
-    {"HMS", PROT_SPEC_PORT_MP, MSP_SAS2_PHY, -1, 27, 0, 1, 0,
+    {"HMS", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 27, 0, 1, 0,
         "Hardware muxing supported", NULL},
 
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
