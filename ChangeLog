@@ -2,11 +2,10 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.04 [20090902] [svn: r105]
+ChangeLog for sdparm-1.04 [20090902] [svn: r106]
   - add SAT ATA Power condition mode page (sat2r06)
   - rename SAS-2 phy mode page to Enhanced phy control (SAS)
   - sdparm.spec: correction to configure call
-  - autotools infrastructure: changes after upgrade to Ubuntu 8.10
 
 ChangeLog for sdparm-1.03 [20080623] [svn: r96]
   - allow more than one DEVICE argument on command line
