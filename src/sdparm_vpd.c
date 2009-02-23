@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2008 Douglas Gilbert.
+ * Copyright (c) 2005-2009 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -694,9 +694,10 @@ decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
         printf("crd_sup=%d\n", !!(buff[6] & 0x4));
         printf("nv_sup=%d\n", !!(buff[6] & 0x2));
         printf("v_sup=%d\n", !!(buff[6] & 0x1));
+        printf("p_i_i_sup=%d\n", !!(buff[7] & 0x10));
         printf("luiclr=%d\n", !!(buff[7] & 0x1));
         printf("cbcs=%d\n", !!(buff[8] & 0x1));
-        printf("mitnd=%d\n", (buff[9] & 0xf));
+        printf("mitmd=%d\n", (buff[9] & 0xf));
     } else {
         printf("  SPT=%d GRD_CHK=%d APP_CHK=%d REF_CHK=%d\n",
                ((buff[4] >> 3) & 0x7), !!(buff[4] & 0x4), !!(buff[4] & 0x2),
@@ -705,10 +706,10 @@ decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
                "SIMPSUP=%d\n", !!(buff[5] & 0x20), !!(buff[5] & 0x10),
                !!(buff[5] & 0x8), !!(buff[5] & 0x4), !!(buff[5] & 0x2),
                !!(buff[5] & 0x1));
-        printf("  WU_SUP=%d CRD_SUP=%d NV_SUP=%d V_SUP=%d LUICLR=%d "
-               "CBCS=%d\n", !!(buff[6] & 0x8), !!(buff[6] & 0x4),
-               !!(buff[6] & 0x2), !!(buff[6] & 0x1), !!(buff[7] & 0x1),
-               !!(buff[8] & 0x1));
+        printf("  WU_SUP=%d CRD_SUP=%d NV_SUP=%d V_SUP=%d P_I_I_SUP=%d "
+               "LUICLR=%d CBCS=%d\n", !!(buff[6] & 0x8), !!(buff[6] & 0x4),
+               !!(buff[6] & 0x2), !!(buff[6] & 0x1), !!(buff[7] & 0x10),
+               !!(buff[7] & 0x1), !!(buff[8] & 0x1));
         printf("  Multi I_T nexus microcode download=%d\n", buff[9] & 0xf);
     }
     return 0;
@@ -770,6 +771,32 @@ static int decode_ata_info_vpd(unsigned char * buff, int len, int long_out,
         dStrHex((const char *)(buff + 60), 512, 0);
     else if (long_out)
         dWordHex((const unsigned short *)(buff + 60), 256, 0, is_be);
+    return 0;
+}
+
+static int
+decode_power_condition(unsigned char * buff, int len)
+{
+    if (len < 18) {
+        fprintf(stderr, "Power condition VPD page length too short=%d\n",
+                len);
+        return SG_LIB_CAT_MALFORMED;
+    }
+    printf("  Standby_y=%d Standby_z=%d Idle_c=%d Idle_b=%d Idle_a=%d\n",
+           !!(buff[4] & 0x2), !!(buff[4] & 0x1),
+           !!(buff[5] & 0x4), !!(buff[5] & 0x2), !!(buff[5] & 0x1));
+    printf("  Stopped condition recovery time (ms) %d\n",
+            (buff[6] << 8) + buff[7]);
+    printf("  Standby_z condition recovery time (ms) %d\n",
+            (buff[8] << 8) + buff[9]);
+    printf("  Standby_y condition recovery time (ms) %d\n",
+            (buff[10] << 8) + buff[11]);
+    printf("  Idle_a condition recovery time (ms) %d\n",
+            (buff[12] << 8) + buff[13]);
+    printf("  Idle_b condition recovery time (ms) %d\n",
+            (buff[14] << 8) + buff[15]);
+    printf("  Idle_c condition recovery time (ms) %d\n",
+            (buff[16] << 8) + buff[17]);
     return 0;
 }
 
@@ -1071,6 +1098,27 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             return 0;
         }
         res = decode_mode_policy_vpd(b, len + 4);
+        if (res)
+            return res;
+        break;
+    case VPD_POWER_CONDITION:
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = (b[2] << 8) + b[3];
+        if (len > sz) {
+            fprintf(stderr, "Response to Power condition VPD page "
+                    "truncated\n");
+            len = sz;
+        }
+        if (opts->long_out)
+            printf("Power condition [0x8a] VPD page:\n");
+        else if (! opts->quiet)
+            printf("Power condition VPD page:\n");
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        res = decode_power_condition(b, len + 4);
         if (res)
             return res;
         break;

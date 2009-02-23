@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2008 Douglas Gilbert.
+ * Copyright (c) 2005-2009 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -201,6 +201,7 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_MAN_NET_ADDR, 0, -1, "mna", "Management network addresses"},
     {VPD_MODE_PG_POLICY, 0, -1, "mpp", "Mode page policy"},
     {VPD_OSD_INFO, 0, PDT_OSD, "oi", "OSD information"},
+    {VPD_POWER_CONDITION, 0, -1, "pc", "Power condition"},
     {VPD_PROTO_LU, 0, -1, "pslu", "Protocol-specific logical unit "
      "information"},
     {VPD_PROTO_PORT, 0, -1, "pspo", "Protocol-specific port information"},
@@ -700,15 +701,31 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi\t"
         "[try adding '-t <transport>' to get more fields]"},
 
-    /* Power condition mode page [0x1a] spc3 */
-    {"IDLE", POWER_MP, 0, -1, 3, 1, 1, 0,
-        "Idle timer active", NULL},
-    {"STANDBY", POWER_MP, 0, -1, 3, 0, 1, 0,
-        "Standby timer active", NULL},
-    {"ICT", POWER_MP, 0, -1, 4, 7, 32, 0,
-        "Idle condition timer (100 ms)", NULL},
-    {"SCT", POWER_MP, 0, -1, 8, 7, 32, 0,
-        "Standby condition timer (100 ms)", NULL},
+    /* Power condition mode page [0x1a] spc3 (expanded in spc4r18) */
+    {"STANDBY_Y", POWER_MP, 0, -1, 2, 0, 1, 0,
+        "Standby_y timer enabled", NULL},
+    {"IDLE_C", POWER_MP, 0, -1, 3, 3, 1, 0,
+        "Idle_c timer enabled", NULL},
+    {"IDLE_B", POWER_MP, 0, -1, 3, 2, 1, 0,
+        "Idle_b timer active", NULL},
+    {"IDLE", POWER_MP, 0, -1, 3, 1, 1, 0,   /* IDLE_A in future ? */
+        "Idle timer enabled",
+        "named IDLE prior to spc4r18, thence IDLE_A"},
+    {"STANDBY", POWER_MP, 0, -1, 3, 0, 1, 0, /* STANDBY_A in future ? */
+        "Standby timer active",
+        "named STANDBY prior to spc4r18, thence STANDBY_Z"},
+    {"ICT", POWER_MP, 0, -1, 4, 7, 32, 0,    /* IACT in future ? */
+        "Idle condition timer (100 ms)",
+        "named IDLE prior to spc4r18, thence IDLE_A"},
+    {"SCT", POWER_MP, 0, -1, 8, 7, 32, 0,    /* SZCT in future ? */
+        "Standby condition timer (100 ms)",
+        "named STANDBY prior to spc4r18, thence STANDBY_Z"},
+    {"IBCT", POWER_MP, 0, -1, 12, 7, 32, 0,
+        "Idle_b condition timer (100 ms)", NULL},
+    {"ICCT", POWER_MP, 0, -1, 16, 7, 32, 0,
+        "Idle_c condition timer (100 ms)", NULL},
+    {"SYCT", POWER_MP, 0, -1, 20, 7, 32, 0,
+        "Standby_y condition timer (100 ms)", NULL},
 
     /* SAT ATA Power condition mode page [0x1a,0xf1] sat2 */
     {"APMP", POWER_MP, MSP_SAT_POWER, -1, 5, 0, 1, 0,
