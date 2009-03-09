@@ -9,6 +9,12 @@ AC_PROG_INSTALL
 
 # check for headers
 AC_HEADER_STDC
+AC_CHECK_HEADERS([linux/types.h linux/bsg.h], [], [],
+     [[#ifdef HAVE_LINUX_TYPES_H
+     # include <linux/types.h>
+     #endif
+     ]])
+
 AC_CHECK_FUNCS(getopt_long,
 	       GETOPT_O_FILES='',
 	       GETOPT_O_FILES='getopt_long.o')
@@ -53,6 +59,11 @@ case "${host}" in
 		AC_DEFINE_UNQUOTED(SDPARM_LINUX, 1, [assume sdparm on linux])
                 AC_SUBST([os_libs], ['']) ;;
 esac
+
+AC_ARG_ENABLE([no-linux-bsg],
+  AC_HELP_STRING([--enable-no-linux-bsg], [ignore linux bsg (sgv4) if present]),
+  AC_DEFINE_UNQUOTED(IGNORE_LINUX_BSG, 1, [ignore linux bsg], )
+)
 
 # AC_PROG_LIBTOOL
 AC_OUTPUT(Makefile src/Makefile doc/Makefile)
