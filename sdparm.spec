@@ -56,8 +56,8 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Sun Mar 08 2009 - dgilbert at interlog dot com
-- change rules in this file
+* Wed Apr 08 2009 - dgilbert at interlog dot com
+- linux bsg support, rework win32 device scan
   * sdparm-1.04
 * Mon Jun 23 2008 - dgilbert at interlog dot com
 - allow multiple devices to be given, profile and speed commands

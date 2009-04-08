@@ -76,7 +76,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.04 20090308";
+static char * version_str = "1.04 20090408 [svn: r110]";
 
 
 static struct option long_options[] = {
@@ -1977,7 +1977,7 @@ main(int argc, char * argv[])
     }
 #ifdef SDPARM_WIN32
     if (do_wscan)
-        return sg_do_wscan('\0', opts.verbose);
+        return sg_do_wscan('\0', do_wscan, opts.verbose);
 #endif
 
     if (page_str) {

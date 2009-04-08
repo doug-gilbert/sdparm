@@ -1,4 +1,4 @@
-.TH SDPARM "8" "February 2009" "sdparm\-1.04" SDPARM
+.TH SDPARM "8" "April 2009" "sdparm\-1.04" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -247,11 +247,12 @@ more decoding is done (e.g. fields within a standard INQUIRY response).
 print the version string and then exit.
 .TP
 \fB\-w\fR, \fB\-\-wscan\fR
-this option is available in Windows only. It lists the device names that are
-available. In many cases there is more than one device name for a given
-device. Attempts to group all device names for one device on a single
-line (exceptions: USB and IEEE 1394 devices). See the "Win32 port" section
-in the README file.
+this option is available in Windows only. It lists storage device names
+and the corresponding volumes, if any. When used twice it adds the "bus
+type" of the closest transport (e.g. a SATA disk in a USB connected
+enclosure has bus type Usb). When used three times a SCSI adapter scan
+is added. When used four times only a SCSI adapter scan is shown.
+See the "Win32 port" section in the README file.
 .SH NOTES
 A mode page for which no abbreviation is known (e.g. a vendor specific mode
 page) can be listed in hexadecimal by using the option
