@@ -633,10 +633,11 @@ do_wscan(char letter, int show_bt, int scsi_scan)
 
 
 int
-sg_do_wscan(char letter, int do_scan, int verbose)
+sg_do_wscan(char letter, int do_scan, int verb)
 {
     int ret, show_bt, scsi_scan;
 
+    verbose = verb;
     show_bt = (do_scan > 1);
     scsi_scan = (do_scan > 2) ? (do_scan - 2) : 0;
     storage_arr = calloc(sizeof(struct storage_elem) * MAX_SCSI_ELEMS, 1);
