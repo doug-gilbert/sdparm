@@ -563,7 +563,7 @@ enum_tapes(void)
 }
 
 static int
-sg_do_wscan(char letter, int show_bt, int scsi_scan)
+do_wscan(char letter, int show_bt, int scsi_scan)
 {
     int k, j, n;
     struct storage_elem * sp;
@@ -641,7 +641,7 @@ sg_do_wscan(char letter, int do_scan, int verbose)
     scsi_scan = (do_scan > 2) ? (do_scan - 2) : 0;
     storage_arr = calloc(sizeof(struct storage_elem) * MAX_SCSI_ELEMS, 1);
     if (storage_arr) {
-        ret = sg_do_wscan(letter, show_bt, scsi_scan);
+        ret = do_wscan(letter, show_bt, scsi_scan);
         free(storage_arr);
     } else {
         fprintf(stderr, "Failed to allocate storage_arr on heap\n");
