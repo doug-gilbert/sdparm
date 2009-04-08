@@ -331,7 +331,7 @@ extern int sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp,
 
 #ifdef SDPARM_WIN32
 
-extern int sg_do_wscan(char letter, int verbose);
+extern int sg_do_wscan(char letter, int do_scan, int verbose);
 
 #endif
 
