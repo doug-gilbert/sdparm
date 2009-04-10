@@ -252,7 +252,7 @@ and the corresponding volumes, if any. When used twice it adds the "bus
 type" of the closest transport (e.g. a SATA disk in a USB connected
 enclosure has bus type Usb). When used three times a SCSI adapter scan
 is added. When used four times only a SCSI adapter scan is shown.
-See the "Win32 port" section in the README file.
+See examples below and the "Win32 port" section in the README file.
 .SH NOTES
 A mode page for which no abbreviation is known (e.g. a vendor specific mode
 page) can be listed in hexadecimal by using the option
@@ -602,6 +602,49 @@ there are no acronyms for vendor extensions yet. The PM bit is now covered
 by vendor specific mode pages and the above can also be accomplished with:
 .PP
    sdparm \-\-vendor=sea \-\-set=PM \-\-save /dev/sda
+.PP
+What follows are some examples from Windows using the '--wscan' option. The
+idea is to list the storage device names on the system that might be invoked
+by other uses of sdparm.
+.PP
+  # sdparm --wscan
+.br
+PD0     [C]     FUJITSU   MHY2160BH         0000
+.br
+PD1     [DF]    WD        2500BEV External  1.05  WD-WXE90
+.br
+CDROM0  [E]     MATSHITA DVD/CDRW UJDA775  CB03
+.PP
+So 'sdparm -a CDROM0' and 'sdparm -a E' will show all the (known) mode page
+fields for the Matshita DVD/CD drive. By using the '--wsacan' option twice,
+the bus type (as seen by the OS) is added to the output:
+.PP
+  # sdparm -ww
+.br
+PD0     [C]     <Ata  >  FUJITSU   MHY2160BH         0000
+.br
+PD1     [DF]    <Usb  >  WD        2500BEV External  1.05  WD-WXE90
+.br
+CDROM0  [E]     <Atapi>  MATSHITA DVD/CDRW UJDA775  CB03
+.PP
+And the pattern continues to add a SCSI adapter scan. This may be useful
+if there are specialized storage related devices (e.g. a SES device in
+an enclosure) but does add much extra information in this case.
+.PP
+  # sdparm -www
+.br
+PD0     [C]     <Ata  >  FUJITSU   MHY2160BH         0000
+.br
+PD1     [DF]    <Usb  >  WD        2500BEV External  1.05  WD-WXE90
+.br
+CDROM0  [E]     <Atapi>  MATSHITA DVD/CDRW UJDA775  CB03
+.br
+ 
+.br
+SCSI0:0,0,0   claimed=1 pdt=0h  FUJITSU   MHY2160BH         0000
+.br
+SCSI1:0,0,0   claimed=1 pdt=5h  MATSHITA  DVD/CDRW UJDA775  CB03
+.PP
 .SH EXIT STATUS
 To aid scripts that call sdparm, the exit status is set to indicate
 success (0) or failure (1 or more). Note that some of the lower values
@@ -695,7 +738,10 @@ Copyright \(co 2005\-2009 Douglas Gilbert
 .br
 This software is distributed under a FreeBSD license. There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+.SH WEB SITE
+There is a web page discussing this package at
+http://sg.danny.cz/sg/sdparm.html .
 .SH "SEE ALSO"
 .B hdparm(hdparm),
-.B sg_modes, sg_wr_mode, sginfo, sg_inq, sg_vpd(all in sg3_utils),
+.B sg_modes, sg_wr_mode, sginfo, sg_inq, sg_vpd, sg_scan(all in sg3_utils),
 .B smartmontools(smartmontools.sourceforge.net), mt, eject(eject),

@@ -36,8 +36,7 @@ commands). It can be accessed with "man sdparm" once this package is
 installed. Prior to installation the man page can be viewed from this
 package's main directory with "man doc/sdparm.8".
 
-There is a web page at http://sg.danny.cz/sg/sdparm.html and a copy of that
-html file is placed in the "doc" directory.
+There is a web page about this utility at http://sg.danny.cz/sg/sdparm.html .
 
 Build infrastructure
 --------------------
@@ -105,9 +104,9 @@ Tru64 (osf) port
 
 Win32 port
 ----------
-This port only supports Windows NT, 2000, 2003 and XP (not 95, 98, ME or
-earlier). It uses the Microsoft SCSI Pass Through "Direct" (SPTD) rather
-than ASPI32 which requires a dll from Adaptec.
+This port only supports Windows NT, 2000, 2003, XP and Vista (not 95, 98,
+ME or earlier). It uses the Microsoft SCSI Pass Through "Direct" (SPTD)
+rather than ASPI32 which requires a dll from Adaptec.
 
 The source can be built in a cygwin environment and can run in a cygwin
 bash shell. It can also run in a DOS shell if the cygwin1.dll is put in an
@@ -138,30 +137,49 @@ this is only needed for special devices (e.g. with processor or SES
 peripheral device type) that are not claimed by the class drivers.
 
 The '--wscan' (or '-w') option has been added to show the mapping between
-the volume name(s), class driver name and the "SCSI<n>:" name. It attempts
-to place all device names for the same device on the same line followed
-by its INQUIRY string. Unfortunately each USB or IEEE 1394 device may
-appear on two lines. Here is an example of the output:
+a class driver device name and its associated volume name(s). Here are some
+examples:
+ $ sdparm -w
+PD0     [C]     FUJITSU   MHY2160BH         0000
+PD1     [DF]    WD        2500BEV External  1.05  WD-WXE90
+CDROM0  [E]     MATSHITA DVD/CDRW UJDA775  CB03
 
-# sdparm -w
-SCSI0:0,0,0       C:    PD0      IC25N040ATCS05-0        CS4O  *
-SCSI1:0,0,0       D:    CDROM0   HITACHI DVD-ROM GD-S200 0034
-SCSI2:0,0,0       I: +  PD5      QUANTUM LPS525S         3110
-SCSI2:0,6,0             TAPE0    SONY    SDT-7000        0192
-                  E:             Generic USB SD Reader   1.00  pdt=0
-                        PD1      Generic USB SD Reader   1.00
+Now request bus types as well.
 
-The last two lines are actually one device. The "*" at the end of
-the first line flags that the SCSI-2 INQUIRY response is not quite
-correct, usually indicative of an ATA disk. The "+" after the "I:"
-indicates that several volume names (letters) map to that device.
-That usually means there are two or more partitions which Windows
-recognizes. Devices for which no class device name is found
-(e.g. the column that starts with "PD0" above) have their SCSI
-"peripheral device type" (pdt) value placed at the end of the line.
-The longer "PhysicalDrive" name, shown in Windows documentation,
-may be used but "PD" is obviously quicker to type.
+ $ sdparm -ww
+PD0     [C]     <Ata  >  FUJITSU   MHY2160BH         0000
+PD1     [DF]    <Usb  >  WD        2500BEV External  1.05  WD-WXE90
+CDROM0  [E]     <Atapi>  MATSHITA DVD/CDRW UJDA775  CB03
+
+Now request a SCSI adapter scan as well.
+ $ sdparm -www
+PD0     [C]     <Ata  >  FUJITSU   MHY2160BH         0000
+PD1     [DF]    <Usb  >  WD        2500BEV External  1.05  WD-WXE90
+CDROM0  [E]     <Atapi>  MATSHITA DVD/CDRW UJDA775  CB03
+
+SCSI0:0,0,0   claimed=1 pdt=0h  FUJITSU   MHY2160BH         0000
+SCSI1:0,0,0   claimed=1 pdt=5h  MATSHITA  DVD/CDRW UJDA775  CB03
+
+And finally here is a more interesting example showing disks with no
+Windows (2000) volumes, a tape drive and a wierd unclaimed SCSI
+pseudo device with BCC (Bridge Controller Commands) peripheral device
+type.
+ $ sdparm -www
+PD0     [C]     <Ata  >  ST380011A  8.01
+PD1             <Scsi >  SEAGATE   ST373455SS        2189
+PD2             <Scsi >  ATA       ST3160812AS       D
+PD3             <Scsi >  SEAGATE   ST336754SS        0003
+CDROM0  [F]     <Atapi>  HL-DT-ST DVDRAM GSA-4163B  A103 
+TAPE0           <Scsi >  SONY      SDT-7000          0192
+
+SCSI0:0,0,0   claimed=1 pdt=0h dubious  ST380011  A                 8.01
+SCSI1:0,0,0   claimed=1 pdt=5h          HL-DT-ST  DVDRAM GSA-4163B  A103
+SCSI2:0,6,0   claimed=1 pdt=1h          SONY      SDT-7000          0192
+SCSI5:0,17,0  claimed=1 pdt=0h          SEAGATE   ST373455SS        2189
+SCSI5:0,19,0  claimed=1 pdt=0h          ATA       ST3160812AS       D
+SCSI5:0,21,0  claimed=1 pdt=0h          SEAGATE   ST336754SS        0003
+SCSI5:0,112,0 claimed=0 pdt=10h         LSI       PSEUDO DEVICE     2.34
 
 
 Douglas Gilbert
-8th April 2009
+9th April 2009
