@@ -358,7 +358,7 @@ enum_scsi_adapters(void)
                         pid = (PSCSI_INQUIRY_DATA)(inqDataBuff + off);
                         snprintf(b, sizeof(b) - 1, "SCSI%d:%d,%d,%d ", k,
                                  pid->PathId, pid->TargetId, pid->Lun);
-                        printf("%-14s", b);
+                        printf("%-15s", b);
                         snprintf(b, sizeof(b) - 1, "claimed=%d pdt=%xh %s ",
                                  pid->DeviceClaimed, pid->InquiryData[0] % 0x3f,
                                  ((0 == pid->InquiryData[4]) ? "dubious" : ""));
