@@ -56,7 +56,7 @@
 #include "port_getopt.h"
 #endif
 
-#ifdef SDPARM_LINUX
+#ifdef SG_LIB_LINUX
 #include <errno.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
@@ -68,7 +68,7 @@
 
 static int map_if_lk24(int sg_fd, const char * device_name, int rw,
                        int verbose);
-#endif  /* SDPARM_LINUX */
+#endif  /* SG_LIB_LINUX */
 
 #include "sdparm.h"
 #include "sg_lib.h"
@@ -76,7 +76,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.04 20090409 [svn: r113]";
+static char * version_str = "1.04 20090422 [svn: r113]";
 
 
 static struct option long_options[] = {
@@ -103,7 +103,7 @@ static struct option long_options[] = {
     {"vendor", required_argument, 0, 'M'},
     {"verbose", no_argument, 0, 'v'},
     {"version", no_argument, 0, 'V'},
-#ifdef SDPARM_WIN32
+#ifdef SG_LIB_WIN32
     {"wscan", no_argument, 0, 'w'},
 #endif
     {0, 0, 0, 0},
@@ -163,7 +163,7 @@ usage()
           "    --vendor=VN | -M VN    vendor (manufacturer) number "
           "[or abbrev]\n"
           "    --verbose | -v        increase verbosity\n"
-#ifdef SDPARM_WIN32
+#ifdef SG_LIB_WIN32
           "    --version | -V        print version string and exit\n"
           "    --wscan | -w          windows scan for device names\n\n"
 #else
@@ -1661,7 +1661,7 @@ open_and_simple_inquiry(const char * device_name, int rw, int * pdt,
     }
     res = sg_simple_inquiry(sg_fd, &sir, 0, verb);
     if (res) {
-#ifdef SDPARM_LINUX
+#ifdef SG_LIB_LINUX
         if (-1 == res) {
             int sg_sg_fd;
 
@@ -1674,7 +1674,7 @@ open_and_simple_inquiry(const char * device_name, int rw, int * pdt,
             if (sg_sg_fd < 0)
                 goto err_out;
         }
-#endif  /* SDPARM_LINUX */
+#endif  /* SG_LIB_LINUX */
         if (res) {
             fprintf(stderr, "SCSI INQUIRY command failed on %s\n",
                     device_name);
@@ -1802,7 +1802,7 @@ main(int argc, char * argv[])
     const char * ccp;
     const struct sdparm_command_t * scmdp = NULL;
     int ret = 0;
-#ifdef SDPARM_WIN32
+#ifdef SG_LIB_WIN32
     int do_wscan = 0;
 #endif
 
@@ -1815,7 +1815,7 @@ main(int argc, char * argv[])
     while (1) {
         int option_index = 0;
 
-#ifdef SDPARM_WIN32
+#ifdef SG_LIB_WIN32
         c = getopt_long(argc, argv, "6aBc:C:dDefg:hHilM:np:qs:St:vVw",
                         long_options, &option_index);
 #else
@@ -1946,7 +1946,7 @@ main(int argc, char * argv[])
         case 'V':
             fprintf(stderr, "version: %s\n", version_str);
             return 0;
-#ifdef SDPARM_WIN32
+#ifdef SG_LIB_WIN32
         case 'w':
             ++do_wscan;
             break;
@@ -1975,7 +1975,7 @@ main(int argc, char * argv[])
                 "'--clear='\n");
         return SG_LIB_SYNTAX_ERROR;
     }
-#ifdef SDPARM_WIN32
+#ifdef SG_LIB_WIN32
     if (do_wscan)
         return sg_do_wscan('\0', do_wscan, opts.verbose);
 #endif
@@ -2306,7 +2306,7 @@ main(int argc, char * argv[])
     return (ret >= 0) ? ret : SG_LIB_CAT_OTHER;
 }
 
-#ifdef SDPARM_LINUX
+#ifdef SG_LIB_LINUX
 /*     ============ */
 
 typedef struct my_scsi_idlun
@@ -2457,5 +2457,5 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
     return find_corresponding_sg_fd(sg_fd, device_name, rw, verbose);
 }
 
-#endif  /* SDPARM_LINUX */
+#endif  /* SG_LIB_LINUX */
 

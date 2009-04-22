@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.04 [20090409] [svn: r113]
+ChangeLog for sdparm-1.04 [20090422] [svn: r114]
   - add SAT ATA Power condition mode page (sat2r06)
   - sync with spc4r18
   - add Power condition, update extended inquiry VPD pages
@@ -11,6 +11,7 @@ ChangeLog for sdparm-1.04 [20090409] [svn: r113]
   - rename SAS-2 phy mode page to Enhanced phy control (SAS)
   - add linux bsg support
   - rework the '-w' option (win32) per sg_scan in sg3_utils
+  - change SDPARM_* constants to SG_LIB_*
   - remove sdparm.html, refer to its url in sdparm.8
   - sdparm.spec: correction to configure call
 
