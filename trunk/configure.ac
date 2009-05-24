@@ -48,11 +48,13 @@ case "${host}" in
         *-*-cygwin*)
                 AC_SUBST([os_deps], ['sdparm_wscan.o sg_pt_win32.o'])
 		AC_DEFINE_UNQUOTED(SG_LIB_WIN32, 1, [sdparm on Win32])
+		AC_DEFINE_UNQUOTED(WIN32_SPT_DIRECT, 1, [allow large buffers, aligned?])
                 AC_SUBST([os_libs], ['']) ;;
         *-*-mingw*)
                 AC_SUBST([os_deps], ['sdparm_wscan.o sg_pt_win32.o'])
 		AC_DEFINE_UNQUOTED(SG_LIB_WIN32, 1, [sdparm on Win32])
 		AC_DEFINE_UNQUOTED(SG_LIB_MINGW, 1, [also MinGW environment])
+		AC_DEFINE_UNQUOTED(WIN32_SPT_DIRECT, 1, [allow large buffers, aligned?])
                 AC_SUBST([os_libs], ['']) ;;
         *)
                 AC_SUBST([os_deps], ['sg_pt_linux.o'])
