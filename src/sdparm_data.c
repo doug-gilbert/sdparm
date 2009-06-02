@@ -52,7 +52,15 @@ static struct sdparm_mode_descriptor_t ssc_mpa_desc = {
    Note that all standard periperal device types are include.
    The pages are listed in acronym alphabetical order. */
 struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
-    {IEC_MP, MSP_BACK_CTL, 0, PDT_DISK, "bc", "Background control (SBC)",
+    {ADC_MP, MSP_ADC_DT_DPP, PDT_ADC, 0, "addp",
+	"DT device primary port (ADC)", NULL},
+    {ADC_MP, MSP_ADC_LU, PDT_ADC, 0, "adlu", "logical unit (ADC)", NULL},
+    {ADC_MP, MSP_ADC_TGT_DEV, PDT_ADC, 0, "adtd", "Targer device (ADC)",
+	NULL},
+    {ADC_MP, MSP_ADC_TD_SN, PDT_ADC, 0, "adts",
+	"Targer device serial number (ADC)", NULL},
+    {POWER_MP, MSP_SAT_POWER, -1, 0, "apo", "SAT ATA Power condition", NULL},
+    {IEC_MP, MSP_BACK_CTL, PDT_DISK, 0, "bc", "Background control (SBC)",
         NULL},
     {CACHING_MP, 0, PDT_DISK, 0, "ca", "Caching (SBC)", NULL},
     {MMCMS_MP, 0, PDT_MMC, 1, "cms", "CD/DVD (MM) capabilities and "
@@ -78,7 +86,6 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
     {CONTROL_MP, MSP_SAT_PATA, -1, 0, "pat", "SAT pATA control", NULL},
     {PROT_SPEC_LU_MP, 0, -1, 0, "pl", "Protocol specific logical unit", NULL},
     {POWER_MP, 0, -1, 0, "po", "Power condition", NULL},
-    {POWER_MP, MSP_SAT_POWER, -1, 0, "apo", "SAT ATA Power condition", NULL},
     {POWER_OLD_MP, 0, PDT_DISK, 0, "poo", "Power condition - old version", NULL},
         /* POWER_OLD_MP for disks as it clashes with old MMC specs */
     {PROT_SPEC_PORT_MP, 0, -1, 0, "pp", "Protocol specific port", NULL},
