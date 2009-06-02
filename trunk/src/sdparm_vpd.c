@@ -40,7 +40,7 @@
 #include "sg_cmds_basic.h"
 
 /* sdparm_vpd.c : does mainly VPD page processing associated with the
- * INQUIRY SCSI command. Roughly in sync with spc4r18.
+ * INQUIRY SCSI command. Roughly in sync with spc4r19.
  */
 
 /* Prints outs an abridged set of device identification designators
@@ -841,6 +841,16 @@ decode_block_limits_vpd(unsigned char * buff, int len)
         u = ((unsigned int)buff[24] << 24) | (buff[25] << 16) |
             (buff[26] << 8) | buff[27];
         printf("  Maximum unmap block descriptor count: %u\n", u);
+    }
+    if (len > 35) {     /* added in sbc3r19 */
+        u = ((unsigned int)buff[28] << 24) | (buff[29] << 16) |
+            (buff[30] << 8) | buff[31];
+        printf("  Optimal unmap granularity: %u\n", u);
+        printf("  Unmap granularity alignment valid: %u\n",
+               !!(buff[32] & 0x80));
+        u = ((unsigned int)(buff[32] & 0x7f) << 24) | (buff[33] << 16) |
+            (buff[34] << 8) | buff[35];
+        printf("  Unmap granularity alignment: %u\n", u);
     }
     return 0;
 }
