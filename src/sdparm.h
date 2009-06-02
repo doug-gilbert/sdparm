@@ -28,6 +28,7 @@
 #define CONTROL_MP 0xa
 #define POWER_OLD_MP 0xd
 /* #define CD_DEV_PARAMS 0xd */
+#define ADC_MP 0xe
 #define DATA_COMPR_MP 0xf
 #define DEV_CONF_MP 0x10
 #define XOR_MP 0x10
@@ -46,7 +47,6 @@
 #define ALL_MPAGES 0x3f
 
 /* Mode subpage numbers */
-#define MSP_CONTROL_EXT 1       /* unused */
 #define MSP_SPC_CE 1            /* control extension */
 #define MSP_SPI_MC 1
 #define MSP_SPI_STC 2
@@ -60,6 +60,10 @@
 #define MSP_SAT_POWER 0xf1      /* SAT ATA Power condition */
 #define MSP_DEV_CONF_EXT 1      /* device conf extension (ssc) */
 #define MSP_EXT_DEV_CAP 0x41    /* extended device capabilities (smc) */
+#define MSP_ADC_TGT_DEV 0x1
+#define MSP_ADC_DT_DPP 0x2
+#define MSP_ADC_LU 0x3
+#define MSP_ADC_TD_SN 0x4
 
 #define MODE_DATA_OVERHEAD 128
 #define EBUFF_SZ 256
