@@ -53,12 +53,12 @@ static struct sdparm_mode_descriptor_t ssc_mpa_desc = {
    The pages are listed in acronym alphabetical order. */
 struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
     {ADC_MP, MSP_ADC_DT_DPP, PDT_ADC, 0, "addp",
-	"DT device primary port (ADC)", NULL},
+        "DT device primary port (ADC)", NULL},
     {ADC_MP, MSP_ADC_LU, PDT_ADC, 0, "adlu", "logical unit (ADC)", NULL},
     {ADC_MP, MSP_ADC_TGT_DEV, PDT_ADC, 0, "adtd", "Targer device (ADC)",
-	NULL},
+        NULL},
     {ADC_MP, MSP_ADC_TD_SN, PDT_ADC, 0, "adts",
-	"Targer device serial number (ADC)", NULL},
+        "Targer device serial number (ADC)", NULL},
     {POWER_MP, MSP_SAT_POWER, -1, 0, "apo", "SAT ATA Power condition", NULL},
     {IEC_MP, MSP_BACK_CTL, PDT_DISK, 0, "bc", "Background control (SBC)",
         NULL},
@@ -1217,7 +1217,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"NPLR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 13, 3, 4, 0,
         "Negotiated logical link rate",         /* sas2r07 */
         "0: unknown; 1: disabled; 2: phy reset problem; 3: spinup hold\t"
-        "4: port selector; 8: 1.5 Gbps; 9: 3 Gbps; 0xa: 6 Gbps"},
+        "4: port selector; 8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps"},
     {"ASIP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 14, 3, 1, 0,
         "Attached SSP initiator port", NULL},
     {"ATIP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 14, 2, 1, 0,
@@ -1238,16 +1238,16 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Attached phy identifier", NULL},
     {"PMILR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 40, 7, 4, 0,
         "Programmed minimum link rate",
-        "0: not programmed; 8: 1.5 Gbps; 9: 3 Gbps; 0xa: 6 Gbps"},
+        "0: not programmed; 8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps"},
     {"HMILR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 40, 3, 4, 0,
         "Hardware minimum link rate",
-        "8: 1.5 Gbps; 9: 3 Gbps; 0xa: 6 Gbps"},
+        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps"},
     {"PMALR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 41, 7, 4, 0,
         "Programmed maximum link rate",
-        "0: not programmed; 8: 1.5 Gbps; 9: 3 Gbps; 0xa: 6 Gbps"},
+        "0: not programmed; 8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps"},
     {"HMALR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 41, 3, 4, 0,
         "Hardware maximum link rate",
-        "8: 1.5 Gbps; 9: 3 Gbps; 0xa: 6 Gbps"},
+        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps"},
 
     /* shared port control mode page [0x19,0x2] sas2 */
     {"PPID_2", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 5, 3, 4, 0,
@@ -1278,7 +1278,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"N_PLR", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 26, 3, 4, 0,
         "Negotiated physical link rate",
         "6: resetting; 7: attached unsupported\t"
-        "8: 1.5 Gbps; 9: 3 Gbps; 0xa: 6 Gbps"},
+        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps"},
     {"HMS", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 27, 0, 1, 0,
         "Hardware muxing supported", NULL},
 
