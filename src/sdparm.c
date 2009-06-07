@@ -731,7 +731,8 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                         "command\n");
                 return res;
             }
-            mdp = (mpp && single_pg && (! opts->hex)) ? mpp->mp_desc : NULL;
+            /* check for mode page descriptors */
+            mdp = (mpp && (! opts->hex)) ? mpp->mp_desc : NULL;
             first_desc_off = mdp ? mdp->first_desc_off : 0;
             if (first_desc_off > 3) {
                 for (res = 0, fdesc_mpi = mpi;
