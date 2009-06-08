@@ -239,12 +239,14 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Read continuous", "0: error recovery may cause delays\t"
         "1: transfer data without waiting for error recovery"},
     {"EER", RW_ERR_RECOVERY_MP, 0, -1, 2, 3, 1, 0,
-        "Enable early recovery", NULL},
+        "Enable early recovery",
+        "1: increase chance of mis-detection or mis-correction of error"},
     {"PER", RW_ERR_RECOVERY_MP, 0, -1, 2, 2, 1, MF_COMMON,
         "Post error", "0: do not post recovered errors\t"
-        "1: report recovered errors"},
+        "1: report recovered errors (via sense key: recovered error)"},
     {"DTE", RW_ERR_RECOVERY_MP, 0, -1, 2, 1, 1, 0,
-        "Data terminate on error", NULL},
+        "Data terminate on error",
+        "1: terminate data transfer when recovered error detected"},
     {"DCR", RW_ERR_RECOVERY_MP, 0, -1, 2, 0, 1, 0,
         "Disable correction", NULL},
     {"RRC", RW_ERR_RECOVERY_MP, 0, -1, 3, 7, 8, 0,
@@ -259,10 +261,10 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Enhanced media certification and defect reporting", NULL},
     {"WRC", RW_ERR_RECOVERY_MP, 0, -1, 8, 7, 8, 0,
         "Write retry count", NULL},
-    {"ERTL", RW_ERR_RECOVERY_MP, 0, 5, 9, 7, 24, 0, /* MMC */
-        "Error reporting threshold length (blocks)", NULL},
+    {"ERWS", RW_ERR_RECOVERY_MP, 0, 5, 9, 7, 24, 0, /* MMC, was ERTL */
+        "Error reporting window size (blocks)", NULL},
     {"RTL", RW_ERR_RECOVERY_MP, 0, 0, 10, 7, 16, 0, /* SBC */
-        "Recovery time limit (ms)", NULL},
+        "Recovery time limit (ms)", "0: default, -1: 65.5 seconds"},
 
     /* Disconnect-reconnect mode page [0x2]: spc-4 + */
     /* See transport sections for more detailed information */
@@ -1230,10 +1232,10 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Attached STP target port", NULL},
     {"AMTP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 15, 1, 1, 0,
         "Attached SMP target port", NULL},
-    {"SASA", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 16, 7, 64, MF_HEX,
-        "SAS address", NULL},
-    {"ASASA", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 24, 7, 64, MF_HEX,
-        "Attached SAS address", NULL},
+    {"SASA", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 16, 7, 64,
+         MF_HEX | MF_COMMON, "SAS address", NULL},
+    {"ASASA", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 24, 7, 64,
+         MF_HEX | MF_COMMON, "Attached SAS address", NULL},
     {"APHID", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 32, 7, 8, 0,
         "Attached phy identifier", NULL},
     {"PMILR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 40, 7, 4, 0,
