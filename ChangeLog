@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.04 [20090607] [svn: r119]
+ChangeLog for sdparm-1.04 [20090607] [svn: r121]
   - add SAT ATA Power condition mode page (sat2r06)
   - sync with spc4r20
   - add Power condition, update extended inquiry VPD pages
