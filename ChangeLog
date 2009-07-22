@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.04 [20090607] [svn: r121]
+ChangeLog for sdparm-1.04 [20090721] [svn: r122]
   - add SAT ATA Power condition mode page (sat2r06)
   - sync with spc4r20
   - add Power condition, update extended inquiry VPD pages
@@ -16,6 +16,7 @@ ChangeLog for sdparm-1.04 [20090607] [svn: r121]
   - change SDPARM_* constants to SG_LIB_*
   - remove sdparm.html, refer to its url in sdparm.8
   - sdparm.spec: correction to configure call
+  - change most "0x%x" printf format strings to "%#x"
 
 ChangeLog for sdparm-1.03 [20080623] [svn: r96]
   - allow more than one DEVICE argument on command line

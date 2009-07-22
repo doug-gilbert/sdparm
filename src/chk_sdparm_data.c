@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2008 Douglas Gilbert.
+ * Copyright (c) 2005-2009 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,7 +25,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Version 1.5 20080218
+ * Version 1.6 20090721
  */
 
 #include <stdlib.h>
@@ -114,18 +114,18 @@ static void check(const struct sdparm_mode_page_item * mpi,
         acron = kp->acron ? kp->acron : "?";
         if ((prev_mp != kp->page_num) || (prev_msp != kp->subpage_num)) {
             if (prev_mp > kp->page_num)
-                printf("  mode page 0x%x,0x%x out of order\n", kp->page_num,
+                printf("  mode page %#x,%#x out of order\n", kp->page_num,
                         kp->subpage_num);
             if ((prev_mp == kp->page_num) && (prev_msp > kp->subpage_num))
-                printf("  mode subpage 0x%x,0x%x out of order, previous msp "
-                       "was 0x%x\n", kp->page_num, kp->subpage_num, prev_msp);
+                printf("  mode subpage %#x,%#x out of order, previous msp "
+                       "was %#x\n", kp->page_num, kp->subpage_num, prev_msp);
             prev_mp = kp->page_num;
             prev_msp = kp->subpage_num;
             prev_pdt = kp->pdt;
             clear_cl();
         } else if ((prev_pdt >= 0) && (prev_pdt != kp->pdt)) {
             if (prev_pdt > kp->pdt)
-                printf("  mode page 0x%x,0x%x pdt out of order, pdt was "
+                printf("  mode page %#x,%#x pdt out of order, pdt was "
                        "%d, now %d\n", kp->page_num, kp->subpage_num,
                        prev_pdt, kp->pdt);
             prev_pdt = kp->pdt;
@@ -172,15 +172,15 @@ static void check(const struct sdparm_mode_page_item * mpi,
         res = check_cl(sbyte, kp->pdt, mask);
         if (res) {
             if (1 == res)
-                printf("  0x%x,0x%x: clash at start_byte: %d, bit: %d "
+                printf("  %#x,%#x: clash at start_byte: %d, bit: %d "
                        "[latest acron: %s, this pdt]\n", prev_mp, prev_msp,
                        sbyte, sbit, acron);
             else if (2 == res)
-                printf("  0x%x,0x%x: clash at start_byte: %d, bit: %d "
+                printf("  %#x,%#x: clash at start_byte: %d, bit: %d "
                        "[latest acron: %s, another pdt]\n", prev_mp,
                        prev_msp, sbyte, sbit, acron);
             else
-                printf("  0x%x,0x%x: clash, bad data at start_byte: %d, "
+                printf("  %#x,%#x: clash, bad data at start_byte: %d, "
                        "bit: %d [latest acron: %s]\n", prev_mp,
                        prev_msp, sbyte, sbit, acron);
         }
@@ -188,7 +188,7 @@ static void check(const struct sdparm_mode_page_item * mpi,
         if ((nbits - 1) > sbit) {
             nbits -= (sbit + 1);
             if ((nbits > 7) && (0 != (nbits % 8)))
-                printf("  0x%x,0x%x: check nbits: %d, start_byte: %d, bit: "
+                printf("  %#x,%#x: check nbits: %d, start_byte: %d, bit: "
                        "%d [acron: %s]\n", prev_mp, prev_msp, kp->num_bits,
                        sbyte, sbit, acron);
             do {
@@ -203,15 +203,15 @@ static void check(const struct sdparm_mode_page_item * mpi,
                 res = check_cl(sbyte, kp->pdt, mask);
                 if (res) {
                     if (1 == res)
-                        printf("   0x%x,0x%x: clash at start_byte: %d, "
+                        printf("   %#x,%#x: clash at start_byte: %d, "
                                "bit: %d [latest acron: %s, this pdt]\n",
                                prev_mp, prev_msp, sbyte, sbit, acron);
                     else if (2 == res)
-                        printf("   0x%x,0x%x: clash at start_byte: %d, "
+                        printf("   %#x,%#x: clash at start_byte: %d, "
                                "bit: %d [latest acron: %s, another pdt]\n",
                                prev_mp, prev_msp, sbyte, sbit, acron);
                     else
-                        printf("   0x%x,0x%x: clash, bad at start_byte: "
+                        printf("   %#x,%#x: clash, bad at start_byte: "
                                "%d, bit: %d [latest acron: %s]\n",
                                prev_mp, prev_msp, sbyte, sbit, acron);
                 }
@@ -259,7 +259,7 @@ int main(int argc, char ** argv)
             if (ccp)
                 printf("%s mode page items:\n", ccp);
             else
-                printf("0x%x mode page items:\n", k);
+                printf("%#x mode page items:\n", k);
             check(vp->mitem, NULL);
             printf("\n");
         }
