@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2008 Douglas Gilbert.
+ * Copyright (c) 2005-2009 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -287,7 +287,7 @@ get_profile_str(int profile_num, char * buff)
             return buff;
         }
     }
-    snprintf(buff, 64, "0x%x", profile_num);
+    snprintf(buff, 64, "%#x", profile_num);
     return buff;
 }
 
