@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.04 [20090721] [svn: r122]
+ChangeLog for sdparm-1.04 [20090811] [svn: r123]
   - add SAT ATA Power condition mode page (sat2r06)
   - sync with spc4r20
   - add Power condition, update extended inquiry VPD pages
@@ -12,6 +12,7 @@ ChangeLog for sdparm-1.04 [20090721] [svn: r122]
   - add ADC mode (sub)page place holders
   - print mode page descriptors in full in more contexts
   - add linux bsg support
+  - scripts/sas_disk_blink: moved here from sg3_utils package
   - rework the '-w' option (win32) per sg_scan in sg3_utils
   - change SDPARM_* constants to SG_LIB_*
   - remove sdparm.html, refer to its url in sdparm.8
