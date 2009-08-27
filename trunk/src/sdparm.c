@@ -76,7 +76,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.04 20090721 [svn: r122]";
+static char * version_str = "1.04 20090826 [svn: r124]";
 
 
 static struct option long_options[] = {
@@ -196,10 +196,10 @@ enumerate_mpages(int transport, int vendor)
     for ( ; mpp && mpp->acron; ++mpp) {
         if (mpp->name) {
             if (mpp->subpage)
-                printf("  %-4s %#02x,%#02x  %s\n", mpp->acron,
+                printf("  %-4s 0x%02x,0x%02x  %s\n", mpp->acron,
                        mpp->page, mpp->subpage, mpp->name);
             else
-                printf("  %-4s %#02x       %s\n", mpp->acron,
+                printf("  %-4s 0x%02x       %s\n", mpp->acron,
                        mpp->page, mpp->name);
         }
     }
@@ -212,7 +212,7 @@ enumerate_vpds()
 
     for (vpp = sdparm_vpd_pg; vpp->acron; ++vpp) {
         if (vpp->name)
-            printf("  %-10s %#02x      %s\n", vpp->acron, vpp->vpd_num,
+            printf("  %-10s 0x%02x      %s\n", vpp->acron, vpp->vpd_num,
                    vpp->name);
     }
 }
@@ -224,7 +224,7 @@ enumerate_transports()
 
     for (tip = sdparm_transport_id; tip->acron; ++tip) {
         if (tip->name)
-            printf("  %-6s %#02x     %s\n", tip->acron, tip->proto_num,
+            printf("  %-6s 0x%02x     %s\n", tip->acron, tip->proto_num,
                    tip->name);
     }
 }
@@ -236,7 +236,7 @@ enumerate_vendors()
 
     for (vnp = sdparm_vendor_id; vnp->acron; ++vnp) {
         if (vnp->name)
-            printf("  %-6s %#02x     %s\n", vnp->acron, vnp->vendor_num,
+            printf("  %-6s 0x%02x     %s\n", vnp->acron, vnp->vendor_num,
                    vnp->name);
     }
 }
@@ -312,7 +312,7 @@ enumerate_mitems(int pn, int spn, int pdt,
             if ((pn >= 0) && ((pn != t_pn) || (spn != t_spn)))
                 continue;
         }
-        printf("  %-10s [%#02x:%d:%-2d]  %s\n", mpi->acron, mpi->start_byte,
+        printf("  %-10s [0x%02x:%d:%-2d]  %s\n", mpi->acron, mpi->start_byte,
                mpi->start_bit, mpi->num_bits, mpi->description);
         if ((long_o > 1) && mpi->extra)
             print_mp_extra(mpi->extra);
@@ -348,14 +348,14 @@ list_mp_settings(const struct sdparm_mode_page_settings * mps, int get)
     const struct sdparm_mode_page_item * mpip;
     int k;
 
-    printf("mp_settings: page,subpage=%#x,%#x  num=%d\n",
+    printf("mp_settings: page,subpage=0x%x,0x%x  num=%d\n",
            mps->page_num, mps->subpage_num, mps->num_it_vals);
     for (k = 0; k < mps->num_it_vals; ++k) {
         mpip = &mps->it_vals[k].mpi;
         if (get)
-            printf("  [%#x,%#x]", mpip->page_num, mpip->subpage_num);
+            printf("  [0x%x,0x%x]", mpip->page_num, mpip->subpage_num);
 
-        printf("  pdt=%d start_byte=%#x start_bit=%d num_bits=%d  val=%"
+        printf("  pdt=%d start_byte=0x%x start_bit=%d num_bits=%d  val=%"
                PRId64 "", mpip->pdt, mpip->start_byte, mpip->start_bit,
                mpip->num_bits, mps->it_vals[k].val);
         if (mpip->acron) {
@@ -392,7 +392,7 @@ print_mp_entry(const char * pre, int smask,
     if (force_decimal)
         printf("%" PRId64 "", (int64_t)u);
     else if (mpi->flags & MF_HEX)
-        printf("%#" PRIx64 "", u);
+        printf("0x%" PRIx64 "", u);
     else if (all_set)
         printf(" -1");
     else
@@ -411,7 +411,7 @@ print_mp_entry(const char * pre, int smask,
             if (force_decimal)
                 printf("%" PRId64 "", (int64_t)u);
             else if (mpi->flags & MF_HEX)
-                printf("%#" PRIx64 "", u);
+                printf("0x%" PRIx64 "", u);
             else if (all_set)
                 printf(" -1");
             else
@@ -425,7 +425,7 @@ print_mp_entry(const char * pre, int smask,
             if (force_decimal)
                 printf("%" PRId64 "", (int64_t)u);
             else if (mpi->flags & MF_HEX)
-                printf("%#" PRIx64 "", u);
+                printf("0x%" PRIx64 "", u);
             else if (all_set)
                 printf(" -1");
             else
@@ -482,7 +482,7 @@ check_mode_page(unsigned char * cur_mp, int pn, int rep_len,
              * the mismatch. */
         } else {
             fprintf(stderr, ">>> warning: mode page seems malformed\n"
-                    "   The page number field should be %#02x, but is %#02x",
+                    "   The page number field should be 0x%02x, but is 0x%02x",
                     pn, pn_in_page);
             if (! opts->flexible)
                 fprintf(stderr, "; try '--flexible'");
@@ -767,9 +767,9 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                 printf("%s ", buff);
                 if (opts->verbose) {
                     if (spn)
-                        printf("[%#x,%#x] ", pn, spn);
+                        printf("[0x%x,0x%x] ", pn, spn);
                     else
-                        printf("[%#x] ", pn);
+                        printf("[0x%x] ", pn);
                 }
                 printf("mode page");
                 if ((opts->long_out > 1) || opts->verbose)
@@ -804,9 +804,9 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                             (spn ? "sub" : ""));
                     if (opts->verbose) {
                         if (spn)
-                            fprintf(stderr, "[%#x,%#x] ", pn, spn);
+                            fprintf(stderr, "[0x%x,0x%x] ", pn, spn);
                         else
-                            fprintf(stderr, "[%#x] ", pn);
+                            fprintf(stderr, "[0x%x] ", pn);
                     }
                     if (SG_LIB_CAT_ILLEGAL_REQ == res)
                         fprintf(stderr, "not found\n");
@@ -1001,7 +1001,7 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
                     fprintf(stderr, "bad value given to %s\n",
                             mpi->acron);
                 else
-                    fprintf(stderr, "bad value given to %#x:%d:%d\n",
+                    fprintf(stderr, "bad value given to 0x%x:%d:%d\n",
                             mpi->start_byte, mpi->start_bit, mpi->num_bits);
                 return SG_LIB_SYNTAX_ERROR;
             }
@@ -1027,7 +1027,7 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
                 if (mpi->acron)
                     fprintf(stderr, "%s ", mpi->acron);
                 else
-                    fprintf(stderr, "%#x:%d:%d ",
+                    fprintf(stderr, "0x%x:%d:%d ",
                             mpi->start_byte, mpi->start_bit, mpi->num_bits);
                 if (SG_LIB_CAT_ILLEGAL_REQ == res)
                     fprintf(stderr, "not found in ");
@@ -1052,7 +1052,7 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
             (mpi->pdt >= 0) && (pdt != mpi->pdt)) {
             warned = 1;
             fprintf(stderr, ">> warning: peripheral device type (pdt) is "
-                    "%#x but acronym %s\n   is associated with pdt %#x.\n",
+                    "0x%x but acronym %s\n   is associated with pdt 0x%x.\n",
                     pdt, ivp->mpi.acron, ivp->mpi.pdt);
         }
         len = (smask & 1) ? sdp_get_mp_len(cur_mp) : 0;
@@ -1061,7 +1061,7 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
             if (mpi->acron)
                 fprintf(stderr, "%s ", mpi->acron);
             else
-                fprintf(stderr, "%#x:%d:%d ",
+                fprintf(stderr, "0x%x:%d:%d ",
                         mpi->start_byte, mpi->start_bit, mpi->num_bits);
             fprintf(stderr, "field position exceeds mode page length=%d\n",
                     len);
@@ -1072,22 +1072,22 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
             if (opts->hex) {
                 if (smask & 1) {
                     u = sdp_mp_get_value(mpi, cur_mp);
-                    printf("%#02" PRIx64 " ", u);
+                    printf("0x%02" PRIx64 " ", u);
                 } else
                     printf("-    ");
                 if (smask & 2) {
                     u = sdp_mp_get_value(mpi, cha_mp);
-                    printf("%#02" PRIx64 " ", u);
+                    printf("0x%02" PRIx64 " ", u);
                 } else
                     printf("-    ");
                 if (smask & 4) {
                     u = sdp_mp_get_value(mpi, def_mp);
-                    printf("%#02" PRIx64 " ", u);
+                    printf("0x%02" PRIx64 " ", u);
                 } else
                     printf("-    ");
                 if (smask & 8) {
                     u = sdp_mp_get_value(mpi, sav_mp);
-                    printf("%#02" PRIx64 " ", u);
+                    printf("0x%02" PRIx64 " ", u);
                 } else
                     printf("-    ");
                 printf("\n");
@@ -1097,7 +1097,7 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
             if (opts->hex) {
                 if (smask & 1) {
                     u = sdp_mp_get_value(mpi, cur_mp);
-                    printf("%#02" PRIx64 " ", u);
+                    printf("0x%02" PRIx64 " ", u);
                 } else
                     printf("-    ");
                 printf("\n");
@@ -1144,8 +1144,8 @@ change_mode_page(int sg_fd, int pdt,
             if (ivp->mpi.acron && (ivp->mpi.pdt >= 0) &&
                 (pdt != ivp->mpi.pdt)) {
                 fprintf(stderr, "change_mode_page: peripheral device type "
-                        "(pdt) is %#x but acronym %s\n  is associated with "
-                        "pdt %#x. To bypass use numeric addressing mode.\n",
+                        "(pdt) is 0x%x but acronym %s\n  is associated with "
+                        "pdt 0x%x. To bypass use numeric addressing mode.\n",
                         pdt, ivp->mpi.acron, ivp->mpi.pdt);
                 return SG_LIB_SYNTAX_ERROR;
             }
@@ -1224,9 +1224,9 @@ change_mode_page(int sg_fd, int pdt,
             if (mpi->acron)
                 fprintf(stderr, "%s ", mpi->acron);
             else
-                fprintf(stderr, "%#x:%d:%d ", mpi->start_byte,
+                fprintf(stderr, "0x%x:%d:%d ", mpi->start_byte,
                         mpi->start_bit, mpi->num_bits);
-            fprintf(stderr, "exceeds length of this mode page: %d [%#x]\n",
+            fprintf(stderr, "exceeds length of this mode page: %d [0x%x]\n",
                     len, len);
             if (opts->flexible)
                 fprintf(stderr, "    applying anyway\n");
@@ -1560,10 +1560,10 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
                     if (NULL == mpi) {
                         if (cont) {
                             fprintf(stderr, "mode page of acronym: %s "
-                                    "[%#x,%#x] doesn't match prior\n",
+                                    "[0x%x,0x%x] doesn't match prior\n",
                                     acron, prev_mpi->page_num,
                                     prev_mpi->subpage_num);
-                            fprintf(stderr, "    mode page: %#x,%#x\n",
+                            fprintf(stderr, "    mode page: 0x%x,0x%x\n",
                                     mps->page_num, mps->subpage_num);
                             fprintf(stderr, "For '--set' and '--clear' all "
                                     "fields must be in the same mode "
@@ -1736,7 +1736,7 @@ open_and_simple_inquiry(const char * device_name, int rw, int * pdt,
         if (opts->verbose && opts->inquiry) {
             char buff[32];
 
-            printf("  PQual=%d  Device_type=%#x  RMB=%d  version=%#02x ",
+            printf("  PQual=%d  Device_type=0x%x  RMB=%d  version=0x%02x ",
                    sir.peripheral_qualifier, l_pdt, sir.rmb, sir.version);
             printf(" [%s]\n", sdp_get_ansi_version_str(sir.version,
                                                        sizeof(buff), buff));
@@ -1793,8 +1793,8 @@ process_mode(int sg_fd, const struct sdparm_mode_page_settings * mps, int pn,
         if (mpp && mpp->name && (mpp->pdt >= 0) && (pdt != mpp->pdt)) {
             fprintf(stderr, ">> Warning: %s mode page associated with\n",
                     mpp->name);
-            fprintf(stderr, "   peripheral device type %#x but device "
-                    "pdt is %#x\n", mpp->pdt, pdt);
+            fprintf(stderr, "   peripheral device type 0x%x but device "
+                    "pdt is 0x%x\n", mpp->pdt, pdt);
         }
     }
     if (opts->defaults)
@@ -1994,7 +1994,7 @@ main(int argc, char * argv[])
             break;
 #endif
         default:
-            fprintf(stderr, "unrecognised option code %#x ??\n", c);
+            fprintf(stderr, "unrecognised option code 0x%x ??\n", c);
             usage();
             return SG_LIB_SYNTAX_ERROR;
         }
@@ -2177,7 +2177,7 @@ main(int argc, char * argv[])
                     if (ccp)
                         printf("Mode pages for %s vendor:\n", ccp);
                     else
-                        printf("Mode pages for vendor %#x:\n", opts.vendor);
+                        printf("Mode pages for vendor 0x%x:\n", opts.vendor);
                     if (opts.all)
                         enumerate_mitems(pn, spn, pdt, &opts);
                     else {
@@ -2189,7 +2189,7 @@ main(int argc, char * argv[])
                         printf("Mode pages for %s transport protocol:\n",
                                ccp);
                     else
-                        printf("Mode pages for transport protocol %#x:\n",
+                        printf("Mode pages for transport protocol 0x%x:\n",
                                opts.transport);
                     if (opts.all)
                         enumerate_mitems(pn, spn, pdt, &opts);
