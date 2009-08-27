@@ -38,6 +38,7 @@
 #define PROT_SPEC_PORT_MP 0x19
 #define POWER_MP 0x1a
 #define IEC_MP 0x1c
+#define THIN_PROV_MP 0x1c
 #define MED_CONF_MP 0x1d
 #define TIMEOUT_PROT_MP 0x1d
 #define ELE_ADDR_ASS_MP 0x1d
@@ -64,6 +65,7 @@
 #define MSP_ADC_DT_DPP 0x2
 #define MSP_ADC_LU 0x3
 #define MSP_ADC_TD_SN 0x4
+#define MSP_THIN_PROV 0x2
 
 #define MODE_DATA_OVERHEAD 128
 #define EBUFF_SZ 256
@@ -94,6 +96,8 @@
 #define VPD_MAN_ASS_SN 0xb1     /* SSC-3, ADC-2 */
 #define VPD_SECURITY_TOKEN 0xb1 /* OSD */
 #define VPD_TA_SUPPORTED 0xb2   /* SSC-3 */
+#define VPD_THIN_PROVISIONING 0xb2   /* SBC-3 */
+#define VPD_AUTOMATION_DEV_SN 0xb3   /* SSC-3 */
 
 #define VPD_ASSOC_LU 0
 #define VPD_ASSOC_TPORT 1

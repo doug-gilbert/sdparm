@@ -94,6 +94,7 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
     {RIGID_DISK_MP, 0, PDT_DISK, 0, "rd", "Rigid disk (SBC)", NULL},
     {RW_ERR_RECOVERY_MP, 0, -1, 0, "rw", "Read write error recovery", NULL},
         /* since in SBC, SSC and MMC treat RW_ERR_RECOVERY_MP as if in SPC */
+    {THIN_PROV_MP, MSP_THIN_PROV, PDT_DISK, 0, "thp", "Thin provisioning (SBC)", NULL},
     {TIMEOUT_PROT_MP, 0, PDT_MMC, 0, "tp", "Timeout and protect (MMC)", NULL},
     {V_ERR_RECOVERY_MP, 0, PDT_DISK, 0, "ve", "Verify error recovery (SBC)",
         NULL},
@@ -186,6 +187,8 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_ATA_INFO, 0, -1, "ai", "ATA information (SAT)"},
     {VPD_ASCII_OP_DEF, 0, -1, "aod",
      "ASCII implemented operating definition (obs)"},
+    {VPD_AUTOMATION_DEV_SN, 0, PDT_TAPE, "adsn", "Automation device serial "
+     "number (SSC)"},
     {VPD_BLOCK_LIMITS, 0, PDT_DISK, "bl", "Block limits (SBC)"},
     {VPD_BLOCK_DEV_CHARS, 0, PDT_DISK, "bdc", "Block device characteristics "
      "(SBC)"},
@@ -220,6 +223,7 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_SCSI_PORTS, 0, -1, "sp", "SCSI ports"},
     {VPD_SUPPORTED_VPDS, 0, -1, "sv", "Supported VPD pages"},
     {VPD_TA_SUPPORTED, 0, PDT_TAPE, "tas", "TapeAlert supported flags (SSC)"},
+    {VPD_THIN_PROVISIONING, 0, PDT_DISK, "thp", "Thin provisioning (SBC)"},
     {0, 0, 0, NULL, NULL},
 };
 
@@ -1391,7 +1395,8 @@ const char * sdparm_network_service_type_arr[] =
     "status",
     "logging",
     "code download",
-    "reserved[0x6]", "reserved[0x7]", "reserved[0x8]", "reserved[0x9]",
+    "administrative configuration service",
+    "reserved[0x7]", "reserved[0x8]", "reserved[0x9]",
     "reserved[0xa]", "reserved[0xb]", "reserved[0xc]", "reserved[0xd]",
     "reserved[0xe]", "reserved[0xf]", "reserved[0x10]", "reserved[0x11]",
     "reserved[0x12]", "reserved[0x13]", "reserved[0x14]", "reserved[0x15]",

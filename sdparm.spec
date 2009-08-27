@@ -56,7 +56,7 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Sun Jun 07 2009 - dgilbert at interlog dot com
+* Wed Aug 26 2009 - dgilbert at interlog dot com
 - linux bsg support, rework win32 device scan
   * sdparm-1.04
 * Mon Jun 23 2008 - dgilbert at interlog dot com

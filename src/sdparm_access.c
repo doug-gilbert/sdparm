@@ -96,16 +96,16 @@ sdp_get_mpage_name(int page_num, int subpage_num, int pdt, int transp_proto,
         if (hex) {
             if (0 == subpage_num) {
                 if (plus_acron)
-                    snprintf(bp, len, "%s [%s: %#x]", mpp->name, cp,
+                    snprintf(bp, len, "%s [%s: 0x%x]", mpp->name, cp,
                              page_num);
                 else
-                    snprintf(bp, len, "%s [%#x]", mpp->name, page_num);
+                    snprintf(bp, len, "%s [0x%x]", mpp->name, page_num);
             } else {
                 if (plus_acron)
-                    snprintf(bp, len, "%s [%s: %#x,%#x]", mpp->name, cp,
+                    snprintf(bp, len, "%s [%s: 0x%x,0x%x]", mpp->name, cp,
                              page_num, subpage_num);
                 else
-                    snprintf(bp, len, "%s [%#x,%#x]", mpp->name, page_num,
+                    snprintf(bp, len, "%s [0x%x,0x%x]", mpp->name, page_num,
                              subpage_num);
             }
         } else {
@@ -116,9 +116,9 @@ sdp_get_mpage_name(int page_num, int subpage_num, int pdt, int transp_proto,
         }
     } else {
         if (0 == subpage_num)
-            snprintf(bp, len, "[%#x]", page_num);
+            snprintf(bp, len, "[0x%x]", page_num);
         else
-            snprintf(bp, len, "[%#x,%#x]", page_num, subpage_num);
+            snprintf(bp, len, "[0x%x,0x%x]", page_num, subpage_num);
     }
     return mpp;
 }
