@@ -76,7 +76,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.04 20090826 [svn: r124]";
+static char * version_str = "1.04 20090829 [svn: r125]";
 
 
 static struct option long_options[] = {
@@ -522,9 +522,12 @@ print_mpage_extra_desc(void ** pc_arr, int rep_len,
     if ((NULL == mdp) || (NULL == cur_mp) || (rep_len < 4) ||
         (mdp->num_descs_off >= rep_len))
         return;
-    u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
-                           mdp->num_descs_bytes * 8) +
-        mdp->num_descs_inc;
+    if ((mdp->num_descs_inc < 0) && (mdp->desc_len > 0))
+        u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
+                       mdp->num_descs_bytes * 8) / mdp->desc_len;
+    else
+        u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
+                       mdp->num_descs_bytes * 8) + mdp->num_descs_inc;
     num = (int)u;
     if (opts->verbose)
         fprintf(stderr, "    >>> mode page says it has %d descriptors\n",
@@ -734,7 +737,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
             /* check for mode page descriptors */
             mdp = (mpp && (! opts->hex)) ? mpp->mp_desc : NULL;
             first_desc_off = mdp ? mdp->first_desc_off : 0;
-            if (first_desc_off > 3) {
+            if (first_desc_off > 1) {
                 for (res = 0, fdesc_mpi = mpi;
                      fdesc_mpi && (pn == fdesc_mpi->page_num) &&
                      (spn == fdesc_mpi->subpage_num); ++fdesc_mpi) {
@@ -751,9 +754,14 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                 uint64_t u;
 
                 if (fdesc_mpi && (smask & 1)) {
-                    u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
-                                           mdp->num_descs_bytes * 8) +
-                        mdp->num_descs_inc;
+                    if ((mdp->num_descs_inc < 0) && (mdp->desc_len > 0))
+                        u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
+                                               mdp->num_descs_bytes * 8) /
+                            mdp->desc_len;
+                    else
+                        u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
+                                               mdp->num_descs_bytes * 8) +
+                            mdp->num_descs_inc;
                     num = (int)u;
                 }
                 if (opts->long_out)
@@ -882,8 +890,12 @@ desc_adjust_start_byte(int desc_num, const struct sdparm_mode_page_t * mpp,
 
     mdp = mpp->mp_desc;
     if ((mdp->num_descs_off < rep_len) && (mdp->num_descs_off < 64)) {
-        u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
-            mdp->num_descs_bytes * 8) + mdp->num_descs_inc;
+        if ((mdp->num_descs_inc < 0) && (mdp->desc_len > 0))
+            u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
+                    mdp->num_descs_bytes * 8) / mdp->desc_len;
+        else
+            u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
+                    mdp->num_descs_bytes * 8) + mdp->num_descs_inc;
         if ((uint64_t)desc_num < u) {
             if (mdp->desc_len > 0) {
                 mpi->start_byte += (mdp->desc_len * desc_num);
@@ -1795,6 +1807,9 @@ process_mode(int sg_fd, const struct sdparm_mode_page_settings * mps, int pn,
                     mpp->name);
             fprintf(stderr, "   peripheral device type 0x%x but device "
                     "pdt is 0x%x\n", mpp->pdt, pdt);
+            if (! opts->flexible)
+                fprintf(stderr, "   may need '--flexible' option to "
+                        "override\n");
         }
     }
     if (opts->defaults)
