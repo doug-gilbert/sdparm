@@ -38,7 +38,6 @@
 #define PROT_SPEC_PORT_MP 0x19
 #define POWER_MP 0x1a
 #define IEC_MP 0x1c
-#define THIN_PROV_MP 0x1c
 #define MED_CONF_MP 0x1d
 #define TIMEOUT_PROT_MP 0x1d
 #define ELE_ADDR_ASS_MP 0x1d
@@ -65,7 +64,7 @@
 #define MSP_ADC_DT_DPP 0x2
 #define MSP_ADC_LU 0x3
 #define MSP_ADC_TD_SN 0x4
-#define MSP_THIN_PROV 0x2
+#define MSP_SBC_THIN_PROV 0x2
 
 #define MODE_DATA_OVERHEAD 128
 #define EBUFF_SZ 256

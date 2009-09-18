@@ -76,7 +76,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.04 20090829 [svn: r125]";
+static char * version_str = "1.04 20090916 [svn: r126]";
 
 
 static struct option long_options[] = {
@@ -1794,6 +1794,7 @@ process_mode(int sg_fd, const struct sdparm_mode_page_settings * mps, int pn,
     if ((pn > 0x3e) || (spn > 0xfe)) {
         fprintf(stderr, "Allowable mode page numbers are 0 to 62\n");
         fprintf(stderr, "  Allowable mode subpage numbers are 0 to 254\n");
+        fprintf(stderr, "  For VPD pages add a '-i' command line option\n");
         return SG_LIB_SYNTAX_ERROR;
     }
     if ((pn > 0) && (pdt >= 0)) {
