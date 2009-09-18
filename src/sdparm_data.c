@@ -55,6 +55,13 @@ static struct sdparm_mode_descriptor_t smc_tg_desc = {
     1, 1, -1, 2, 2, -1, -1, "SMC transport geometry"
 };
 
+/* SBC's thin provisioning mode page doesn't give the number
+   of following descriptors but rather parameter length (in bytes).
+   This is flagged by -1 in num_descs_inc (third) field */
+static struct sdparm_mode_descriptor_t sbc_tp_desc = {
+    2, 2, -1, 16, 8, -1, -1, "SBC thin provisioning"
+};
+
 /* Mode pages that aren't specific to any transport protocol or vendor.
    Note that all standard periperal device types are include.
    The pages are listed in acronym alphabetical order. */
@@ -107,8 +114,8 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
         /* since in SBC, SSC and MMC treat RW_ERR_RECOVERY_MP as if in SPC */
     {TRANS_GEO_PAR_MP, 0, PDT_MCHANGER, 0, "tgp", "Transport geometry "
         "parameters (SMC)", &smc_tg_desc},
-    {THIN_PROV_MP, MSP_THIN_PROV, PDT_DISK, 0, "thp", "Thin provisioning "
-        "(SBC)", NULL},
+    {IEC_MP, MSP_SBC_THIN_PROV, PDT_DISK, 0, "thp", "Thin provisioning "
+        "(SBC)", &sbc_tp_desc},
     {TIMEOUT_PROT_MP, 0, PDT_MMC, 0, "tp", "Timeout and protect (MMC)", NULL},
     {V_ERR_RECOVERY_MP, 0, PDT_DISK, 0, "ve", "Verify error recovery (SBC)",
         NULL},
@@ -237,7 +244,7 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_SCSI_PORTS, 0, -1, "sp", "SCSI ports"},
     {VPD_SUPPORTED_VPDS, 0, -1, "sv", "Supported VPD pages"},
     {VPD_TA_SUPPORTED, 0, PDT_TAPE, "tas", "TapeAlert supported flags (SSC)"},
-    {VPD_THIN_PROVISIONING, 0, PDT_DISK, "thp", "Thin provisioning (SBC)"},
+    {VPD_THIN_PROVISIONING, 0, PDT_DISK, "thpv", "Thin provisioning (SBC)"},
     {0, 0, 0, NULL, NULL},
 };
 
@@ -275,6 +282,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Head offset count (obsolete)", NULL},
     {"DSOC", RW_ERR_RECOVERY_MP, 0, -1, 6, 7, 8, 0,
         "Data strobe offset count (obsolete)", NULL},
+    {"TPERE", RW_ERR_RECOVERY_MP, 0, 0, 7, 7, 1, 0, /* SBC */
+        "Thin provisioning error reporting enabled", NULL},
     {"EMCDR", RW_ERR_RECOVERY_MP, 0, 5, 7, 1, 2, 0, /* MMC */
         "Enhanced media certification and defect reporting", NULL},
     {"WRC", RW_ERR_RECOVERY_MP, 0, -1, 8, 7, 8, 0,
@@ -804,6 +813,18 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Minumum idle time before background scan (ms)", NULL},
     {"MAX_SUSP", IEC_MP, MSP_BACK_CTL, PDT_DISK, 12, 7, 16, 0,
         "Maximum time to suspend background scan (ms)", NULL},
+
+    /* Thin provisioning mode subpage [0x1c,0x2] sbc3 */
+    {"TH_EN", IEC_MP, MSP_SBC_THIN_PROV, PDT_DISK, 16, 7, 1, 0,
+        "Threshold enabled", NULL},
+    {"TH_TYPE", IEC_MP, MSP_SBC_THIN_PROV, PDT_DISK, 16, 5, 3, 0,
+        "Threshold type", NULL},
+    {"TH_ARM", IEC_MP, MSP_SBC_THIN_PROV, PDT_DISK, 16, 2, 3, 0,
+        "Threshold arming", NULL},
+    {"TH_RES", IEC_MP, MSP_SBC_THIN_PROV, PDT_DISK, 17, 7, 8, 0,
+        "Threshold resource", NULL},
+    {"TH_COUNT", IEC_MP, MSP_SBC_THIN_PROV, PDT_DISK, 20, 7, 32, 0,
+        "Threshold count", NULL},
 
     /* Medium configuration mode page [0x1d] ssc3 */
     {"WORMM", MED_CONF_MP, 0, PDT_TAPE, 2, 0, 1, 0,
