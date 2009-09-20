@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.04 [20090920] [svn: r127]
+ChangeLog for sdparm-1.04 [20090920] [svn: r129]
   - add SAT ATA Power condition mode page (sat2r06)
   - add SBC Thin provisioning mode page (sbc3r20)
   - add SBC Thin provisioning VPD page (sbc3r20)
