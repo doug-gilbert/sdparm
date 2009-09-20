@@ -56,8 +56,8 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Wed Aug 26 2009 - dgilbert at interlog dot com
-- linux bsg support, rework win32 device scan
+* Sun Sep 20 2009 - dgilbert at interlog dot com
+- linux bsg support, rework win32 device scan, thin provisioning
   * sdparm-1.04
 * Mon Jun 23 2008 - dgilbert at interlog dot com
 - allow multiple devices to be given, profile and speed commands
