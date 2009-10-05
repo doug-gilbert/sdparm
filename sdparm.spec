@@ -1,5 +1,5 @@
 %define	name	sdparm
-%define	version	1.04
+%define	version	1.05
 %define	release	1
 
 Summary:	List or change SCSI disk parameters
