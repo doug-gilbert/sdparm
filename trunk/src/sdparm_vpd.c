@@ -886,6 +886,32 @@ decode_block_dev_chars_vpd(unsigned char * buff, int len)
         printf("  Reserved [0x%x]\n", u);
     else
         printf("  Nominal rotation rate: %d rpm\n", u);
+    u = buff[7] & 0xf;
+    printf("  Nominal form factor");
+    switch (u)
+    {
+    case 0:
+        printf(" not reported\n");
+        break;
+    case 1:
+        printf(": 5.25 inch\n");
+        break;
+    case 2:
+        printf(": 3.5 inch\n");
+        break;
+    case 3:
+        printf(": 2.5 inch\n");
+        break;
+    case 4:
+        printf(": 1.8 inch\n");
+        break;
+    case 5:
+        printf(": less then 1.8 inch\n");
+        break;
+    default:
+        printf(": reserved\n");
+        break;
+    }
     return 0;
 }
 
