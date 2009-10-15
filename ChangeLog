@@ -2,8 +2,8 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.05 [20091005] [svn: r130]
-  - xxxxxxxxxxx
+ChangeLog for sdparm-1.05 [20091015] [svn: r133]
+  - block device characteristics VPD page: decode form factor
 
 ChangeLog for sdparm-1.04 [20090920] [svn: r129]
   - add SAT ATA Power condition mode page (sat2r06)
