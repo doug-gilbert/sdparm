@@ -56,8 +56,8 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Thu Oct 15 2009 - dgilbert at interlog dot com
-- xxxxxxxxxxxx
+* Mon Oct 19 2009 - dgilbert at interlog dot com
+- update SAS Enhanced phy control mode page (spl-r04)
   * sdparm-1.05
 * Sun Sep 20 2009 - dgilbert at interlog dot com
 - linux bsg support, rework win32 device scan, thin provisioning
