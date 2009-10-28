@@ -189,6 +189,9 @@ static struct sdparm_mode_descriptor_t sas_e_phy_desc = {  /* desc SAS-2 */
     7, 1, 0, 8, -1, 2, 2, "Enhanced phy"
 };
 
+/* N.B. In SAS 2.1 the spec was split with the upper levels going into the
+ * SAS Protocol Layer (SPL) document. So now the SPL drafts are the
+ * relevant SAS references. */
 static struct sdparm_mode_page_t sdparm_sas_mode_pg[] = {    /* SAS-2 */
     {DISCONNECT_MP, 0, -1, 0, "dr", "Disconnect-reconnect (SAS)", NULL},
     {PROT_SPEC_LU_MP, 0, -1, 0, "pl", "Protocol specific logical unit (SAS)",
@@ -1437,7 +1440,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"PLT", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 6, 7, 16, 0,
         "Power loss timeout(ms)", NULL},
 
-    /* SAS-2 phy mode page [0x19,0x3] sas2 */
+    /* SAS-2 Enhanced phy mode page [0x19,0x3] sas2, spl */
     {"PPID_3", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 5, 3, 4, 0,
         "Port's (transport) protocol identifier",
         "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
@@ -1460,6 +1463,10 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Negotiated physical link rate",
         "6: resetting; 7: attached unsupported\t"
         "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps"},
+    {"EN_SL", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 27, 2, 1, 0,
+        "Enable slumber phy power condition", NULL},
+    {"EN_PA", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 27, 1, 1, 0,
+        "Enable partial phy power condition", NULL},
     {"HMS", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 27, 0, 1, 0,
         "Hardware muxing supported", NULL},
 
