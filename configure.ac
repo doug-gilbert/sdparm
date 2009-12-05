@@ -1,6 +1,7 @@
 AC_INIT(sdparm, 1.05, dgilbert@interlog.com)
 
 AM_INIT_AUTOMAKE
+AM_MAINTAINER_MODE
 AM_CONFIG_HEADER(config.h)
 
 AC_PROG_CC
@@ -33,7 +34,7 @@ case "${host}" in
                 AC_SUBST([os_deps], ['sg_pt_linux.o'])
 		AC_DEFINE_UNQUOTED(SG_LIB_LINUX, 1, [sdparm on linux])
                 AC_SUBST([os_libs], ['']) ;;
-        *-*-freebsd*)
+        *-*-freebsd*|*-*-kfreebsd*-gnu*)
                 AC_SUBST([os_deps], ['sg_pt_freebsd.o'])
 		AC_DEFINE_UNQUOTED(SG_LIB_FREEBSD, 1, [sdparm on FreeBSD])
                 AC_SUBST([os_libs], ['-lcam']);;

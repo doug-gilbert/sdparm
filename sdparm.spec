@@ -56,7 +56,7 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Mon Oct 19 2009 - dgilbert at interlog dot com
+* Sat Dec 05 2009 - dgilbert at interlog dot com
 - update SAS Enhanced phy control mode page (spl-r04)
   * sdparm-1.05
 * Sun Sep 20 2009 - dgilbert at interlog dot com
