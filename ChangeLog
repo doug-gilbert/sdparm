@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.05 [20091205] [svn: r135]
+ChangeLog for sdparm-1.05 [20091205] [svn: r137]
   - block device characteristics VPD page: decode form factor
   - SAS-2.1 specification split, upper layers placed in SPL
     - add enable_slumber and enable_partial fields to
