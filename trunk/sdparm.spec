@@ -56,8 +56,8 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Sat Dec 05 2009 - dgilbert at interlog dot com
-- update SAS Enhanced phy control mode page (spl-r04)
+* Mon Feb 08 2010 - dgilbert at interlog dot com
+- update SAS Enhanced phy control mpage (spl-r04); add '--readonly'
   * sdparm-1.05
 * Sun Sep 20 2009 - dgilbert at interlog dot com
 - linux bsg support, rework win32 device scan, thin provisioning
