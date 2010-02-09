@@ -148,6 +148,7 @@ struct sdparm_opt_coll {
     int mode_6;
     int num_desc;
     int quiet;
+    int read_only;
     int save;
     int transport;
     int vendor;
