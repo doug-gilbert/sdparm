@@ -68,5 +68,10 @@ AC_ARG_ENABLE([no-linux-bsg],
   AC_DEFINE_UNQUOTED(IGNORE_LINUX_BSG, 1, [ignore linux bsg], )
 )
 
+AC_CHECK_LIB(sgutils2, sg_ll_inquiry,
+  [SGUTILS_LIBS="-lsgutils2"; have_sgutils=yes], have_sgutils=no)
+AC_SUBST(SGUTILS_LIBS)
+AM_CONDITIONAL(HAVE_SGUTILS, test x"$have_sgutils" = xyes)
+
 # AC_PROG_LIBTOOL
 AC_OUTPUT(Makefile src/Makefile doc/Makefile)

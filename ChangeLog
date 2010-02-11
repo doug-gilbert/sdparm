@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.05 [20100208] [svn: r138]
+ChangeLog for sdparm-1.05 [20100211] [svn: r138]
   - add '--readonly' option especially for '-C start' and
   - '-C stop' on ATA disks.
   - block device characteristics VPD page: decode form factor
@@ -10,6 +10,7 @@ ChangeLog for sdparm-1.05 [20100208] [svn: r138]
     - add enable_slumber and enable_partial fields to
       Enhanced phy control mode page
   - add AM_MAINTAINER_MODE to configure.ac to lessen build issues
+  - build infrastructure change to use libsgutils2 if available
 
 ChangeLog for sdparm-1.04 [20090920] [svn: r129]
   - add SAT ATA Power condition mode page (sat2r06)
