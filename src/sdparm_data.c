@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2009 Douglas Gilbert.
+ * Copyright (c) 2005-2010 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -509,6 +509,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "1: lu maintains separate task sets for each I_T nexus"},
     {"TMF_ONLY", CONTROL_MP, 0, -1, 2, 4, 1, 0,
         "Task management functions only", NULL},
+    {"DPICZ", CONTROL_MP, 0, -1, 2, 3, 1, 0,
+        "Disable protection information check if protect field zero", NULL},
     {"D_SENSE", CONTROL_MP, 0, -1, 2, 2, 1, 0,
         "Descriptor format sense data", NULL},
     {"GLTSD", CONTROL_MP, 0, -1, 2, 1, 1, 0,
@@ -518,6 +520,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"QAM", CONTROL_MP, 0, -1, 3, 7, 4, 0,
         "Queue algorithm modifier",
         "0: restricted re-ordering; 1: unrestricted"},
+    {"NUAR", CONTROL_MP, 0, -1, 3, 3, 1, 0,
+        "No unit attention on release", NULL},
     {"QERR", CONTROL_MP, 0, -1, 3, 2, 2, 0,
         "Queue error management",
         "0: only affected task gets CC; 1: affected tasks aborted\t"

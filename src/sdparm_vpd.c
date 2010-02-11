@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2009 Douglas Gilbert.
+ * Copyright (c) 2005-2010 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -702,6 +702,7 @@ decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
         return SG_LIB_CAT_MALFORMED;
     }
     if (quiet) {
+        printf("act_mcode=%d\n", ((buff[4] >> 6) & 0x3));
         printf("spt=%d\n", ((buff[4] >> 3) & 0x7));
         printf("grd_chk=%d\n", !!(buff[4] & 0x4));
         printf("app_chk=%d\n", !!(buff[4] & 0x2));
@@ -718,20 +719,23 @@ decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
         printf("v_sup=%d\n", !!(buff[6] & 0x1));
         printf("p_i_i_sup=%d\n", !!(buff[7] & 0x10));
         printf("luiclr=%d\n", !!(buff[7] & 0x1));
+        printf("r_sup=%d\n", !!(buff[8] & 0x10));
         printf("cbcs=%d\n", !!(buff[8] & 0x1));
         printf("mitmd=%d\n", (buff[9] & 0xf));
     } else {
-        printf("  SPT=%d GRD_CHK=%d APP_CHK=%d REF_CHK=%d\n",
-               ((buff[4] >> 3) & 0x7), !!(buff[4] & 0x4), !!(buff[4] & 0x2),
-               !!(buff[4] & 0x1));
+        printf("  ACTIVATE_MICROCODE=%d SPT=%d GRD_CHK=%d APP_CHK=%d "
+               "REF_CHK=%d\n", ((buff[4] >> 6) & 0x3), ((buff[4] >> 3) & 0x7),
+               !!(buff[4] & 0x4), !!(buff[4] & 0x2), !!(buff[4] & 0x1));
         printf("  UASK_SUP=%d GROUP_SUP=%d PRIOR_SUP=%d HEADSUP=%d ORDSUP=%d "
                "SIMPSUP=%d\n", !!(buff[5] & 0x20), !!(buff[5] & 0x10),
                !!(buff[5] & 0x8), !!(buff[5] & 0x4), !!(buff[5] & 0x2),
                !!(buff[5] & 0x1));
-        printf("  WU_SUP=%d CRD_SUP=%d NV_SUP=%d V_SUP=%d P_I_I_SUP=%d "
-               "LUICLR=%d CBCS=%d\n", !!(buff[6] & 0x8), !!(buff[6] & 0x4),
-               !!(buff[6] & 0x2), !!(buff[6] & 0x1), !!(buff[7] & 0x10),
-               !!(buff[7] & 0x1), !!(buff[8] & 0x1));
+        printf("  WU_SUP=%d CRD_SUP=%d NV_SUP=%d V_SUP=%d\n",
+               !!(buff[6] & 0x8), !!(buff[6] & 0x4),
+               !!(buff[6] & 0x2), !!(buff[6] & 0x1),
+        printf("  P_I_I_SUP=%d LUICLR=%d R_SUP=%d CBCS=%d\n",
+               !!(buff[7] & 0x10), !!(buff[7] & 0x1),
+               !!(buff[8] & 0x10), !!(buff[8] & 0x1));
         printf("  Multi I_T nexus microcode download=%d\n", buff[9] & 0xf);
     }
     return 0;
