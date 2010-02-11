@@ -732,7 +732,7 @@ decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
                !!(buff[5] & 0x1));
         printf("  WU_SUP=%d CRD_SUP=%d NV_SUP=%d V_SUP=%d\n",
                !!(buff[6] & 0x8), !!(buff[6] & 0x4),
-               !!(buff[6] & 0x2), !!(buff[6] & 0x1),
+               !!(buff[6] & 0x2), !!(buff[6] & 0x1));
         printf("  P_I_I_SUP=%d LUICLR=%d R_SUP=%d CBCS=%d\n",
                !!(buff[7] & 0x10), !!(buff[7] & 0x1),
                !!(buff[8] & 0x10), !!(buff[8] & 0x1));
