@@ -22,10 +22,12 @@ this utility, various files are "exported" out of the subversion repository
 and "svn:externals" redirection is no longer visible (but the unused files
 are visible).
 
-Currently the shared code is statically compiled into sdparm. It is the
-intention of the author to make a common library called libsgutils.so in
-a separate package that both sdparm and sg3_utils will depend on at some
-point in the future.
+In Linux (with debain and rpm style packages) if the libsgutils2-dev
+package is present at build time, then the sdparm executable will
+use the libsgutils shared library. If the libsgutils2-dev package
+is not detected at build time, then the sdparm executable built
+will compile and link the relevant code from the "include/" and "lib/"
+subdirectories.
 
 Documentation
 -------------
