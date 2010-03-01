@@ -56,7 +56,7 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Fri Feb 12 2010 - dgilbert at interlog dot com
+* Sun Feb 28 2010 - dgilbert at interlog dot com
 - update SAS Enhanced phy control mpage (spl-r04); add '--readonly'
   * sdparm-1.05
 * Sun Sep 20 2009 - dgilbert at interlog dot com

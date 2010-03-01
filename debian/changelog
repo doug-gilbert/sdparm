@@ -2,7 +2,7 @@ sdparm (1.05-0.1) unstable; urgency=low
 
   * additions to SAS-2 Enhanced phy control mode page
 
- -- Douglas Gilbert <dgilbert@interlog.com>  Fri, 12 Feb 2009 01:50:00 +0100
+ -- Douglas Gilbert <dgilbert@interlog.com>  Sun, 28 Feb 2009 09:50:00 -0500
 
 sdparm (1.04-0.1) unstable; urgency=low
 

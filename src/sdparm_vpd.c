@@ -1482,6 +1482,55 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
                 return res;
         }
         break;
+    case VPD_AUTOMATION_DEV_SN: /* 0xb3 */
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = (b[2] << 8) + b[3];
+        if (len > sz) {
+            fprintf(stderr, "Response to Automation device serial number VPD "
+                    "page truncated\n");
+            len = sz;
+        }
+        if (opts->long_out)
+            printf("Automation device serial number [0xB3] VPD page:\n");
+        else
+            printf("Automation device serial number VPD page:\n");
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        } else if (len > 0) {
+            if (len + 4 < (int)sizeof(b))
+                b[len + 4] = '\0';
+            else
+                b[sizeof(b) - 1] = '\0';
+            printf("  %s\n", b + 4);
+        } else
+            printf("  <empty>\n");
+        break;
+    case VPD_DTDE_ADDRESS:      /* 0xb4 */
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = (b[2] << 8) + b[3];
+        if (len > sz) {
+            fprintf(stderr, "Response to Data transfer device element "
+                    "address VPD page truncated\n");
+            len = sz;
+        }
+        if (opts->long_out)
+            printf("Data transfer device element address [0xB4] VPD page:\n");
+        else
+            printf("Data transfer device element address VPD page:\n");
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        } else if (len > 0) {
+            printf("  0x");
+            for (k = 0; k < len; ++k)
+                printf("%02x", (unsigned int)b[4 + k]);
+            printf("\n");
+        } else
+            printf("  <empty>\n");
+        break;
     default:
         if (b[1] != pn)
             goto dumb_inq;
