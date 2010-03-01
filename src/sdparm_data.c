@@ -81,6 +81,8 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
         "mechanical status (MMC)", NULL},        /* read only */
     {CONTROL_MP, 0, -1, 0, "co", "Control", NULL},
     {CONTROL_MP, MSP_SPC_CE, -1, 0, "coe", "Control extension", NULL},
+    {CONTROL_MP, MSP_SSC_CDP, -1, 0, "cdp", "Control data protection (SSC)",
+        NULL},
     {DATA_COMPR_MP, 0, PDT_TAPE, 0, "dac", "Data compression (SSC)", NULL},
     {DEV_CONF_MP, 0, PDT_TAPE, 0, "dc", "Device configuration (SSC)", NULL},
     {DEV_CAP_MP, 0, PDT_MCHANGER, 0, "dca", "Device capabilities (SMC)",
@@ -227,6 +229,8 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_DEVICE_ID, VPD_DI_SEL_TARGET, -1, "di_target", "Device "
      "identification, target device only"},
     {VPD_EXT_INQ, 0, -1, "ei", "Extended inquiry data"},
+    {VPD_DTDE_ADDRESS, 0, 1, "dtde",
+     "Data transfer device element address (SSC)"},
     {VPD_IMP_OP_DEF, 0, -1, "iod",
      "Implemented operating definition (obs)"},
     {VPD_MAN_ASS_SN, 0, PDT_TAPE, "mas",
@@ -563,6 +567,19 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"INIT_PR", CONTROL_MP, MSP_SPC_CE, -1, 5, 3, 4, 0,
         "Initial command priority", "0: none or vendor\t"
         "1: highest\t15: lowest"},
+
+    /* Control data protection mode subpage [0xa,0xf0] ssc4 */
+    {"LBPM", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 4, 7, 8, 0,
+        "Logical block protection method", "0: none\t"
+        "1: Reed-Solomon CRC"},
+    {"LBPIL", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 5, 5, 6, 0,
+        "Logical block protection information length", NULL},
+    {"LBP_W", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 6, 7, 1, 0,
+        "Logical block protection during write", NULL},
+    {"LBP_R", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 6, 6, 1, 0,
+        "Logical block protection during read", NULL},
+    {"RBDP", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 6, 5, 1, 0,
+        "Recover buffered data protected", NULL},
 
     /* SAT: pATA control mode subpage [0xa,0xf1] sat-r09 */
     /* treat as spc since could be disk or ATAPI */
