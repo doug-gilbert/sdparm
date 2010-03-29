@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.05 [20100228] [svn: r144]
+ChangeLog for sdparm-1.05 [20100328] [svn: r146]
   - add '--readonly' option especially for '-C start' and
     '-C stop' on ATA disks.
   - Control mode page updates (spc4r23)
