@@ -26,13 +26,15 @@ sglib_SOURCES =		../lib/sg_lib.c \
 
 if HAVE_SGUTILS
 INCLUDES = -I/usr/include/scsi
+sdparm_LDADD = @GETOPT_O_FILES@ @os_libs@ @SGUTILS_LIBS@
+sdparm_DEPENDENCIES = @GETOPT_O_FILES@
 else
 INCLUDES = -I$(top_srcdir)/include
 sdparm_SOURCES += $(sglib_SOURCES)
-endif
-
 sdparm_LDADD = @os_deps@ @GETOPT_O_FILES@ @os_libs@ @SGUTILS_LIBS@
 sdparm_DEPENDENCIES = @os_deps@ @GETOPT_O_FILES@
+endif
+
 EXTRA_sdparm_SOURCES =	../lib/sg_pt_linux.c	\
 			../include/sg_linux_inc.h	\
 			../lib/sg_pt_freebsd.c	\
