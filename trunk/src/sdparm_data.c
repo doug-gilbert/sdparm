@@ -244,6 +244,7 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_PROTO_LU, 0, -1, "pslu", "Protocol-specific logical unit "
      "information"},
     {VPD_PROTO_PORT, 0, -1, "pspo", "Protocol-specific port information"},
+    {VPD_REFERRALS, 0, PDT_DISK, "ref", "Referrals (SBC)"},
     {VPD_SA_DEV_CAP, 0, PDT_TAPE, "sad",
      "Sequential access device capabilities (SSC)"},
     {VPD_SOFTW_INF_ID, 0, -1, "sii", "Software interface identification"},

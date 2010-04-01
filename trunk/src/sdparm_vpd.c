@@ -836,6 +836,7 @@ decode_block_limits_vpd(unsigned char * buff, int len)
                 "short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
+    printf("  Maximum compare and write length: %u blocks\n", buff[5]);
     u = (buff[6] << 8) | buff[7];
     printf("  Optimal transfer length granularity: %u blocks\n", u);
     u = ((unsigned int)buff[8] << 24) | (buff[9] << 16) |
@@ -892,8 +893,7 @@ decode_block_dev_chars_vpd(unsigned char * buff, int len)
         printf("  Nominal rotation rate: %d rpm\n", u);
     u = buff[7] & 0xf;
     printf("  Nominal form factor");
-    switch (u)
-    {
+    switch (u) {
     case 0:
         printf(" not reported\n");
         break;
@@ -947,12 +947,26 @@ decode_tape_man_ass_sn_vpd(unsigned char * buff, int len)
 static int
 decode_block_thin_prov_vpd(unsigned char * b, int len)
 {
-    int dp;
+    int dp, anc_sup;
 
     if (len < 4) {
         fprintf(stderr, "Thin provisioning page too short=%d\n",
                 len);
         return SG_LIB_CAT_MALFORMED;
+    }
+    printf("  Unmap supported (TPU): %d\n", !!(0x80 & b[5]));
+    printf("  Write same with unmap supported (TPWS): %d\n", !!(0x40 & b[5]));
+    anc_sup = (b[5] >> 1) & 0x7;
+    switch (anc_sup) {
+    case 0:
+        printf("  Anchored LBAs not supported\n");
+        break;
+    case 1:
+        printf("  Anchored LBAs supported\n");
+        break;
+    default:
+        printf("  Anchored LBAs support reserved [%d]\n", anc_sup);
+        break;
     }
     dp = !!(b[5] & 0x1);
     printf("  Threshold exponent: %d\n", b[4]);
@@ -1017,6 +1031,23 @@ decode_tapealert_supported_vpd(unsigned char * b, int len)
     return 0;
 }
 
+static int
+decode_referrals_vpd(unsigned char * b, int len)
+{
+    unsigned int u;
+
+    if (len < 16) {
+        fprintf(stderr, "Referrals VPD page length too short=%d\n", len);
+        return SG_LIB_CAT_MALFORMED;
+    }
+    u = ((unsigned int)b[8] << 24) | (b[9] << 16) | (b[10] << 8) | b[11];
+    printf("  User data segment size: %u\n", u);
+    u = ((unsigned int)b[12] << 24) | (b[13] << 16) |
+        (b[14] << 8) | b[15];
+    printf("  User data segment multiplier: %u\n", u);
+    return 0;
+}
+
 /* Returns 0 if successful, else error */
 int
 sdp_process_vpd_page(int sg_fd, int pn, int spn,
@@ -1027,6 +1058,11 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     int sz;
     unsigned char * up;
     const struct sdparm_vpd_page_t * vpp;
+    const char * vpd_name;
+    int adc = 0;
+    int sbc = 0;
+    int ssc = 0;
+    int osd = 0;
 
     verb = (opts->verbose > 0) ? opts->verbose - 1 : 0;
     sz = sizeof(b);
@@ -1051,6 +1087,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         pdt = req_pdt;
     } else
         pdt = dev_pdt;
+
     switch (pn) {
     case VPD_SUPPORTED_VPDS:
         if (b[1] != pn)
@@ -1332,180 +1369,174 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             printf("  <empty>\n");
         break;
     case 0xb0:          /* VPD page depends on pdt */
-        {
-            int osd = 0;
-            int sbc = 0;
-            int ssc = 0;
-            const char * vpd_name;
-
-            switch (pdt)
-            {
-            case PDT_DISK: case PDT_WO: case PDT_OPTICAL:
-                vpd_name = "Block limits";
-                sbc = 1;
-                break;
-            case PDT_TAPE: case PDT_MCHANGER:
-                vpd_name = "Sequential access device capabilities";
-                ssc = 1;
-                break;
-            case PDT_OSD:
-                vpd_name = "OSD information";
-                osd = 1;
-                break;
-            default:
-                vpd_name = "unexpected pdt for B0h";
-                break;
-            }
-            if (b[1] != pn)
-                goto dumb_inq;
-            len = (b[2] << 8) + b[3];
-            if (len > sz) {
-                fprintf(stderr, "Response to %s VPD page truncated\n",
-                        vpd_name);
-                len = sz;
-            }
-            if (opts->long_out)
-                printf("%s [0xb0] VPD page:\n", vpd_name);
-            else
-                printf("%s VPD page:\n", vpd_name);
-            if (opts->hex) {
-                dStrHex((const char *)b, len + 4, 0);
-                return 0;
-            }
-            res = 0;
-            if (ssc)
-                res = decode_tape_dev_caps_vpd(b, len + 4);
-            else if (sbc)
-                res = decode_block_limits_vpd(b, len + 4);
-            else
-                dStrHex((const char *)b, len + 4, 0);
-            if (res)
-                return res;
+        if (b[1] != pn)
+            goto dumb_inq;
+        switch (pdt) {
+        case PDT_DISK: case PDT_WO: case PDT_OPTICAL:
+            vpd_name = "Block limits";
+            sbc = 1;
+            break;
+        case PDT_TAPE: case PDT_MCHANGER:
+            vpd_name = "Sequential access device capabilities";
+            ssc = 1;
+            break;
+        case PDT_OSD:
+            vpd_name = "OSD information";
+            osd = 1;
+            break;
+        default:
+            vpd_name = "unexpected pdt for B0h";
+            break;
         }
+        len = (b[2] << 8) + b[3];
+        if (len > sz) {
+            fprintf(stderr, "Response to %s VPD page truncated\n",
+                    vpd_name);
+            len = sz;
+        }
+        if (opts->long_out)
+            printf("%s [0xb0] VPD page:\n", vpd_name);
+        else
+            printf("%s VPD page:\n", vpd_name);
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        res = 0;
+        if (ssc)
+            res = decode_tape_dev_caps_vpd(b, len + 4);
+        else if (sbc)
+            res = decode_block_limits_vpd(b, len + 4);
+        else
+            dStrHex((const char *)b, len + 4, 0);
+        if (res)
+            return res;
         break;
     case 0xb1:          /* VPD page depends on pdt */
-        {
-            int adc = 0;
-            int osd = 0;
-            int sbc = 0;
-            int ssc = 0;
-            const char * vpd_name;
-
-            switch (pdt)
-            {
-            case PDT_DISK: case PDT_WO: case PDT_OPTICAL:
-                vpd_name = "Block device characteristics";
-                sbc = 1;
-                break;
-            case PDT_TAPE: case PDT_MCHANGER:
-                vpd_name = "Manufactured assigned serial number";
-                ssc = 1;
-                break;
-            case PDT_OSD:
-                vpd_name = "Security token";
-                osd = 1;
-                break;
-            case PDT_ADC:
-                vpd_name = "Manufactured assigned serial number";
-                adc = 1;
-                break;
-            default:
-                vpd_name = "unexpected pdt for B1h";
-                break;
-            }
-            if (b[1] != pn)
-                goto dumb_inq;
-            len = (b[2] << 8) + b[3];
-            if (len > sz) {
-                fprintf(stderr, "Response to %s VPD page truncated\n",
-                        vpd_name);
-                len = sz;
-            }
-            if (opts->long_out)
-                printf("%s [0xb1] VPD page:\n", vpd_name);
-            else
-                printf("%s VPD page:\n", vpd_name);
-            if (opts->hex) {
-                dStrHex((const char *)b, len + 4, 0);
-                return 0;
-            }
-            res = 0;
-            if (ssc || adc)
-                res = decode_tape_man_ass_sn_vpd(b, len + 4);
-            else if (sbc)
-                res = decode_block_dev_chars_vpd(b, len + 4);
-            else
-                dStrHex((const char *)b, len + 4, 0);
-            if (res)
-                return res;
+        if (b[1] != pn)
+            goto dumb_inq;
+        switch (pdt) {
+        case PDT_DISK: case PDT_WO: case PDT_OPTICAL:
+            vpd_name = "Block device characteristics";
+            sbc = 1;
+            break;
+        case PDT_TAPE: case PDT_MCHANGER:
+            vpd_name = "Manufactured assigned serial number";
+            ssc = 1;
+            break;
+        case PDT_OSD:
+            vpd_name = "Security token";
+            osd = 1;
+            break;
+        case PDT_ADC:
+            vpd_name = "Manufactured assigned serial number";
+            adc = 1;
+            break;
+        default:
+            vpd_name = "unexpected pdt for B1h";
+            break;
         }
+        len = (b[2] << 8) + b[3];
+        if (len > sz) {
+            fprintf(stderr, "Response to %s VPD page truncated\n",
+                    vpd_name);
+            len = sz;
+        }
+        if (opts->long_out)
+            printf("%s [0xb1] VPD page:\n", vpd_name);
+        else
+            printf("%s VPD page:\n", vpd_name);
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        res = 0;
+        if (ssc || adc)
+            res = decode_tape_man_ass_sn_vpd(b, len + 4);
+        else if (sbc)
+            res = decode_block_dev_chars_vpd(b, len + 4);
+        else
+            dStrHex((const char *)b, len + 4, 0);
+        if (res)
+            return res;
         break;
     case 0xb2:          /* VPD page depends on pdt */
         if (b[1] != pn)
             goto dumb_inq;
-        {
-            int sbc = 0;
-            int ssc = 0;
-            const char * vpd_name;
 
-            len = (b[2] << 8) + b[3];
-            switch (pdt)
-            {
-            case PDT_DISK: case PDT_WO: case PDT_OPTICAL:
-                vpd_name = "Thin provisioning";
-                sbc = 1;
-                break;
-            case PDT_TAPE: case PDT_MCHANGER:
-                vpd_name = "TapeAlert supported flags";
-                ssc = 1;
-                break;
-            default:
-                vpd_name = "unexpected pdt for B2h";
-                break;
-            }
-            if (opts->long_out)
-                printf("%s [0xb1] VPD page:\n", vpd_name);
-            else
-                printf("%s VPD page:\n", vpd_name);
-            if (opts->hex) {
-                dStrHex((const char *)b, len + 4, 0);
-                return 0;
-            }
-            res = 0;
-            if (ssc)
-                res = decode_tapealert_supported_vpd(b, len + 4);
-            else if (sbc)       /* added in sbc3r20 */
-                res = decode_block_thin_prov_vpd(b, len + 4);
-            else
-                dStrHex((const char *)b, len + 4, 0);
-            if (res)
-                return res;
-        }
-        break;
-    case VPD_AUTOMATION_DEV_SN: /* 0xb3 */
-        if (b[1] != pn)
-            goto dumb_inq;
         len = (b[2] << 8) + b[3];
-        if (len > sz) {
-            fprintf(stderr, "Response to Automation device serial number VPD "
-                    "page truncated\n");
-            len = sz;
+        switch (pdt) {
+        case PDT_DISK: case PDT_WO: case PDT_OPTICAL:
+            vpd_name = "Thin provisioning";
+            sbc = 1;
+            break;
+        case PDT_TAPE: case PDT_MCHANGER:
+            vpd_name = "TapeAlert supported flags";
+            ssc = 1;
+            break;
+        default:
+            vpd_name = "unexpected pdt for B2h";
+            break;
         }
         if (opts->long_out)
-            printf("Automation device serial number [0xB3] VPD page:\n");
+            printf("%s [0xb2] VPD page:\n", vpd_name);
         else
-            printf("Automation device serial number VPD page:\n");
+            printf("%s VPD page:\n", vpd_name);
         if (opts->hex) {
             dStrHex((const char *)b, len + 4, 0);
             return 0;
-        } else if (len > 0) {
-            if (len + 4 < (int)sizeof(b))
-                b[len + 4] = '\0';
-            else
-                b[sizeof(b) - 1] = '\0';
-            printf("  %s\n", b + 4);
-        } else
-            printf("  <empty>\n");
+        }
+        res = 0;
+        if (ssc)
+            res = decode_tapealert_supported_vpd(b, len + 4);
+        else if (sbc)       /* added in sbc3r20 */
+            res = decode_block_thin_prov_vpd(b, len + 4);
+        else
+            dStrHex((const char *)b, len + 4, 0);
+        if (res)
+            return res;
+        break;
+    case 0xb3:          /* VPD page depends on pdt */
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = (b[2] << 8) + b[3];
+        switch (pdt) {
+        case PDT_DISK: case PDT_WO: case PDT_OPTICAL:
+            vpd_name = "Referrals";
+            sbc = 1;
+            break;
+        case PDT_TAPE: case PDT_MCHANGER:
+            vpd_name = "Automation device serial number";
+            ssc = 1;
+            break;
+        default:
+            vpd_name = "unexpected pdt for B3h";
+            break;
+        }
+        if (opts->long_out)
+            printf("%s [0xb3] VPD page:\n", vpd_name);
+        else
+            printf("%s VPD page:\n", vpd_name);
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        res = 0;
+        if (ssc) {
+            if (len > 0) {
+                if (len + 4 < (int)sizeof(b))
+                    b[len + 4] = '\0';
+                else
+                    b[sizeof(b) - 1] = '\0';
+                printf("  serial number: %s\n", b + 4);
+            } else
+                printf("  serial number: <empty>\n");
+        } else if (sbc)       /* added in sbc3r22 */
+            res = decode_referrals_vpd(b, len + 4);
+        else
+            dStrHex((const char *)b, len + 4, 0);
+        if (res)
+            return res;
         break;
     case VPD_DTDE_ADDRESS:      /* 0xb4 */
         if (b[1] != pn)
