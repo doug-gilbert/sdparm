@@ -63,11 +63,12 @@
 #include <sys/types.h>
 #include <sys/utsname.h>
 
+/* Following needed for lk 2.4 series; may be dropped in future */
 #include <scsi/scsi.h>
 #include <scsi/sg.h>
-
 static int map_if_lk24(int sg_fd, const char * device_name, int rw,
                        int verbose);
+
 #endif  /* SG_LIB_LINUX */
 
 #include "sdparm.h"
@@ -76,7 +77,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.05 20100331 [svn: r148]";
+static char * version_str = "1.05 20100413 [svn: r149]";
 
 
 static struct option long_options[] = {
@@ -2378,7 +2379,12 @@ main(int argc, char * argv[])
 }
 
 #ifdef SG_LIB_LINUX
-/*     ============ */
+/* Following needed for lk 2.4 series; may be dropped in future.
+ * In the lk 2.4 series (and earlier) no pass-through was available on the
+ * often used /dev/sd* device nodes. So the code below attempts to map a
+ * given /dev/sd<n> device node to the corresponding /dev/sg<m> device
+ * node.
+ */
 
 typedef struct my_scsi_idlun
 {
@@ -2529,4 +2535,3 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 }
 
 #endif  /* SG_LIB_LINUX */
-
