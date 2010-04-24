@@ -1,5 +1,5 @@
 %define	name	sdparm
-%define	version	1.06
+%define	version	1.05
 %define	release	1
 
 Summary:	List or change SCSI disk parameters
@@ -56,9 +56,6 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Wed Apr 14 2010 - dgilbert at interlog dot com
-- xxxxxxxxxxxxxxx
-  * sdparm-1.06
 * Tue Apr 13 2010 - dgilbert at interlog dot com
 - update SAS Enhanced phy control mpage (spl-r04); add '--readonly'
   * sdparm-1.05
