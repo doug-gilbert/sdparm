@@ -22,12 +22,10 @@ this utility, various files are "exported" out of the subversion repository
 and "svn:externals" redirection is no longer visible (but the unused files
 are visible).
 
-In Linux (with debain and rpm style packages) if the libsgutils2-dev
-package is present at build time, then the sdparm executable will
-use the libsgutils shared library. If the libsgutils2-dev package
-is not detected at build time, then the sdparm executable built
-will compile and link the relevant code from the "include/" and "lib/"
-subdirectories.
+Currently the shared code is statically compiled into sdparm. It is the
+intention of the author to make a common library called libsgutils.so in
+a separate package that both sdparm and sg3_utils will depend on at some
+point in the future.
 
 Documentation
 -------------
@@ -96,65 +94,19 @@ the corresponding higher level device node try "camcontrol devlist".
 
 Solaris port
 ------------
-The uscsi pass-through mechanism is used and is only available on SCSI
-devices. There seems to be no corresponding ATA pass through and recent
-SATA disks do not seem to have a SAT layer in front of them (within
-Solaris). If SAT is present (perhaps externally or within a HBA) then that
-would allow SATA disks to accept SCSI commands including the SCSI ATA PASS
-THROUGH commands.
-
-SCSI device names below the '/dev' directory have a form like: c5t4d3s2
-where the number following "c" is the controller (HBA) number, the number
-following "t" is the target number (from the SCSI parallel interface days)
-and the number following "d" is the LUN. Following the "s" is the slice
-number which is related to a partition and by convention "s2" is the whole
-disk.
-
-OpenSolaris also has a c5t4d3p2 form where the number following the "p" is
-the partition number apart from "p0" which is the whole disk. So a whole
-disk may be referred to as either:
-  - c5t4d3
-  - c5t4d3s2
-  - c5t4d3p0
-
-And these device names are duplicated in the /dev/dsk and /dev/rdsk
-directories. The former is the block device name and the latter is for "raw"
-(or char device) access which is what sdparm needs. So in openSolaris
-something of the form:
-   sdparm /dev/rdsk/c5t4d3p0
-should work. If it doesn't add a '-vvv' option. If that is attempted
-on the /dev/dsk/c5t4d3p0 variant an inappropriate ioctl for device
-error will result.
-
-The device names within the /dev directory are typically symbolic
-links to much longer topological names in the /device directory.
-
-In Solaris cd/dvd/bd players seem to be treated as disks and so are
-found in the /dev/rdsk directory. Tape drives appear in the /dev/rmt
-directory.
-
-There is also a sgen (SCSI generic) driver which by default does not
-attach to any device. See the /kernel/drv/sgen.conf file to control
-what is attached. Any attached device will have a device name of
-the form /dev/scsi/c5t4d3 .
-
-Listing available SCSI devices in Solaris seems to be a challenge.
-"Use the 'format' command" advice works but seems a very dangerous
-way to list devices. [It does prompt again before doing any damage.]
-'devfsadm -Cv' cleans out the clutter in the /dev/rdsk directory,
-only leaving what is "live". The "cfgadm -v" command looks promising.
+Currently assumes gcc is present.
 
 
 Tru64 (osf) port
 ----------------
-Any feedback on this platform welcome.
+??
 
 
 Win32 port
 ----------
-This port supports Windows NT, 2000, 2003++, XP, Vista and Windows 7
-(i.e. not 95, 98, ME or earlier). It uses the Microsoft SCSI Pass Through
-"Direct" (SPTD) rather than ASPI32 which requires a dll from Adaptec.
+This port only supports Windows NT, 2000, 2003, XP and Vista (not 95, 98,
+ME or earlier). It uses the Microsoft SCSI Pass Through "Direct" (SPTD)
+rather than ASPI32 which requires a dll from Adaptec.
 
 The source can be built in a cygwin environment and can run in a cygwin
 bash shell. It can also run in a DOS shell if the cygwin1.dll is put in an
@@ -230,4 +182,4 @@ SCSI5:0,112,0 claimed=0 pdt=10h         LSI       PSEUDO DEVICE     2.34
 
 
 Douglas Gilbert
-13th April 2010
+20th September 2009

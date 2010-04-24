@@ -1,4 +1,4 @@
-.TH SDPARM "8" "February 2010" "sdparm\-1.05" SDPARM
+.TH SDPARM "8" "April 2009" "sdparm\-1.04" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -7,9 +7,9 @@ sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 [\fI\-\-dbd\fR] [\fI\-\-defaults\fR] [\fI\-\-dummy\fR] [\fI\-\-flexible\fR]
 [\fI\-\-get=STR\fR] [\fI\-\-help\fR] [\fI\-\-hex\fR] [\fI\-\-inquiry\fR]
 [\fI\-\-long\fR] [\fI\-\-num\-desc\fR] [\fI\-\-page=PG[,SPG]\fR]
-[\fI\-\-quiet\fR] [\fI\-\-readonly\fR] [\fI\-\-save\fR] [\fI\-\-set=STR\fR]
-[\fI\-\-six\fR] [\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
-[\fI\-\-verbose\fR] [\fI\-\-version\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
+[\fI\-\-quiet\fR] [\fI\-\-save\fR] [\fI\-\-set=STR\fR] [\fI\-\-six\fR]
+[\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR] [\fI\-\-verbose\fR]
+[\fI\-\-version\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
 .PP
 .B sdparm
 \fI\-\-enumerate\fR [\fI\-\-all\fR] [\fI\-\-inquiry\fR] [\fI\-\-long\fR]
@@ -202,12 +202,6 @@ strings fetched from an INQUIRY response. Without this option such a line is
 typically the first line output by sdparm. Reduces output from the device
 identification VPD page, typically to one line (or none) for each of di_lu,
 di_port, di_target and di_asis.
-.TP
-\fB\-r\fR, \fB\-\-readonly\fR
-override other logic to open \fIDEVICE\fR in read\-only mode. This option
-may be useful if a command is being sent to an ATA disk via a SCSI
-command set. For example in Linux '\-C stop' may require this option to
-stop an ATA disk being restarted immediately.
 .TP
 \fB\-S\fR, \fB\-\-save\fR
 when a mode page is being modified (by using the \fI\-\-clear=STR\fR and/or
@@ -509,14 +503,12 @@ be left to "burning" programs.
 .TP
 start
 starts the medium (i.e. spins it up). Harmless if medium has already been
-started. See 'eject' command for supported device types. If the \fIDEVICE\fR
-is an ATA disk in Linux the '\-\-readonly' option may be required.
+started. See 'eject' command for supported device types.
 .TP
 stop
 stops the medium (i.e. spins it down). Harmless if
 medium has already been stopped. See 'eject' command for supported device
-types. If the \fIDEVICE\fR is an ATA disk in Linux the '\-\-readonly'
-option may be required.
+types.
 .TP
 sync
 sends a SYNCHRONIZE CACHE command. The device should
@@ -742,7 +734,7 @@ Written by Douglas Gilbert.
 .SH "REPORTING BUGS"
 Report bugs to <dgilbert at interlog dot com>.
 .SH COPYRIGHT
-Copyright \(co 2005\-2010 Douglas Gilbert
+Copyright \(co 2005\-2009 Douglas Gilbert
 .br
 This software is distributed under a FreeBSD license. There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.

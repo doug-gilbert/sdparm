@@ -33,7 +33,6 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = sdparm$(EXEEXT)
-@HAVE_SGUTILS_FALSE@am__append_1 = $(sglib_SOURCES)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -46,20 +45,11 @@ CONFIG_CLEAN_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
-am__sdparm_SOURCES_DIST = sdparm.c sdparm.h sdparm_data.c \
-	sdparm_data_vendor.c sdparm_access.c sdparm_vpd.c sdparm_cmd.c \
-	../lib/sg_lib.c ../include/sg_lib.h ../lib/sg_lib_data.c \
-	../include/sg_lib_data.h ../lib/sg_cmds_basic.c \
-	../include/sg_cmds_basic.h ../lib/sg_cmds_mmc.c \
-	../include/sg_cmds_mmc.h ../include/sg_pt.h \
-	../lib/sg_pt_common.c
-am__objects_1 = sg_lib.$(OBJEXT) sg_lib_data.$(OBJEXT) \
-	sg_cmds_basic.$(OBJEXT) sg_cmds_mmc.$(OBJEXT) \
-	sg_pt_common.$(OBJEXT)
-@HAVE_SGUTILS_FALSE@am__objects_2 = $(am__objects_1)
 am_sdparm_OBJECTS = sdparm.$(OBJEXT) sdparm_data.$(OBJEXT) \
 	sdparm_data_vendor.$(OBJEXT) sdparm_access.$(OBJEXT) \
-	sdparm_vpd.$(OBJEXT) sdparm_cmd.$(OBJEXT) $(am__objects_2)
+	sdparm_vpd.$(OBJEXT) sdparm_cmd.$(OBJEXT) sg_lib.$(OBJEXT) \
+	sg_lib_data.$(OBJEXT) sg_cmds_basic.$(OBJEXT) \
+	sg_cmds_mmc.$(OBJEXT) sg_pt_common.$(OBJEXT)
 sdparm_OBJECTS = $(am_sdparm_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(top_builddir)@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -69,7 +59,7 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 SOURCES = $(sdparm_SOURCES) $(EXTRA_sdparm_SOURCES)
-DIST_SOURCES = $(am__sdparm_SOURCES_DIST) $(EXTRA_sdparm_SOURCES)
+DIST_SOURCES = $(sdparm_SOURCES) $(EXTRA_sdparm_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -103,7 +93,6 @@ LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LTLIBOBJS = @LTLIBOBJS@
-MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
 OBJEXT = @OBJEXT@
@@ -115,7 +104,6 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 SET_MAKE = @SET_MAKE@
-SGUTILS_LIBS = @SGUTILS_LIBS@
 SHELL = @SHELL@
 STRIP = @STRIP@
 VERSION = @VERSION@
@@ -172,11 +160,16 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 
 # INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/include/scsi
-AM_CFLAGS = -Wall -W
-# AM_CFLAGS = -Wall -W -pedantic -std=c99
-sdparm_SOURCES = sdparm.c sdparm.h sdparm_data.c sdparm_data_vendor.c \
-	sdparm_access.c sdparm_vpd.c sdparm_cmd.c $(am__append_1)
-sglib_SOURCES = ../lib/sg_lib.c \
+AM_CFLAGS = -I$(top_srcdir)/include -Wall -W
+# AM_CFLAGS = -I$(top_srcdir)/include -Wall -W -pedantic -std=c99
+sdparm_SOURCES = sdparm.c	\
+			sdparm.h	\
+			sdparm_data.c	\
+			sdparm_data_vendor.c	\
+			sdparm_access.c	\
+			sdparm_vpd.c	\
+			sdparm_cmd.c	\
+			../lib/sg_lib.c	\
 			../include/sg_lib.h	\
 			../lib/sg_lib_data.c	\
 			../include/sg_lib_data.h	\
@@ -187,12 +180,8 @@ sglib_SOURCES = ../lib/sg_lib.c \
 			../include/sg_pt.h	\
 			../lib/sg_pt_common.c
 
-@HAVE_SGUTILS_FALSE@INCLUDES = -I$(top_srcdir)/include
-@HAVE_SGUTILS_TRUE@INCLUDES = -I/usr/include/scsi
-@HAVE_SGUTILS_FALSE@sdparm_LDADD = @os_deps@ @GETOPT_O_FILES@ @os_libs@ @SGUTILS_LIBS@
-@HAVE_SGUTILS_TRUE@sdparm_LDADD = @GETOPT_O_FILES@ @os_libs@ @SGUTILS_LIBS@
-@HAVE_SGUTILS_FALSE@sdparm_DEPENDENCIES = @os_deps@ @GETOPT_O_FILES@
-@HAVE_SGUTILS_TRUE@sdparm_DEPENDENCIES = @GETOPT_O_FILES@
+sdparm_LDADD = @os_deps@ @GETOPT_O_FILES@ @os_libs@
+sdparm_DEPENDENCIES = @os_deps@ @GETOPT_O_FILES@
 EXTRA_sdparm_SOURCES = ../lib/sg_pt_linux.c	\
 			../include/sg_linux_inc.h	\
 			../lib/sg_pt_freebsd.c	\
@@ -207,7 +196,7 @@ all: all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .o .obj
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -232,9 +221,9 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
-$(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
+$(top_srcdir)/configure:  $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-$(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
+$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)

@@ -1,10 +1,11 @@
 #ifndef SDPARM_H
 #define SDPARM_H
 
-/*
- * sdparm is a utility program for getting and setting parameters on devices
- * that use one of the SCSI command sets. In some cases commands can be sent
- * to the device (e.g. eject removable media).
+/* sdparm is a utility program for the Linux OS SCSI subsystem.
+ *
+ * This utility fetches various parameters associated with a given
+ * SCSI disk (or a disk that uses, or translates the SCSI command
+ * set). In some cases these parameters can be changed.
  */
 
 #include <stdint.h>
@@ -64,7 +65,6 @@
 #define MSP_ADC_LU 0x3
 #define MSP_ADC_TD_SN 0x4
 #define MSP_SBC_THIN_PROV 0x2
-#define MSP_SSC_CDP 0xf0
 
 #define MODE_DATA_OVERHEAD 128
 #define EBUFF_SZ 256
@@ -96,9 +96,7 @@
 #define VPD_SECURITY_TOKEN 0xb1 /* OSD */
 #define VPD_TA_SUPPORTED 0xb2   /* SSC-3 */
 #define VPD_THIN_PROVISIONING 0xb2   /* SBC-3 */
-#define VPD_REFERRALS 0xb3
 #define VPD_AUTOMATION_DEV_SN 0xb3   /* SSC-3 */
-#define VPD_DTDE_ADDRESS 0xb4   /* SSC-4 */
 
 #define VPD_ASSOC_LU 0
 #define VPD_ASSOC_TPORT 1
@@ -150,7 +148,6 @@ struct sdparm_opt_coll {
     int mode_6;
     int num_desc;
     int quiet;
-    int read_only;
     int save;
     int transport;
     int vendor;

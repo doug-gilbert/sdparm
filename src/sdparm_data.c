@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2010 Douglas Gilbert.
+ * Copyright (c) 2005-2009 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -81,8 +81,6 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
         "mechanical status (MMC)", NULL},        /* read only */
     {CONTROL_MP, 0, -1, 0, "co", "Control", NULL},
     {CONTROL_MP, MSP_SPC_CE, -1, 0, "coe", "Control extension", NULL},
-    {CONTROL_MP, MSP_SSC_CDP, -1, 0, "cdp", "Control data protection (SSC)",
-        NULL},
     {DATA_COMPR_MP, 0, PDT_TAPE, 0, "dac", "Data compression (SSC)", NULL},
     {DEV_CONF_MP, 0, PDT_TAPE, 0, "dc", "Device configuration (SSC)", NULL},
     {DEV_CAP_MP, 0, PDT_MCHANGER, 0, "dca", "Device capabilities (SMC)",
@@ -191,9 +189,6 @@ static struct sdparm_mode_descriptor_t sas_e_phy_desc = {  /* desc SAS-2 */
     7, 1, 0, 8, -1, 2, 2, "Enhanced phy"
 };
 
-/* N.B. In SAS 2.1 the spec was split with the upper levels going into the
- * SAS Protocol Layer (SPL) document. So now the SPL drafts are the
- * relevant SAS references. */
 static struct sdparm_mode_page_t sdparm_sas_mode_pg[] = {    /* SAS-2 */
     {DISCONNECT_MP, 0, -1, 0, "dr", "Disconnect-reconnect (SAS)", NULL},
     {PROT_SPEC_LU_MP, 0, -1, 0, "pl", "Protocol specific logical unit (SAS)",
@@ -229,8 +224,6 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_DEVICE_ID, VPD_DI_SEL_TARGET, -1, "di_target", "Device "
      "identification, target device only"},
     {VPD_EXT_INQ, 0, -1, "ei", "Extended inquiry data"},
-    {VPD_DTDE_ADDRESS, 0, 1, "dtde",
-     "Data transfer device element address (SSC)"},
     {VPD_IMP_OP_DEF, 0, -1, "iod",
      "Implemented operating definition (obs)"},
     {VPD_MAN_ASS_SN, 0, PDT_TAPE, "mas",
@@ -244,7 +237,6 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_PROTO_LU, 0, -1, "pslu", "Protocol-specific logical unit "
      "information"},
     {VPD_PROTO_PORT, 0, -1, "pspo", "Protocol-specific port information"},
-    {VPD_REFERRALS, 0, PDT_DISK, "ref", "Referrals (SBC)"},
     {VPD_SA_DEV_CAP, 0, PDT_TAPE, "sad",
      "Sequential access device capabilities (SSC)"},
     {VPD_SOFTW_INF_ID, 0, -1, "sii", "Software interface identification"},
@@ -514,8 +506,6 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "1: lu maintains separate task sets for each I_T nexus"},
     {"TMF_ONLY", CONTROL_MP, 0, -1, 2, 4, 1, 0,
         "Task management functions only", NULL},
-    {"DPICZ", CONTROL_MP, 0, -1, 2, 3, 1, 0,
-        "Disable protection information check if protect field zero", NULL},
     {"D_SENSE", CONTROL_MP, 0, -1, 2, 2, 1, 0,
         "Descriptor format sense data", NULL},
     {"GLTSD", CONTROL_MP, 0, -1, 2, 1, 1, 0,
@@ -525,8 +515,6 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"QAM", CONTROL_MP, 0, -1, 3, 7, 4, 0,
         "Queue algorithm modifier",
         "0: restricted re-ordering; 1: unrestricted"},
-    {"NUAR", CONTROL_MP, 0, -1, 3, 3, 1, 0,
-        "No unit attention on release", NULL},
     {"QERR", CONTROL_MP, 0, -1, 3, 2, 2, 0,
         "Queue error management",
         "0: only affected task gets CC; 1: affected tasks aborted\t"
@@ -568,19 +556,6 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"INIT_PR", CONTROL_MP, MSP_SPC_CE, -1, 5, 3, 4, 0,
         "Initial command priority", "0: none or vendor\t"
         "1: highest\t15: lowest"},
-
-    /* Control data protection mode subpage [0xa,0xf0] ssc4 */
-    {"LBPM", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 4, 7, 8, 0,
-        "Logical block protection method", "0: none\t"
-        "1: Reed-Solomon CRC"},
-    {"LBPIL", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 5, 5, 6, 0,
-        "Logical block protection information length", NULL},
-    {"LBP_W", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 6, 7, 1, 0,
-        "Logical block protection during write", NULL},
-    {"LBP_R", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 6, 6, 1, 0,
-        "Logical block protection during read", NULL},
-    {"RBDP", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 6, 5, 1, 0,
-        "Recover buffered data protected", NULL},
 
     /* SAT: pATA control mode subpage [0xa,0xf1] sat-r09 */
     /* treat as spc since could be disk or ATAPI */
@@ -1462,7 +1437,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"PLT", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 6, 7, 16, 0,
         "Power loss timeout(ms)", NULL},
 
-    /* SAS-2 Enhanced phy mode page [0x19,0x3] sas2, spl */
+    /* SAS-2 phy mode page [0x19,0x3] sas2 */
     {"PPID_3", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 5, 3, 4, 0,
         "Port's (transport) protocol identifier",
         "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
@@ -1485,10 +1460,6 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Negotiated physical link rate",
         "6: resetting; 7: attached unsupported\t"
         "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps"},
-    {"EN_SL", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 27, 2, 1, 0,
-        "Enable slumber phy power condition", NULL},
-    {"EN_PA", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 27, 1, 1, 0,
-        "Enable partial phy power condition", NULL},
     {"HMS", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 27, 0, 1, 0,
         "Hardware muxing supported", NULL},
 

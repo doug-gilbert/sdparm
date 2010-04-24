@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2010 Douglas Gilbert.
+ * Copyright (c) 2005-2009 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -63,12 +63,11 @@
 #include <sys/types.h>
 #include <sys/utsname.h>
 
-/* Following needed for lk 2.4 series; may be dropped in future */
 #include <scsi/scsi.h>
 #include <scsi/sg.h>
+
 static int map_if_lk24(int sg_fd, const char * device_name, int rw,
                        int verbose);
-
 #endif  /* SG_LIB_LINUX */
 
 #include "sdparm.h"
@@ -77,7 +76,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.05 20100413 [svn: r149]";
+static char * version_str = "1.04 20090920 [svn: r127]";
 
 
 static struct option long_options[] = {
@@ -98,7 +97,6 @@ static struct option long_options[] = {
     {"num-desc", no_argument, 0, 'n'},
     {"page", required_argument, 0, 'p'},
     {"quiet", no_argument, 0, 'q'},
-    {"readonly", no_argument, 0, 'r'},
     {"set", required_argument, 0, 's'},
     {"save", no_argument, 0, 'S'},
     {"transport", required_argument, 0, 't'},
@@ -120,10 +118,10 @@ usage()
           "              [--dummy] [--flexible] [--get=STR] [--help] "
           "[--hex] [--inquiry]\n"
           "              [--long] [--num-desc] [--page=PG[,SPG]] [--quiet] "
-          "[--readonly]\n"
-          "              [--save] [--set=STR] [--six] [--transport=TN] "
-          "[--vendor=VN]\n"
-          "              [--verbose] [--version] DEVICE [DEVICE...]\n\n"
+          "[--save]\n"
+          "              [--set=STR] [--six] [--transport=TN] [--vendor=VN] "
+          "[--verbose]\n"
+          "              [--version] DEVICE [DEVICE...]\n\n"
           "       sdparm --enumerate [--all] [--inquiry] [--long] "
           "[--page=PG[,SPG]]\n"
           "              [--transport=TN] [--vendor=VN]\n"
@@ -155,10 +153,6 @@ usage()
           "enumerate\n"
           "    --quiet | -q          suppress device vendor/product/"
           "revision string line\n"
-          "    --readonly | -r       force read-only open of DEVICE (def: "
-          "either\n"
-          "                          read-write or read-only). For ATA "
-          "disks\n"
           "    --save | -S           place mode changes in saved page as "
           "well\n"
           "    --set=STR | -s STR    set field value(s)\n"
@@ -1880,10 +1874,10 @@ main(int argc, char * argv[])
         int option_index = 0;
 
 #ifdef SG_LIB_WIN32
-        c = getopt_long(argc, argv, "6aBc:C:dDefg:hHilM:np:qrs:St:vVw",
+        c = getopt_long(argc, argv, "6aBc:C:dDefg:hHilM:np:qs:St:vVw",
                         long_options, &option_index);
 #else
-        c = getopt_long(argc, argv, "6aBc:C:dDefg:hHilM:np:qrs:St:vV",
+        c = getopt_long(argc, argv, "6aBc:C:dDefg:hHilM:np:qs:St:vV",
                         long_options, &option_index);
 #endif
         if (c == -1)
@@ -1974,9 +1968,6 @@ main(int argc, char * argv[])
             } else
                 page_str = optarg;
             break;
-        case 'r':
-            ++opts.read_only;
-            break;
         case 's':
             set_str = optarg;
             rw = 1;
@@ -2036,9 +2027,6 @@ main(int argc, char * argv[])
             return SG_LIB_SYNTAX_ERROR;
         }
     }
-
-    if (opts.read_only)
-        rw = 0;         // override any read-write settings
 
     if ((!!get_str + !!set_str + !!clear_str) > 1) {
         fprintf(stderr, "Can only give one of '--get=', '--set=' and "
@@ -2175,8 +2163,6 @@ main(int argc, char * argv[])
             sdp_enumerate_commands();
             return SG_LIB_SYNTAX_ERROR;
         }
-        if (opts.read_only)
-            rw = 0;         // override any read-write settings
     } else {
         /* assume mode pages */
         if (pn < 0) {
@@ -2379,12 +2365,7 @@ main(int argc, char * argv[])
 }
 
 #ifdef SG_LIB_LINUX
-/* Following needed for lk 2.4 series; may be dropped in future.
- * In the lk 2.4 series (and earlier) no pass-through was available on the
- * often used /dev/sd* device nodes. So the code below attempts to map a
- * given /dev/sd<n> device node to the corresponding /dev/sg<m> device
- * node.
- */
+/*     ============ */
 
 typedef struct my_scsi_idlun
 {
@@ -2535,3 +2516,4 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 }
 
 #endif  /* SG_LIB_LINUX */
+

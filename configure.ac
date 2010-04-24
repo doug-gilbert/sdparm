@@ -1,7 +1,6 @@
-AC_INIT(sdparm, 1.05, dgilbert@interlog.com)
+AC_INIT(sdparm, 1.04, dgilbert@interlog.com)
 
 AM_INIT_AUTOMAKE
-AM_MAINTAINER_MODE
 AM_CONFIG_HEADER(config.h)
 
 AC_PROG_CC
@@ -34,7 +33,7 @@ case "${host}" in
                 AC_SUBST([os_deps], ['sg_pt_linux.o'])
 		AC_DEFINE_UNQUOTED(SG_LIB_LINUX, 1, [sdparm on linux])
                 AC_SUBST([os_libs], ['']) ;;
-        *-*-freebsd*|*-*-kfreebsd*-gnu*)
+        *-*-freebsd*)
                 AC_SUBST([os_deps], ['sg_pt_freebsd.o'])
 		AC_DEFINE_UNQUOTED(SG_LIB_FREEBSD, 1, [sdparm on FreeBSD])
                 AC_SUBST([os_libs], ['-lcam']);;
@@ -67,11 +66,6 @@ AC_ARG_ENABLE([no-linux-bsg],
   AC_HELP_STRING([--enable-no-linux-bsg], [ignore linux bsg (sgv4) if present]),
   AC_DEFINE_UNQUOTED(IGNORE_LINUX_BSG, 1, [ignore linux bsg], )
 )
-
-AC_CHECK_LIB(sgutils2, sg_ll_inquiry,
-  [SGUTILS_LIBS="-lsgutils2"; have_sgutils=yes], have_sgutils=no)
-AC_SUBST(SGUTILS_LIBS)
-AM_CONDITIONAL(HAVE_SGUTILS, test x"$have_sgutils" = xyes)
 
 # AC_PROG_LIBTOOL
 AC_OUTPUT(Makefile src/Makefile doc/Makefile)

@@ -2,24 +2,6 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.05 [20100413] [svn: r149]
-  - add '--readonly' option especially for '-C start' and
-    '-C stop' on ATA disks.
-  - Control mode page updates (spc4r23)
-  - add Control data protection mode page (ssc4r01)
-  - block device characteristics VPD page: decode form factor
-  - extended inquiry VPD page: activate_microcode+r_sup (spc4r23)
-  - Automation device serial number and Data transfer device
-    element address VPD pages (ssc4r01)
-  - add SBC Referrals VPD page (sbc3r22)
-  - expand SBC Thin provisioning VPD page (sbc3r22)
-  - expand SBC Block limits VPD page (sbc3r22)
-  - SAS-2.1 specification split, upper layers placed in SPL
-    - add enable_slumber and enable_partial fields to
-      Enhanced phy control mode page
-  - add AM_MAINTAINER_MODE to configure.ac to lessen build issues
-  - build infrastructure change to use libsgutils2 if available
-
 ChangeLog for sdparm-1.04 [20090920] [svn: r129]
   - add SAT ATA Power condition mode page (sat2r06)
   - add SBC Thin provisioning mode page (sbc3r20)
