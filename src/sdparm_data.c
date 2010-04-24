@@ -764,6 +764,10 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "[try adding '-t <transport>' to get more fields]"},
 
     /* Power condition mode page [0x1a] spc3 (expanded in spc4r18) */
+    {"PM_BG", POWER_MP, 0, -1, 2, 7, 2, 0,	/* added spc4r24 */
+        "Power management, background functions, precedence",
+	"0: vendor specific; 1: background function higher\t"
+	"2: power management higher"},
     {"STANDBY_Y", POWER_MP, 0, -1, 2, 0, 1, 0,
         "Standby_y timer enabled", NULL},
     {"IDLE_C", POWER_MP, 0, -1, 3, 3, 1, 0,
