@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2009 Douglas Gilbert.
+ * Copyright (c) 2005-2010 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,30 @@
 /* sdparm_access.c : helpers for sdparm to access tables in
  * sdparm_data.c
  */
+
+/* Returns 1 if strings equal (same length, characters same or only differ
+ * by case), else returns 0. Assumes 7 bit ASCII (English alphabet). */
+int
+sdp_strcase_eq(const char * s1p, const char * s2p)
+{
+    int c1, c2;
+
+    do {
+        c1 = *s1p++;
+        c2 = *s2p++;
+        if (c1 != c2) {
+            if (c2 >= 'a')
+                c2 = toupper(c2);
+            else if (c1 >= 'a')
+                c1 = toupper(c1);
+            else
+                return 0;
+            if (c1 != c2)
+                return 0;
+        }
+    } while (c1);
+    return 1;
+}
 
 int
 sdp_get_mp_len(unsigned char * mp)
@@ -141,7 +165,7 @@ sdp_find_mp_by_acron(const char * ap, int transp_proto, int vendor_num)
         return NULL;
 
     for ( ; mpp->acron; ++mpp) {
-        if (0 == strcmp(mpp->acron, ap))
+        if (sdp_strcase_eq(mpp->acron, ap))
             return mpp;
     }
     return NULL;
@@ -174,7 +198,7 @@ sdp_find_vpd_by_acron(const char * ap)
     const struct sdparm_vpd_page_t * vpp;
 
     for (vpp = sdparm_vpd_pg; vpp->acron; ++vpp) {
-        if (0 == strcmp(vpp->acron, ap))
+        if (sdp_strcase_eq(vpp->acron, ap))
             return vpp;
     }
     return NULL;
@@ -198,7 +222,7 @@ sdp_find_transport_by_acron(const char * ap)
     const struct sdparm_transport_id_t * tip;
 
     for (tip = sdparm_transport_id; tip->acron; ++tip) {
-        if (0 == strcmp(tip->acron, ap))
+        if (sdp_strcase_eq(tip->acron, ap))
             return tip;
     }
     return NULL;
@@ -222,7 +246,7 @@ sdp_find_vendor_by_acron(const char * ap)
     const struct sdparm_vendor_name_t * vnp;
 
     for (vnp = sdparm_vendor_id; vnp->acron; ++vnp) {
-        if (0 == strcmp(vnp->acron, ap))
+        if (sdp_strcase_eq(vnp->acron, ap))
             return vnp;
     }
     return NULL;
@@ -260,7 +284,7 @@ sdp_find_mitem_by_acron(const char * ap, int * from, int transp_proto,
         return NULL;
 
     for (mpi += k; mpi->acron; ++k, ++mpi) {
-        if (0 == strcmp(mpi->acron, ap))
+        if (sdp_strcase_eq(mpi->acron, ap))
             break;
     }
     if (NULL == mpi->acron)
