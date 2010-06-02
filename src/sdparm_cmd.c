@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2008 Douglas Gilbert.
+ * Copyright (c) 2005-2010 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -389,7 +389,7 @@ sdp_build_cmd(const char * cmd_str, int * rwp, int * argp)
         *argp = arg;
 
     for (scmdp = sdparm_command_arr; scmdp->name; ++scmdp) {
-        if (0 == strcmp(scmdp->name, cp))
+        if (sdp_strcase_eq(scmdp->name, cp))
             break;
     }
     if ((NULL == scmdp->name) && (strlen(cp) >= 2)) {
