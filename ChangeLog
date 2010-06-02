@@ -2,7 +2,9 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.06 [20100424] [svn: r153]
+ChangeLog for sdparm-1.06 [20100529] [svn: r159]
+  - allow upper and low case in field, (mode and vpd) page,
+    vendor, transport or command matching
   - power control mode page: PM_BG_PRECEDENCE field (spc4r24)
   - point svn:externals to rev 334 of sg3_utils
 
