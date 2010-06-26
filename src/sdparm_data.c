@@ -764,10 +764,10 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "[try adding '-t <transport>' to get more fields]"},
 
     /* Power condition mode page [0x1a] spc3 (expanded in spc4r18) */
-    {"PM_BG", POWER_MP, 0, -1, 2, 7, 2, 0,	/* added spc4r24 */
+    {"PM_BG", POWER_MP, 0, -1, 2, 7, 2, 0,      /* added spc4r24 */
         "Power management, background functions, precedence",
-	"0: vendor specific; 1: background function higher\t"
-	"2: power management higher"},
+        "0: vendor specific; 1: background function higher\t"
+        "2: power management higher"},
     {"STANDBY_Y", POWER_MP, 0, -1, 2, 0, 1, 0,
         "Standby_y timer enabled", NULL},
     {"IDLE_C", POWER_MP, 0, -1, 3, 3, 1, 0,
@@ -792,6 +792,15 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Idle_c condition timer (100 ms)", NULL},
     {"SYCT", POWER_MP, 0, -1, 20, 7, 32, 0,
         "Standby_y condition timer (100 ms)", NULL},
+    {"FIDCPC", POWER_MP, 0, -1, 39, 7, 2, 0,    /* added spc4r25 */
+        "From idle command processing control",
+        "0: reserved (SAS-2); 1: disabled; 2: enabled\n"},
+    {"FSBCPC", POWER_MP, 0, -1, 39, 5, 2, 0,    /* added spc4r25 */
+        "From standby command processing control",
+        "0: reserved (SAS-2); 1: disabled; 2: enabled\n"},
+    {"FSTCPC", POWER_MP, 0, -1, 39, 3, 2, 0,    /* added spc4r25 */
+        "From stopped command processing control",
+        "0: reserved (SAS-2); 1: disabled; 2: enabled\n"},
 
     /* SAT ATA Power condition mode page [0x1a,0xf1] sat2 */
     {"APMP", POWER_MP, MSP_SAT_POWER, -1, 5, 0, 1, 0,
