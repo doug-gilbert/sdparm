@@ -502,6 +502,7 @@ decode_dev_ids(const char * print_if_found, unsigned char * buff, int len,
     return 0;
 }
 
+/* VPD_MODE_PG_POLICY */
 static int
 decode_mode_policy_vpd(unsigned char * buff, int len)
 {
@@ -533,6 +534,7 @@ decode_mode_policy_vpd(unsigned char * buff, int len)
     return 0;
 }
 
+/* VPD_MAN_NET_ADDR */
 static int
 decode_man_net_vpd(unsigned char * buff, int len)
 {
@@ -564,6 +566,7 @@ decode_man_net_vpd(unsigned char * buff, int len)
     return 0;
 }
 
+/* VPD_PROTO_LU */
 static int
 decode_proto_lu_vpd(unsigned char * buff, int len)
 {
@@ -605,6 +608,7 @@ decode_proto_lu_vpd(unsigned char * buff, int len)
     return 0;
 }
 
+/* VPD_PROTO_PORT */
 static int
 decode_proto_port_vpd(unsigned char * buff, int len)
 {
@@ -643,6 +647,7 @@ decode_proto_port_vpd(unsigned char * buff, int len)
     return 0;
 }
 
+/* VPD_SCSI_PORTS */
 static int
 decode_scsi_ports_vpd(unsigned char * buff, int len, int long_out, int quiet)
 {
@@ -693,6 +698,7 @@ decode_scsi_ports_vpd(unsigned char * buff, int len, int long_out, int quiet)
     return 0;
 }
 
+/* VPD_EXT_INQ */
 static int
 decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
 {
@@ -741,6 +747,7 @@ decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
     return 0;
 }
 
+/* VPD_ATA_INFO */
 static int decode_ata_info_vpd(unsigned char * buff, int len, int long_out,
                                int do_hex)
 {
@@ -800,6 +807,7 @@ static int decode_ata_info_vpd(unsigned char * buff, int len, int long_out,
     return 0;
 }
 
+/* VPD_POWER_CONDITION */
 static int
 decode_power_condition(unsigned char * buff, int len)
 {
@@ -826,6 +834,7 @@ decode_power_condition(unsigned char * buff, int len)
     return 0;
 }
 
+/* VPD_BLOCK_LIMITS */
 static int
 decode_block_limits_vpd(unsigned char * buff, int len)
 {
@@ -872,6 +881,7 @@ decode_block_limits_vpd(unsigned char * buff, int len)
     return 0;
 }
 
+/* VPD_BLOCK_DEV_CHARS */
 static int
 decode_block_dev_chars_vpd(unsigned char * buff, int len)
 {
@@ -919,6 +929,7 @@ decode_block_dev_chars_vpd(unsigned char * buff, int len)
     return 0;
 }
 
+/* VPD_SA_DEV_CAP */
 static int
 decode_tape_dev_caps_vpd(unsigned char * buff, int len)
 {
@@ -931,6 +942,7 @@ decode_tape_dev_caps_vpd(unsigned char * buff, int len)
     return 0;
 }
 
+/* VPD_MAN_ASS_SN */
 static int
 decode_tape_man_ass_sn_vpd(unsigned char * buff, int len)
 {
@@ -944,6 +956,7 @@ decode_tape_man_ass_sn_vpd(unsigned char * buff, int len)
     return 0;
 }
 
+/* VPD_THIN_PROVISIONING */
 static int
 decode_block_thin_prov_vpd(unsigned char * b, int len)
 {
@@ -988,6 +1001,7 @@ decode_block_thin_prov_vpd(unsigned char * b, int len)
     return 0;
 }
 
+/* VPD_TA_SUPPORTED */
 static int
 decode_tapealert_supported_vpd(unsigned char * b, int len)
 {
@@ -1092,7 +1106,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_SUPPORTED_VPDS:
         if (b[1] != pn)
             goto dumb_inq;
-        len = b[3];
+        len = (b[2] << 8) + b[3];	/* spc4r25 */
         printf("Supported VPD pages VPD page:\n");
         if (opts->hex) {
             dStrHex((const char *)b, len + 4, 0);
@@ -1178,7 +1192,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_EXT_INQ:
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];
+        len = (b[2] << 8) + b[3];   /* spc4r25 */
         if (len > sz) {
             fprintf(stderr, "Response to Extended inquiry data VPD page "
                     "truncated\n");
@@ -1327,7 +1341,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_SOFTW_INF_ID:
         if (b[1] != pn)
             goto dumb_inq;
-        len = b[3];
+        len = (b[2] << 8) + b[3];	/* spc4r25 */
         if (len > sz) {
             fprintf(stderr, "Response to Software interface identification "
                     "VPD page truncated\n");
@@ -1352,7 +1366,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_UNIT_SERIAL_NUM:
         if (b[1] != pn)
             goto dumb_inq;
-        len = b[3];
+        len = (b[2] << 8) + b[3];	/* spc4r25 */
         if (opts->long_out)
             printf("Unit serial number [0x80] VPD page:\n");
         else
