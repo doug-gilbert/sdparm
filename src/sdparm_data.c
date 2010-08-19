@@ -556,7 +556,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "0: undefined\t"
         "0ffffh (-1): unlimited"},
     {"ESTCT", CONTROL_MP, 0, -1, 10, 7, 16, 0,
-        "Extended self test completion time (sec)", NULL},
+        "Extended self test completion time (sec)",
+        "0ffffh (-1) takes 65535 seconds or longer"},
 
     /* Control extension mode subpage [0xa,0x1] spc3 */
     {"TCMOS", CONTROL_MP, MSP_SPC_CE, -1, 4, 2, 1, 0,
@@ -826,7 +827,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Log informational exception errors", NULL},
     {"MRIE", IEC_MP, 0, -1, 3, 3, 4, MF_COMMON,
         "Method of reporting informational exceptions",
-        "0: no reporting; 1: async reporting; 2: unit attention\t"
+        "0: no reporting; 1: async reporting (obs); 2: unit attention\t"
         "3: conditional recovered error; 4: recovered error\t"
         "5: check condition with no sense; 6: request sense only"},
     {"INTT", IEC_MP, 0, -1, 4, 7, 32, 0,
@@ -853,6 +854,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Maximum time to suspend background scan (ms)", NULL},
 
     /* Thin provisioning mode subpage [0x1c,0x2] sbc3 */
+    {"SITPUA", IEC_MP, MSP_SBC_THIN_PROV, PDT_DISK, 4, 0, 1, 0,
+        "Single initiator thin provisioning unit attention", NULL},
     {"TH_EN", IEC_MP, MSP_SBC_THIN_PROV, PDT_DISK, 16, 7, 1, 0,
         "Threshold enabled", NULL},
     {"TH_TYPE", IEC_MP, MSP_SBC_THIN_PROV, PDT_DISK, 16, 5, 3, 0,

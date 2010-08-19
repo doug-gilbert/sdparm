@@ -2,11 +2,13 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.06 [20100625] [svn: r160]
-  - allow upper and low case in field, (mode and vpd) page,
+ChangeLog for sdparm-1.06 [20100819] [svn: r161]
+  - allow upper and lower case in field, (mode and vpd) page,
     vendor, transport or command matching
   - power control mode page: PM_BG_PRECEDENCE field (spc4r24)
     - FIDCPC, FSBCPC, FSTCPC fields (spc4r25)
+  - add SITPUA bit to Thin provisioning mode page (sbc3r23)
+  - fix '-eal' problem with vendor pages
   - point svn:externals to rev 334 of sg3_utils
 
 ChangeLog for sdparm-1.05 [20100413] [svn: r149]

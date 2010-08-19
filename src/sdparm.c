@@ -77,7 +77,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.06 20100615 [svn: r160]";
+static char * version_str = "1.06 20100819 [svn: r161]";
 
 
 static struct option long_options[] = {
@@ -265,6 +265,7 @@ print_mp_extra(const char * extra)
     }
     printf("\t%s\n", p);
 }
+
 /* Enumerate mode page items. Reading from internal dataset. */
 static void
 enumerate_mitems(int pn, int spn, int pdt,
@@ -2261,7 +2262,7 @@ main(int argc, char * argv[])
                                 printf("\n");
                                 printf("Mode pages for %s vendor:\n", ccp);
                                 t_opts.transport = -1;
-                                t_opts.vendor = -k;
+                                t_opts.vendor = k;
                                 enumerate_mitems(pn, spn, pdt, &t_opts);
                             }
                         } else {
