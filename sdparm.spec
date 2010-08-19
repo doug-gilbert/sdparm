@@ -56,8 +56,8 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Tue Apr 24 2010 - dgilbert at interlog dot com
-- xxxxxxxxxxxxxxx
+* Sat Jul 31 2010 - dgilbert at interlog dot com
+- track recent spc4 and sbc3 drafts
   * sdparm-1.06
 * Tue Apr 13 2010 - dgilbert at interlog dot com
 - update SAS Enhanced phy control mpage (spl-r04); add '--readonly'
