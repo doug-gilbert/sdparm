@@ -1,7 +1,5 @@
 bin_PROGRAMS = sdparm
 
-# INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/include/scsi
-
 AM_CFLAGS = -I$(top_srcdir)/include -Wall -W
 # AM_CFLAGS = -I$(top_srcdir)/include -Wall -W -pedantic -std=c99
 
@@ -12,6 +10,15 @@ sdparm_SOURCES =	sdparm.c	\
 			sdparm_access.c	\
 			sdparm_vpd.c	\
 			sdparm_cmd.c
+
+if OS_WIN32_MINGW
+sdparm_SOURCES +=	sdparm_wscan.c
+endif
+
+if OS_WIN32_CYGWIN
+sdparm_SOURCES +=	sdparm_wscan.c
+endif
+
 
 sglib_SOURCES =		../lib/sg_lib.c \
 			../include/sg_lib.h	\
