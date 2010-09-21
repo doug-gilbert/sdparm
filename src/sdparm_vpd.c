@@ -1045,6 +1045,7 @@ decode_tapealert_supported_vpd(unsigned char * b, int len)
     return 0;
 }
 
+/* VPD_REFERRALS */
 static int
 decode_referrals_vpd(unsigned char * b, int len)
 {
@@ -1537,6 +1538,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         }
         res = 0;
         if (ssc) {
+	    /* VPD_AUTOMATION_DEV_SN ssc */
             if (len > 0) {
                 if (len + 4 < (int)sizeof(b))
                     b[len + 4] = '\0';
