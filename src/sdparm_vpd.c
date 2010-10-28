@@ -728,6 +728,7 @@ decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
         printf("r_sup=%d\n", !!(buff[8] & 0x10));
         printf("cbcs=%d\n", !!(buff[8] & 0x1));
         printf("mitmd=%d\n", (buff[9] & 0xf));
+        printf("estcm=%d\n", (buff[10] << 8) + buff[10]);  /* spc4r27 */
     } else {
         printf("  ACTIVATE_MICROCODE=%d SPT=%d GRD_CHK=%d APP_CHK=%d "
                "REF_CHK=%d\n", ((buff[4] >> 6) & 0x3), ((buff[4] >> 3) & 0x7),
@@ -743,6 +744,8 @@ decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
                !!(buff[7] & 0x10), !!(buff[7] & 0x1),
                !!(buff[8] & 0x10), !!(buff[8] & 0x1));
         printf("  Multi I_T nexus microcode download=%d\n", buff[9] & 0xf);
+        printf("  Extended self-test completion minutes=%d\n",
+               (buff[10] << 8) + buff[11]);
     }
     return 0;
 }
@@ -1107,7 +1110,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_SUPPORTED_VPDS:
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];	/* spc4r25 */
+        len = (b[2] << 8) + b[3];       /* spc4r25 */
         printf("Supported VPD pages VPD page:\n");
         if (opts->hex) {
             dStrHex((const char *)b, len + 4, 0);
@@ -1342,7 +1345,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_SOFTW_INF_ID:
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];	/* spc4r25 */
+        len = (b[2] << 8) + b[3];       /* spc4r25 */
         if (len > sz) {
             fprintf(stderr, "Response to Software interface identification "
                     "VPD page truncated\n");
@@ -1367,7 +1370,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_UNIT_SERIAL_NUM:
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];	/* spc4r25 */
+        len = (b[2] << 8) + b[3];       /* spc4r25 */
         if (opts->long_out)
             printf("Unit serial number [0x80] VPD page:\n");
         else
@@ -1538,7 +1541,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         }
         res = 0;
         if (ssc) {
-	    /* VPD_AUTOMATION_DEV_SN ssc */
+            /* VPD_AUTOMATION_DEV_SN ssc */
             if (len > 0) {
                 if (len + 4 < (int)sizeof(b))
                     b[len + 4] = '\0';
