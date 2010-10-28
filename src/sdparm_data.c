@@ -546,6 +546,10 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Task aborted status",
         "0: tasks aborted without response to app client\t"
         "1: any other I_T nexuses receive task aborted"},
+    {"ATMPE", CONTROL_MP, 0, -1, 5, 5, 1, 0,    /* spc4r27 */
+        "Application tag mode page enabled", NULL},
+    {"RWWP", CONTROL_MP, 0, -1, 5, 4, 1, 0,     /* spc4r27 */
+        "Reject write without protection", NULL},
     {"AUTOLOAD", CONTROL_MP, 0, -1, 5, 2, 3, 0,
         "Autoload mode",
         "0: medium loaded for full access\t"
