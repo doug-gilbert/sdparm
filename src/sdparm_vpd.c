@@ -959,19 +959,19 @@ decode_tape_man_ass_sn_vpd(unsigned char * buff, int len)
     return 0;
 }
 
-/* VPD_THIN_PROVISIONING */
+/* VPD_LB_PROVISIONING */
 static int
-decode_block_thin_prov_vpd(unsigned char * b, int len)
+decode_block_lb_prov_vpd(unsigned char * b, int len)
 {
     int dp, anc_sup;
 
     if (len < 4) {
-        fprintf(stderr, "Thin provisioning page too short=%d\n",
+        fprintf(stderr, "Logical block provisioning page too short=%d\n",
                 len);
         return SG_LIB_CAT_MALFORMED;
     }
-    printf("  Unmap supported (TPU): %d\n", !!(0x80 & b[5]));
-    printf("  Write same with unmap supported (TPWS): %d\n", !!(0x40 & b[5]));
+    printf("  Unmap supported (LBPU): %d\n", !!(0x80 & b[5]));
+    printf("  Write same with unmap supported (LBPWS): %d\n", !!(0x40 & b[5]));
     anc_sup = (b[5] >> 1) & 0x7;
     switch (anc_sup) {
     case 0:
@@ -994,8 +994,8 @@ decode_block_thin_prov_vpd(unsigned char * b, int len)
         ucp = b + 8;
         i_len = ucp[3];
         if (0 == i_len) {
-            fprintf(stderr, "Thin provisioning page provisioning group "
-                    "descriptor too short=%d\n", i_len);
+            fprintf(stderr, "Logical block provisioning page provisioning "
+		    "group descriptor too short=%d\n", i_len);
             return 0;
         }
         printf("  Provisioning group descriptor\n");
@@ -1485,7 +1485,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         len = (b[2] << 8) + b[3];
         switch (pdt) {
         case PDT_DISK: case PDT_WO: case PDT_OPTICAL:
-            vpd_name = "Thin provisioning";
+            vpd_name = "Logical block provisioning";
             sbc = 1;
             break;
         case PDT_TAPE: case PDT_MCHANGER:
@@ -1508,7 +1508,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (ssc)
             res = decode_tapealert_supported_vpd(b, len + 4);
         else if (sbc)       /* added in sbc3r20 */
-            res = decode_block_thin_prov_vpd(b, len + 4);
+            res = decode_block_lb_prov_vpd(b, len + 4);
         else
             dStrHex((const char *)b, len + 4, 0);
         if (res)

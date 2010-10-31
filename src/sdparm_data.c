@@ -55,11 +55,17 @@ static struct sdparm_mode_descriptor_t smc_tg_desc = {
     1, 1, -1, 2, 2, -1, -1, "SMC transport geometry"
 };
 
-/* SBC's thin provisioning mode page doesn't give the number
+/* SBC's logical block provisioning mode page doesn't give the number
    of following descriptors but rather parameter length (in bytes).
    This is flagged by -1 in num_descs_inc (third) field */
-static struct sdparm_mode_descriptor_t sbc_tp_desc = {
-    2, 2, -1, 16, 8, -1, -1, "SBC thin provisioning"
+static struct sdparm_mode_descriptor_t sbc_lbp_desc = {
+    2, 2, -1, 16, 8, -1, -1, "SBC logical block provisioning"
+};
+/* SBC's application tag mode page doesn't give the number of
+   following descriptors but rather parameter length (in bytes).
+   This is flagged by -1 in num_descs_inc (third) field */
+static struct sdparm_mode_descriptor_t sbc_atag_desc = {
+    2, 2, -1, 16, 24, -1, -1, "SBC application tag"
 };
 
 /* Mode pages that aren't specific to any transport protocol or vendor.
@@ -74,6 +80,8 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
     {ADC_MP, MSP_ADC_TD_SN, PDT_ADC, 0, "adts",
         "Targer device serial number (ADC)", NULL},
     {POWER_MP, MSP_SAT_POWER, -1, 0, "apo", "SAT ATA Power condition", NULL},
+    {CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 0, "atag", "Application tag "
+        "(SBC)", &sbc_atag_desc},
     {IEC_MP, MSP_BACK_CTL, PDT_DISK, 0, "bc", "Background control (SBC)",
         NULL},
     {CACHING_MP, 0, PDT_DISK, 0, "ca", "Caching (SBC)", NULL},
@@ -99,6 +107,8 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
         NULL},
     {FORMAT_MP, 0, PDT_DISK, 0, "fo", "Format (SBC)", NULL},
     {IEC_MP, 0, -1, 0, "ie", "Informational exceptions control", NULL},
+    {IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 0, "lbp", "Logical block "
+        "provisioning (SBC)", &sbc_lbp_desc},
     {MED_CONF_MP, 0, PDT_TAPE, 0, "mco", "Medium configuration (SSC)", NULL},
     {MED_PART_MP, 0, PDT_TAPE, 0, "mpa", "Medium partition (SSC)",
         &ssc_mpa_desc},
@@ -116,8 +126,6 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
         /* since in SBC, SSC and MMC treat RW_ERR_RECOVERY_MP as if in SPC */
     {TRANS_GEO_PAR_MP, 0, PDT_MCHANGER, 0, "tgp", "Transport geometry "
         "parameters (SMC)", &smc_tg_desc},
-    {IEC_MP, MSP_SBC_THIN_PROV, PDT_DISK, 0, "thp", "Thin provisioning "
-        "(SBC)", &sbc_tp_desc},
     {TIMEOUT_PROT_MP, 0, PDT_MMC, 0, "tp", "Timeout and protect (MMC)", NULL},
     {V_ERR_RECOVERY_MP, 0, PDT_DISK, 0, "ve", "Verify error recovery (SBC)",
         NULL},
@@ -233,6 +241,8 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
      "Data transfer device element address (SSC)"},
     {VPD_IMP_OP_DEF, 0, -1, "iod",
      "Implemented operating definition (obs)"},
+    {VPD_LB_PROVISIONING, 0, PDT_DISK, "lbpv", "Logical block provisioning "
+     "(SBC)"},
     {VPD_MAN_ASS_SN, 0, PDT_TAPE, "mas",
      "Manufacturer assigned serial number (SSC)"},
     {VPD_MAN_ASS_SN, 0, PDT_ADC, "masa",
@@ -252,7 +262,6 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_SCSI_PORTS, 0, -1, "sp", "SCSI ports"},
     {VPD_SUPPORTED_VPDS, 0, -1, "sv", "Supported VPD pages"},
     {VPD_TA_SUPPORTED, 0, PDT_TAPE, "tas", "TapeAlert supported flags (SSC)"},
-    {VPD_THIN_PROVISIONING, 0, PDT_DISK, "thpv", "Thin provisioning (SBC)"},
     {0, 0, 0, NULL, NULL},
 };
 
@@ -290,8 +299,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Head offset count (obsolete)", NULL},
     {"DSOC", RW_ERR_RECOVERY_MP, 0, -1, 6, 7, 8, 0,
         "Data strobe offset count (obsolete)", NULL},
-    {"TPERE", RW_ERR_RECOVERY_MP, 0, 0, 7, 7, 1, 0, /* SBC */
-        "Thin provisioning error reporting enabled", NULL},
+    {"LBPERE", RW_ERR_RECOVERY_MP, 0, 0, 7, 7, 1, 0, /* SBC */
+        "Logical block provisioning error reporting enabled", NULL},
     {"EMCDR", RW_ERR_RECOVERY_MP, 0, 5, 7, 1, 2, 0, /* MMC */
         "Enhanced media certification and defect reporting", NULL},
     {"WRC", RW_ERR_RECOVERY_MP, 0, -1, 8, 7, 8, 0,
@@ -573,6 +582,16 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"INIT_PR", CONTROL_MP, MSP_SPC_CE, -1, 5, 3, 4, 0,
         "Initial command priority", "0: none or vendor\t"
         "1: highest\t15: lowest"},
+
+    /* Application tag mode subpage [0xa,0xf0] sbc3 */
+    {"AT_LAST", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 16, 7, 1, 0,
+        "Last", NULL},
+    {"AT_LBAT", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 22, 7, 16, 0,
+        "Logical block application tag", NULL},
+    {"AT_LBA", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 24, 7, 64, MF_HEX,
+        "Logical block address", NULL},
+    {"AT_COUNT", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 32, 7, 64, MF_HEX,
+        "Logical block count", NULL},
 
     /* Control data protection mode subpage [0xa,0xf0] ssc4 */
     {"LBPM", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 4, 7, 8, 0,
@@ -857,18 +876,18 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"MAX_SUSP", IEC_MP, MSP_BACK_CTL, PDT_DISK, 12, 7, 16, 0,
         "Maximum time to suspend background scan (ms)", NULL},
 
-    /* Thin provisioning mode subpage [0x1c,0x2] sbc3 */
-    {"SITPUA", IEC_MP, MSP_SBC_THIN_PROV, PDT_DISK, 4, 0, 1, 0,
-        "Single initiator thin provisioning unit attention", NULL},
-    {"TH_EN", IEC_MP, MSP_SBC_THIN_PROV, PDT_DISK, 16, 7, 1, 0,
+    /* Logical block provisioning mode subpage [0x1c,0x2] sbc3 */
+    {"SITUA", IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 4, 0, 1, 0,
+        "Single initiator threshold unit attention", NULL},
+    {"LBP_EN", IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 16, 7, 1, 0,
         "Threshold enabled", NULL},
-    {"TH_TYPE", IEC_MP, MSP_SBC_THIN_PROV, PDT_DISK, 16, 5, 3, 0,
+    {"LBP_TYPE", IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 16, 5, 3, 0,
         "Threshold type", NULL},
-    {"TH_ARM", IEC_MP, MSP_SBC_THIN_PROV, PDT_DISK, 16, 2, 3, 0,
+    {"LBP_ARM", IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 16, 2, 3, 0,
         "Threshold arming", NULL},
-    {"TH_RES", IEC_MP, MSP_SBC_THIN_PROV, PDT_DISK, 17, 7, 8, 0,
+    {"LBP_RES", IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 17, 7, 8, 0,
         "Threshold resource", NULL},
-    {"TH_COUNT", IEC_MP, MSP_SBC_THIN_PROV, PDT_DISK, 20, 7, 32, 0,
+    {"LBP_COUNT", IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 20, 7, 32, 0,
         "Threshold count", NULL},
 
     /* Medium configuration mode page [0x1d] ssc3 */
