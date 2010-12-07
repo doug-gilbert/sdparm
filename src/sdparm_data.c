@@ -793,22 +793,22 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "0: vendor specific; 1: background function higher\t"
         "2: power management higher"},
     {"STANDBY_Y", POWER_MP, 0, -1, 2, 0, 1, 0,
-        "Standby_y timer enabled", NULL},
+        "Standby_y timer enable", NULL},
     {"IDLE_C", POWER_MP, 0, -1, 3, 3, 1, 0,
-        "Idle_c timer enabled", NULL},
+        "Idle_c timer enable", NULL},
     {"IDLE_B", POWER_MP, 0, -1, 3, 2, 1, 0,
-        "Idle_b timer active", NULL},
+        "Idle_b timer enable", NULL},
     {"IDLE", POWER_MP, 0, -1, 3, 1, 1, 0,   /* IDLE_A in future ? */
-        "Idle timer enabled",
+        "Idle_a timer enable",
         "named IDLE prior to spc4r18, thence IDLE_A"},
-    {"STANDBY", POWER_MP, 0, -1, 3, 0, 1, 0, /* STANDBY_A in future ? */
-        "Standby timer active",
+    {"STANDBY", POWER_MP, 0, -1, 3, 0, 1, 0, /* STANDBY_Z in future ? */
+        "Standby_z timer enable",
         "named STANDBY prior to spc4r18, thence STANDBY_Z"},
     {"ICT", POWER_MP, 0, -1, 4, 7, 32, 0,    /* IACT in future ? */
-        "Idle condition timer (100 ms)",
+        "Idle_a condition timer (100 ms)",
         "named IDLE prior to spc4r18, thence IDLE_A"},
     {"SCT", POWER_MP, 0, -1, 8, 7, 32, 0,    /* SZCT in future ? */
-        "Standby condition timer (100 ms)",
+        "Standby_z condition timer (100 ms)",
         "named STANDBY prior to spc4r18, thence STANDBY_Z"},
     {"IBCT", POWER_MP, 0, -1, 12, 7, 32, 0,
         "Idle_b condition timer (100 ms)", NULL},

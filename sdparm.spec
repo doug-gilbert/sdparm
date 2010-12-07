@@ -56,7 +56,7 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Fri Nov 12 2010 - dgilbert at interlog dot com
+* Mon Dec 06 2010 - dgilbert at interlog dot com
 - xxxxxxxxxxxxxx
   * sdparm-1.07
 * Sun Oct 31 2010 - dgilbert at interlog dot com
