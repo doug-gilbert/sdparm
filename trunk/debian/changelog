@@ -2,7 +2,14 @@ sdparm (1.07-0.1) unstable; urgency=low
 
   * see ChangeLog
 
- -- Douglas Gilbert <dgilbert@interlog.com>  Fri, 12 Nov 2010 11:00:00 -0500
+ -- Douglas Gilbert <dgilbert@interlog.com>  Tue, 07 Dec 2010 00:10:00 -0500
+
+sdparm (1.06-1) unstable; urgency=low
+
+  * New upstream release.
+  * Updated Standards-Version to 3.9.1.
+
+ -- Tomas Fasth <tomfa@debian.org>  Sun, 28 Nov 2010 22:07:35 +0000
 
 sdparm (1.06-0.1) unstable; urgency=low
 
@@ -32,7 +39,7 @@ sdparm (1.02-1) unstable; urgency=low
 
   * New upstream release, maintainer upload to Debian archive.
 
- -- Tomas Fasth <tomfa@debian.com>  Mon, 15 Oct 2007 15:19:44 +0000
+ -- Tomas Fasth <tomfa@debian.org>  Mon, 15 Oct 2007 15:19:44 +0000
 
 sdparm (1.02-0.1) unstable; urgency=low
 
@@ -44,7 +51,7 @@ sdparm (1.01-1) unstable; urgency=low
 
   * New upstream release, maintainer upload to Debian archive.
 
- -- Tomas Fasth <tomfa@debian.com>  Wed, 23 May 2007 17:47:17 +0000
+ -- Tomas Fasth <tomfa@debian.org>  Wed, 23 May 2007 17:47:17 +0000
 
 sdparm (1.01-0.1) unstable; urgency=low
 
