@@ -77,7 +77,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.07 20101206 [svn: r168]";
+static char * version_str = "1.06 20101031 [svn: r166]";
 
 
 static struct option long_options[] = {
@@ -670,13 +670,8 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
             else {
                 sdp_get_mpage_name(pn, spn, pdt, opts->transport,
                                    opts->vendor, 0, 0, buff, sizeof(buff));
-                if ((opts->vendor < 0) && ((0 == pn) || (pn >= 0x20)))
-                    fprintf(stderr, "%s mode page seems to be vendor "
-                            "specific, try '--vendor=VN'.\nOtherwise "
-                            "add '-H' to see page in hex.\n", buff);
-                else
-                    fprintf(stderr, "%s mode page, no fields found, "
-                            "add '-H' to see page in hex.\n", buff);
+                fprintf(stderr, "%s mode page, no fields found, "
+                        "add '-H' to see page in hex\n", buff);
             }
         }
     } else {    /* want all so check all items in given namespace */
@@ -1804,13 +1799,9 @@ process_mode(int sg_fd, const struct sdparm_mode_page_settings * mps, int pn,
     const struct sdparm_mode_page_t * mpp;
 
     if ((pn > 0x3e) || (spn > 0xfe)) {
-        if ((0x3f == pn) || (0xff == spn))
-            fprintf(stderr, "Does not support requesting all mode pages or "
-                    "subpages this way.\n  Try '--all' option.\n");
-        else
-            fprintf(stderr, "Accepts mode page numbers from 0 to 62 .\n"
-                    "  Accepts mode subpage numbers from 0 to 254 .\n"
-                    "  For VPD pages add a '--inquiry' option.\n");
+        fprintf(stderr, "Allowable mode page numbers are 0 to 62\n");
+        fprintf(stderr, "  Allowable mode subpage numbers are 0 to 254\n");
+        fprintf(stderr, "  For VPD pages add a '-i' command line option\n");
         return SG_LIB_SYNTAX_ERROR;
     }
     if ((pn > 0) && (pdt >= 0)) {

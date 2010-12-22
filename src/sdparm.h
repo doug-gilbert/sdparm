@@ -153,8 +153,8 @@ struct sdparm_opt_coll {
     int quiet;
     int read_only;
     int save;
-    int transport;      /* -1 means not transport specific (def) */
-    int vendor;         /* -1 means not vendor specific (def) */
+    int transport;
+    int vendor;
     int verbose;
 };
 
