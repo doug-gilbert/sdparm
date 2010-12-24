@@ -1,4 +1,4 @@
-.TH SDPARM "8" "July 2010" "sdparm\-1.06" SDPARM
+.TH SDPARM "8" "December 2010" "sdparm\-1.07" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -618,11 +618,11 @@ by vendor specific mode pages and the above can also be accomplished with:
 .PP
    sdparm \-\-vendor=sea \-\-set=PM \-\-save /dev/sda
 .PP
-What follows are some examples from Windows using the '--wscan' option. The
-idea is to list the storage device names on the system that might be invoked
-by other uses of sdparm.
+What follows are some examples from Windows using the '\-\-wscan' option.
+The idea is to list the storage device names on the system that might be
+invoked by other uses of sdparm.
 .PP
-  # sdparm --wscan
+  # sdparm \-\-wscan
 .br
 PD0     [C]     FUJITSU   MHY2160BH         0000
 .br
@@ -630,11 +630,11 @@ PD1     [DF]    WD        2500BEV External  1.05  WD-WXE90
 .br
 CDROM0  [E]     MATSHITA DVD/CDRW UJDA775  CB03
 .PP
-So 'sdparm -a CDROM0' and 'sdparm -a E' will show all the (known) mode page
-fields for the Matshita DVD/CD drive. By using the '--wsacan' option twice,
+So 'sdparm \-a CDROM0' and 'sdparm \-a E' will show all the (known) mode page
+fields for the Matshita DVD/CD drive. By using the '\-\-wsacan' option twice,
 the bus type (as seen by the OS) is added to the output:
 .PP
-  # sdparm -ww
+  # sdparm \-ww
 .br
 PD0     [C]     <Ata  >  FUJITSU   MHY2160BH         0000
 .br
@@ -646,7 +646,7 @@ And the pattern continues to add a SCSI adapter scan. This may be useful
 if there are specialized storage related devices (e.g. a SES device in
 an enclosure) but does add much extra information in this case.
 .PP
-  # sdparm -www
+  # sdparm \-www
 .br
 PD0     [C]     <Ata  >  FUJITSU   MHY2160BH         0000
 .br
