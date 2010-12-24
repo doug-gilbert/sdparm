@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.07 [20101206] [svn: r168]
+ChangeLog for sdparm-1.07 [20101206] [svn: r170]
   - point out some mode page numbers are vendor specific
 
 ChangeLog for sdparm-1.06 [20101031] [svn: r166]

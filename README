@@ -49,7 +49,10 @@ files in the above list is changed.
 
 There is a rpm "spec" file in the main directory: sdparm.spec . There are
 debian build files in the "debian" directory and a script called
-build_debian.sh in the main directory.
+build_debian.sh in the main directory. If build_debian.sh fails due to
+compatibility level. Amongst other things debian builds are sensitive to
+the value in the debian/compat file. If it contains "7" then it works on
+lenny and gives warning on squeeze (but fails on the earlier etch).
 
 License
 -------
@@ -230,4 +233,4 @@ SCSI5:0,112,0 claimed=0 pdt=10h         LSI       PSEUDO DEVICE     2.34
 
 
 Douglas Gilbert
-12th November 2010
+12th December 2010
