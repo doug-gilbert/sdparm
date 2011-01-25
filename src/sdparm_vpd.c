@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2010 Douglas Gilbert.
+ * Copyright (c) 2005-2011 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -842,12 +842,15 @@ static int
 decode_block_limits_vpd(unsigned char * buff, int len)
 {
     unsigned int u;
+    int m;
+    uint64_t mwsl;
 
     if (len < 16) {
         fprintf(stderr, "Block limits VPD page length too "
                 "short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
+    printf("  Write same no zero (WSNZ): %d\n", !!(buff[4] & 0x1));
     printf("  Maximum compare and write length: %u blocks\n", buff[5]);
     u = (buff[6] << 8) | buff[7];
     printf("  Optimal transfer length granularity: %u blocks\n", u);
@@ -880,6 +883,15 @@ decode_block_limits_vpd(unsigned char * buff, int len)
         u = ((unsigned int)(buff[32] & 0x7f) << 24) | (buff[33] << 16) |
             (buff[34] << 8) | buff[35];
         printf("  Unmap granularity alignment: %u\n", u);
+    }
+    if (len > 43) {     /* added in sbc3r26 */
+        mwsl = 0;
+        for (m = 0; m < 8; ++m) {
+            if (m > 0)
+                mwsl <<= 8;
+            mwsl |= buff[36 + m];
+        }
+        printf("  Maximum write same length: 0x%" PRIx64 " blocks\n", mwsl);
     }
     return 0;
 }
@@ -963,30 +975,26 @@ decode_tape_man_ass_sn_vpd(unsigned char * buff, int len)
 static int
 decode_block_lb_prov_vpd(unsigned char * b, int len)
 {
-    int dp, anc_sup;
+    int dp;
 
     if (len < 4) {
         fprintf(stderr, "Logical block provisioning page too short=%d\n",
                 len);
         return SG_LIB_CAT_MALFORMED;
     }
-    printf("  Unmap supported (LBPU): %d\n", !!(0x80 & b[5]));
-    printf("  Write same with unmap supported (LBPWS): %d\n", !!(0x40 & b[5]));
-    anc_sup = (b[5] >> 1) & 0x7;
-    switch (anc_sup) {
-    case 0:
-        printf("  Anchored LBAs not supported\n");
-        break;
-    case 1:
-        printf("  Anchored LBAs supported\n");
-        break;
-    default:
-        printf("  Anchored LBAs support reserved [%d]\n", anc_sup);
-        break;
-    }
-    dp = !!(b[5] & 0x1);
+    printf("  Unmap command supported (LBPU): %d\n", !!(0x80 & b[5]));
+    printf("  Write same (16) with unmap bit supported (LBWS): %d\n", 
+           !!(0x40 & b[5]));
+    printf("  Write same (10) with unmap bit supported (LBWS10): %d\n",
+           !!(0x20 & b[5]));
+    printf("  Anchored LBAs supported (ANC_SUP): %d\n", !!(0x2 & b[5]));
     printf("  Threshold exponent: %d\n", b[4]);
+    dp = !!(b[5] & 0x1);
     printf("  Descriptor present: %d\n", dp);
+    // sbc3r26 overlooked placing the 'provisioning type' field in the VPD
+    // definition (table 181). Technical editor says it is in byte 6,
+    // bits 2 to 0.
+    printf("  Provisioning type: %d\n", b[6] & 0x7);
     if (dp) {
         const unsigned char * ucp;
         int i_len;
@@ -995,7 +1003,7 @@ decode_block_lb_prov_vpd(unsigned char * b, int len)
         i_len = ucp[3];
         if (0 == i_len) {
             fprintf(stderr, "Logical block provisioning page provisioning "
-		    "group descriptor too short=%d\n", i_len);
+                    "group descriptor too short=%d\n", i_len);
             return 0;
         }
         printf("  Provisioning group descriptor\n");
