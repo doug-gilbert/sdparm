@@ -97,6 +97,10 @@ type (e.g. SAF-TE devices). All these device may also be accessed via
 the "pass" device. To see the mapping between the "pass" device name and
 the corresponding higher level device node try "camcontrol devlist".
 
+sdparm can be built into a Debian package for kFreeBSD using the
+./build_debian.sh script in the top level directory. This has been tested
+with Debian 6.0 release.
+
 Solaris port
 ------------
 The uscsi pass-through mechanism is used and is only available on SCSI
@@ -233,4 +237,4 @@ SCSI5:0,112,0 claimed=0 pdt=10h         LSI       PSEUDO DEVICE     2.34
 
 
 Douglas Gilbert
-22nd January 2011
+28th February 2011

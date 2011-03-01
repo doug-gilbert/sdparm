@@ -77,7 +77,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.07 20110206 [svn: r172]";
+static char * version_str = "1.07 20110228 [svn: r173]";
 
 
 static struct option long_options[] = {
@@ -169,13 +169,11 @@ usage()
           "    --vendor=VN | -M VN    vendor (manufacturer) number "
           "[or abbrev]\n"
           "    --verbose | -v        increase verbosity\n"
-#ifdef SG_LIB_WIN32
           "    --version | -V        print version string and exit\n"
-          "    --wscan | -w          windows scan for device names\n\n"
-#else
-          "    --version | -V        print version string and exit\n\n"
+#ifdef SG_LIB_WIN32
+          "    --wscan | -w          windows scan for device names\n"
 #endif
-          "View or change SCSI mode page fields (e.g. of a disk or CD/DVD "
+          "\nView or change SCSI mode page fields (e.g. of a disk or CD/DVD "
           "drive)\n"
           );
 }
