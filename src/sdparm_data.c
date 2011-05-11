@@ -1450,7 +1450,8 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"ADT", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 12, 6, 3, 0,
         "Attached device type",
         "0: no device attached; 1: end device\t"
-        "2: edge expander device; 3: fanout expander device"},
+        "2: expander device; " /* in SAS-1.1 this was a "edge expander" */
+        "3: expander device (fanout, SAS-1.1)"}, /* obsolete in SAS-2 */
     {"AREAS", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 12, 3, 4, 0,
         "Attached reason (other end did link reset)",
         "0: unknown; 1: power on; 2: hard reset; 3: SMP phy control\t"
