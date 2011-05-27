@@ -1519,6 +1519,8 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Current phy capabilities", NULL},
     {"APCAP", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 20, 7, 32, MF_HEX,
         "Attached phy capabilities", NULL},
+    {"OPT_M_EN", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 26, 5, 1, 0,
+        "Optical mode enabled", NULL},
     {"N_SSC", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 26, 4, 1, 0,
         "Negotiated spread spectrum clocking", NULL},
     {"N_PLR", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 26, 3, 4, 0,
