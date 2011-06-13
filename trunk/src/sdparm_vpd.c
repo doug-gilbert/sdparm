@@ -751,8 +751,8 @@ decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
 }
 
 /* VPD_ATA_INFO */
-static int decode_ata_info_vpd(unsigned char * buff, int len, int long_out,
-                               int do_hex)
+static int
+decode_ata_info_vpd(unsigned char * buff, int len, int long_out, int do_hex)
 {
     char b[80];
     int num, is_be;
@@ -971,7 +971,7 @@ decode_tape_man_ass_sn_vpd(unsigned char * buff, int len)
     return 0;
 }
 
-/* VPD_LB_PROVISIONING */
+/* VPD_LB_PROVISIONING [0xb2] */
 static int
 decode_block_lb_prov_vpd(unsigned char * b, int len)
 {
@@ -987,13 +987,12 @@ decode_block_lb_prov_vpd(unsigned char * b, int len)
            !!(0x40 & b[5]));
     printf("  Write same (10) with unmap bit supported (LBWS10): %d\n",
            !!(0x20 & b[5]));
+    printf("  Logical block provisioning read zeros (LBPRZ): %d\n", 
+           !!(0x4 & b[5]));
     printf("  Anchored LBAs supported (ANC_SUP): %d\n", !!(0x2 & b[5]));
     printf("  Threshold exponent: %d\n", b[4]);
     dp = !!(b[5] & 0x1);
     printf("  Descriptor present: %d\n", dp);
-    // sbc3r26 overlooked placing the 'provisioning type' field in the VPD
-    // definition (table 181). Technical editor says it is in byte 6,
-    // bits 2 to 0.
     printf("  Provisioning type: %d\n", b[6] & 0x7);
     if (dp) {
         const unsigned char * ucp;
