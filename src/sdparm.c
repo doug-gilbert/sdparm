@@ -77,7 +77,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.07 20110526 [svn: r175]";
+static char * version_str = "1.07 20110606 [svn: r176]";
 
 
 static struct option long_options[] = {
@@ -174,7 +174,8 @@ usage()
           "    --wscan | -w          windows scan for device names\n"
 #endif
           "\nView or change SCSI mode page fields (e.g. of a disk or CD/DVD "
-          "drive)\n"
+          "drive).\nSTR can be <acronym>[=val] or <start_byte>:<start_bit>:"
+          "<num_bits>[=val].\n"
           );
 }
 
@@ -1440,7 +1441,11 @@ set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
     }
 }
 
-static int64_t get_llnum(const char * buf)
+/* Returns 64 bit signed integer given in either decimal or in hex. The
+ * hex number is either preceded by "0x" or followed by "h". Returns -1
+ * on error (so check for "-1" string before using this function). */
+static int64_t
+get_llnum(const char * buf)
 {
     int res, len;
     int64_t num;
@@ -1496,7 +1501,7 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
             strncpy(buff, cp, b_sz);
         colon = strchr(buff, ':') ? 1 : 0;
         if ((isalpha(buff[0]) && (! colon)) ||
-            (isdigit(buff[0]) && ('_' == buff[1]))) {
+            (isdigit(buff[0]) && ('_' == buff[1]))) { /* expect acronym */
             ecp = strchr(buff, '=');
             if (ecp) {
                 strncpy(acron, buff, ecp - buff);
@@ -2413,8 +2418,9 @@ typedef struct my_scsi_idlun
  * not closed). sg device node scanning is done "O_RDONLY | O_NONBLOCK".
  * Assumes (and is currently only invoked for) lk 2.4.
  */
-static int find_corresponding_sg_fd(int oth_fd, const char * device_name,
-                                    int rw, int verbose)
+static int
+find_corresponding_sg_fd(int oth_fd, const char * device_name, int rw,
+                         int verbose)
 {
     int fd, err, bus, bbus, k, v;
     My_scsi_idlun m_idlun, mm_idlun;
@@ -2504,8 +2510,8 @@ static int find_corresponding_sg_fd(int oth_fd, const char * device_name,
         return fd;
 }
 
-static int map_if_lk24(int sg_fd, const char * device_name, int rw,
-                       int verbose)
+static int
+map_if_lk24(int sg_fd, const char * device_name, int rw, int verbose)
 {
     /* could be lk 2.4 and not using a sg device */
     struct utsname a_uts;
