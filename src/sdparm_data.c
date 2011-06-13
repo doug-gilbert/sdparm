@@ -584,6 +584,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "1: highest\t15: lowest"},
 
     /* Application tag mode subpage [0xa,0xf0] sbc3 */
+    /* descriptor starts here, <start_byte> is relative to start of mode
+     * page (i.e. 16 more than shown in descriptor format table) */
     {"AT_LAST", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 16, 7, 1, 0,
         "Last", NULL},
     {"AT_LBAT", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 22, 7, 16, 0,
@@ -766,6 +768,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "3: format and partition recognition"},
     {"PART_U", MED_PART_MP, 0, PDT_TAPE, 6, 3, 4, 0,
         "Partition units (exponent of 10, bytes)", NULL},
+    /* "descriptor" starts here */
     {"P_SZ", MED_PART_MP, 0, PDT_TAPE, 8, 7, 16, 0,
         "Partition size", NULL},
 
@@ -879,6 +882,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     /* Logical block provisioning mode subpage [0x1c,0x2] sbc3 */
     {"SITUA", IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 4, 0, 1, 0,
         "Single initiator threshold unit attention", NULL},
+    /* descriptor starts here, the <start_byte> is relative to the start
+     * of the mode page (i.e. 16 more than descriptor format table) */
     {"LBP_EN", IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 16, 7, 1, 0,
         "Threshold enabled", NULL},
     {"LBP_TYPE", IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 16, 5, 3, 0,
@@ -936,6 +941,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Number of data transfer elements", NULL},
 
     /* Transport geometry parameters mode page [0x1e] smc2 */
+    /* transport geometry descriptor starts here, <start_byte> is relative
+     * to start of mode page (i.e. 2 more than shown in descriptor table */
     {"ROTAT", TRANS_GEO_PAR_MP, 0, PDT_MCHANGER, 2, 0, 1, 0,
         "Rotation for double sided media handling", NULL},
     {"MNTES", TRANS_GEO_PAR_MP, 0, PDT_MCHANGER, 3, 7, 8, 0,
@@ -1444,7 +1451,8 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Generation code", "0: unknown, 1..255: valid"},
     {"NOP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 7, 7, 8, MF_COMMON,
         "Number of phys", "one descriptor per phy"},
-    /* */
+    /* Phy mode descriptor starts here, <start_byte> relative to start of
+     * mode page (i.e. 8 more than phy mode descriptor table) */
     {"PHID", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 9, 7, 8, 0,
         "Phy identifier", NULL},
     {"ADT", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 12, 6, 3, 0,
@@ -1482,6 +1490,18 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
          MF_HEX | MF_COMMON, "Attached SAS address", NULL},
     {"APHID", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 32, 7, 8, 0,
         "Attached phy identifier", NULL},
+    {"APOWCAP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 33, 6, 2, 0,
+        "Attached power capable", "0: not; 1: can consume; 2: can source"},
+    {"ASLCAP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 33, 4, 1, 0,
+        "Attached slumber capable", NULL},
+    {"APACAP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 33, 3, 1, 0,
+        "Attached partial capable", NULL},
+    {"AIZPER", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 33, 2, 1, 0,
+        "Attached inside ZPSDS persistent", NULL},
+    {"AREQIZ", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 33, 1, 1, 0,
+        "Attached request inside ZPSDS", NULL},
+    {"ABRCAP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 33, 0, 1, 0,
+        "Attached break reply capable", NULL},
     {"PMILR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 40, 7, 4, 0,
         "Programmed minimum link rate",
         "0: not programmed; 8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps"},
@@ -1501,6 +1521,8 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
     {"PLT", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 6, 7, 16, 0,
         "Power loss timeout(ms)", NULL},
+    {"PGRATO", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 9, 7, 8, 0,
+        "Power grant timeout(sec)", NULL},
 
     /* SAS-2 Enhanced phy mode page [0x19,0x3] sas2, spl */
     {"PPID_3", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 5, 3, 4, 0,
@@ -1510,7 +1532,8 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Generation code", "0: unknown, 1..255: valid"},
     {"NOP_1", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 7, 7, 8, 0,
         "Number of phys", "one descriptor per phy"},
-    /* */
+    /* Phy mode descriptor starts here, <start_byte> relative to start of
+     * mode page (i.e. 8 more than phy mode descriptor table) */
     {"PHID_1", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 9, 7, 8, 0,
         "Phy identifier", NULL},
     {"PPCAP", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 12, 7, 32, MF_HEX,
