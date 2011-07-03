@@ -226,6 +226,7 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_BLOCK_LIMITS, 0, PDT_DISK, "bl", "Block limits (SBC)"},
     {VPD_BLOCK_DEV_CHARS, 0, PDT_DISK, "bdc", "Block device characteristics "
      "(SBC)"},
+    {VPD_CFA_PROFILE_INFO, 0, -1, "cfa", "CFA profile information"},
     {VPD_DEVICE_CONSTITUENTS, 0, -1, "dc", "Device constituents"},
     {VPD_DEVICE_ID, 0, -1, "di", "Device identification"},
     {VPD_DEVICE_ID, VPD_DI_SEL_AS_IS, -1, "di_asis", "Like 'di' "
