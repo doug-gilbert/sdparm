@@ -2,11 +2,11 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.07 [20110624] [svn: r178]
+ChangeLog for sdparm-1.07 [20110731] [svn: r179]
   - point out some mode page numbers are vendor specific
   - LB provisioning + Block limits VPD pages to sbc3r27
   - Enhanced phy control page: optical mode enabled (spl-r07)
-  - Phy control and discover page: sync tp spl2r01)
+  - Phy control and discover page: sync t0 spl2r02)
   - sync with spc4r31 (handle status good with sense)
 
 ChangeLog for sdparm-1.06 [20101031] [svn: r166]
