@@ -1472,7 +1472,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"NPLR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 13, 3, 4, 0,
         "Negotiated logical link rate",         /* sas2r07 */
         "0: unknown; 1: disabled; 2: phy reset problem; 3: spinup hold\t"
-        "4: port selector; 8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps"},
+        "4: port selector; 8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps"},
     {"ASIP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 14, 3, 1, 0,
         "Attached SSP initiator port", NULL},
     {"ATIP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 14, 2, 1, 0,
@@ -1505,16 +1505,16 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Attached break reply capable", NULL},
     {"PMILR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 40, 7, 4, 0,
         "Programmed minimum link rate",
-        "0: not programmed; 8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps"},
+        "0: not programmed; 8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps"},
     {"HMILR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 40, 3, 4, 0,
         "Hardware minimum link rate",
-        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps"},
+        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps"},
     {"PMALR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 41, 7, 4, 0,
         "Programmed maximum link rate",
-        "0: not programmed; 8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps"},
+        "0: not programmed; 8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps"},
     {"HMALR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 41, 3, 4, 0,
         "Hardware maximum link rate",
-        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps"},
+        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps"},
 
     /* shared port control mode page [0x19,0x2] sas2 */
     {"PPID_2", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 5, 3, 4, 0,
@@ -1550,7 +1550,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"N_PLR", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 26, 3, 4, 0,
         "Negotiated physical link rate",
         "6: resetting; 7: attached unsupported\t"
-        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps"},
+        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps"},
     {"EN_SL", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 27, 2, 1, 0,
         "Enable slumber phy power condition", NULL},
     {"EN_PA", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 27, 1, 1, 0,
