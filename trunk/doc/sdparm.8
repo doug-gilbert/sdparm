@@ -1,4 +1,4 @@
-.TH SDPARM "8" "January 2011" "sdparm\-1.07" SDPARM
+.TH SDPARM "8" "September 2011" "sdparm\-1.07" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -291,6 +291,10 @@ designators associated with the target device. When "di" is used
 designators are grouped by lu, then port and then target device.
 To see all designators decoded in the order that they appear in the
 VPD page use "di_asis".
+.PP
+Only those VPD pages defined by t10.org are decoded by this utility. SPC\-4
+sets aside VPD pages codes from 0xc0 to 0xff (inclusive) for vendor
+specific pages some of which are decoded in the sg_vpd utility.
 .PP
 In the linux kernel 2.6 series any device node that understands a SCSI
 command set (e.g. SCSI disks and CD/DVD drives) may be specified. More
