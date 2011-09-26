@@ -729,6 +729,9 @@ decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
         printf("cbcs=%d\n", !!(buff[8] & 0x1));
         printf("mitmd=%d\n", (buff[9] & 0xf));
         printf("estcm=%d\n", (buff[10] << 8) + buff[10]);  /* spc4r27 */
+        printf("poa_sup=%d\n", !!(buff[12] & 0x80));    /* spc4r32 */
+        printf("hra_sup=%d\n", !!(buff[12] & 0x40));    /* spc4r32 */
+        printf("vsa_sup=%d\n", !!(buff[12] & 0x20));    /* spc4r32 */
     } else {
         printf("  ACTIVATE_MICROCODE=%d SPT=%d GRD_CHK=%d APP_CHK=%d "
                "REF_CHK=%d\n", ((buff[4] >> 6) & 0x3), ((buff[4] >> 3) & 0x7),
@@ -746,6 +749,8 @@ decode_ext_inq_vpd(unsigned char * buff, int len, int quiet)
         printf("  Multi I_T nexus microcode download=%d\n", buff[9] & 0xf);
         printf("  Extended self-test completion minutes=%d\n",
                (buff[10] << 8) + buff[11]);
+        printf("  POA_SUP=%d HRA_SUP=%d VSA_SUP=%d\n",      /* spc4r32 */
+               !!(buff[12] & 0x80), !!(buff[12] & 0x40), !!(buff[12] & 0x20));
     }
     return 0;
 }
