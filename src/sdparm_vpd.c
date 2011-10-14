@@ -1092,7 +1092,6 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     int adc = 0;
     int sbc = 0;
     int ssc = 0;
-    int osd = 0;
 
     verb = (opts->verbose > 0) ? opts->verbose - 1 : 0;
     sz = sizeof(b);
@@ -1412,7 +1411,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             break;
         case PDT_OSD:
             vpd_name = "OSD information";
-            osd = 1;
+            /* osd = 1; */
             break;
         default:
             vpd_name = "unexpected pdt for B0h";
@@ -1456,7 +1455,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             break;
         case PDT_OSD:
             vpd_name = "Security token";
-            osd = 1;
+            /* osd = 1; */
             break;
         case PDT_ADC:
             vpd_name = "Manufactured assigned serial number";
