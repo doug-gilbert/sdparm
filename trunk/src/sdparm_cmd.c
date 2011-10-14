@@ -296,9 +296,7 @@ decode_get_config_feature(int feature, unsigned char * ucp, int len)
 {
     int k, profile;
     char buff[128];
-    const char * cp;
 
-    cp = "";
     switch (feature) {
     case 0:     /* Profile list */
         printf("Available profiles, profile of current media marked "
