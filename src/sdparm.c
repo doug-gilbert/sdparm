@@ -77,7 +77,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.07 20110924 [svn: r180]";
+static char * version_str = "1.07 20111014 [svn: r181]";
 
 
 static struct option long_options[] = {
@@ -628,7 +628,6 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
     unsigned char cha_mp[DEF_MODE_RESP_LEN];
     unsigned char def_mp[DEF_MODE_RESP_LEN];
     unsigned char sav_mp[DEF_MODE_RESP_LEN];
-    const char * name;
     void * pc_arr[4];
     char buff[128];
 
@@ -683,7 +682,6 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
         fetch_pg = 0;
         mpi = hmpi;
     }
-    name = "";
     mdp = NULL;
 
     /* loop over each mode page item in given namespace */
