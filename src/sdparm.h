@@ -65,7 +65,7 @@
 #define MSP_ADC_TD_SN 0x4
 #define MSP_SBC_LB_PROV 0x2
 #define MSP_SSC_CDP 0xf0
-#define MSP_SBC_APP_TAG 0xf0
+#define MSP_SBC_APP_TAG 0x2     /* changed from 0xf0 to 0x2 sbc3r28 */
 
 #define MODE_DATA_OVERHEAD 128
 #define EBUFF_SZ 256
