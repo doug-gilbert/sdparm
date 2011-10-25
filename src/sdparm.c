@@ -77,7 +77,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.07 20111017 [svn: r183]";
+static char * version_str = "1.07 20111022 [svn: r184]";
 
 
 static struct option long_options[] = {
@@ -146,6 +146,8 @@ usage()
           "pairs\n"
           "    --inquiry | -i        output INQUIRY VPD page(s) (def: mode "
           "page(s))\n"
+          "                          use --page=PG for VPD number (-1 "
+          "for std inq)\n"
           "    --long | -l           add description to field output\n"
           "    --num-desc | -n       report number of mode page "
           "descriptors\n"
@@ -216,9 +218,13 @@ enumerate_vpds()
     const struct sdparm_vpd_page_t * vpp;
 
     for (vpp = sdparm_vpd_pg; vpp->acron; ++vpp) {
-        if (vpp->name)
-            printf("  %-10s 0x%02x      %s\n", vpp->acron, vpp->vpd_num,
-                   vpp->name);
+        if (vpp->name) {
+            if (vpp->vpd_num < 0)
+                printf("  %-10s -1        %s\n", vpp->acron, vpp->name);
+            else
+                printf("  %-10s 0x%02x      %s\n", vpp->acron, vpp->vpd_num,
+                       vpp->name);
+        }
     }
 }
 
@@ -1712,7 +1718,7 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
 
 static int
 open_and_simple_inquiry(const char * device_name, int rw, int * pdt,
-                        const struct sdparm_opt_coll * opts)
+                        int * protect, const struct sdparm_opt_coll * opts)
 {
     int res, verb, sg_fd, l_pdt;
     struct sg_simple_inquiry_resp sir;
@@ -1752,41 +1758,14 @@ open_and_simple_inquiry(const char * device_name, int rw, int * pdt,
         *pdt = PDT_DISK;       /* map disk-like pdt's to PDT_DOSK */
     else
         *pdt = l_pdt;
+    if (protect)
+        *protect = sir.byte_5 & 0x1;     /* PROTECT bit SPC-3 and later */
     if ((0 == opts->hex) && (0 == opts->quiet)) {
         printf("    %s: %.8s  %.16s  %.4s",
                device_name, sir.vendor, sir.product, sir.revision);
         if (0 != l_pdt)
             printf("  [%s]", sg_get_pdt_str(l_pdt, sizeof(b), b));
         printf("\n");
-        if (opts->verbose && opts->inquiry) {
-            char buff[32];
-
-            printf("  PQual=%d  Device_type=0x%x  RMB=%d  version=0x%02x ",
-                   sir.peripheral_qualifier, l_pdt, sir.rmb, sir.version);
-            printf(" [%s]\n", sdp_get_ansi_version_str(sir.version,
-                                                       sizeof(buff), buff));
-            printf("  [AERC=%d]  [TrmTsk=%d]  NormACA=%d  HiSUP=%d "
-                   " Resp_data_format=%d\n  SCCS=%d  ",
-                   !!(sir.byte_3 & 0x80), !!(sir.byte_3 & 0x40),
-                   !!(sir.byte_3 & 0x20), !!(sir.byte_3 & 0x10),
-                   sir.byte_3 & 0x0f, !!(sir.byte_5 & 0x80));
-            printf("ACC=%d  TPGS=%d  3PC=%d  Protect=%d ",
-                   !!(sir.byte_5 & 0x40), ((sir.byte_5 & 0x30) >> 4),
-                   !!(sir.byte_5 & 0x08), !!(sir.byte_5 & 0x01));
-            printf(" BQue=%d\n  EncServ=%d  ", !!(sir.byte_6 & 0x80),
-                   !!(sir.byte_6 & 0x40));
-            if (sir.byte_6 & 0x10)
-                printf("MultiP=1 (VS=%d)  ", !!(sir.byte_6 & 0x20));
-            else
-                printf("MultiP=0  ");
-            printf("MChngr=%d  [ACKREQQ=%d]  Addr16=%d\n  [RelAdr=%d]  ",
-                   !!(sir.byte_6 & 0x08), !!(sir.byte_6 & 0x04),
-                   !!(sir.byte_6 & 0x01), !!(sir.byte_7 & 0x80));
-            printf("WBus16=%d  Sync=%d  Linked=%d  [TranDis=%d]  ",
-                   !!(sir.byte_7 & 0x20), !!(sir.byte_7 & 0x10),
-                   !!(sir.byte_7 & 0x08), !!(sir.byte_7 & 0x04));
-            printf("CmdQue=%d\n", !!(sir.byte_7 & 0x02));
-        }
     }
     return sg_fd;
 
@@ -1867,6 +1846,7 @@ main(int argc, char * argv[])
     int pn = -1;
     int spn = -1;
     int rw = 0;
+    int protect = 0;
     int cmd_arg = -1;
     const struct sdparm_mode_page_t * mpp = NULL;
     const struct sdparm_transport_id_t * tip;
@@ -2062,9 +2042,13 @@ main(int argc, char * argv[])
 #endif
 
     if (page_str) {
-        if (isalpha(page_str[0])) {
-            while (isalpha(page_str[0])) {      /* dummy loop, just using break */
-                mpp = sdp_find_mp_by_acron(page_str, opts.transport, opts.vendor);
+        if ((0 == strcmp("-1", page_str)) || (0 == strcmp("-2", page_str))) {
+            opts.inquiry = 1;
+            pn = VPD_NOT_STD_INQ;
+        } else if (isalpha(page_str[0])) {
+            while ( 1 ) {      /* dummy loop, just using break */
+                mpp = sdp_find_mp_by_acron(page_str, opts.transport,
+                                           opts.vendor);
                 if (mpp)
                     break;
                 vpp = sdp_find_vpd_by_acron(page_str);
@@ -2358,7 +2342,8 @@ main(int argc, char * argv[])
         if (opts.verbose > 0)
             fprintf(stderr, ">>> about to open device name: %s\n",
                     device_name_arr[k]);
-        sg_fd = open_and_simple_inquiry(device_name_arr[k], rw, &pdt, &opts);
+        sg_fd = open_and_simple_inquiry(device_name_arr[k], rw, &pdt,
+                                        &protect, &opts);
         if (sg_fd < 0) {
             r = SG_LIB_FILE_ERROR;
             if (0 == ret)
@@ -2368,7 +2353,7 @@ main(int argc, char * argv[])
 
         if (opts.inquiry)
             r = sdp_process_vpd_page(sg_fd, pn, ((spn < 0) ? 0: spn), &opts,
-                                     req_pdt);
+                                     req_pdt, protect);
         else {
             if (cmd_str && scmdp)   /* process command */
                 r = sdp_process_cmd(sg_fd, scmdp, cmd_arg, pdt, &opts);
