@@ -101,6 +101,7 @@
 #define VPD_REFERRALS 0xb3
 #define VPD_AUTOMATION_DEV_SN 0xb3   /* SSC-3 */
 #define VPD_DTDE_ADDRESS 0xb4   /* SSC-4 */
+#define VPD_NOT_STD_INQ -2      /* request for standard inquiry */
 
 #define VPD_ASSOC_LU 0
 #define VPD_ASSOC_TPORT 1
@@ -329,7 +330,7 @@ extern int sdp_strcase_eq(const char * s1p, const char * s2p);
 
 extern int sdp_process_vpd_page(int sg_fd, int pn, int spn,
                                 const struct sdparm_opt_coll * opts,
-                                int req_pdt);
+                                int req_pdt, int protect);
 
 /*
  * Declarations for functions found in sdparm_cmd.c

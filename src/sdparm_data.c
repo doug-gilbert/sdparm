@@ -217,6 +217,8 @@ static struct sdparm_mode_page_t sdparm_sas_mode_pg[] = {    /* SAS-2 */
 };
 
 
+/* These VPD pages are listed in alphabetical order based on their
+ * 'acron' field. The standard inquiry response is added to this list. */
 struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_ATA_INFO, 0, -1, "ai", "ATA information (SAT)"},
     {VPD_ASCII_OP_DEF, 0, -1, "aod",
@@ -259,6 +261,7 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_SA_DEV_CAP, 0, PDT_TAPE, "sad",
      "Sequential access device capabilities (SSC)"},
     {VPD_SOFTW_INF_ID, 0, -1, "sii", "Software interface identification"},
+    {VPD_NOT_STD_INQ, 0, -1, "sinq", "Standard inquiry response"},
     {VPD_UNIT_SERIAL_NUM, 0, -1, "sn", "Unit serial number"},
     {VPD_SCSI_PORTS, 0, -1, "sp", "SCSI ports"},
     {VPD_SUPPORTED_VPDS, 0, -1, "sv", "Supported VPD pages"},
