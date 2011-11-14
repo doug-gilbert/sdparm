@@ -116,6 +116,7 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
     {CONTROL_MP, MSP_SAT_PATA, -1, 0, "pat", "SAT pATA control", NULL},
     {PROT_SPEC_LU_MP, 0, -1, 0, "pl", "Protocol specific logical unit", NULL},
     {POWER_MP, 0, -1, 0, "po", "Power condition", NULL},
+    {POWER_MP, MSP_SPC_PS, -1, 0, "ps", "Power consumption", NULL},
     {POWER_OLD_MP, 0, PDT_DISK, 0, "poo", "Power condition - old version",
         NULL}, /* POWER_OLD_MP for disks as it clashes with old MMC specs */
     {PROT_SPEC_PORT_MP, 0, -1, 0, "pp", "Protocol specific port", NULL},
@@ -254,6 +255,7 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_MODE_PG_POLICY, 0, -1, "mpp", "Mode page policy"},
     {VPD_OSD_INFO, 0, PDT_OSD, "oi", "OSD information"},
     {VPD_POWER_CONDITION, 0, -1, "pc", "Power condition"},
+    {VPD_POWER_CONSUMPTION, 0, -1, "psm", "Power consumption"},
     {VPD_PROTO_LU, 0, -1, "pslu", "Protocol-specific logical unit "
      "information"},
     {VPD_PROTO_PORT, 0, -1, "pspo", "Protocol-specific port information"},
@@ -832,6 +834,11 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"FSTCPC", POWER_MP, 0, -1, 39, 3, 2, 0,    /* added spc4r25 */
         "From stopped command processing control",
         "0: reserved (SAS-2); 1: disabled; 2: enabled\n"},
+
+    /* Power consumption mode page [0x1a,1] added spc4r33 */
+    {"ps_id", POWER_MP, MSP_SPC_PS, -1, 7, 7, 8, 0,      /* added spc4r24 */
+        "Power consumption identifier",
+        "references Power consumption VPD page"},
 
     /* SAT ATA Power condition mode page [0x1a,0xf1] sat2 */
     {"APMP", POWER_MP, MSP_SAT_POWER, -1, 5, 0, 1, 0,

@@ -883,6 +883,46 @@ decode_power_condition(unsigned char * buff, int len)
     return 0;
 }
 
+static const char * power_unit_arr[] =
+{
+    "Gigawatts",
+    "Megawatts",
+    "Kilowatts",
+    "Watts",
+    "Milliwatts",
+    "Microwatts",
+    "Unit reserved",
+    "Unit reserved",
+};
+
+/* VPD_POWER_CONSUMPTION */
+static int
+decode_power_consumption_vpd(unsigned char * buff, int len)
+{
+    int k, bump;
+    unsigned char * ucp;
+
+    if (len < 4) {
+        fprintf(stderr, "Power consumption VPD page length too short=%d\n",
+                len);
+        return SG_LIB_CAT_MALFORMED;
+    }
+    len -= 4;
+    ucp = buff + 4;
+    for (k = 0; k < len; k += bump, ucp += bump) {
+        bump = 4;
+        if ((k + bump) > len) {
+            fprintf(stderr, "Power consumption VPD page, short "
+                    "descriptor length=%d, left=%d\n", bump, (len - k));
+            return SG_LIB_CAT_MALFORMED;
+        }
+        printf("  Power consumption identifier: 0x%x", ucp[0]);
+        printf("    Maximum power consumption: %d %s\n",
+               (ucp[2] << 8) + ucp[3], power_unit_arr[ucp[1] & 0x7]);
+    }
+    return 0;
+}
+
 /* VPD_BLOCK_LIMITS */
 static int
 decode_block_limits_vpd(unsigned char * buff, int len)
@@ -1411,6 +1451,27 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             return 0;
         }
         res = decode_power_condition(b, len + 4);
+        if (res)
+            return res;
+        break;
+    case VPD_POWER_CONSUMPTION:
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = (b[2] << 8) + b[3];
+        if (len > sz) {
+            fprintf(stderr, "Response to Power consumption VPD page "
+                    "truncated\n");
+            len = sz;
+        }
+        if (opts->long_out)
+            printf("Power consumption [0x8d] VPD page:\n");
+        else
+            printf("Power consumption VPD page:\n");
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        res = decode_power_consumption_vpd(b, len + 4);
         if (res)
             return res;
         break;
