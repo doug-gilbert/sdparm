@@ -66,6 +66,7 @@
 #define MSP_SBC_LB_PROV 0x2
 #define MSP_SSC_CDP 0xf0
 #define MSP_SBC_APP_TAG 0x2     /* changed from 0xf0 to 0x2 sbc3r28 */
+#define MSP_SPC_PS 0x1          /* power consumption */
 
 #define MODE_DATA_OVERHEAD 128
 #define EBUFF_SZ 256
@@ -88,6 +89,7 @@
 #define VPD_POWER_CONDITION 0x8a
 #define VPD_DEVICE_CONSTITUENTS 0x8b
 #define VPD_CFA_PROFILE_INFO  0x8c
+#define VPD_POWER_CONSUMPTION  0x8d
 #define VPD_PROTO_LU 0x90
 #define VPD_PROTO_PORT 0x91
 #define VPD_BLOCK_LIMITS 0xb0   /* SBC-3 */
