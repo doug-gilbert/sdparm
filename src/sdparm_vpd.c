@@ -901,6 +901,7 @@ decode_power_consumption_vpd(unsigned char * buff, int len)
 {
     int k, bump;
     unsigned char * ucp;
+    unsigned int value;
 
     if (len < 4) {
         fprintf(stderr, "Power consumption VPD page length too short=%d\n",
@@ -916,9 +917,15 @@ decode_power_consumption_vpd(unsigned char * buff, int len)
                     "descriptor length=%d, left=%d\n", bump, (len - k));
             return SG_LIB_CAT_MALFORMED;
         }
+        value = (ucp[2] << 8) + ucp[3];
         printf("  Power consumption identifier: 0x%x", ucp[0]);
-        printf("    Maximum power consumption: %d %s\n",
-               (ucp[2] << 8) + ucp[3], power_unit_arr[ucp[1] & 0x7]);
+        if (value >= 1000 && (ucp[1] & 0x7) > 0)
+            printf("    Maximum power consumption: %d.%03d %s\n",
+                   value / 1000, value % 1000,
+                   power_unit_arr[(ucp[1] & 0x7) - 1]);
+        else
+            printf("    Maximum power consumption: %d %s\n",
+                   value, power_unit_arr[ucp[1] & 0x7]);
     }
     return 0;
 }
