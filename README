@@ -96,6 +96,18 @@ type (e.g. SAF-TE devices). All these device may also be accessed via
 the "pass" device. To see the mapping between the "pass" device name and
 the corresponding higher level device node try "camcontrol devlist".
 
+The traditional './configure ; make ; make install' sequence from the
+top level of the unpacked tarball will work on FreeBSD. But the man pages
+will be placed under the /usr/local/share/man directory which unfortunately
+is not on the standard manpath. One solution is to add this path by
+creating a file with a name like local_share.conf in the
+/usr/local/etc/man.d/ directory and placing this line in it:
+    MANPATH /usr/local/share/man
+
+FreeBSD 9.0 has a "ports" entry for sdparm under the
+/usr/ports/sysutils directory. It points to version 1.06 of sdparm.
+It could be used as a template to point to more recent versions.
+
 sdparm can be built into a Debian package for kFreeBSD using the
 ./build_debian.sh script in the top level directory. This has been tested
 with Debian 6.0 release.
@@ -236,4 +248,4 @@ SCSI5:0,112,0 claimed=0 pdt=10h         LSI       PSEUDO DEVICE     2.34
 
 
 Douglas Gilbert
-23rd December 2011
+21st January 2012
