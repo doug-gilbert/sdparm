@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2011 Douglas Gilbert.
+ * Copyright (c) 2005-2012 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,8 +28,8 @@
  */
 
 #include <stdlib.h>
-#include "sdparm.h"
 #include "sg_lib.h"
+#include "sdparm.h"
 
 
 /*
@@ -147,11 +147,10 @@ struct sdparm_transport_id_t sdparm_transport_id[] = {
     {TPROTO_ISCSI, "iscsi", "Internet SCSI (iSCSI)"}, /* none */
     {TPROTO_SAS, "sas", "Serial attached SCSI (SAS)"},
     {TPROTO_ADT, "adt", "Automation/Drive interface (ADT)"},
-    {TPROTO_ATA, "ata", "AT attachment interface (ATA/ATAPI)"},
-                                                         /* none */
-    {0x9, "u0x9", NULL},      /* leading "u" so not number */
-    {0xa, "u0xa", NULL},
-    {0xb, "u0xb", NULL},
+    {TPROTO_ATA, "ata", "AT attachment interface (ATA/ATAPI)"}, /* none */
+    {TPROTO_UAS, "uas", "USB attached SCSI (UAS)"}, /* none */
+    {TPROTO_SOP, "sop", "SCSI over PCIe (SOP)"}, /* none */
+    {0x9, "u0xb", NULL},      /* leading "u" so not number */
     {0xc, "u0xc", NULL},
     {0xd, "u0xd", NULL},
     {0xe, "u0xe", NULL},
@@ -268,6 +267,7 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_SCSI_PORTS, 0, -1, "sp", "SCSI ports"},
     {VPD_SUPPORTED_VPDS, 0, -1, "sv", "Supported VPD pages"},
     {VPD_TA_SUPPORTED, 0, PDT_TAPE, "tas", "TapeAlert supported flags (SSC)"},
+    {VPD_3PARTY_COPY, 0, -1, "tpc", "Third party copy"},
     {0, 0, 0, NULL, NULL},
 };
 
@@ -588,6 +588,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"INIT_PR", CONTROL_MP, MSP_SPC_CE, -1, 5, 3, 4, 0,
         "Initial command priority", "0: none or vendor\t"
         "1: highest\t15: lowest"},
+    {"MSDL", CONTROL_MP, MSP_SPC_CE, -1, 6, 7, 8, 0,
+        "Maximum sense data length", "0: unlimited"},
 
     /* Application tag mode subpage [0xa,0xf0] sbc3 */
     /* descriptor starts here, <start_byte> is relative to start of mode

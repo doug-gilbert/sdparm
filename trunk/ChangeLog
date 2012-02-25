@@ -2,8 +2,11 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.08 [20120121] [svn: r189]
-  - xxxxxx
+ChangeLog for sdparm-1.08 [20120123] [svn: r190]
+  - control extension mpage: add max sense data length
+  - extended inquiry vpd page: add max supported sense data
+    length
+  - add placeholder for third party copy VPD page
 
 ChangeLog for sdparm-1.07 [20120121] [svn: r188]
   - LB provisioning + Block limits VPD pages to sbc3r27
