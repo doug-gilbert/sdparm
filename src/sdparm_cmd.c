@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2011 Douglas Gilbert.
+ * Copyright (c) 2005-2012 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,10 +35,10 @@
 #define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
 
-#include "sdparm.h"
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
 #include "sg_cmds_mmc.h"
+#include "sdparm.h"
 
 /* sdparm_cmd.c : contains code to implement commands
  * (i.e "--command=<cmd>") in sdparm.

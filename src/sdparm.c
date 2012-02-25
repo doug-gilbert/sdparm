@@ -71,13 +71,13 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #endif  /* SG_LIB_LINUX */
 
-#include "sdparm.h"
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
+#include "sdparm.h"
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.08 20120121 [svn: r189]";
+static char * version_str = "1.08 20120125 [svn: r190]";
 
 
 static struct option long_options[] = {
