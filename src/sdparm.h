@@ -88,8 +88,9 @@
 #define VPD_ATA_INFO 0x89
 #define VPD_POWER_CONDITION 0x8a
 #define VPD_DEVICE_CONSTITUENTS 0x8b
-#define VPD_CFA_PROFILE_INFO  0x8c
-#define VPD_POWER_CONSUMPTION  0x8d
+#define VPD_CFA_PROFILE_INFO 0x8c
+#define VPD_POWER_CONSUMPTION 0x8d
+#define VPD_3PARTY_COPY 0x8f
 #define VPD_PROTO_LU 0x90
 #define VPD_PROTO_PORT 0x91
 #define VPD_BLOCK_LIMITS 0xb0   /* SBC-3 */
@@ -140,6 +141,13 @@
 #define CMD_CAPACITY 9
 #define CMD_SPEED 10
 #define CMD_PROFILE 11
+
+#ifndef TPROTO_UAS
+#define TPROTO_UAS 0x9
+#endif
+#ifndef TPROTO_SOP
+#define TPROTO_SOP 0xa
+#endif
 
 
 struct sdparm_opt_coll {

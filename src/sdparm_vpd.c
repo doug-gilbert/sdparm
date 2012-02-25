@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2011 Douglas Gilbert.
+ * Copyright (c) 2005-2012 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,9 +35,9 @@
 #define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
 
-#include "sdparm.h"
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
+#include "sdparm.h"
 
 /* sdparm_vpd.c : does mainly VPD page processing associated with the
  * INQUIRY SCSI command. Roughly in sync with spc4r21.
@@ -183,6 +183,8 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
              * locale setting: en_AU.UTF-8
              */
             printf("%s\n", (const char *)ip);
+            break;
+        case 9: /* PCIe routing ID */
             break;
         default: /* reserved */
             break;
@@ -454,6 +456,11 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
          * locale setting: en_AU.UTF-8
          */
         printf("      %s\n", (const char *)ip);
+        break;
+    case 9: /* PCIe routing ID */
+        /* added in sbc4r34, no limits on code_set or association ?? */
+        d_id = ((ip[0] << 8) | ip[1]);
+        printf("      PCIe routing ID: 0x%x\n", d_id);
         break;
     default: /* reserved */
         dStrHex((const char *)ip, i_len, 0);
@@ -773,6 +780,8 @@ decode_ext_inq_vpd(unsigned char * b, int len, int long_out, int protect)
         printf("  POA_SUP=%d\n", !!(b[12] & 0x80));     /* spc4r32 */
         printf("  HRA_SUP=%d\n", !!(b[12] & 0x40));     /* spc4r32 */
         printf("  VSA_SUP=%d\n", !!(b[12] & 0x20));     /* spc4r32 */
+        printf("  Maximum supported sense data length=%d\n", 
+               b[13]); /* spc4r34 */
     } else {
         printf("  ACTIVATE_MICROCODE=%d SPT=%d GRD_CHK=%d APP_CHK=%d "
                "REF_CHK=%d\n", ((b[4] >> 6) & 0x3), ((b[4] >> 3) & 0x7),
@@ -792,6 +801,8 @@ decode_ext_inq_vpd(unsigned char * b, int len, int long_out, int protect)
                (b[10] << 8) + b[11]);
         printf("  POA_SUP=%d HRA_SUP=%d VSA_SUP=%d\n",      /* spc4r32 */
                !!(b[12] & 0x80), !!(b[12] & 0x40), !!(b[12] & 0x20));
+        printf("  Maximum supported sense data length=%d\n", 
+               b[13]); /* spc4r34 */
     }
     return 0;
 }
@@ -1590,6 +1601,26 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             printf("  %s\n", b + 4);
         } else
             printf("  <empty>\n");
+        break;
+    case VPD_3PARTY_COPY:
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = (b[2] << 8) + b[3];       /* spc4r25 */
+        if (len > sz) {
+            fprintf(stderr, "Response to Third party copy VPD page "
+                    "truncated\n");
+            len = sz;
+        }
+        if (opts->long_out)
+            printf("Third party copy [0x8f] VPD page:\n");
+        else
+            printf("Third party copy VPD page:\n");
+        if (opts->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        printf("    Leave decoding until needed, in hex:\n");
+        dStrHex((const char *)b, len + 4, 0);
         break;
     case 0xb0:          /* VPD page depends on pdt */
         if (b[1] != pn)
