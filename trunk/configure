@@ -683,7 +683,8 @@ ac_user_opts='
 enable_option_checking
 enable_maintainer_mode
 enable_dependency_tracking
-enable_no_linux_bsg
+enable_linuxbsg
+enable_scsistrings
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1318,7 +1319,8 @@ Optional Features:
 			  (and sometimes confusing) to the casual installer
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
-  --enable-no-linux-bsg   ignore linux bsg (sgv4) if present
+  --disable-linuxbsg      ignore linux bsg (sgv4) if present
+  --disable-scsistrings   Disable full SCSI sense strings
 
 Some influential environment variables:
   CC          C compiler command
@@ -4179,13 +4181,12 @@ else
 fi
 
 
-# Check whether --enable-no-linux-bsg was given.
-if test "${enable_no_linux_bsg+set}" = set; then :
-  enableval=$enable_no_linux_bsg;
+# Check whether --enable-linuxbsg was given.
+if test "${enable_linuxbsg+set}" = set; then :
+  enableval=$enable_linuxbsg;
 cat >>confdefs.h <<_ACEOF
 #define IGNORE_LINUX_BSG 1
 _ACEOF
-
 
 fi
 
@@ -4239,6 +4240,18 @@ fi
 else
   HAVE_SGUTILS_TRUE='#'
   HAVE_SGUTILS_FALSE=
+fi
+
+
+# Check whether --enable-scsistrings was given.
+if test "${enable_scsistrings+set}" = set; then :
+  enableval=$enable_scsistrings;
+else
+
+cat >>confdefs.h <<_ACEOF
+#define SG_SCSI_STRINGS 1
+_ACEOF
+
 fi
 
 
