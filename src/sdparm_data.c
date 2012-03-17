@@ -588,7 +588,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"INIT_PR", CONTROL_MP, MSP_SPC_CE, -1, 5, 3, 4, 0,
         "Initial command priority", "0: none or vendor\t"
         "1: highest\t15: lowest"},
-    {"MSDL", CONTROL_MP, MSP_SPC_CE, -1, 6, 7, 8, 0,
+    {"MSDL", CONTROL_MP, MSP_SPC_CE, -1, 6, 7, 8, 0,  /* spc4r34 */
         "Maximum sense data length", "0: unlimited"},
 
     /* Application tag mode subpage [0xa,0xf0] sbc3 */
@@ -827,15 +827,15 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Idle_c condition timer (100 ms)", NULL},
     {"SYCT", POWER_MP, 0, -1, 20, 7, 32, 0,
         "Standby_y condition timer (100 ms)", NULL},
-    {"FIDCPC", POWER_MP, 0, -1, 39, 7, 2, 0,    /* added spc4r25 */
-        "From idle command processing control",
-        "0: reserved (SAS-2); 1: disabled; 2: enabled\n"},
-    {"FSBCPC", POWER_MP, 0, -1, 39, 5, 2, 0,    /* added spc4r25 */
-        "From standby command processing control",
-        "0: reserved (SAS-2); 1: disabled; 2: enabled\n"},
-    {"FSTCPC", POWER_MP, 0, -1, 39, 3, 2, 0,    /* added spc4r25 */
-        "From stopped command processing control",
-        "0: reserved (SAS-2); 1: disabled; 2: enabled\n"},
+    {"CCF_IDLE", POWER_MP, 0, -1, 39, 7, 2, 0,     /* changed spc4r35 */
+        "check condition on transition from idle", /* was FIDCPC (spc4r25) */
+        "0: restricted (SAS-2); 1: disabled; 2: enabled\n"},
+    {"CCF_STAND", POWER_MP, 0, -1, 39, 5, 2, 0,        /* changed spc4r35 */
+        "check condition on transition from standby",  /* was FSBCPC */
+        "0: restricted (SAS-2); 1: disabled; 2: enabled\n"},
+    {"CCF_STOPP", POWER_MP, 0, -1, 39, 3, 2, 0,        /* changed spc4r35 */
+        "check condition on transition from stopped",  /* was FSTCPC */
+        "0: restricted (SAS-2); 1: disabled; 2: enabled\n"},
 
     /* Power consumption mode page [0x1a,1] added spc4r33 */
     {"ps_id", POWER_MP, MSP_SPC_PS, -1, 7, 7, 8, 0,      /* added spc4r24 */
