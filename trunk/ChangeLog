@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.08 [20120914] [svn: r194]
+ChangeLog for sdparm-1.08 [20120915] [svn: r195]
   - control extension mpage: add max sense data length
   - power condition mpage: FIDCPC->CCF_IDLE,
     FSBCPC->CCF_STAND, FSTCPC->CCF_STOPP (spc4r34+)
@@ -13,7 +13,7 @@ ChangeLog for sdparm-1.08 [20120914] [svn: r194]
     - change --enable-no-linux-bsg to --disable-linuxbsg
     - add --disable-scsistrings to reduce utility size
       with non-libsgutils build
-  - point svn:externals to rev 453 of sg3_utils
+  - point svn:externals to rev 454 of sg3_utils
 
 ChangeLog for sdparm-1.07 [20120121] [svn: r188]
   - LB provisioning + Block limits VPD pages to sbc3r27
