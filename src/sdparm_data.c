@@ -132,6 +132,7 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
         NULL},
     {WRITE_PARAM_MP, 0, PDT_MMC, 0, "wp", "Write parameters (MMC)", NULL},
     {XOR_MP, 0, PDT_DISK, 0, "xo", "XOR control (SBC)", NULL},
+        /* XOR control mode page made obsolete in sbc3r32 */
     {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
@@ -670,7 +671,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Decompression algorithm",
         "0: none; 5: ALDC (2048 byte): 16: IDRC; 32: DCLZ"},
 
-    /* XOR control mode page [0x10] sbc2 */
+    /* XOR control mode page [0x10] sbc2 << obsolete in sbc3r32>> */
     {"XORDIS", XOR_MP, 0, PDT_DISK, 2, 1, 1, 0,
         "XOR disable", NULL},
     {"MXWS", XOR_MP, 0, PDT_DISK, 4, 7, 32, 0,
@@ -1653,7 +1654,8 @@ const char * sdparm_desig_type_arr[] =
     "Logical unit group",
     "MD5 logical unit identifier",
     "SCSI name string",
-    "Reserved [0x9]", "Reserved [0xa]", "Reserved [0xb]",
+    "Protocol specific port identifier",        /* spc4r36 */
+    "Reserved [0xa]", "Reserved [0xb]",
     "Reserved [0xc]", "Reserved [0xd]", "Reserved [0xe]", "Reserved [0xf]",
 };
 
