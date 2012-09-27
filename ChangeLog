@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.08 [20120920] [svn: r197]
+ChangeLog for sdparm-1.08 [20120927] [svn: r198]
   - control extension mpage: add max sense data length
   - power condition mpage: FIDCPC->CCF_IDLE,
     FSBCPC->CCF_STAND, FSTCPC->CCF_STOPP (spc4r34+)

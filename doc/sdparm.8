@@ -1,4 +1,4 @@
-.TH SDPARM "8" "March 2012" "sdparm\-1.08" SDPARM
+.TH SDPARM "8" "September 2012" "sdparm\-1.08" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -260,6 +260,11 @@ enclosure has bus type Usb). When used three times a SCSI adapter scan
 is added. When used four times only a SCSI adapter scan is shown.
 See examples below and the "Win32 port" section in the README file.
 .SH NOTES
+The reference document used for interpreting mode and VPD pages (and the
+INQUIRY standard response) is T10/1713\-D Revision 36e (SPC\-4, 24 August
+2012) found at http://www.t10.org . Obsolete and reserved items in the
+standard INQUIRY response output are displayed in brackets.
+.PP
 A mode page for which no abbreviation is known (e.g. a vendor specific mode
 page) can be listed in hexadecimal by using the option
 combination '\-\-page=PG \-\-hex'.

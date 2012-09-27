@@ -40,7 +40,7 @@
 #include "sdparm.h"
 
 /* sdparm_vpd.c : does mainly VPD page processing associated with the
- * INQUIRY SCSI command. Roughly in sync with spc4r21.
+ * INQUIRY SCSI command.
  */
 
 /* Prints outs an abridged set of device identification designators
@@ -1256,7 +1256,7 @@ decode_std_inq(int sg_fd, const struct sdparm_opt_coll * opts)
     printf("ACC=%d  TPGS=%d  3PC=%d  Protect=%d ",
            !!(b[5] & 0x40), ((b[5] & 0x30) >> 4), !!(b[5] & 0x08),
            !!(b[5] & 0x01));
-    printf(" BQue=%d\n  EncServ=%d  ", !!(b[6] & 0x80), !!(b[6] & 0x40));
+    printf(" [BQue=%d]\n  EncServ=%d  ", !!(b[6] & 0x80), !!(b[6] & 0x40));
     if (b[6] & 0x10)
         printf("MultiP=1 (VS=%d)  ", !!(b[6] & 0x20));
     else
@@ -1591,12 +1591,10 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             return 0;
         }
         up = b + 4;
-        for ( ; len > 5; len -= 6, up += 6) {
-            printf("    ");
-            for (k = 0; k < 6; ++k)
-                printf("%02x", (unsigned int)up[k]);
-            printf("\n");
-        }
+        for ( ; len > 5; len -= 6, up += 6)
+            printf("    IEEE Company_id: 0x%06x, vendor specific extension "
+                   "id: 0x%06x\n", (up[0] << 16) | (up[1] << 8) | up[2],
+                   (up[3] << 16) | (up[4] << 8) | up[5]);
         break;
     case VPD_UNIT_SERIAL_NUM:
         if (b[1] != pn)
