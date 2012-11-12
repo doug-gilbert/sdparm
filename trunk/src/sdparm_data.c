@@ -516,6 +516,11 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "0: CSS unit is bytes; 1: CSS unit is blocks"},
     {"DRA", CACHING_MP, 0, PDT_DISK, 12, 5, 1, 0,
         "Disable read ahead", NULL},
+    {"SYNC_PROG", CACHING_MP, 0, PDT_DISK, 12, 2, 2, 0, /* sbc3r33 */
+        "Synchronous cache progress indication",
+        "0: no pollable sense data during sync\t"
+        "1: allow pollable sense data, allow all commands during sync\t"
+        "2: allow pollable sense data, allow some commands during sync"},
     {"NV_DIS", CACHING_MP, 0, PDT_DISK, 12, 0, 1, 0,
         "Non-volatile cache disable", NULL},
     {"NCS", CACHING_MP, 0, PDT_DISK, 13, 7, 8, 0,
