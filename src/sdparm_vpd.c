@@ -983,7 +983,8 @@ decode_block_limits_vpd(unsigned char * buff, int len)
     if (len > 19) {     /* added in sbc3r09 */
         u = ((unsigned int)buff[16] << 24) | (buff[17] << 16) |
             (buff[18] << 8) | buff[19];
-        printf("  Maximum prefetch transfer length: %u blocks\n", u);
+        printf("  Maximum prefetch length: %u blocks\n", u);
+        /* was 'Maximum prefetch transfer length' prior to sbc3r33 */
     }
     if (len > 27) {     /* added in sbc3r18 */
         u = ((unsigned int)buff[20] << 24) | (buff[21] << 16) |
