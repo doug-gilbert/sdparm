@@ -2,11 +2,12 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.08 [20121026] [svn: r200]
+ChangeLog for sdparm-1.08 [20121112] [svn: r201]
   - device id VPD: add protocol specific port identifier
   - control extension mpage: add max sense data length
   - power condition mpage: FIDCPC->CCF_IDLE,
     FSBCPC->CCF_STAND, FSTCPC->CCF_STOPP (spc4r34+)
+  - caching mpage: add SYNC_PROG field (sbc3r33)
   - extended inquiry vpd page: add max supported sense data
     length
   - add placeholder for third party copy VPD page
@@ -14,8 +15,12 @@ ChangeLog for sdparm-1.08 [20121026] [svn: r200]
     - change --enable-no-linux-bsg to --disable-linuxbsg
     - add --disable-scsistrings to reduce utility size
       with non-libsgutils build
-  - win32: fixes for cygwin version 1.7.17 headers
   - point svn:externals to rev 464 of sg3_utils
+    - report sdat_ovfl bit (if set) in sense data
+    - sg_pt_linux: expand DID_ (host_byte) codes
+      - cope with a transport error plus sense data
+      - prefer major() over MAJOR() macro
+    - win32: fixes for cygwin version 1.7.17 headers
 
 ChangeLog for sdparm-1.07 [20120121] [svn: r188]
   - LB provisioning + Block limits VPD pages to sbc3r27
