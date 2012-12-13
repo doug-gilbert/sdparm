@@ -796,7 +796,7 @@ decode_ext_inq_vpd(unsigned char * b, int len, int long_out, int protect)
         printf("  POA_SUP=%d\n", !!(b[12] & 0x80));     /* spc4r32 */
         printf("  HRA_SUP=%d\n", !!(b[12] & 0x40));     /* spc4r32 */
         printf("  VSA_SUP=%d\n", !!(b[12] & 0x20));     /* spc4r32 */
-        printf("  Maximum supported sense data length=%d\n", 
+        printf("  Maximum supported sense data length=%d\n",
                b[13]); /* spc4r34 */
     } else {
         printf("  ACTIVATE_MICROCODE=%d SPT=%d GRD_CHK=%d APP_CHK=%d "
@@ -817,7 +817,7 @@ decode_ext_inq_vpd(unsigned char * b, int len, int long_out, int protect)
                (b[10] << 8) + b[11]);
         printf("  POA_SUP=%d HRA_SUP=%d VSA_SUP=%d\n",      /* spc4r32 */
                !!(b[12] & 0x80), !!(b[12] & 0x40), !!(b[12] & 0x20));
-        printf("  Maximum supported sense data length=%d\n", 
+        printf("  Maximum supported sense data length=%d\n",
                b[13]); /* spc4r34 */
     }
     return 0;
@@ -1037,6 +1037,9 @@ decode_block_dev_chars_vpd(unsigned char * buff, int len)
     else
         printf("  Nominal rotation rate: %d rpm\n", u);
     u = buff[7] & 0xf;
+    printf("  Product type=%d\n", buff[6]);
+    printf("  WABEREQ=%d\n", (buff[7] >> 6) & 0x3);
+    printf("  WACEREQ=%d\n", (buff[7] >> 4) & 0x3);
     printf("  Nominal form factor");
     switch (u) {
     case 0:
@@ -1061,6 +1064,7 @@ decode_block_dev_chars_vpd(unsigned char * buff, int len)
         printf(": reserved\n");
         break;
     }
+    printf("  VBULS=%d\n", buff[8] & 0x1);
     return 0;
 }
 
@@ -1103,11 +1107,11 @@ decode_block_lb_prov_vpd(unsigned char * b, int len)
         return SG_LIB_CAT_MALFORMED;
     }
     printf("  Unmap command supported (LBPU): %d\n", !!(0x80 & b[5]));
-    printf("  Write same (16) with unmap bit supported (LBWS): %d\n", 
+    printf("  Write same (16) with unmap bit supported (LBWS): %d\n",
            !!(0x40 & b[5]));
     printf("  Write same (10) with unmap bit supported (LBWS10): %d\n",
            !!(0x20 & b[5]));
-    printf("  Logical block provisioning read zeros (LBPRZ): %d\n", 
+    printf("  Logical block provisioning read zeros (LBPRZ): %d\n",
            !!(0x4 & b[5]));
     printf("  Anchored LBAs supported (ANC_SUP): %d\n", !!(0x2 & b[5]));
     printf("  Threshold exponent: %d\n", b[4]);
