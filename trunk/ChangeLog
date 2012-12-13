@@ -2,12 +2,13 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.08 [20121112] [svn: r201]
+ChangeLog for sdparm-1.08 [20121214] [svn: r202]
   - device id VPD: add protocol specific port identifier
   - control extension mpage: add max sense data length
   - power condition mpage: FIDCPC->CCF_IDLE,
     FSBCPC->CCF_STAND, FSTCPC->CCF_STOPP (spc4r34+)
   - caching mpage: add SYNC_PROG field (sbc3r33)
+  - block device characteristics VPD page additions sbc3r34
   - extended inquiry vpd page: add max supported sense data
     length
   - add placeholder for third party copy VPD page

@@ -194,4 +194,3 @@ struct sdparm_vendor_pair sdparm_vendor_mp[] = {
 
 int sdparm_vendor_mp_len =
         sizeof(sdparm_vendor_mp) / sizeof(sdparm_vendor_mp[0]);
-

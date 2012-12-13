@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2008 Douglas Gilbert.
+ * Copyright (c) 2005-2012 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,7 +25,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Version 1.5 20080218
+ * Version 1.6 20121214
  */
 
 #include <stdlib.h>
@@ -38,7 +38,8 @@
  * data in the sdparm_data.c tables.
  *
  * Build with a line like:
- *      gcc -Wall -o chk_sdparm_data sdparm_data.o sdparm_data_vendor.o chk_sdparm_data.c
+ *      gcc -Wall -o chk_sdparm_data sdparm_data.o sdparm_data_vendor.o
+ *                       chk_sdparm_data.c
  *
  */
 
