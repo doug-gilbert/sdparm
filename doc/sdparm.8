@@ -491,7 +491,7 @@ loads the medium and and starts it (i.e. spins it up).
 See 'eject' command for supported device types.
 .TP
 profile
-lists the various formats that a CD/DVD/HD-DVD/BD drive supports. These are
+lists the various formats that a CD/DVD/HD\-DVD/BD drive supports. These are
 called "profiles" in the MMC standard. The profiles are listed one per line.
 If media is in the drive then the profile that matches the media (if any)
 has an "*" to the right of the line.
@@ -516,9 +516,9 @@ permits the speed of a CD, DVD, HD_DVD or BD disc in a drive to be set (or
 at least influenced). It has this format: \fI\-\-command=speed=SPEED\fR
 where SPEED is in kilobytes per second. In this case a kilobyte is 1000
 bytes. The "times one" speed for a CD is 176.4 kB/s, for a DVD is
-1350 kB/s and for both HD-DVD and BD it is 4500 kB/s. If SPEED is zero then
+1350 kB/s and for both HD\-DVD and BD it is 4500 kB/s. If SPEED is zero then
 the drive is set to the speed that it considers gives optimal performance.
-This command sends a SET STREAMING multi-media command (MMC) to the drive.
+This command sends a SET STREAMING multi\-media command (MMC) to the drive.
 The EXACT bit is clear so the drive will round the given SPEED as necessary.
 The command is designed to control read speed; setting write speed should
 be left to "burning" programs.
@@ -635,7 +635,7 @@ invoked by other uses of sdparm.
 .br
 PD0     [C]     FUJITSU   MHY2160BH         0000
 .br
-PD1     [DF]    WD        2500BEV External  1.05  WD-WXE90
+PD1     [DF]    WD        2500BEV External  1.05  WD\-WXE90
 .br
 CDROM0  [E]     MATSHITA DVD/CDRW UJDA775  CB03
 .PP
@@ -647,7 +647,7 @@ the bus type (as seen by the OS) is added to the output:
 .br
 PD0     [C]     <Ata  >  FUJITSU   MHY2160BH         0000
 .br
-PD1     [DF]    <Usb  >  WD        2500BEV External  1.05  WD-WXE90
+PD1     [DF]    <Usb  >  WD        2500BEV External  1.05  WD\-WXE90
 .br
 CDROM0  [E]     <Atapi>  MATSHITA DVD/CDRW UJDA775  CB03
 .PP
@@ -659,7 +659,7 @@ an enclosure) but does add much extra information in this case.
 .br
 PD0     [C]     <Ata  >  FUJITSU   MHY2160BH         0000
 .br
-PD1     [DF]    <Usb  >  WD        2500BEV External  1.05  WD-WXE90
+PD1     [DF]    <Usb  >  WD        2500BEV External  1.05  WD\-WXE90
 .br
 CDROM0  [E]     <Atapi>  MATSHITA DVD/CDRW UJDA775  CB03
 .br
