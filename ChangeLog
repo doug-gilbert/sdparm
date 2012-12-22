@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.08 [20121214] [svn: r202]
+ChangeLog for sdparm-1.08 [20121221] [svn: r203]
   - device id VPD: add protocol specific port identifier
   - control extension mpage: add max sense data length
   - power condition mpage: FIDCPC->CCF_IDLE,
