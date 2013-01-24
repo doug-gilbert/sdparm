@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2012 Douglas Gilbert.
+ * Copyright (c) 2005-2013 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1280,7 +1280,7 @@ static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
     {"CTL", DISCONNECT_MP, 0, -1, 8, 7, 16, MF_COMMON,
         "Connect time limit (100 us)", NULL},
     {"MBS", DISCONNECT_MP, 0, -1, 10, 7, 16, MF_COMMON | MF_CLASH_OK,
-        "Maximum burst size (512 bytes)", NULL},
+        "Maximum burst size (512 bytes)", NULL},  /* obsoleted spl3r2 */
     {"EMDP", DISCONNECT_MP, 0, -1, 12, 7, 1, MF_CLASH_OK,
         "Enable modify data pointers", NULL},
     {"FA", DISCONNECT_MP, 0, -1, 12, 6, 3, 0,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2012 Douglas Gilbert.
+ * Copyright (c) 2005-2013 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -77,7 +77,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.08 20121221 [svn: r203]";
+static char * version_str = "1.08 20130123 [svn: r204]";
 
 
 static struct option long_options[] = {
@@ -373,7 +373,8 @@ list_mp_settings(const struct sdparm_mode_page_settings * mps, int get)
         if (mpip->acron) {
             printf("  acronym: %s", mpip->acron);
             if (mps->it_vals[k].descriptor_num > 0)
-                printf("  descriptor_num=%d\n", mps->it_vals[k].descriptor_num);
+                printf("  descriptor_num=%d\n",
+                       mps->it_vals[k].descriptor_num);
             else
                 printf("\n");
         } else

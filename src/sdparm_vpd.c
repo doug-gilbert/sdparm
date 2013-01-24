@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2012 Douglas Gilbert.
+ * Copyright (c) 2005-2013 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -635,8 +635,9 @@ decode_proto_lu_vpd(unsigned char * buff, int len)
 static int
 decode_proto_port_vpd(unsigned char * buff, int len)
 {
-    int k, bump, rel_port, desc_len, proto;
+    int k, j, bump, rel_port, desc_len, proto;
     unsigned char * ucp;
+    unsigned char * pidp;
 
     if (len < 4) {
         fprintf(stderr, "Protocol-specific port information VPD "
@@ -659,7 +660,12 @@ decode_proto_port_vpd(unsigned char * buff, int len)
         }
         if (desc_len > 0) {
             switch (proto) {
-            case TPROTO_SAS:
+            case TPROTO_SAS:    /* for SSP, added spl3r2 */
+                pidp = ucp + 8;
+                for (j = 0; j < desc_len; j += 4, pidp += 4)
+                    printf("  phy id=%d, ssp persistent capable=%d\n",
+                           pidp[1], (0x1 & pidp[2]));
+                break;
             default:
                 fprintf(stderr, "Unexpected proto=%d\n", proto);
                 dStrHex((const char *)ucp, bump, 1);
