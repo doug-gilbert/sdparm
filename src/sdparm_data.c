@@ -1487,10 +1487,11 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Reason (for starting link reset)",
         "0: unknown; 1: power on; 2: hard reset; 3: SMP phy control\t"
         "4: loss of dword sync; 5: mux problem; ..."},
-    {"NPLR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 13, 3, 4, 0,
+    {"NLLR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 13, 3, 4, 0,
         "Negotiated logical link rate",         /* sas2r07 */
         "0: unknown; 1: disabled; 2: phy reset problem; 3: spinup hold\t"
-        "4: port selector; 8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps"},
+        "4: port selector; 5: resetting; 6: attached unsupported\t"
+        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps"},
     {"ASIP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 14, 3, 1, 0,
         "Attached SSP initiator port", NULL},
     {"ATIP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 14, 2, 1, 0,
@@ -1565,9 +1566,10 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Optical mode enabled", NULL},
     {"N_SSC", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 26, 4, 1, 0,
         "Negotiated spread spectrum clocking", NULL},
-    {"N_PLR", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 26, 3, 4, 0,
+    {"NPLR", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 26, 3, 4, 0,
         "Negotiated physical link rate",
-        "6: resetting; 7: attached unsupported\t"
+        "0: unknown; 1: disabled; 2: phy reset problem; 3: spinup hold\t"
+        "4: port selector; 5: resetting; 6: attached unsupported\t"
         "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps"},
     {"EN_SL", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 27, 2, 1, 0,
         "Enable slumber phy power condition", NULL},
