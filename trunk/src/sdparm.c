@@ -77,7 +77,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.08 20130123 [svn: r204]";
+static char * version_str = "1.08 20130227 [svn: r205]";
 
 
 static struct option long_options[] = {
@@ -469,14 +469,15 @@ print_mp_arr_entry(const char * pre, int smask,
 
 static int
 ll_mode_sense(int fd, const struct sdparm_opt_coll * opts, int pn, int spn,
-              unsigned char * resp, int mx_resp_len, int noisy, int verb)
+              unsigned char * resp, int mx_resp_len, int verb)
 {
     if (opts->mode_6)
         return sg_ll_mode_sense6(fd, opts->dbd, 0 /*current */, pn, spn,
-                                 resp, mx_resp_len, noisy, verb);
+                                 resp, mx_resp_len, 1 /* noisy */, verb);
     else
         return sg_ll_mode_sense10(fd, 0 /* llbaa */, opts->dbd, 0, pn,
-                                  spn, resp, mx_resp_len, noisy, verb);
+                                  spn, resp, mx_resp_len, 1 /* noisy */,
+                                  verb);
 }
 
 /* Make some noise if the mode page response seems badly formed */
@@ -593,7 +594,7 @@ print_direct_access_info(int sg_fd, const struct sdparm_opt_coll * opts,
     unsigned char cur_mp[DEF_MODE_RESP_LEN];
 
     memset(cur_mp, 0, sizeof(cur_mp));
-    res = ll_mode_sense(sg_fd, opts, ALL_MPAGES, 0, cur_mp, 8, 0, verb);
+    res = ll_mode_sense(sg_fd, opts, ALL_MPAGES, 0, cur_mp, 8, verb);
     if (0 == res) {
         v = cur_mp[opts->mode_6 ? 2 : 3];
         printf("    Direct access device specific parameters: WP=%d  "
@@ -1184,7 +1185,7 @@ change_mode_page(int sg_fd, int pdt,
     mpp = sdp_get_mpage_name(pn, spn, pdt, opts->transport, opts->vendor,
                              0, 0, b, sizeof(b));
     memset(mdpg, 0, sizeof(mdpg));
-    res = ll_mode_sense(sg_fd, opts, pn, spn, mdpg, 4, 1, opts->verbose);
+    res = ll_mode_sense(sg_fd, opts, pn, spn, mdpg, 4, opts->verbose);
     if (0 != res) {
         if (SG_LIB_CAT_NOT_READY == res)
             fprintf(stderr, "mode sense command failed, device not ready\n");
@@ -1209,7 +1210,7 @@ change_mode_page(int sg_fd, int pdt,
                 "allocation length=%d\n", md_len, (int)sizeof(mdpg));
         return SG_LIB_CAT_MALFORMED;
     }
-    res = ll_mode_sense(sg_fd, opts, pn, spn, mdpg, md_len, 1, opts->verbose);
+    res = ll_mode_sense(sg_fd, opts, pn, spn, mdpg, md_len, opts->verbose);
     if (0 != res) {
         fprintf(stderr, "change_mode_page: failed fetching page: %s\n", b);
         return res;
@@ -1320,7 +1321,7 @@ set_def_mode_page(int sg_fd, int pn, int spn, unsigned char * mode_pg,
         return SG_LIB_FILE_ERROR;
     }
     memset(mdp, 0, len);
-    ret = ll_mode_sense(sg_fd, opts, pn, spn, mdp, 4, 1, opts->verbose);
+    ret = ll_mode_sense(sg_fd, opts, pn, spn, mdp, 4, opts->verbose);
     if (0 != ret) {
         sdp_get_mpage_name(pn, spn, -1, opts->transport, opts->vendor, 0, 0,
                            buff, sizeof(buff));
@@ -1335,7 +1336,7 @@ set_def_mode_page(int sg_fd, int pn, int spn, unsigned char * mode_pg,
         ret = SG_LIB_CAT_MALFORMED;
         goto err_out;
     }
-    ret = ll_mode_sense(sg_fd, opts, pn, spn, mdp, md_len, 1, opts->verbose);
+    ret = ll_mode_sense(sg_fd, opts, pn, spn, mdp, md_len, opts->verbose);
     if (0 != ret) {
         sdp_get_mpage_name(pn, spn, -1, opts->transport, opts->vendor,
                            0, 0, buff, sizeof(buff));
