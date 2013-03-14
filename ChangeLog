@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.08 [20130228] [svn: r206]
+ChangeLog for sdparm-1.08 [20130313] [svn: r207]
   - device id VPD: add protocol specific port identifier
   - control extension mpage: add max sense data length
   - power condition mpage: FIDCPC->CCF_IDLE,
@@ -19,7 +19,7 @@ ChangeLog for sdparm-1.08 [20130228] [svn: r206]
     - change --enable-no-linux-bsg to --disable-linuxbsg
     - add --disable-scsistrings to reduce utility size
       with non-libsgutils build
-  - point svn:externals to rev 485 of sg3_utils
+  - point svn:externals to rev 489 of sg3_utils
     - report sdat_ovfl bit (if set) in sense data
     - sg_pt_linux: expand DID_ (host_byte) codes
       - cope with a transport error plus sense data
