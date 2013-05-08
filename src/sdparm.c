@@ -77,7 +77,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static char * version_str = "1.08 20130313 [svn: r209]";
+static const char * version_str = "1.08 20130508 [svn: r208]";
 
 
 static struct option long_options[] = {
@@ -260,7 +260,7 @@ print_mp_extra(const char * extra)
     char * cp;
     char * p;
 
-    for (p = (char *)extra; (cp = strchr(p, '\t')); p = cp + 1) {
+    for (p = (char *)extra; (cp = (char *)strchr(p, '\t')); p = cp + 1) {
         n = cp - p;
         if (n > (int)(sizeof(b) - 1))
             n = (sizeof(b) - 1);
@@ -2104,7 +2104,7 @@ main(int argc, char * argv[])
                 pdt = mpp->pdt;
             }
         } else {        /* got page_str and first char probably numeric */
-            cp = strchr(page_str, ',');
+            cp = (char *)strchr(page_str, ',');
             pn = sg_get_num_nomult(page_str);
             if ((pn < 0) || (pn > 255)) {
                 fprintf(stderr, "Bad page code value after '-p' "

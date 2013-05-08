@@ -1,5 +1,8 @@
 bin_PROGRAMS = sdparm
 
+# for C++ testing
+## CC = g++
+
 AM_CFLAGS = -I$(top_srcdir)/include -Wall -W
 # AM_CFLAGS = -I$(top_srcdir)/include -Wall -W -pedantic -std=c99
 
