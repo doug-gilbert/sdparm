@@ -203,6 +203,8 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+
+# for C++ testing
 AM_CFLAGS = -I$(top_srcdir)/include -Wall -W
 # AM_CFLAGS = -I$(top_srcdir)/include -Wall -W -pedantic -std=c99
 sdparm_SOURCES = sdparm.c sdparm.h sdparm_data.c sdparm_data_vendor.c \
