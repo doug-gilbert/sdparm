@@ -25,12 +25,13 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Version 1.6 20121214
+ * Version 1.6 20130513
  */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "sdparm.h"
 
 /*
