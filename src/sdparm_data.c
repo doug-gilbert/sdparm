@@ -32,6 +32,9 @@
 #include "sdparm.h"
 
 
+#define PROTO_IDENT_STR "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas/spl; " \
+        "7: adt;\t8: ata/acs; 9: uas; 10: sop"
+
 /*
  * sdparm is a utility program to access and change SCSI device
  * (logical unit) mode page fields and do some other housekeeping.
@@ -146,9 +149,9 @@ struct sdparm_transport_id_t sdparm_transport_id[] = {
     {TPROTO_1394, "sbp", "Serial bus (SBP)"}, /* none */
     {TPROTO_SRP, "srp", "SCSI remote DMA (SRP)"},
     {TPROTO_ISCSI, "iscsi", "Internet SCSI (iSCSI)"}, /* none */
-    {TPROTO_SAS, "sas", "Serial attached SCSI (SAS)"},
+    {TPROTO_SAS, "sas", "Serial attached SCSI (SAS, SPL) "},
     {TPROTO_ADT, "adt", "Automation/Drive interface (ADT)"},
-    {TPROTO_ATA, "ata", "AT attachment interface (ATA/ATAPI)"}, /* none */
+    {TPROTO_ATA, "ata", "AT attachment interface (ATA, ACS)"}, /* none */
     {TPROTO_UAS, "uas", "USB attached SCSI (UAS)"}, /* none */
     {TPROTO_SOP, "sop", "SCSI over PCIe (SOP)"}, /* none */
     {0x9, "u0xb", NULL},      /* leading "u" so not number */
@@ -192,18 +195,18 @@ static struct sdparm_mode_page_t sdparm_srp_mode_pg[] = {    /* SRP */
     {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
-static struct sdparm_mode_descriptor_t sas_pcd_desc = {   /* desc SAS-2 */
+static struct sdparm_mode_descriptor_t sas_pcd_desc = {   /* desc SAS/SPL */
     7, 1, 0, 8, 48, -1, -1, "SAS phy"
 };
 
-static struct sdparm_mode_descriptor_t sas_e_phy_desc = {  /* desc SAS-2 */
+static struct sdparm_mode_descriptor_t sas_e_phy_desc = {  /* desc SAS/SPL */
     7, 1, 0, 8, -1, 2, 2, "Enhanced phy"
 };
 
 /* N.B. In SAS 2.1 the spec was split with the upper levels going into the
  * SAS Protocol Layer (SPL) document. So now the SPL drafts are the
  * relevant SAS references. */
-static struct sdparm_mode_page_t sdparm_sas_mode_pg[] = {    /* SAS-2 */
+static struct sdparm_mode_page_t sdparm_sas_mode_pg[] = {    /* SAS/SPL */
     {DISCONNECT_MP, 0, -1, 0, "dr", "Disconnect-reconnect (SAS)", NULL},
     {PROT_SPEC_LU_MP, 0, -1, 0, "pl", "Protocol specific logical unit (SAS)",
         NULL},
@@ -795,13 +798,13 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     /* Protocol specific logical unit control mode page [0x18] spc3 */
     {"LUPID", PROT_SPEC_LU_MP, 0, -1, 2, 3, 4, 0,
         "Logical unit's (transport) protocol identifier",
-        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi\t"
+        PROTO_IDENT_STR "\t"
         "[try adding '-t <transport>' to get more fields]"},
 
     /* Protocol specific port control mode page [0x19] spc3 */
     {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, 0,
         "Port's (transport) protocol identifier",
-        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi\t"
+        PROTO_IDENT_STR "\t"
         "[try adding '-t <transport>' to get more fields]"},
 
     /* Power condition mode page [0x1a] spc3 (expanded in spc4r18) */
@@ -1235,14 +1238,14 @@ static struct sdparm_mode_page_item sdparm_mitem_fcp_arr[] = {
     /* protocol specific logical unit mode page [0x18] fcp3 */
     {"LUPID", PROT_SPEC_LU_MP, 0, -1, 2, 3, 4, MF_COMMON | MF_CLASH_OK,
         "Logical unit's (transport) protocol identifier",
-        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
+        PROTO_IDENT_STR },
     {"EPDC", PROT_SPEC_LU_MP, 0, -1, 3, 0, 1, MF_COMMON,
         "Enable precise delivery checking", NULL},
 
     /* protocol specific port control page [0x19] fcp3 */
     {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, MF_COMMON | MF_CLASH_OK,
         "Port's (transport) protocol identifier",
-        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
+        PROTO_IDENT_STR },
     {"DTFD", PROT_SPEC_PORT_MP, 0, -1, 3, 7, 1, MF_COMMON,
         "Disable target fabric discovery", NULL},
     {"PLPB", PROT_SPEC_PORT_MP, 0, -1, 3, 6, 1, MF_COMMON,
@@ -1280,7 +1283,7 @@ static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
     {"CTL", DISCONNECT_MP, 0, -1, 8, 7, 16, MF_COMMON,
         "Connect time limit (100 us)", NULL},
     {"MBS", DISCONNECT_MP, 0, -1, 10, 7, 16, MF_COMMON | MF_CLASH_OK,
-        "Maximum burst size (512 bytes)", NULL},  /* obsoleted spl3r2 */
+        "Maximum burst size (512 bytes)", NULL},
     {"EMDP", DISCONNECT_MP, 0, -1, 12, 7, 1, MF_CLASH_OK,
         "Enable modify data pointers", NULL},
     {"FA", DISCONNECT_MP, 0, -1, 12, 6, 3, 0,
@@ -1293,19 +1296,19 @@ static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
     /* protocol specific logical unit control mode page [0x18] spi4 */
     {"LUPID", PROT_SPEC_LU_MP, 0, -1, 2, 3, 4, MF_COMMON | MF_CLASH_OK,
         "Logical unit's (transport) protocol identifier",
-        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
+        PROTO_IDENT_STR },
 
     /* protocol specific port control page [0x19] spi4 */
     {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, MF_COMMON | MF_CLASH_OK,
         "Port's (transport) protocol identifier",
-        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
+        PROTO_IDENT_STR },
     {"STT", PROT_SPEC_PORT_MP, 0, -1, 4, 7, 16, MF_COMMON,
         "Synchronous transfer timeout (ms)", NULL},
 
     /* margin control subpage  [0x19,0x1] spi4 */
     {"PPID_1", PROT_SPEC_PORT_MP, MSP_SPI_MC, -1, 5, 3, 4, 0,
         "Port's (transport) protocol identifier",
-        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
+        PROTO_IDENT_STR },
     {"DS", PROT_SPEC_PORT_MP, MSP_SPI_MC, -1, 7, 7, 4, 0,
         "Driver strength", NULL},
     {"DA", PROT_SPEC_PORT_MP, MSP_SPI_MC, -1, 8, 7, 4, 0,
@@ -1318,7 +1321,7 @@ static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
     /* saved training configuration subpage [0x19,0x2] spi4 */
     {"PPID_2", PROT_SPEC_PORT_MP, MSP_SPI_STC, -1, 5, 3, 4, 0,
         "Port's (transport) protocol identifier",
-        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
+        PROTO_IDENT_STR },
     {"DB0", PROT_SPEC_PORT_MP, MSP_SPI_STC, -1, 10, 7, 32, MF_HEX,
         "DB(0) value", NULL},
     {"DB1", PROT_SPEC_PORT_MP, MSP_SPI_STC, -1, 14, 7, 32, MF_HEX,
@@ -1377,7 +1380,7 @@ static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
     /* negotiated settings subpage [0x19,0x3] spi4 */
     {"PPID_3", PROT_SPEC_PORT_MP, MSP_SPI_NS, -1, 5, 3, 4, 0,
         "Port's (transport) protocol identifier",
-        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
+        PROTO_IDENT_STR },
     {"TPF", PROT_SPEC_PORT_MP, MSP_SPI_NS, -1, 6, 7, 8, 0,
         "Transfer period factor", NULL},
     {"RAO", PROT_SPEC_PORT_MP, MSP_SPI_NS, -1, 8, 7, 8, 0,
@@ -1396,7 +1399,7 @@ static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
     /* report transfer capabilities subpage [0x19,0x4] spi4 */
     {"PPID_4", PROT_SPEC_PORT_MP, MSP_SPI_RTC, -1, 5, 3, 4, 0,
         "Port's (transport) protocol identifier",
-        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
+        PROTO_IDENT_STR },
     {"MTPF", PROT_SPEC_PORT_MP, MSP_SPI_RTC, -1, 6, 7, 8, 0,
         "Minimum transfer period factor", NULL},
     {"MRAO", PROT_SPEC_PORT_MP, MSP_SPI_RTC, -1, 8, 7, 8, 0,
@@ -1422,27 +1425,28 @@ static struct sdparm_mode_page_item sdparm_mitem_srp_arr[] = {
 };
 
 static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
-    /* disconnect-reconnect mode page [0x2] sas1 */
+    /* disconnect-reconnect mode page [0x2] sas/spl */
     {"BITL", DISCONNECT_MP, 0, -1, 4, 7, 16, MF_COMMON,
         "Bus inactivity time limit (100us)", NULL},
     {"MCTL", DISCONNECT_MP, 0, -1, 8, 7, 16, MF_COMMON,
         "Maximum connect time limit (100us)", NULL},
     {"MBS", DISCONNECT_MP, 0, -1, 10, 7, 16, MF_COMMON | MF_CLASH_OK,
         "Maximum burst size (512 bytes)", NULL},
+        /* obsoleted spl3r2, re-instated spl3r3 */
     {"FBS", DISCONNECT_MP, 0, -1, 14, 7, 16, MF_CLASH_OK,
         "First burst size (512 bytes)", NULL},
 
-    /* protocol specific logical unit mode page [0x18] sas2 */
+    /* protocol specific logical unit mode page [0x18] sas/spl */
     {"LUPID", PROT_SPEC_LU_MP, 0, -1, 2, 3, 4, MF_COMMON | MF_CLASH_OK,
         "Logical unit's (transport) protocol identifier",
-        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
+        PROTO_IDENT_STR },
     {"TLR", PROT_SPEC_LU_MP, 0, -1, 2, 4, 1, 0,
         "Transport layer retries (supported)", NULL},
 
-    /* protocol specific port mode page [0x19] sas2 */
+    /* protocol specific port mode page [0x19] sas/spl */
     {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, MF_COMMON | MF_CLASH_OK,
         "Port's (transport) protocol identifier",
-        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
+        PROTO_IDENT_STR },
     {"CAWT", PROT_SPEC_PORT_MP, 0, -1, 2, 6, 1, 0,
         "Continue AWT (arbitration wait time (timer))", NULL},
     {"BAE", PROT_SPEC_PORT_MP, 0, -1, 2, 5, 1, 0,
@@ -1462,10 +1466,10 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Reject to open limit (10 us)",         /* added in sas2r14 */
         "0: vendor specific"},
 
-    /* phy control and discover mode page [0x19,0x1] sas2 */
+    /* phy control and discover mode page [0x19,0x1] sas/spl */
     {"PPID_1", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 5, 3, 4, 0,
         "Port's (transport) protocol identifier",
-        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
+        PROTO_IDENT_STR },
     {"GENC", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 6, 7, 8, 0,
         "Generation code", "0: unknown, 1..255: valid"},
     {"NOP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 7, 7, 8, MF_COMMON,
@@ -1535,19 +1539,19 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Hardware maximum link rate",
         "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps"},
 
-    /* shared port control mode page [0x19,0x2] sas2 */
+    /* shared port control mode page [0x19,0x2] sas/spl */
     {"PPID_2", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 5, 3, 4, 0,
         "Port's (transport) protocol identifier",
-        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
+        PROTO_IDENT_STR },
     {"PLT", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 6, 7, 16, 0,
         "Power loss timeout(ms)", NULL},
     {"PGRATO", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 9, 7, 8, 0,
         "Power grant timeout(sec)", NULL},
 
-    /* SAS-2 Enhanced phy mode page [0x19,0x3] sas2, spl */
+    /* SAS-2 Enhanced phy mode page [0x19,0x3] sas/spl */
     {"PPID_3", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 5, 3, 4, 0,
         "Port's (transport) protocol identifier",
-        "0: fcp; 1: spi; 4: srp; 5: iscsi; 6: sas; 7: adt; 8: ata/atapi"},
+        PROTO_IDENT_STR },
     {"GENC_1", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 6, 7, 8, 0,
         "Generation code", "0: unknown, 1..255: valid"},
     {"NOP_1", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 7, 7, 8, 0,

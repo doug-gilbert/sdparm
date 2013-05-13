@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.08 [20130508] [svn: r209]
+ChangeLog for sdparm-1.08 [20130513] [svn: r210]
   - device id VPD: add protocol specific port identifier
   - control extension mpage: add max sense data length
   - power condition mpage: FIDCPC->CCF_IDLE,
@@ -12,7 +12,7 @@ ChangeLog for sdparm-1.08 [20130508] [svn: r209]
   - extended inquiry vpd page: add max supported sense data
     length
   - protocol-specific port information VPD page for SAS SSP,
-    persistent connection (spl3r2)
+    persistent connection (spl3r2), power disable (spl3r3)
   - add placeholder for third party copy VPD page
   - supply more information if a UA occurs
   - ./configure options:
