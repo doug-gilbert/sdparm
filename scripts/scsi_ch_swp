@@ -1,0 +1,125 @@
+#!/bin/bash
+# scsi_ch_swp
+#
+# Script to change the Software Read Protect (SWP) state of a disk in Linux.
+# When '-s <n>' (or '--set <n>') is not given then read SWP state.
+#
+# Uses sdparm and blockdev utilities.
+#
+# Douglas Gilbert 20130514
+
+
+rdonly=""
+swp="-1"
+verbose=""
+bdverbose=""
+
+usage()
+{
+  echo "Usage: scsi_ch_swp [-h] [-r] [-s <n>] [-v] <blk_device>"
+  echo "  where:"
+  echo "    -h, --help           print usage message"
+  echo "    -r, --readonly       access <blk_device> read-only"
+  echo "    -s <n>, --set <n>    where <n> is:"
+  echo "                           0  - clear SWP"
+  echo "                           1  - set SWP (i.e. disable writes)"
+  echo "                                (default: read SWP)"
+  echo "    -v, --verbose        more verbose output"
+  echo ""
+  echo "Access the Software Write Protect (SWP) bit in the SCSI control"
+  echo "mode page and if changed adjust the Linux block device (e.g."
+  echo "/dev/sdc) settings accordingly."
+}
+
+opt="$1"
+while test ! -z "$opt" -a -z "${opt##-*}"; do
+  opt=${opt#-}
+  case "$opt" in
+    h|-help) usage ; exit 0 ;;
+    r|-readonly) rdonly="-r" ;;
+    s|-set) shift ; let swp=$1 ;;
+    v|-verbose) verbose="-v" ;;
+    vv) verbose="-vv" ;;
+    vvv) verbose="-vvv" ;;
+    *) echo "Unknown option: -$opt " ; exit 1 ;;
+  esac
+  shift
+  opt="$1"
+done
+
+if [ $# -lt 1 ]
+  then
+    usage
+    exit 1
+fi 
+
+if [ ${verbose} ]
+  then
+    bdverbose="-v"
+fi
+
+if ( which sdparm >/dev/null 2>&1 ) ; then
+  true
+else
+  echo "sdparm not found"
+  sdparm ${rdonly} ${verbose}
+fi
+
+if ( which blockdev >/dev/null 2>&1 ) ; then
+  true
+else
+  echo "blockdev not found"
+  blockdev
+fi
+
+if [ $swp -lt 0 ]
+then
+    if [ ${verbose} ] ; then
+        echo sdparm --quiet ${rdonly} ${verbose} --get=SWP $1
+    fi
+    sdparm --quiet ${rdonly} ${verbose} --get=SWP $1
+    exit $?
+elif [ $swp = "0" ]
+then
+    if [ ${verbose} ] ; then
+        echo sdparm --quiet ${rdonly} ${verbose} --set=SWP=0 $1
+    fi
+    sdparm --quiet ${rdonly} ${verbose} --set=SWP=0 $1
+    res=$?
+    if [ $res -ne 0 ]
+    then
+        exit $res
+    fi
+    if [ ${bdverbose} ] ; then
+        echo blockdev --setro ${bdverbose} $1
+    fi
+    blockdev --setro ${bdverbose} $1
+    # Need to re-read partition table before --setro takes effect
+    if [ ${bdverbose} ] ; then
+        echo blockdev --rereadpt ${bdverbose} $1
+    fi
+    blockdev --rereadpt ${bdverbose} $1
+elif [ $swp = "1" ]
+then
+    if [ ${verbose} ] ; then
+        echo sdparm --quiet ${rdonly} ${verbose} --set=SWP=1 $1
+    fi
+    sdparm --quiet ${rdonly} ${verbose} --set=SWP=1 $1
+    res=$?
+    if [ $res -ne 0 ]
+    then
+        exit $res
+    fi
+    if [ ${bdverbose} ] ; then
+        echo blockdev --setrw ${bdverbose} $1
+    fi
+    blockdev --setrw ${bdverbose} $1
+    # Need to re-read partition table before --setrw takes effect
+    if [ ${bdverbose} ] ; then
+        echo blockdev --rereadpt ${bdverbose} $1
+    fi
+    blockdev --rereadpt ${bdverbose} $1
+else
+    echo "option --set ${swp} is invalid"
+    exit 1
+fi

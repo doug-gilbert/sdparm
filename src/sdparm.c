@@ -77,7 +77,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static const char * version_str = "1.08 20130513 [svn: r210]";
+static const char * version_str = "1.08 20130514 [svn: r211]";
 
 
 static struct option long_options[] = {
@@ -1727,7 +1727,7 @@ open_and_simple_inquiry(const char * device_name, int rw, int * pdt,
     char b[32];
 
     verb = (opts->verbose > 0) ? opts->verbose - 1 : 0;
-    sg_fd = sg_cmds_open_device(device_name, ! rw, verb);
+    sg_fd = sg_cmds_open_device(device_name, ! rw /* read_only */ , verb);
     if (sg_fd < 0) {
         fprintf(stderr, "open error: %s [%s]: %s\n", device_name,
                 (rw ? "read/write" : "read only"), safe_strerror(-sg_fd));
@@ -1779,8 +1779,8 @@ err_out:
 /* Process mode page(s) operation. Returns 0 if successful */
 static int
 process_mode(int sg_fd, const struct sdparm_mode_page_settings * mps, int pn,
-             int spn, int rw, int get, const struct sdparm_opt_coll * opts,
-             int pdt)
+             int spn, int set_clear, int get,
+             const struct sdparm_opt_coll * opts, int pdt)
 {
     int res;
     const struct sdparm_mode_page_t * mpp;
@@ -1813,7 +1813,7 @@ process_mode(int sg_fd, const struct sdparm_mode_page_settings * mps, int pn,
     }
     if (opts->defaults)
         res = set_mp_defaults(sg_fd, pn, spn, pdt, opts);
-    else if (rw) {
+    else if (set_clear) {
         if (mps->num_it_vals < 1) {
             fprintf(stderr, "no fields found to set or clear\n");
             return SG_LIB_CAT_OTHER;
@@ -1847,7 +1847,8 @@ main(int argc, char * argv[])
     int num_devices = 0;
     int pn = -1;
     int spn = -1;
-    int rw = 0;
+    int rw = 0;         /* 1: requires RDWR, 0: perhaps RDONLY ok */
+    int set_clear = 0;
     int protect = 0;
     int cmd_arg = -1;
     const struct sdparm_mode_page_t * mpp = NULL;
@@ -1894,6 +1895,7 @@ main(int argc, char * argv[])
             break;
         case 'c':
             clear_str = optarg;
+            set_clear = 1;
             rw = 1;
             break;
         case 'C':
@@ -1973,6 +1975,7 @@ main(int argc, char * argv[])
         case 's':
             set_str = optarg;
             rw = 1;
+            set_clear = 1;
             break;
         case 'S':
             ++opts.save;
@@ -2138,8 +2141,7 @@ main(int argc, char * argv[])
     }
 
     if (opts.inquiry) {
-        if (set_str || clear_str || get_str || cmd_str || opts.defaults ||
-            opts.save) {
+        if (set_clear || get_str || cmd_str || opts.defaults || opts.save) {
             fprintf(stderr, "'--inquiry' option lists VPD pages so other "
                     "options that are\nconcerned with mode pages are "
                     "inappropriate\n");
@@ -2155,7 +2157,7 @@ main(int argc, char * argv[])
             return 0;
         }
     } else if (cmd_str) {
-        if (set_str || clear_str || get_str || opts.defaults || opts.save) {
+        if (set_clear || get_str || opts.defaults || opts.save) {
             fprintf(stderr, "'--command=' option is not valid with other "
                     "options that are\nconcerned with mode pages\n");
             return SG_LIB_SYNTAX_ERROR;
@@ -2184,7 +2186,7 @@ main(int argc, char * argv[])
             mp_settings.subpage_num = spn;
         }
         if (get_str) {
-            if (set_str || clear_str) {
+            if (set_clear) {
                 fprintf(stderr, "'--get=' can't be used with '--set=' "
                         "or " "'--clear='\n");
                 return SG_LIB_SYNTAX_ERROR;
@@ -2193,8 +2195,7 @@ main(int argc, char * argv[])
                 return SG_LIB_SYNTAX_ERROR;
         }
         if (1 == opts.enumerate) {
-            if ((num_devices > 0) || set_str || clear_str || get_str ||
-                opts.save)
+            if ((num_devices > 0) || set_clear || get_str || opts.save)
                 /* think about --get= with --enumerate */
                 printf("<scsi_device> as well as most options are ignored "
                        "when '--enumerate' is given\n");
@@ -2305,7 +2306,7 @@ main(int argc, char * argv[])
             return SG_LIB_SYNTAX_ERROR;
         }
 
-        if (opts.defaults && (set_str || clear_str || get_str)) {
+        if (opts.defaults && (set_clear || get_str)) {
             fprintf(stderr, "'--get=', '--set=' or '--clear=' "
                     "can't be used with '--defaults'\n");
             return SG_LIB_SYNTAX_ERROR;
@@ -2360,7 +2361,7 @@ main(int argc, char * argv[])
             if (cmd_str && scmdp)   /* process command */
                 r = sdp_process_cmd(sg_fd, scmdp, cmd_arg, pdt, &opts);
             else                    /* mode page */
-                r = process_mode(sg_fd, &mp_settings, pn, spn, rw,
+                r = process_mode(sg_fd, &mp_settings, pn, spn, set_clear,
                                  (NULL != get_str), &opts, pdt);
         }
 
