@@ -198,7 +198,12 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-man_MANS = sdparm.8
+@OS_FREEBSD_TRUE@man_MANS = sdparm.8 sas_disk_blink.8
+@OS_LINUX_TRUE@man_MANS = sdparm.8 sas_disk_blink.8 scsi_ch_swp.8
+@OS_OSF_TRUE@man_MANS = sdparm.8 sas_disk_blink.8
+@OS_SOLARIS_TRUE@man_MANS = sdparm.8 sas_disk_blink.8
+@OS_WIN32_CYGWIN_TRUE@man_MANS = sdparm.8 sas_disk_blink.8
+@OS_WIN32_MINGW_TRUE@man_MANS = sdparm.8 sas_disk_blink.8
 all: all-am
 
 .SUFFIXES:
