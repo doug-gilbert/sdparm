@@ -1071,6 +1071,7 @@ decode_block_dev_chars_vpd(unsigned char * buff, int len)
         printf(": reserved\n");
         break;
     }
+    printf("  FUAB=%d\n", buff[8] & 0x2);
     printf("  VBULS=%d\n", buff[8] & 0x1);
     return 0;
 }

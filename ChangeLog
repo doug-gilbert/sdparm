@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.08 [20130514] [svn: r211]
+ChangeLog for sdparm-1.08 [20130517] [svn: r212]
   - device id VPD: add protocol specific port identifier
   - control extension mpage: add max sense data length
   - power condition mpage: FIDCPC->CCF_IDLE,
@@ -17,7 +17,7 @@ ChangeLog for sdparm-1.08 [20130514] [svn: r211]
   - add placeholder for third party copy VPD page
   - supply more information if a UA occurs
   - add Makefile so scripts/sas_disk_blink installed
-  - experimental: scripts/scsi_ch_swp works with blockdev
+  - scripts/scsi_ch_swp: new, uses sdparm and blockdev
   - ./configure options:
     - change --enable-no-linux-bsg to --disable-linuxbsg
     - add --disable-scsistrings to reduce utility size
