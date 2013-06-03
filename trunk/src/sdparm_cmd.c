@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2012 Douglas Gilbert.
+ * Copyright (c) 2005-2013 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -111,7 +111,7 @@ do_cmd_read_capacity(int sg_fd, int verbose)
 static int
 do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
 {
-    int res, resp_len, sk, asc, ascq, progress, something;
+    int res, resp_len, sk, asc, ascq, progress, pr, rem, something;
     unsigned char buff[32];
     char b[128];
 
@@ -140,8 +140,9 @@ do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
         asc = (resp_len > 12) ? buff[12] : 0;
         ascq = (resp_len > 13) ? buff[13] : 0;
         if (sg_get_sense_progress_fld(buff, resp_len, &progress)) {
-            printf("Operation in progress, %d%% done\n",
-                   progress * 100 / 65536);
+            pr = (progress * 100) / 65536;
+            rem = ((progress * 100) % 65536) / 656;
+            printf("Operation in progress: %d.%d%% done\n", pr, rem);
             something = 1;
         }
         if (0 == sk) {  /* NO SENSE */
