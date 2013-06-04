@@ -1,10 +1,13 @@
 bin_PROGRAMS = sdparm
 
-# for C++ testing
+# for C++/clang testing
+## CC = g++ -std=c++11
 ## CC = g++
+## CC = clang
 
+# -std=<s> can be c99, c11, gnu11, etc. Default is gnu89 (gnu90 is the same)
 AM_CFLAGS = -I$(top_srcdir)/include -Wall -W
-# AM_CFLAGS = -I$(top_srcdir)/include -Wall -W -pedantic -std=c99
+# AM_CFLAGS = -I$(top_srcdir)/include -Wall -W -pedantic -std=c11
 
 sdparm_SOURCES =	sdparm.c	\
 			sdparm.h	\
