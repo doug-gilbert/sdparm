@@ -204,10 +204,13 @@ identification VPD page, typically to one line (or none) for each of di_lu,
 di_port, di_target and di_asis.
 .TP
 \fB\-r\fR, \fB\-\-readonly\fR
-override other logic to open \fIDEVICE\fR in read\-only mode. This option
-may be useful if a command is being sent to an ATA disk via a SCSI
-command set. For example in Linux '\-C stop' may require this option to
-stop an ATA disk being restarted immediately.
+override other logic to open \fIDEVICE\fR in read\-only mode. The default
+setting of the open read\-only/read\-write mode depends on the operation
+requested (e.g. a \fI\-\-set=STR\fR operation by default will try a
+read\-write mode open on \fIDEVICE\fR). This option may be useful if a
+command is being sent to an ATA disk via a SCSI command set. For example in
+Linux '\-C stop' may require this option to stop an ATA disk being restarted
+immediately.
 .TP
 \fB\-S\fR, \fB\-\-save\fR
 when a mode page is being modified (by using the \fI\-\-clear=STR\fR and/or
@@ -767,5 +770,5 @@ There is a web page discussing this package at
 http://sg.danny.cz/sg/sdparm.html .
 .SH "SEE ALSO"
 .B hdparm(hdparm),
-.B sg_modes, sg_wr_mode, sginfo, sg_inq, sg_vpd, sg_scan(all in sg3_utils),
+.B sg_modes, sg_wr_mode, sginfo, sg_inq, sg_vpd(all in sg3_utils),
 .B smartmontools(smartmontools.sourceforge.net), mt, eject(eject),

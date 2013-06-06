@@ -6,7 +6,7 @@
 #
 # Uses sdparm and blockdev utilities.
 #
-# Douglas Gilbert 20130517
+# Douglas Gilbert 20130606
 
 
 rdonly="--readonly"
@@ -103,6 +103,8 @@ elif [ $swp = "0" ] ; then
     # if [ $res -ne 0 ] ; then
         # exit $res
     # fi
+    ## There is still some uncertainity whether calling blockdev --rereadpt
+    ## is needed or defeats this operation. Feedback please.
     # # Need to re-read partition table before --setro takes effect
     # if [ ${bdverbose} ] ; then
         # echo blockdev --rereadpt ${bdverbose} $1
@@ -125,6 +127,8 @@ elif [ $swp = "1" ] ; then
     # if [ $res -ne 0 ] ; then
         # exit $res
     # fi
+    ## There is still some uncertainity whether calling blockdev --rereadpt
+    ## is needed or defeats this operation. Feedback please.
     # # Need to re-read partition table before --setrw takes effect
     # if [ ${bdverbose} ] ; then
         # echo blockdev --rereadpt ${bdverbose} $1
