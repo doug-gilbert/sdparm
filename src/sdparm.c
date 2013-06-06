@@ -77,7 +77,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static const char * version_str = "1.08 20130604 [svn: r214]";
+static const char * version_str = "1.08 20130606 [svn: r215]";
 
 
 static struct option long_options[] = {
@@ -158,9 +158,8 @@ usage()
           "    --quiet | -q          suppress device vendor/product/"
           "revision string line\n"
           "    --readonly | -r       force read-only open of DEVICE (def: "
-          "either\n"
-          "                          read-write or read-only). For ATA "
-          "disks\n"
+          "depends\n"
+          "                          on operation). Mainly for ATA disks\n"
           "    --save | -S           place mode changes in saved page as "
           "well\n"
           "    --set=STR | -s STR    set field value(s)\n"
