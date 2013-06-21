@@ -1093,7 +1093,7 @@ decode_tape_dev_caps_vpd(unsigned char * buff, int len)
 static int
 decode_tape_man_ass_sn_vpd(unsigned char * buff, int len)
 {
-    if (len < 64) {
+    if (len < 4) {
         fprintf(stderr, "Manufacturer-assigned serial number VPD page "
                 "length too short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
