@@ -77,7 +77,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static const char * version_str = "1.09 20130715 [svn: r217]";
+static const char * version_str = "1.09 20130730 [svn: r218]";
 
 
 static struct option long_options[] = {
@@ -1283,7 +1283,7 @@ change_mode_page(int sg_fd, int pdt,
     mdpg[off] &= 0x7f;   /* mask out PS bit, reserved in mode select */
     if (opts->dummy) {
         fprintf(stderr, "Mode data that would have been written:\n");
-        dStrHex((const char *)mdpg, md_len, 1);
+        dStrHexErr((const char *)mdpg, md_len, 1);
         return 0;
     }
     if (opts->mode_6)
@@ -1363,7 +1363,7 @@ set_def_mode_page(int sg_fd, int pn, int spn, unsigned char * mode_pg,
     mdp[off] &= 0x7f;   /* mask out PS bit, reserved in mode select */
     if (opts->dummy) {
         fprintf(stderr, "Mode data that would have been written:\n");
-        dStrHex((const char *)mdp, md_len, 1);
+        dStrHexErr((const char *)mdp, md_len, 1);
         ret = 0;
         goto err_out;
     }
