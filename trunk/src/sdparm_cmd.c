@@ -133,7 +133,7 @@ do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
             sg_print_sense(NULL, buff, resp_len, 0);
             if (verbose > 1) {
                 fprintf(stderr, "\nOutput response in hex\n");
-                dStrHex((const char *)buff, resp_len, 1);
+                dStrHexErr((const char *)buff, resp_len, 1);
             }
             something = 1;
         }

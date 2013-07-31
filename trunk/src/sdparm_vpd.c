@@ -92,20 +92,20 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
             if (1 != c_set) {
                 fprintf(stderr, "      << unexpected code set %d for "
                         "NAA>>\n", c_set);
-                dStrHex((const char *)ip, i_len, 0);
+                dStrHexErr((const char *)ip, i_len, 0);
                 break;
             }
             naa = (ip[0] >> 4) & 0xff;
             if ((naa < 2) || (naa > 6) || (4 == naa)) {
                 fprintf(stderr, "      << unexpected NAA [0x%x]>>\n", naa);
-                dStrHex((const char *)ip, i_len, 0);
+                dStrHexErr((const char *)ip, i_len, 0);
                 break;
             }
             if (2 == naa) {             /* NAA IEEE Extended */
                 if (8 != i_len) {
                     fprintf(stderr, "      << unexpected NAA 2 identifier "
                             "length: 0x%x>>\n", i_len);
-                    dStrHex((const char *)ip, i_len, 0);
+                    dStrHexErr((const char *)ip, i_len, 0);
                     break;
                 }
                 printf("0x");
@@ -117,7 +117,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                 if (8 != i_len) {
                     fprintf(stderr, "      << unexpected NAA 3 or 5 "
                             "identifier length: 0x%x>>\n", i_len);
-                    dStrHex((const char *)ip, i_len, 0);
+                    dStrHexErr((const char *)ip, i_len, 0);
                     break;
                 }
                 if ((0 == is_sas) || (1 != assoc)) {
@@ -144,7 +144,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                 if (16 != i_len) {
                     fprintf(stderr, "      << unexpected NAA 6 identifier "
                             "length: 0x%x>>\n", i_len);
-                    dStrHex((const char *)ip, i_len, 0);
+                    dStrHexErr((const char *)ip, i_len, 0);
                     break;
                 }
                 printf("0x");
@@ -175,7 +175,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
         case 8: /* SCSI name string */
             if (3 != c_set) {
                 fprintf(stderr, "      << expected UTF-8 code_set>>\n");
-                dStrHex((const char *)ip, i_len, 0);
+                dStrHexErr((const char *)ip, i_len, 0);
                 break;
             }
             /* does %s print out UTF-8 ok??
@@ -240,8 +240,10 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         }
         if (k)
             printf("      vendor specific: %.*s\n", i_len, ip);
-        else
-            dStrHex((const char *)ip, i_len, 0);
+        else {
+            fprintf(stderr, "      vendor specific:\n");
+            dStrHexErr((const char *)ip, i_len, 0);
+        }
         break;
     case 1: /* T10 vendor identification */
         printf("      vendor id: %.8s\n", ip);
@@ -261,7 +263,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
             if ((8 != i_len) && (12 != i_len) && (16 != i_len)) {
                 fprintf(stderr, "      << expect 8, 12 and 16 byte "
                         "EUI, got %d>>\n", i_len);
-                dStrHex((const char *)ip, i_len, 0);
+                dStrHexErr((const char *)ip, i_len, 0);
                 break;
             }
             printf("      0x");
@@ -273,7 +275,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         printf("      EUI-64 based %d byte identifier\n", i_len);
         if (1 != c_set) {
             fprintf(stderr, "      << expected binary code_set (1)>>\n");
-            dStrHex((const char *)ip, i_len, 0);
+            dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
         ci_off = 0;
@@ -289,7 +291,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         } else if ((8 != i_len) && (12 != i_len)) {
             fprintf(stderr, "      << can only decode 8, 12 and 16 "
                     "byte ids>>\n");
-            dStrHex((const char *)ip, i_len, 0);
+            dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
         c_id = ((ip[ci_off] << 16) | (ip[ci_off + 1] << 8) |
@@ -313,20 +315,20 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         if (1 != c_set) {
             fprintf(stderr, "      << unexpected code set %d for "
                     "NAA>>\n", c_set);
-            dStrHex((const char *)ip, i_len, 0);
+            dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
         naa = (ip[0] >> 4) & 0xff;
         if (! ((2 == naa) || (5 == naa) || (6 == naa))) {
             fprintf(stderr, "      << unexpected NAA [0x%x]>>\n", naa);
-            dStrHex((const char *)ip, i_len, 0);
+            dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
         if (2 == naa) {
             if (8 != i_len) {
                 fprintf(stderr, "      << unexpected NAA 2 identifier "
                         "length: 0x%x>>\n", i_len);
-                dStrHex((const char *)ip, i_len, 0);
+                dStrHexErr((const char *)ip, i_len, 0);
                 break;
             }
             d_id = (((ip[0] & 0xf) << 8) | ip[1]);
@@ -350,7 +352,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
             if (8 != i_len) {
                 fprintf(stderr, "      << unexpected NAA 5 identifier "
                         "length: 0x%x>>\n", i_len);
-                dStrHex((const char *)ip, i_len, 0);
+                dStrHexErr((const char *)ip, i_len, 0);
                 break;
             }
             c_id = (((ip[0] & 0xf) << 20) | (ip[1] << 12) |
@@ -378,7 +380,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
             if (16 != i_len) {
                 fprintf(stderr, "      << unexpected NAA 6 identifier "
                         "length: 0x%x>>\n", i_len);
-                dStrHex((const char *)ip, i_len, 0);
+                dStrHexErr((const char *)ip, i_len, 0);
                 break;
             }
             c_id = (((ip[0] & 0xf) << 20) | (ip[1] << 12) |
@@ -416,7 +418,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         if ((1 != c_set) || (1 != assoc) || (4 != i_len)) {
             fprintf(stderr, "      << expected binary code_set, target "
                     "port association, length 4>>\n");
-            dStrHex((const char *)ip, i_len, 0);
+            dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
         d_id = ((ip[2] << 8) | ip[3]);
@@ -426,7 +428,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         if ((1 != c_set) || (1 != assoc) || (4 != i_len)) {
             fprintf(stderr, "      << expected binary code_set, target "
                     "port association, length 4>>\n");
-            dStrHex((const char *)ip, i_len, 0);
+            dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
         d_id = ((ip[2] << 8) | ip[3]);
@@ -436,7 +438,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         if ((1 != c_set) || (0 != assoc) || (4 != i_len)) {
             fprintf(stderr, "      << expected binary code_set, logical "
                     "unit association, length 4>>\n");
-            dStrHex((const char *)ip, i_len, 0);
+            dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
         d_id = ((ip[2] << 8) | ip[3]);
@@ -444,9 +446,9 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         break;
     case 7: /* MD5 logical unit identifier */
         if ((1 != c_set) || (0 != assoc)) {
-            printf("      << expected binary code_set, logical "
+            fprintf(stderr, "      << expected binary code_set, logical "
                    "unit association>>\n");
-            dStrHex((const char *)ip, i_len, 0);
+            dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
         printf("      MD5 logical unit identifier:\n");
@@ -455,7 +457,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
     case 8: /* SCSI name string */
         if (3 != c_set) {
             fprintf(stderr, "      << expected UTF-8 code_set>>\n");
-            dStrHex((const char *)ip, i_len, 0);
+            dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
         printf("      SCSI name string:\n");
@@ -487,7 +489,8 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
                    sg_get_trans_proto_str(p_id, sizeof(b), b));
         break;
     default: /* reserved */
-        dStrHex((const char *)ip, i_len, 0);
+        fprintf(stderr, "      reserved designator=0x%x\n", desig_type);
+        dStrHexErr((const char *)ip, i_len, 0);
         break;
     }
 }
@@ -631,7 +634,7 @@ decode_proto_lu_vpd(unsigned char * buff, int len)
                 break;
             default:
                 fprintf(stderr, "Unexpected proto=%d\n", proto);
-                dStrHex((const char *)ucp, bump, 1);
+                dStrHexErr((const char *)ucp, bump, 1);
                 break;
             }
         }
@@ -677,7 +680,7 @@ decode_proto_port_vpd(unsigned char * buff, int len)
                 break;
             default:
                 fprintf(stderr, "Unexpected proto=%d\n", proto);
-                dStrHex((const char *)ucp, bump, 1);
+                dStrHexErr((const char *)ucp, bump, 1);
                 break;
             }
         }
@@ -1031,11 +1034,23 @@ decode_block_limits_vpd(unsigned char * buff, int len)
     return 0;
 }
 
+static const char * product_type_arr[] =
+{
+    "Not specified",
+    "CFast",
+    "CompactFlash",
+    "MemoryStick",
+    "MultiMediaCard",
+    "Secure Digital Card (SD)",
+    "XQD",
+    "Universal Flash Storage Card (UFS)",
+};
+
 /* VPD_BLOCK_DEV_CHARS */
 static int
 decode_block_dev_chars_vpd(unsigned char * buff, int len)
 {
-    unsigned int u;
+    unsigned int u, k;
 
     if (len < 64) {
         fprintf(stderr, "Block device capabilities VPD page length too "
@@ -1051,8 +1066,15 @@ decode_block_dev_chars_vpd(unsigned char * buff, int len)
         printf("  Reserved [0x%x]\n", u);
     else
         printf("  Nominal rotation rate: %d rpm\n", u);
-    u = buff[7] & 0xf;
     printf("  Product type=%d\n", buff[6]);
+    k = sizeof(product_type_arr) / sizeof(product_type_arr[0]);
+    if (u < k)
+        printf("  Product type: %s\n", product_type_arr[u]);
+    else if (u < 0xf0)
+        printf("  Product type: Reserved [0x%x]\n", u);
+    else
+        printf("  Product type: Vendor specific [0x%x]\n", u);
+    u = buff[7] & 0xf;
     printf("  WABEREQ=%d\n", (buff[7] >> 6) & 0x3);
     printf("  WACEREQ=%d\n", (buff[7] >> 4) & 0x3);
     printf("  Nominal form factor");
@@ -1865,7 +1887,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
                 fprintf(stderr, "page length=%d too long, trim\n", len);
             len = sizeof(b);
         }
-        dStrHex((const char *)b, len, 0);
+        dStrHexErr((const char *)b, len, 0);
         break;
     }
     return 0;
