@@ -129,10 +129,10 @@ do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
         }
         something = 0;
         if (verbose) {
-            fprintf(stderr, "Decode response as sense data:\n");
+            pr2serr("Decode response as sense data:\n");
             sg_print_sense(NULL, buff, resp_len, 0);
             if (verbose > 1) {
-                fprintf(stderr, "\nOutput response in hex\n");
+                pr2serr("\nOutput response in hex\n");
                 dStrHexErr((const char *)buff, resp_len, 1);
             }
             something = 1;
@@ -157,24 +157,23 @@ do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
             return 0;
         } else {
             if (! (something || verbose || quiet)) {
-                fprintf(stderr, "Decode response as sense data:\n");
+                pr2serr("Decode response as sense data:\n");
                 sg_print_sense(NULL, buff, resp_len, 0);
             }
             return 0;
         }
     } else if (SG_LIB_CAT_INVALID_OP == res)
-        fprintf(stderr, "Request Sense command not supported\n");
+        pr2serr("Request Sense command not supported\n");
     else if (SG_LIB_CAT_ILLEGAL_REQ == res)
-        fprintf(stderr, "bad field in Request Sense cdb\n");
+        pr2serr("bad field in Request Sense cdb\n");
     else if (SG_LIB_CAT_NOT_READY == res)
-        fprintf(stderr, "Request Sense failed, device not ready\n");
+        pr2serr("Request Sense failed, device not ready\n");
     else if (SG_LIB_CAT_ABORTED_COMMAND == res)
-        fprintf(stderr, "Request Sense failed, aborted command\n");
+        pr2serr("Request Sense failed, aborted command\n");
     else {
-        fprintf(stderr, "Request Sense command failed\n");
+        pr2serr("Request Sense command failed\n");
         if (0 == verbose)
-            fprintf(stderr, "    try the '-v' option for "
-                    "more information\n");
+            pr2serr("    try the '-v' option for more information\n");
     }
     return res;
 }
@@ -230,9 +229,9 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * opts)
                                   sizeof(perf_desc), 1, opts->verbose);
         if (res) {
             if (SG_LIB_CAT_NOT_READY == res)
-                fprintf(stderr, "Set Streaming failed, device not ready\n");
+                pr2serr("Set Streaming failed, device not ready\n");
             else
-                fprintf(stderr, "Set Streaming failed, add '-v' for more "
+                pr2serr("Set Streaming failed, add '-v' for more "
                         "information\n");
         }
     } else {
@@ -436,8 +435,8 @@ sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp, int cmd_arg,
           (CMD_READY == scmdp->cmd_num) ||
           (CMD_SENSE == scmdp->cmd_num) ||
           (0 == pdt) || (5 == pdt)) ) {
-        fprintf(stderr, "this command only valid on a disk or cd/dvd; "
-                "use '--flexible' to override\n");
+        pr2serr("this command only valid on a disk or cd/dvd; use "
+                "'--flexible' to override\n");
         return SG_LIB_SYNTAX_ERROR;
     }
     switch (scmdp->cmd_num)
@@ -490,7 +489,7 @@ sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp, int cmd_arg,
         res = sg_ll_prevent_allow(sg_fd, 0, 1, opts->verbose);
         break;
     default:
-        fprintf(stderr, "unknown cmd number [%d]\n", scmdp->cmd_num);
+        pr2serr("unknown cmd number [%d]\n", scmdp->cmd_num);
         return SG_LIB_SYNTAX_ERROR;
     }
     return res;
