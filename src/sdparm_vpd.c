@@ -63,8 +63,8 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
         ucp = buff + off;
         i_len = ucp[3];
         if ((off + i_len + 4) > len) {
-            fprintf(stderr, "    VPD page error: designator length longer "
-                    "than\n     remaining response length=%d\n", (len - off));
+            pr2serr("    VPD page error: designator length longer than\n"
+                    "     remaining response length=%d\n", (len - off));
             return SG_LIB_CAT_MALFORMED;
         }
         ip = ucp + 4;
@@ -81,8 +81,8 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
             break;
         case 2: /* EUI-64 based */
             if ((8 != i_len) && (12 != i_len) && (16 != i_len))
-                fprintf(stderr, "      << expect 8, 12 and 16 byte "
-                        "EUI, got %d>>\n", i_len);
+                pr2serr("      << expect 8, 12 and 16 byte EUI, got %d>>\n",
+                        i_len);
             printf("0x");
             for (m = 0; m < i_len; ++m)
                 printf("%02x", (unsigned int)ip[m]);
@@ -90,21 +90,20 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
             break;
         case 3: /* NAA */
             if (1 != c_set) {
-                fprintf(stderr, "      << unexpected code set %d for "
-                        "NAA>>\n", c_set);
+                pr2serr("      << unexpected code set %d for NAA>>\n", c_set);
                 dStrHexErr((const char *)ip, i_len, 0);
                 break;
             }
             naa = (ip[0] >> 4) & 0xff;
             if ((naa < 2) || (naa > 6) || (4 == naa)) {
-                fprintf(stderr, "      << unexpected NAA [0x%x]>>\n", naa);
+                pr2serr("      << unexpected NAA [0x%x]>>\n", naa);
                 dStrHexErr((const char *)ip, i_len, 0);
                 break;
             }
             if (2 == naa) {             /* NAA IEEE Extended */
                 if (8 != i_len) {
-                    fprintf(stderr, "      << unexpected NAA 2 identifier "
-                            "length: 0x%x>>\n", i_len);
+                    pr2serr("      << unexpected NAA 2 identifier length: "
+                            "0x%x>>\n", i_len);
                     dStrHexErr((const char *)ip, i_len, 0);
                     break;
                 }
@@ -115,8 +114,8 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
             } else if ((3 == naa ) || (5 == naa)) {
                 /* NAA=3 Locally assigned; NAA=5 IEEE Registered */
                 if (8 != i_len) {
-                    fprintf(stderr, "      << unexpected NAA 3 or 5 "
-                            "identifier length: 0x%x>>\n", i_len);
+                    pr2serr("      << unexpected NAA 3 or 5 identifier "
+                            "length: 0x%x>>\n", i_len);
                     dStrHexErr((const char *)ip, i_len, 0);
                     break;
                 }
@@ -142,8 +141,8 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                 }
             } else if (6 == naa) {      /* NAA IEEE Registered extended */
                 if (16 != i_len) {
-                    fprintf(stderr, "      << unexpected NAA 6 identifier "
-                            "length: 0x%x>>\n", i_len);
+                    pr2serr("      << unexpected NAA 6 identifier length: "
+                            "0x%x>>\n", i_len);
                     dStrHexErr((const char *)ip, i_len, 0);
                     break;
                 }
@@ -174,7 +173,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
             break;
         case 8: /* SCSI name string */
             if (3 != c_set) {
-                fprintf(stderr, "      << expected UTF-8 code_set>>\n");
+                pr2serr("      << expected UTF-8 code_set>>\n");
                 dStrHexErr((const char *)ip, i_len, 0);
                 break;
             }
@@ -197,8 +196,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
         printf("\n");
     }
     if (-2 == u) {
-        fprintf(stderr, "VPD page error: short designator near "
-                "offset %d\n", off);
+        pr2serr("VPD page error: short designator near offset %d\n", off);
         return SG_LIB_CAT_MALFORMED;
     }
     return 0;
@@ -241,7 +239,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         if (k)
             printf("      vendor specific: %.*s\n", i_len, ip);
         else {
-            fprintf(stderr, "      vendor specific:\n");
+            pr2serr("      vendor specific:\n");
             dStrHexErr((const char *)ip, i_len, 0);
         }
         break;
@@ -261,8 +259,8 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
     case 2: /* EUI-64 based */
         if (! long_out) {
             if ((8 != i_len) && (12 != i_len) && (16 != i_len)) {
-                fprintf(stderr, "      << expect 8, 12 and 16 byte "
-                        "EUI, got %d>>\n", i_len);
+                pr2serr("      << expect 8, 12 and 16 byte EUI, got %d>>\n",
+                        i_len);
                 dStrHexErr((const char *)ip, i_len, 0);
                 break;
             }
@@ -274,7 +272,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         }
         printf("      EUI-64 based %d byte identifier\n", i_len);
         if (1 != c_set) {
-            fprintf(stderr, "      << expected binary code_set (1)>>\n");
+            pr2serr("      << expected binary code_set (1)>>\n");
             dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
@@ -289,8 +287,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
             }
             printf("      Identifier extension: 0x%" PRIx64 "\n", id_ext);
         } else if ((8 != i_len) && (12 != i_len)) {
-            fprintf(stderr, "      << can only decode 8, 12 and 16 "
-                    "byte ids>>\n");
+            pr2serr("      << can only decode 8, 12 and 16 byte ids>>\n");
             dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
@@ -313,21 +310,20 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         break;
     case 3: /* NAA */
         if (1 != c_set) {
-            fprintf(stderr, "      << unexpected code set %d for "
-                    "NAA>>\n", c_set);
+            pr2serr("      << unexpected code set %d for NAA>>\n", c_set);
             dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
         naa = (ip[0] >> 4) & 0xff;
         if (! ((2 == naa) || (5 == naa) || (6 == naa))) {
-            fprintf(stderr, "      << unexpected NAA [0x%x]>>\n", naa);
+            pr2serr("      << unexpected NAA [0x%x]>>\n", naa);
             dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
         if (2 == naa) {
             if (8 != i_len) {
-                fprintf(stderr, "      << unexpected NAA 2 identifier "
-                        "length: 0x%x>>\n", i_len);
+                pr2serr("      << unexpected NAA 2 identifier length: "
+                        "0x%x>>\n", i_len);
                 dStrHexErr((const char *)ip, i_len, 0);
                 break;
             }
@@ -350,8 +346,8 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
             printf("\n");
         } else if (5 == naa) {
             if (8 != i_len) {
-                fprintf(stderr, "      << unexpected NAA 5 identifier "
-                        "length: 0x%x>>\n", i_len);
+                pr2serr("      << unexpected NAA 5 identifier length: "
+                        "0x%x>>\n", i_len);
                 dStrHexErr((const char *)ip, i_len, 0);
                 break;
             }
@@ -378,8 +374,8 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
             }
         } else if (6 == naa) {
             if (16 != i_len) {
-                fprintf(stderr, "      << unexpected NAA 6 identifier "
-                        "length: 0x%x>>\n", i_len);
+                pr2serr("      << unexpected NAA 6 identifier length: "
+                        "0x%x>>\n", i_len);
                 dStrHexErr((const char *)ip, i_len, 0);
                 break;
             }
@@ -416,8 +412,8 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         break;
     case 4: /* Relative target port */
         if ((1 != c_set) || (1 != assoc) || (4 != i_len)) {
-            fprintf(stderr, "      << expected binary code_set, target "
-                    "port association, length 4>>\n");
+            pr2serr("      << expected binary code_set, target port "
+                    "association, length 4>>\n");
             dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
@@ -426,8 +422,8 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         break;
     case 5: /* (primary) Target port group */
         if ((1 != c_set) || (1 != assoc) || (4 != i_len)) {
-            fprintf(stderr, "      << expected binary code_set, target "
-                    "port association, length 4>>\n");
+            pr2serr("      << expected binary code_set, target port "
+                    "association, length 4>>\n");
             dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
@@ -436,8 +432,8 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         break;
     case 6: /* Logical unit group */
         if ((1 != c_set) || (0 != assoc) || (4 != i_len)) {
-            fprintf(stderr, "      << expected binary code_set, logical "
-                    "unit association, length 4>>\n");
+            pr2serr("      << expected binary code_set, logical unit "
+                    "association, length 4>>\n");
             dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
@@ -446,8 +442,8 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         break;
     case 7: /* MD5 logical unit identifier */
         if ((1 != c_set) || (0 != assoc)) {
-            fprintf(stderr, "      << expected binary code_set, logical "
-                   "unit association>>\n");
+            pr2serr("      << expected binary code_set, logical unit "
+                    "association>>\n");
             dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
@@ -456,7 +452,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         break;
     case 8: /* SCSI name string */
         if (3 != c_set) {
-            fprintf(stderr, "      << expected UTF-8 code_set>>\n");
+            pr2serr("      << expected UTF-8 code_set>>\n");
             dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
@@ -489,7 +485,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
                    sg_get_trans_proto_str(p_id, sizeof(b), b));
         break;
     default: /* reserved */
-        fprintf(stderr, "      reserved designator=0x%x\n", desig_type);
+        pr2serr("      reserved designator=0x%x\n", desig_type);
         dStrHexErr((const char *)ip, i_len, 0);
         break;
     }
@@ -515,8 +511,8 @@ decode_dev_ids(const char * print_if_found, unsigned char * buff, int len,
         ucp = buff + off;
         i_len = ucp[3];
         if ((off + i_len + 4) > len) {
-            fprintf(stderr, "    VPD page error: designator length longer "
-                    "than\n     remaining response length=%d\n", (len - off));
+            pr2serr("    VPD page error: designator length longer than\n"
+                    "     remaining response length=%d\n", (len - off));
             return SG_LIB_CAT_MALFORMED;
         }
         assoc = ((ucp[1] >> 4) & 0x3);
@@ -529,8 +525,7 @@ decode_dev_ids(const char * print_if_found, unsigned char * buff, int len,
         decode_designation_descriptor(ucp, i_len, long_out, 0);
     }
     if (-2 == u) {
-        fprintf(stderr, "VPD page error: short designator around "
-                "offset %d\n", off);
+        pr2serr("VPD page error: short designator around offset %d\n", off);
         return SG_LIB_CAT_MALFORMED;
     }
     return 0;
@@ -544,8 +539,7 @@ decode_mode_policy_vpd(unsigned char * buff, int len)
     unsigned char * ucp;
 
     if (len < 4) {
-        fprintf(stderr, "Mode page policy VPD page length too short=%d\n",
-                len);
+        pr2serr("Mode page policy VPD page length too short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
     len -= 4;
@@ -553,8 +547,8 @@ decode_mode_policy_vpd(unsigned char * buff, int len)
     for (k = 0; k < len; k += bump, ucp += bump) {
         bump = 4;
         if ((k + bump) > len) {
-            fprintf(stderr, "Mode page policy VPD page, short "
-                    "descriptor length=%d, left=%d\n", bump, (len - k));
+            pr2serr("Mode page policy VPD page, short descriptor length=%d, "
+                    "left=%d\n", bump, (len - k));
             return SG_LIB_CAT_MALFORMED;
         }
         printf("  Policy page code: 0x%x", (ucp[0] & 0x3f));
@@ -576,8 +570,8 @@ decode_man_net_vpd(unsigned char * buff, int len)
     unsigned char * ucp;
 
     if (len < 4) {
-        fprintf(stderr, "Management network addresses VPD page length too "
-                "short=%d\n", len);
+        pr2serr("Management network addresses VPD page length too short=%d\n",
+                len);
         return SG_LIB_CAT_MALFORMED;
     }
     len -= 4;
@@ -589,8 +583,8 @@ decode_man_net_vpd(unsigned char * buff, int len)
         na_len = (ucp[2] << 8) + ucp[3];
         bump = 4 + na_len;
         if ((k + bump) > len) {
-            fprintf(stderr, "Management network addresses VPD page, short "
-                    "descriptor length=%d, left=%d\n", bump, (len - k));
+            pr2serr("Management network addresses VPD page, short descriptor "
+                    "length=%d, left=%d\n", bump, (len - k));
             return SG_LIB_CAT_MALFORMED;
         }
         if (na_len > 0) {
@@ -608,8 +602,8 @@ decode_proto_lu_vpd(unsigned char * buff, int len)
     unsigned char * ucp;
 
     if (len < 4) {
-        fprintf(stderr, "Protocol-specific logical unit information VPD "
-                "page length too short=%d\n", len);
+        pr2serr("Protocol-specific logical unit information VPD page length "
+                "too short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
     len -= 4;
@@ -621,9 +615,8 @@ decode_proto_lu_vpd(unsigned char * buff, int len)
         desc_len = (ucp[6] << 8) + ucp[7];
         bump = 8 + desc_len;
         if ((k + bump) > len) {
-            fprintf(stderr, "Protocol-specific logical unit information VPD "
-                    "page, short descriptor length=%d, left=%d\n", bump,
-                    (len - k));
+            pr2serr("Protocol-specific logical unit information VPD page, "
+                    "short descriptor length=%d, left=%d\n", bump, (len - k));
             return SG_LIB_CAT_MALFORMED;
         }
         if (desc_len > 0) {
@@ -633,7 +626,7 @@ decode_proto_lu_vpd(unsigned char * buff, int len)
                 printf(" TLR control supported: %d\n", !!(ucp[8] & 0x1));
                 break;
             default:
-                fprintf(stderr, "Unexpected proto=%d\n", proto);
+                pr2serr("Unexpected proto=%d\n", proto);
                 dStrHexErr((const char *)ucp, bump, 1);
                 break;
             }
@@ -651,8 +644,8 @@ decode_proto_port_vpd(unsigned char * buff, int len)
     unsigned char * pidp;
 
     if (len < 4) {
-        fprintf(stderr, "Protocol-specific port information VPD "
-                "page length too short=%d\n", len);
+        pr2serr("Protocol-specific port information VPD page length too "
+                "short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
     len -= 4;
@@ -664,9 +657,8 @@ decode_proto_port_vpd(unsigned char * buff, int len)
         desc_len = (ucp[6] << 8) + ucp[7];
         bump = 8 + desc_len;
         if ((k + bump) > len) {
-            fprintf(stderr, "Protocol-specific port information VPD "
-                    "page, short descriptor length=%d, left=%d\n", bump,
-                    (len - k));
+            pr2serr("Protocol-specific port information VPD page, short "
+                    "descriptor length=%d, left=%d\n", bump, (len - k));
             return SG_LIB_CAT_MALFORMED;
         }
         if (desc_len > 0) {
@@ -679,7 +671,7 @@ decode_proto_port_vpd(unsigned char * buff, int len)
                            pidp[1], (0x1 & pidp[2]));
                 break;
             default:
-                fprintf(stderr, "Unexpected proto=%d\n", proto);
+                pr2serr("Unexpected proto=%d\n", proto);
                 dStrHexErr((const char *)ucp, bump, 1);
                 break;
             }
@@ -696,7 +688,7 @@ decode_scsi_ports_vpd(unsigned char * buff, int len, int long_out, int quiet)
     unsigned char * ucp;
 
     if (len < 4) {
-        fprintf(stderr, "SCSI Ports VPD page length too short=%d\n", len);
+        pr2serr("SCSI Ports VPD page length too short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
     len -= 4;
@@ -707,8 +699,8 @@ decode_scsi_ports_vpd(unsigned char * buff, int len, int long_out, int quiet)
         ip_tid_len = (ucp[6] << 8) + ucp[7];
         bump = 8 + ip_tid_len;
         if ((k + bump) > len) {
-            fprintf(stderr, "SCSI Ports VPD page, short descriptor "
-                    "length=%d, left=%d\n", bump, (len - k));
+            pr2serr("SCSI Ports VPD page, short descriptor length=%d, "
+                    "left=%d\n", bump, (len - k));
             return SG_LIB_CAT_MALFORMED;
         }
         if (ip_tid_len > 0) {
@@ -723,8 +715,8 @@ decode_scsi_ports_vpd(unsigned char * buff, int len, int long_out, int quiet)
         }
         tpd_len = (ucp[bump + 2] << 8) + ucp[bump + 3];
         if ((k + bump + tpd_len + 4) > len) {
-            fprintf(stderr, "SCSI Ports VPD page, short descriptor(tgt) "
-                    "length=%d, left=%d\n", bump, (len - k));
+            pr2serr("SCSI Ports VPD page, short descriptor(tgt) length=%d, "
+                    "left=%d\n", bump, (len - k));
             return SG_LIB_CAT_MALFORMED;
         }
         if (tpd_len > 0) {
@@ -746,8 +738,7 @@ decode_ext_inq_vpd(unsigned char * b, int len, int long_out, int protect)
     int n;
 
     if (len < 7) {
-        fprintf(stderr, "Extended INQUIRY data VPD page length too "
-                "short=%d\n", len);
+        pr2serr("Extended INQUIRY data VPD page length too short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
     if (long_out) {
@@ -850,8 +841,7 @@ decode_ata_info_vpd(unsigned char * buff, int len, int long_out, int do_hex)
     const char * cp;
 
     if (len < 36) {
-        fprintf(stderr, "ATA information VPD page length too "
-                "short=%d\n", len);
+        pr2serr("ATA information VPD page length too short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
     memcpy(b, buff + 8, 8);
@@ -906,8 +896,7 @@ static int
 decode_power_condition(unsigned char * buff, int len)
 {
     if (len < 18) {
-        fprintf(stderr, "Power condition VPD page length too short=%d\n",
-                len);
+        pr2serr("Power condition VPD page length too short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
     printf("  Standby_y=%d Standby_z=%d Idle_c=%d Idle_b=%d Idle_a=%d\n",
@@ -949,8 +938,7 @@ decode_power_consumption_vpd(unsigned char * buff, int len)
     unsigned int value;
 
     if (len < 4) {
-        fprintf(stderr, "Power consumption VPD page length too short=%d\n",
-                len);
+        pr2serr("Power consumption VPD page length too short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
     len -= 4;
@@ -958,8 +946,8 @@ decode_power_consumption_vpd(unsigned char * buff, int len)
     for (k = 0; k < len; k += bump, ucp += bump) {
         bump = 4;
         if ((k + bump) > len) {
-            fprintf(stderr, "Power consumption VPD page, short "
-                    "descriptor length=%d, left=%d\n", bump, (len - k));
+            pr2serr("Power consumption VPD page, short descriptor length=%d, "
+                    "left=%d\n", bump, (len - k));
             return SG_LIB_CAT_MALFORMED;
         }
         value = (ucp[2] << 8) + ucp[3];
@@ -984,8 +972,7 @@ decode_block_limits_vpd(unsigned char * buff, int len)
     uint64_t mwsl;
 
     if (len < 16) {
-        fprintf(stderr, "Block limits VPD page length too "
-                "short=%d\n", len);
+        pr2serr("Block limits VPD page length too short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
     printf("  Write same no zero (WSNZ): %d\n", !!(buff[4] & 0x1));
@@ -1053,8 +1040,8 @@ decode_block_dev_chars_vpd(unsigned char * buff, int len)
     unsigned int u, k;
 
     if (len < 64) {
-        fprintf(stderr, "Block device capabilities VPD page length too "
-                "short=%d\n", len);
+        pr2serr("Block device capabilities VPD page length too short=%d\n",
+                len);
         return SG_LIB_CAT_MALFORMED;
     }
     u = (buff[4] << 8) | buff[5];
@@ -1111,8 +1098,8 @@ static int
 decode_tape_dev_caps_vpd(unsigned char * buff, int len)
 {
     if (len < 6) {
-        fprintf(stderr, "Sequential access device capabilities VPD page "
-                "length too short=%d\n", len);
+        pr2serr("Sequential access device capabilities VPD page length too "
+                "short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
     printf("  Worm: %d\n", !!(buff[4] & 0x1));
@@ -1124,8 +1111,8 @@ static int
 decode_tape_man_ass_sn_vpd(unsigned char * buff, int len)
 {
     if (len < 4) {
-        fprintf(stderr, "Manufacturer-assigned serial number VPD page "
-                "length too short=%d\n", len);
+        pr2serr("Manufacturer-assigned serial number VPD page length too "
+                "short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
     printf("  Manufacturer-assigned serial number: %.*s\n",
@@ -1140,8 +1127,7 @@ decode_block_lb_prov_vpd(unsigned char * b, int len)
     int dp;
 
     if (len < 4) {
-        fprintf(stderr, "Logical block provisioning page too short=%d\n",
-                len);
+        pr2serr("Logical block provisioning page too short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
     printf("  Unmap command supported (LBPU): %d\n", !!(0x80 & b[5]));
@@ -1163,8 +1149,8 @@ decode_block_lb_prov_vpd(unsigned char * b, int len)
         ucp = b + 8;
         i_len = ucp[3];
         if (0 == i_len) {
-            fprintf(stderr, "Logical block provisioning page provisioning "
-                    "group descriptor too short=%d\n", i_len);
+            pr2serr("Logical block provisioning page provisioning group "
+                    "descriptor too short=%d\n", i_len);
             return 0;
         }
         printf("  Provisioning group descriptor\n");
@@ -1178,8 +1164,7 @@ static int
 decode_tapealert_supported_vpd(unsigned char * b, int len)
 {
     if (len < 12) {
-        fprintf(stderr, "TapeAlert supported flags length too short=%d\n",
-                len);
+        pr2serr("TapeAlert supported flags length too short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
     printf("  Flag01h: %d  02h: %d  03h: %d  04h: %d  05h: %d  06h: %d  "
@@ -1224,7 +1209,7 @@ decode_referrals_vpd(unsigned char * b, int len)
     unsigned int u;
 
     if (len < 16) {
-        fprintf(stderr, "Referrals VPD page length too short=%d\n", len);
+        pr2serr("Referrals VPD page length too short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
     u = ((unsigned int)b[8] << 24) | (b[9] << 16) | (b[10] << 8) | b[11];
@@ -1268,7 +1253,7 @@ decode_std_inq(int sg_fd, const struct sdparm_opt_coll * opts)
     sz = opts->long_out ? sizeof(b) : 36;
     res = sg_ll_inquiry(sg_fd, 0, 0, 0, b, sz, 0, verb);
     if (res) {
-        fprintf(stderr, "INQUIRY fetching standar response failed\n");
+        pr2serr("INQUIRY fetching standar response failed\n");
         return res;
     }
     pqual = (b[0] & 0xe0) >> 5;
@@ -1347,14 +1332,14 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     sz = (VPD_ATA_INFO == pn) ? VPD_ATA_INFO_RESP_LEN : DEF_INQ_RESP_LEN;
     res = sg_ll_inquiry(sg_fd, 0, 1, pn, b, sz, 0, verb);
     if (res) {
-        fprintf(stderr, "INQUIRY fetching VPD page=0x%x failed\n", pn);
+        pr2serr("INQUIRY fetching VPD page=0x%x failed\n", pn);
         return res;
     }
     dev_pdt = b[0] & 0x1f;
     if ((req_pdt >= 0) && (req_pdt != (dev_pdt))) {
-        fprintf(stderr, "given peripheral device type [%d] differs "
-                "from reported [%d]\n", req_pdt, dev_pdt);
-        fprintf(stderr, "  start with given pdt\n");
+        pr2serr("given peripheral device type [%d] differs from reported "
+                "[%d]\n", req_pdt, dev_pdt);
+        pr2serr("  start with given pdt\n");
         pdt = req_pdt;
     } else
         pdt = dev_pdt;
@@ -1389,8 +1374,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
         if (len > sz) {
-            fprintf(stderr, "Response to ATA information VPD page "
-                    "truncated\n");
+            pr2serr("Response to ATA information VPD page truncated\n");
             len = sz;
         }
         if (3 == opts->hex) {   /* output suitable for "hdparm --Istdin" */
@@ -1415,8 +1399,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
         if (len > sz) {
-            fprintf(stderr, "Response to device identification VPD page "
-                    "truncated\n");
+            pr2serr("Response to device identification VPD page truncated\n");
             len = sz;
         }
         if (opts->long_out)
@@ -1451,8 +1434,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             goto dumb_inq;
         len = (b[2] << 8) + b[3];   /* spc4r25 */
         if (len > sz) {
-            fprintf(stderr, "Response to Extended inquiry data VPD page "
-                    "truncated\n");
+            pr2serr("Response to Extended inquiry data VPD page truncated\n");
             len = sz;
         }
         if (opts->long_out)
@@ -1472,8 +1454,8 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
         if (len > sz) {
-            fprintf(stderr, "Response to Management network addresses VPD "
-                    "page truncated\n");
+            pr2serr("Response to Management network addresses VPD page "
+                    "truncated\n");
             len = sz;
         }
         if (opts->long_out)
@@ -1493,8 +1475,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
         if (len > sz) {
-            fprintf(stderr, "Response to Mode page policy VPD page "
-                    "truncated\n");
+            pr2serr("Response to Mode page policy VPD page truncated\n");
             len = sz;
         }
         if (opts->long_out)
@@ -1514,8 +1495,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
         if (len > sz) {
-            fprintf(stderr, "Response to Power condition VPD page "
-                    "truncated\n");
+            pr2serr("Response to Power condition VPD page truncated\n");
             len = sz;
         }
         if (opts->long_out)
@@ -1535,8 +1515,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
         if (len > sz) {
-            fprintf(stderr, "Response to Power consumption VPD page "
-                    "truncated\n");
+            pr2serr( "Response to Power consumption VPD page truncated\n");
             len = sz;
         }
         if (opts->long_out)
@@ -1556,8 +1535,8 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
         if (len > sz) {
-            fprintf(stderr, "Response to Protocol-specific logical unit "
-                    "information VPD page truncated\n");
+            pr2serr("Response to Protocol-specific logical unit information "
+                    "VPD page truncated\n");
             len = sz;
         }
         if (opts->long_out)
@@ -1578,8 +1557,8 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
         if (len > sz) {
-            fprintf(stderr, "Response to Protocol-specific port "
-                    "information VPD page truncated\n");
+            pr2serr("Response to Protocol-specific port information VPD page "
+                    "truncated\n");
             len = sz;
         }
         if (opts->long_out)
@@ -1600,8 +1579,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
         if (len > sz) {
-            fprintf(stderr, "Response to SCSI Ports VPD page "
-                    "truncated\n");
+            pr2serr("Response to SCSI Ports VPD page truncated\n");
             len = sz;
         }
         if (opts->long_out)
@@ -1621,8 +1599,8 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             goto dumb_inq;
         len = (b[2] << 8) + b[3];       /* spc4r25 */
         if (len > sz) {
-            fprintf(stderr, "Response to Software interface identification "
-                    "VPD page truncated\n");
+            pr2serr("Response to Software interface identification VPD page "
+                    "truncated\n");
             len = sz;
         }
         if (opts->long_out)
@@ -1663,8 +1641,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             goto dumb_inq;
         len = (b[2] << 8) + b[3];       /* spc4r25 */
         if (len > sz) {
-            fprintf(stderr, "Response to Third party copy VPD page "
-                    "truncated\n");
+            pr2serr("Response to Third party copy VPD page truncated\n");
             len = sz;
         }
         if (opts->long_out)
@@ -1700,8 +1677,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         }
         len = (b[2] << 8) + b[3];
         if (len > sz) {
-            fprintf(stderr, "Response to %s VPD page truncated\n",
-                    vpd_name);
+            pr2serr("Response to %s VPD page truncated\n", vpd_name);
             len = sz;
         }
         if (opts->long_out)
@@ -1748,8 +1724,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         }
         len = (b[2] << 8) + b[3];
         if (len > sz) {
-            fprintf(stderr, "Response to %s VPD page truncated\n",
-                    vpd_name);
+            pr2serr("Response to %s VPD page truncated\n", vpd_name);
             len = sz;
         }
         if (opts->long_out)
@@ -1854,8 +1829,8 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
         if (len > sz) {
-            fprintf(stderr, "Response to Data transfer device element "
-                    "address VPD page truncated\n");
+            pr2serr("Response to Data transfer device element address VPD "
+                    "page truncated\n");
             len = sz;
         }
         if (opts->long_out)
@@ -1879,12 +1854,12 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         len = (b[2] << 8) + b[3] + 4;
         vpp = sdp_get_vpd_detail(pn, -1, pdt);
         if (vpp)
-            fprintf(stderr, "%s VPD page in hex:\n", vpp->name);
+            pr2serr("%s VPD page in hex:\n", vpp->name);
         else
-            fprintf(stderr, "VPD page 0x%x in hex:\n", pn);
+            pr2serr("VPD page 0x%x in hex:\n", pn);
         if (len > (int)sizeof(b)) {
             if (opts->verbose)
-                fprintf(stderr, "page length=%d too long, trim\n", len);
+                pr2serr("page length=%d too long, trim\n", len);
             len = sizeof(b);
         }
         dStrHexErr((const char *)b, len, 0);
@@ -1893,7 +1868,6 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     return 0;
 
 dumb_inq:
-    fprintf(stderr, "malformed VPD response, VPD pages probably not "
-            "supported\n");
+    pr2serr("malformed VPD response, VPD pages probably not supported\n");
     return SG_LIB_CAT_MALFORMED;
 }

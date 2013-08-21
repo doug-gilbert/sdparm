@@ -289,68 +289,64 @@ extern const char * sdparm_network_service_type_arr[];
 extern const char * sdparm_mode_page_policy_arr[];
 
 
-/*
- * Declarations for access functions found in sdparm_access.c
- */
+/* Declared below are functions shared by different compilation units */
+#ifdef __GNUC__
+int pr2serr(const char * fmt, ...)
+        __attribute__ ((format (printf, 1, 2)));
+#else
+int pr2serr(const char * fmt, ...);
+#endif
 
-extern int sdp_get_mp_len(unsigned char * mp);
-extern const struct sdparm_mode_page_t * sdp_get_mode_detail(
-                int page_num, int subpage_num, int pdt, int transp_proto,
-                int vendor_num);
-extern const struct sdparm_mode_page_t * sdp_get_mpage_name(
-                int page_num, int subpage_num, int pdt, int transp_proto,
-                int vendor_num, int plus_acron, int hex, char * bp,
-                int max_b_len);
-extern const struct sdparm_mode_page_t * sdp_find_mp_by_acron(
-                const char * ap, int transp_proto, int vendor_num);
-const struct sdparm_vpd_page_t *
-        sdp_get_vpd_detail(int page_num, int subvalue, int pdt);
-extern const struct sdparm_vpd_page_t * sdp_find_vpd_by_acron(
+int sdp_get_mp_len(unsigned char * mp);
+const struct sdparm_mode_page_t * sdp_get_mode_detail(int page_num,
+                int subpage_num, int pdt, int transp_proto, int vendor_num);
+const struct sdparm_mode_page_t * sdp_get_mpage_name(int page_num,
+                int subpage_num, int pdt, int transp_proto, int vendor_num,
+                int plus_acron, int hex, char * bp, int max_b_len);
+const struct sdparm_mode_page_t * sdp_find_mp_by_acron(const char * ap,
+                int transp_proto, int vendor_num);
+const struct sdparm_vpd_page_t * sdp_get_vpd_detail(int page_num,
+                int subvalue, int pdt);
+const struct sdparm_vpd_page_t * sdp_find_vpd_by_acron(const char * ap);
+const char * sdp_get_transport_name(int proto_num);
+const struct sdparm_transport_id_t * sdp_find_transport_by_acron(
                 const char * ap);
-extern const char * sdp_get_transport_name(int proto_num);
-extern const struct sdparm_transport_id_t * sdp_find_transport_by_acron(
-                const char * ap);
-extern const char * sdp_get_vendor_name(int vendor_num);
-extern const struct sdparm_vendor_name_t * sdp_find_vendor_by_acron(
-                const char * ap);
-extern const struct sdparm_vendor_pair * sdp_get_vendor_pair(int vendor_num);
-extern const struct sdparm_mode_page_item * sdp_find_mitem_by_acron(
-                const char * ap, int * from, int transp_proto,
-                int vendor_num);
-extern uint64_t sdp_get_big_endian(const unsigned char * from, int start_bit,
-                                   int num_bits);
-extern void sdp_set_big_endian(uint64_t val, unsigned char * to, int start_bit,
-                               int num_bits);
-extern uint64_t sdp_mp_get_value(const struct sdparm_mode_page_item *mpi,
-                                 const unsigned char * mp);
-extern uint64_t sdp_mp_get_value_check(
-                const struct sdparm_mode_page_item *mpi,
-                const unsigned char * mp, int * all_set);
-extern void sdp_mp_set_value(uint64_t val,
-                const struct sdparm_mode_page_item *mpi, unsigned char * mp);
-extern char * sdp_get_ansi_version_str(int version, int buff_len,
-                char * buff);
-extern char * sdp_get_pdt_doc_str(int version, int buff_len,
-                char * buff);
-extern int sdp_strcase_eq(const char * s1p, const char * s2p);
+const char * sdp_get_vendor_name(int vendor_num);
+const struct sdparm_vendor_name_t * sdp_find_vendor_by_acron(const char * ap);
+const struct sdparm_vendor_pair * sdp_get_vendor_pair(int vendor_num);
+const struct sdparm_mode_page_item * sdp_find_mitem_by_acron(const char * ap,
+                int * from, int transp_proto, int vendor_num);
+uint64_t sdp_get_big_endian(const unsigned char * from, int start_bit,
+                           int num_bits);
+void sdp_set_big_endian(uint64_t val, unsigned char * to, int start_bit,
+                        int num_bits);
+uint64_t sdp_mp_get_value(const struct sdparm_mode_page_item *mpi,
+                          const unsigned char * mp);
+uint64_t sdp_mp_get_value_check(const struct sdparm_mode_page_item *mpi,
+                                const unsigned char * mp, int * all_set);
+void sdp_mp_set_value(uint64_t val, const struct sdparm_mode_page_item *mpi,
+                      unsigned char * mp);
+char * sdp_get_ansi_version_str(int version, int buff_len, char * buff);
+char * sdp_get_pdt_doc_str(int version, int buff_len, char * buff);
+int sdp_strcase_eq(const char * s1p, const char * s2p);
 
 /*
  * Declarations for functions found in sdparm_vpd.c
  */
 
-extern int sdp_process_vpd_page(int sg_fd, int pn, int spn,
-                                const struct sdparm_opt_coll * opts,
-                                int req_pdt, int protect);
+int sdp_process_vpd_page(int sg_fd, int pn, int spn,
+                         const struct sdparm_opt_coll * opts, int req_pdt,
+                         int protect);
 
 /*
  * Declarations for functions found in sdparm_cmd.c
  */
 
-extern const struct sdparm_command_t * sdp_build_cmd(const char * cmd_str,
-                int * rwp, int * argp);
-extern void sdp_enumerate_commands();
-extern int sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp,
-                int cmd_arg, int pdt, const struct sdparm_opt_coll * opts);
+const struct sdparm_command_t * sdp_build_cmd(const char * cmd_str, int * rwp,
+                                              int * argp);
+void sdp_enumerate_commands();
+int sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp,
+                    int cmd_arg, int pdt, const struct sdparm_opt_coll * opts);
 
 /*
  * Declarations for functions that are port dependant
@@ -358,7 +354,7 @@ extern int sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp,
 
 #ifdef SG_LIB_WIN32
 
-extern int sg_do_wscan(char letter, int do_scan, int verbose);
+int sg_do_wscan(char letter, int do_scan, int verbose);
 
 #endif
 
