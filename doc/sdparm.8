@@ -1,4 +1,4 @@
-.TH SDPARM "8" "September 2013" "sdparm\-1.09" SDPARM
+.TH SDPARM "8" "October 2013" "sdparm\-1.09" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -264,9 +264,11 @@ is added. When used four times only a SCSI adapter scan is shown.
 See examples below and the "Win32 port" section in the README file.
 .SH NOTES
 The reference document used for interpreting mode and VPD pages (and the
-INQUIRY standard response) is T10/1713\-D Revision 36e (SPC\-4, 24 August
-2012) found at http://www.t10.org . Obsolete and reserved items in the
-standard INQUIRY response output are displayed in brackets.
+INQUIRY standard response) is T10/1713\-D Revision 36k (SPC\-4, 8 October
+2013) found at http://www.t10.org . Obsolete and reserved items in the
+standard INQUIRY response output are displayed in brackets. Recent drafts
+of other T10 documents are also used: SBC\-3 (disks), SSC\-4 (tapes),
+SPL\-3 (SAS transport) and SAT\-3 (SCSI to ATA Translation).
 .PP
 A mode page for which no abbreviation is known (e.g. a vendor specific mode
 page) can be listed in hexadecimal by using the option
@@ -317,8 +319,8 @@ at /dev/hdc then 'sdparm /dev/hdc' will only work in the lk 2.6 series.
 In the Linux 2.6 series, especially with ATA disks, using sdparm to
 stop (spin down) a disk may not be sufficient and other mechanisms will
 start the disk again some time later. The user might additionally mark
-the disk as "offline" with 'echo offline > /sys/block/sda/device/state' 
-where sda is the block name of the disk. To restart the disk "offline" 
+the disk as "offline" with 'echo offline > /sys/block/sda/device/state'
+where sda is the block name of the disk. To restart the disk "offline"
 can be replaced with "running".
 .SH PARAMETERS
 In their simplest form the \fI\-\-clear\fR=, \fI\-\-get\fR= and
@@ -666,7 +668,7 @@ PD1     [DF]    <Usb  >  WD        2500BEV External  1.05  WD\-WXE90
 .br
 CDROM0  [E]     <Atapi>  MATSHITA DVD/CDRW UJDA775  CB03
 .br
- 
+
 .br
 SCSI0:0,0,0   claimed=1 pdt=0h  FUJITSU   MHY2160BH         0000
 .br
