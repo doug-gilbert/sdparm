@@ -88,19 +88,15 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                 printf("%02x", (unsigned int)ip[m]);
             printf("\n");
             break;
-        case 3: /* NAA */
+        case 3: /* NAA <n> */
             if (1 != c_set) {
                 pr2serr("      << unexpected code set %d for NAA>>\n", c_set);
                 dStrHexErr((const char *)ip, i_len, 0);
                 break;
             }
             naa = (ip[0] >> 4) & 0xff;
-            if ((naa < 2) || (naa > 6) || (4 == naa)) {
-                pr2serr("      << unexpected NAA [0x%x]>>\n", naa);
-                dStrHexErr((const char *)ip, i_len, 0);
-                break;
-            }
-            if (2 == naa) {             /* NAA IEEE Extended */
+            switch (naa) {
+            case 2:     /* NAA 2: IEEE Extended */
                 if (8 != i_len) {
                     pr2serr("      << unexpected NAA 2 identifier length: "
                             "0x%x>>\n", i_len);
@@ -111,10 +107,22 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                 for (m = 0; m < 8; ++m)
                     printf("%02x", (unsigned int)ip[m]);
                 printf("\n");
-            } else if ((3 == naa ) || (5 == naa)) {
-                /* NAA=3 Locally assigned; NAA=5 IEEE Registered */
+                break;
+            case 3:     /* NAA 3: Locally assigned */
                 if (8 != i_len) {
-                    pr2serr("      << unexpected NAA 3 or 5 identifier "
+                    pr2serr("      << unexpected NAA 3 identifier "
+                            "length: 0x%x>>\n", i_len);
+                    dStrHexErr((const char *)ip, i_len, 0);
+                    break;
+                }
+                printf("0x");
+                for (m = 0; m < 8; ++m)
+                    printf("%02x", (unsigned int)ip[m]);
+                printf("\n");
+                break;
+            case 5:     /* NAA 5: IEEE Registered */
+                if (8 != i_len) {
+                    pr2serr("      << unexpected NAA 5 identifier "
                             "length: 0x%x>>\n", i_len);
                     dStrHexErr((const char *)ip, i_len, 0);
                     break;
@@ -139,7 +147,8 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                     }
                     memcpy(sas_tport_addr, ip, sizeof(sas_tport_addr));
                 }
-            } else if (6 == naa) {      /* NAA IEEE Registered extended */
+                break;
+            case 6:     /* NAA 5: IEEE Registered Extended */
                 if (16 != i_len) {
                     pr2serr("      << unexpected NAA 6 identifier length: "
                             "0x%x>>\n", i_len);
@@ -150,6 +159,11 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                 for (m = 0; m < 16; ++m)
                     printf("%02x", (unsigned int)ip[m]);
                 printf("\n");
+                break;
+            default:
+                pr2serr("      << unexpected NAA [0x%x]>>\n", naa);
+                dStrHexErr((const char *)ip, i_len, 0);
+                break;
             }
             break;
         case 4: /* Relative target port */
@@ -308,19 +322,15 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
             printf("      Directory ID: 0x%x\n", d_id);
         }
         break;
-    case 3: /* NAA */
+    case 3: /* NAA <n> */
         if (1 != c_set) {
             pr2serr("      << unexpected code set %d for NAA>>\n", c_set);
             dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
         naa = (ip[0] >> 4) & 0xff;
-        if (! ((2 == naa) || (5 == naa) || (6 == naa))) {
-            pr2serr("      << unexpected NAA [0x%x]>>\n", naa);
-            dStrHexErr((const char *)ip, i_len, 0);
-            break;
-        }
-        if (2 == naa) {
+        switch (naa) {
+        case 2:         /* NAA 2: IEEE Extended */
             if (8 != i_len) {
                 pr2serr("      << unexpected NAA 2 identifier length: "
                         "0x%x>>\n", i_len);
@@ -344,7 +354,22 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
             for (m = 0; m < 8; ++m)
                 printf("%02x", (unsigned int)ip[m]);
             printf("\n");
-        } else if (5 == naa) {
+            break;
+        case 3:         /* NAA 3: Locally assigned */
+            if (8 != i_len) {
+                pr2serr("      << unexpected NAA 3 identifier length: "
+                        "0x%x>>\n", i_len);
+                dStrHexErr((const char *)ip, i_len, 0);
+                break;
+            }
+            if (long_out)
+                printf("      NAA 3, Locally assigned:\n");
+            printf("      0x");
+            for (m = 0; m < 8; ++m)
+                printf("%02x", (unsigned int)ip[m]);
+            printf("\n");
+            break;
+        case 5:         /* NAA 5: IEEE Registered */
             if (8 != i_len) {
                 pr2serr("      << unexpected NAA 5 identifier length: "
                         "0x%x>>\n", i_len);
@@ -372,7 +397,8 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
                     printf("%02x", (unsigned int)ip[m]);
                 printf("\n");
             }
-        } else if (6 == naa) {
+            break;
+        case 6:         /* NAA 6: IEEE Registered extended */
             if (16 != i_len) {
                 pr2serr("      << unexpected NAA 6 identifier length: "
                         "0x%x>>\n", i_len);
@@ -408,6 +434,11 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
                     printf("%02x", (unsigned int)ip[m]);
                 printf("\n");
             }
+            break;
+        default:
+            pr2serr("      << unexpected NAA [0x%x]>>\n", naa);
+            dStrHexErr((const char *)ip, i_len, 0);
+            break;
         }
         break;
     case 4: /* Relative target port */
