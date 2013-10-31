@@ -9,6 +9,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define DEF_MODE_RESP_LEN 252
 #define DEF_INQ_RESP_LEN 252
 #define VPD_ATA_INFO_RESP_LEN 572
@@ -356,6 +360,10 @@ int sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp,
 
 int sg_do_wscan(char letter, int do_scan, int verbose);
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

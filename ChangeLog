@@ -2,10 +2,10 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.09 [20131009] [svn: r223]
+ChangeLog for sdparm-1.09 [20131019] [svn: r224]
   - fix manufacturer-assigned serial number VPD page length
   - device id VPD: T10 vendor identification designator clean up
-  - point svn:externals to rev 520 of sg3_utils
+  - point svn:externals to rev 522 of sg3_utils
 
 ChangeLog for sdparm-1.08 [20130606] [svn: r215]
   - device id VPD: add protocol specific port identifier
