@@ -4,6 +4,7 @@ bin_PROGRAMS = sdparm
 ## CC = g++ -std=c++11
 ## CC = g++
 ## CC = clang
+## CC = clang++
 
 # -std=<s> can be c99, c11, gnu11, etc. Default is gnu89 (gnu90 is the same)
 AM_CFLAGS = -I$(top_srcdir)/include -Wall -W
