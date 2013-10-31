@@ -78,7 +78,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static const char * version_str = "1.09 20131019 [svn: r224]";
+static const char * version_str = "1.09 20131031 [svn: r225]";
 
 
 static struct option long_options[] = {
