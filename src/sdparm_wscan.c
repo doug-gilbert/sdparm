@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2012 Douglas Gilbert.
+ * Copyright (c) 2006-2013 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -412,7 +412,7 @@ enum_volumes(char letter)
     struct storage_elem tmp_se;
 
     if (verbose > 2)
-        fprintf(stderr, "%s: enter\n", __FUNCTION__ );
+        fprintf(stderr, "%s: enter\n", __func__);
     for (k = 0; k < 24; ++k) {
         memset(&tmp_se, 0, sizeof(tmp_se));
         snprintf(adapter_name, sizeof (adapter_name), "\\\\.\\%c:", 'C' + k);
@@ -422,14 +422,12 @@ enum_volumes(char letter)
                         OPEN_EXISTING, 0, NULL);
         if (fh != INVALID_HANDLE_VALUE) {
             if (query_dev_property(fh, &tmp_se.qp_descriptor) < 0)
-                fprintf(stderr, "%s: query_dev_property failed\n",
-                        __FUNCTION__ );
+                fprintf(stderr, "%s: query_dev_property failed\n", __func__);
             else
                 tmp_se.qp_descriptor_valid = 1;
             if (query_dev_uid(fh, &tmp_se.qp_uid) < 0) {
                 if (verbose > 2)
-                    fprintf(stderr, "%s: query_dev_uid failed\n",
-                            __FUNCTION__ );
+                    fprintf(stderr, "%s: query_dev_uid failed\n", __func__);
             } else
                 tmp_se.qp_uid_valid = 1;
             if (('\0' == letter) || (letter == tmp_se.name[0]))
@@ -452,7 +450,7 @@ enum_pds(void)
     struct storage_elem tmp_se;
 
     if (verbose > 2)
-        fprintf(stderr, "%s: enter\n", __FUNCTION__ );
+        fprintf(stderr, "%s: enter\n", __func__);
     for (k = 0; k < MAX_PHYSICALDRIVE_NUM; ++k) {
         memset(&tmp_se, 0, sizeof(tmp_se));
         snprintf(adapter_name, sizeof (adapter_name),
@@ -463,14 +461,12 @@ enum_pds(void)
                         OPEN_EXISTING, 0, NULL);
         if (fh != INVALID_HANDLE_VALUE) {
             if (query_dev_property(fh, &tmp_se.qp_descriptor) < 0)
-                fprintf(stderr, "%s: query_dev_property failed\n",
-                        __FUNCTION__ );
+                fprintf(stderr, "%s: query_dev_property failed\n", __func__);
             else
                 tmp_se.qp_descriptor_valid = 1;
             if (query_dev_uid(fh, &tmp_se.qp_uid) < 0) {
                 if (verbose > 2)
-                    fprintf(stderr, "%s: query_dev_uid failed\n",
-                            __FUNCTION__ );
+                    fprintf(stderr, "%s: query_dev_uid failed\n", __func__);
             } else
                 tmp_se.qp_uid_valid = 1;
             hole_count = 0;
@@ -501,7 +497,7 @@ enum_cdroms(void)
     struct storage_elem tmp_se;
 
     if (verbose > 2)
-        fprintf(stderr, "%s: enter\n", __FUNCTION__ );
+        fprintf(stderr, "%s: enter\n", __func__);
     for (k = 0; k < MAX_CDROM_NUM; ++k) {
         memset(&tmp_se, 0, sizeof(tmp_se));
         snprintf(adapter_name, sizeof (adapter_name), "\\\\.\\CDROM%d", k);
@@ -511,14 +507,12 @@ enum_cdroms(void)
                         OPEN_EXISTING, 0, NULL);
         if (fh != INVALID_HANDLE_VALUE) {
             if (query_dev_property(fh, &tmp_se.qp_descriptor) < 0)
-                fprintf(stderr, "%s: query_dev_property failed\n",
-                        __FUNCTION__ );
+                fprintf(stderr, "%s: query_dev_property failed\n", __func__);
             else
                 tmp_se.qp_descriptor_valid = 1;
             if (query_dev_uid(fh, &tmp_se.qp_uid) < 0) {
                 if (verbose > 2)
-                    fprintf(stderr, "%s: query_dev_uid failed\n",
-                            __FUNCTION__ );
+                    fprintf(stderr, "%s: query_dev_uid failed\n", __func__);
             } else
                 tmp_se.qp_uid_valid = 1;
             hole_count = 0;
@@ -549,7 +543,7 @@ enum_tapes(void)
     struct storage_elem tmp_se;
 
     if (verbose > 2)
-        fprintf(stderr, "%s: enter\n", __FUNCTION__ );
+        fprintf(stderr, "%s: enter\n", __func__);
     for (k = 0; k < MAX_TAPE_NUM; ++k) {
         memset(&tmp_se, 0, sizeof(tmp_se));
         snprintf(adapter_name, sizeof (adapter_name), "\\\\.\\TAPE%d", k);
@@ -559,14 +553,12 @@ enum_tapes(void)
                         OPEN_EXISTING, 0, NULL);
         if (fh != INVALID_HANDLE_VALUE) {
             if (query_dev_property(fh, &tmp_se.qp_descriptor) < 0)
-                fprintf(stderr, "%s: query_dev_property failed\n",
-                        __FUNCTION__ );
+                fprintf(stderr, "%s: query_dev_property failed\n", __func__);
             else
                 tmp_se.qp_descriptor_valid = 1;
             if (query_dev_uid(fh, &tmp_se.qp_uid) < 0) {
                 if (verbose > 2)
-                    fprintf(stderr, "%s: query_dev_uid failed\n",
-                            __FUNCTION__ );
+                    fprintf(stderr, "%s: query_dev_uid failed\n", __func__);
             } else
                 tmp_se.qp_uid_valid = 1;
             hole_count = 0;

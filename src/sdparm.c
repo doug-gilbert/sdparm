@@ -78,7 +78,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static const char * version_str = "1.09 20131031 [svn: r225]";
+static const char * version_str = "1.09 20131123 [svn: r226]";
 
 
 static struct option long_options[] = {
@@ -2179,7 +2179,7 @@ main(int argc, char * argv[])
             if (build_mp_settings(get_str, &mp_settings, &opts, 0, 1))
                 return SG_LIB_SYNTAX_ERROR;
         }
-        if (1 == opts.enumerate) {
+        if (opts.enumerate) {
             if ((num_devices > 0) || set_clear || get_str || opts.save)
                 /* think about --get= with --enumerate */
                 printf("<scsi_device> as well as most options are ignored "
@@ -2278,10 +2278,6 @@ main(int argc, char * argv[])
                 }
             } else      /* given mode page number */
                 enumerate_mitems(pn, spn, pdt, &opts);
-            return 0;
-        } else if (opts.enumerate) {
-            printf("Available commands:\n");
-            sdp_enumerate_commands();
             return 0;
         }
 
