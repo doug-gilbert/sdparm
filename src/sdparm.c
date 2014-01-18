@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2013 Douglas Gilbert.
+ * Copyright (c) 2005-2014 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -78,7 +78,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static const char * version_str = "1.09 20131219 [svn: r229]";
+static const char * version_str = "1.09 20140117 [svn: r230]";
 
 
 static struct option long_options[] = {

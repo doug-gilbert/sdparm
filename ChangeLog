@@ -2,12 +2,12 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.09 [20131219] [svn: r229]
+ChangeLog for sdparm-1.09 [20140117] [svn: r230]
   - decode Third Party Copy VPD page
   - fix manufacturer-assigned serial number VPD page length
   - device id VPD: T10 vendor identification designator clean up
   - standard inquiry response (sinq): add LU_CONG
-  - point svn:externals to rev 522 of sg3_utils
+  - point svn:externals to rev 545 of sg3_utils
   - upgrade automake to version 1.13.3
 
 ChangeLog for sdparm-1.08 [20130606] [svn: r215]
@@ -185,8 +185,8 @@ ChangeLog for sdparm-0.99 [20060708]
 ChangeLog for sdparm-0.98 [20060518]
   - add decode for Medium configuration mode page, "mco" (ssc)
   - sync with SPC-4 rev 04
-  - fix trailing "h" parsing (e.g. "-p 19h,1") 
-  - fix vpd 0x83 designator code 8 name 
+  - fix trailing "h" parsing (e.g. "-p 19h,1")
+  - fix vpd 0x83 designator code 8 name
     - clean vpd 0x83 output format
   - fix tape vpd page 0xb0 and 0xb2 mix-up
   - fix unit serial number vpd length
@@ -247,7 +247,7 @@ ChangeLog for sdparm-0.95 [20050920]
   - process '-p' option last since it depends on '-t' and '-i'
     - output available arguments when '-p' or '-t' arguments
       don't match
-  - fix command line problem with '--dbd', '--defaults' and 
+  - fix command line problem with '--dbd', '--defaults' and
     '--dummy'
 
 ChangeLog for sdparm-0.94 [20050728]
