@@ -9,9 +9,8 @@ Package: sdparm
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Output and modify SCSI device parameters
- The sdparm utility outputs and in some cases modifies SCSI
- device parameters. It can be used to output and modify
- parameters on any device that uses a SCSI command set.
- Apart from SCSI disks, such devices include CD/DVD drives
- (irrespective of transport), SCSI and ATAPI tape drives
- and SCSI enclosures.
+ The sdparm utility outputs and in some cases modifies SCSI device
+ parameters. Apart from SCSI disks, such devices include CD/DVD
+ drives (irrespective of transport), tape drives and SCSI enclosures.
+ Accesses mode and VPD pages. Can also send some media management
+ commands (e.g. to start and stop a hard disk).

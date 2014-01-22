@@ -56,11 +56,14 @@ compatibility level. Amongst other things debian builds are sensitive to
 the value in the debian/compat file. If it contains "7" then it works on
 lenny and gives warning on squeeze (but fails on the earlier etch).
 
-The ./configure script contains two extra options: '--disable-linuxbsg' and
-'--disable-scsistrings'. The former drops Linux bsg driver support which
-should no longer be necessary. The latter option drops asc/ascq and command
-name strings (defined by SCSI) in an attempt to reduce the size of the
-executable.
+The ./configure script supports these extra options:
+  - '--disable-libsgutils' stops the build using the libsgutils library
+    if it is found. Instead the copy of those files found under the
+    include and lib directories is used.
+  - '--disable-linuxbsg' drops Linux bsg driver support. This is only
+    for testing and should no longer be necessary.
+  - '--disable-scsistrings' excludes the asc/ascq and command name strings
+    (defined by SCSI/T10) in an attempt to reduce the size of executables.
 
 License
 -------
@@ -76,7 +79,7 @@ sdparm_data_vendor.c file and is derived from vendor product manuals.
 
 Notes
 -----
-Generic information about building this package (i.e. './configure ; make; 
+Generic information about building this package (i.e. './configure ; make;
 make install') can be found in the INSTALL file. The contents of the COPYING
 file is a FreeBSD license (rather than the GPL v2 found in the usual
 template).
@@ -244,7 +247,7 @@ PD0     [C]     <Ata  >  ST380011A  8.01
 PD1             <Scsi >  SEAGATE   ST373455SS        2189
 PD2             <Scsi >  ATA       ST3160812AS       D
 PD3             <Scsi >  SEAGATE   ST336754SS        0003
-CDROM0  [F]     <Atapi>  HL-DT-ST DVDRAM GSA-4163B  A103 
+CDROM0  [F]     <Atapi>  HL-DT-ST DVDRAM GSA-4163B  A103
 TAPE0           <Scsi >  SONY      SDT-7000          0192
 
 SCSI0:0,0,0   claimed=1 pdt=0h dubious  ST380011  A                 8.01
@@ -257,4 +260,4 @@ SCSI5:0,112,0 claimed=0 pdt=10h         LSI       PSEUDO DEVICE     2.34
 
 
 Douglas Gilbert
-19th December 2013
+22nd January 2014

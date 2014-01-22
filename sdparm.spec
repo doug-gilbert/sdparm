@@ -18,11 +18,11 @@ SCSI disk parameters are held in mode pages. This utility lists or
 changes those parameters. Other SCSI devices (or devices that use
 the SCSI command set) such as CD/DVD and tape drives may also find
 parts of sdparm useful. Requires the linux kernel 2.4 series or later.
-In the 2.6 series any device node the understands a SCSI command set
-may be used (e.g. /dev/sda). In the 2.4 series SCSI device node may be used.
+In the 2.6 series (or later) any device node the understands a SCSI
+command set may be used (e.g. /dev/sda).
 
-Fetches Vital Product Data pages. Can send commands to start or stop
-the media and load or unload removable media.
+Fetches Vital Product Data (VPD) pages. Can send commands to start
+or stop the media and load or unload removable media.
 
 Warning: It is possible (but unlikely) to change SCSI disk settings
 such that the disk stops operating or is slowed down. Use with care.
