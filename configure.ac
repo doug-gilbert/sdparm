@@ -75,8 +75,11 @@ AC_ARG_ENABLE([linuxbsg],
   AC_HELP_STRING([--disable-linuxbsg], [ignore linux bsg (sgv4) if present]),
   [AC_DEFINE_UNQUOTED(IGNORE_LINUX_BSG, 1, [ignore linux bsg], )], [])
 
-AC_CHECK_LIB(sgutils2, sg_ll_inquiry,
-  [SGUTILS_LIBS="-lsgutils2"; have_sgutils=yes], have_sgutils=no)
+AC_ARG_ENABLE([libsgutils],
+  AC_HELP_STRING([--disable-libsgutils], [ignore libsgutils if present]),
+          [have_sgutils=no],
+          [AC_CHECK_LIB(sgutils2, sg_ll_inquiry,
+        [SGUTILS_LIBS="-lsgutils2"; have_sgutils=yes], have_sgutils=no)])
 AC_SUBST(SGUTILS_LIBS)
 AM_CONDITIONAL(HAVE_SGUTILS, test x"$have_sgutils" = xyes)
 
