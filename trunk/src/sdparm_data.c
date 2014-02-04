@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2013 Douglas Gilbert.
+ * Copyright (c) 2005-2014 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1627,7 +1627,7 @@ const char * sdparm_pdt_doc_strs[] = {
     "OSD-2",            /* object based storage */
     "ADC",              /* automation/driver interface */
     "SPC-4",            /* security manager device */
-    "unknown",          /* 0x14 */
+    "ZBC",              /* zoned block commands */
     "unknown", "unknown", "unknown", "unknown",
     "unknown", "unknown", "unknown", "unknown",
     "unknown",          /* 0x1d */
@@ -1690,8 +1690,9 @@ const char * sdparm_network_service_type_arr[] =
     "status",
     "logging",
     "code download",
+    "copy service",
     "administrative configuration service",
-    "reserved[0x7]", "reserved[0x8]", "reserved[0x9]",
+    "reserved[0x8]", "reserved[0x9]",
     "reserved[0xa]", "reserved[0xb]", "reserved[0xc]", "reserved[0xd]",
     "reserved[0xe]", "reserved[0xf]", "reserved[0x10]", "reserved[0x11]",
     "reserved[0x12]", "reserved[0x13]", "reserved[0x14]", "reserved[0x15]",
