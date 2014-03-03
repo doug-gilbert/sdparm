@@ -1383,6 +1383,7 @@ decode_block_dev_chars_vpd(unsigned char * buff, int len)
         printf(": reserved\n");
         break;
     }
+    printf("  HAW_ZBC=%d\n", buff[8] & 0x10);       /* T10/14-018r02 */
     printf("  FUAB=%d\n", buff[8] & 0x2);
     printf("  VBULS=%d\n", buff[8] & 0x1);
     return 0;
