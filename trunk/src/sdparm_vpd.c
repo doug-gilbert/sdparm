@@ -89,12 +89,13 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
             printf("\n");
             break;
         case 3: /* NAA <n> */
+            naa = (ip[0] >> 4) & 0xff;
             if (1 != c_set) {
-                pr2serr("      << unexpected code set %d for NAA>>\n", c_set);
+                pr2serr("      << unexpected code set %d for NAA=%d>>\n",
+                        c_set, naa);
                 dStrHexErr((const char *)ip, i_len, 0);
                 break;
             }
-            naa = (ip[0] >> 4) & 0xff;
             switch (naa) {
             case 2:     /* NAA 2: IEEE Extended */
                 if (8 != i_len) {
@@ -161,7 +162,8 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                 printf("\n");
                 break;
             default:
-                pr2serr("      << unexpected NAA [0x%x]>>\n", naa);
+                pr2serr("      << expected NAA nibble of 2, 3, 5 or 6, got "
+                        "%d>>\n", naa);
                 dStrHexErr((const char *)ip, i_len, 0);
                 break;
             }
@@ -1383,7 +1385,7 @@ decode_block_dev_chars_vpd(unsigned char * buff, int len)
         printf(": reserved\n");
         break;
     }
-    printf("  HAW_ZBC=%d\n", buff[8] & 0x10);       /* T10/14-018r02 */
+    printf("  HAW_ZBC=%d\n", buff[8] & 0x10);       /* sbc4r01 */
     printf("  FUAB=%d\n", buff[8] & 0x2);
     printf("  VBULS=%d\n", buff[8] & 0x1);
     return 0;
