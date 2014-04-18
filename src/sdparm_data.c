@@ -271,7 +271,7 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_SCSI_PORTS, 0, -1, "sp", "SCSI ports"},
     {VPD_SUPPORTED_VPDS, 0, -1, "sv", "Supported VPD pages"},
     {VPD_TA_SUPPORTED, 0, PDT_TAPE, "tas", "TapeAlert supported flags (SSC)"},
-    {VPD_3PARTY_COPY, 0, -1, "tpc", "Third party copy"},
+    {VPD_3PARTY_COPY, 0, -1, "tpc", "Third party copy (SPC + SBC)"},
     {0, 0, 0, NULL, NULL},
 };
 
@@ -1458,6 +1458,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"ITNLT", PROT_SPEC_PORT_MP, 0, -1, 4, 7, 16, MF_COMMON,
         "I_T nexus loss time (ms)",
         "0: vendor specific\t"
+        "2000: recommended in SPL-3\t"
         "0ffffh (-1): never recognize IT nexus loss"},
     {"IRT", PROT_SPEC_PORT_MP, 0, -1, 6, 7, 16, MF_COMMON,
         "Initiator response timeout (ms)",
