@@ -2,13 +2,13 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.09 [20140303] [svn: r234]
+ChangeLog for sdparm-1.09 [20140408] [svn: r235]
   - decode Third Party Copy VPD page
   - fix manufacturer-assigned serial number VPD page length
   - device id VPD: T10 vendor identification designator clean up
-  - block char. VPD: add HAW_ZBC (14-018r02)
+  - block char. VPD: add HAW_ZBC (sbc4r01)
   - standard inquiry response (sinq): add LU_CONG
-  - point svn:externals to rev 557 of sg3_utils
+  - point svn:externals to rev 563 of sg3_utils
   - upgrade automake to version 1.13.3
   - configure: add --disable-libsgutils so build bypasses that
     library if present
