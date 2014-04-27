@@ -333,6 +333,7 @@ void sdp_mp_set_value(uint64_t val, const struct sdparm_mode_page_item *mpi,
 char * sdp_get_ansi_version_str(int version, int buff_len, char * buff);
 char * sdp_get_pdt_doc_str(int version, int buff_len, char * buff);
 int sdp_strcase_eq(const char * s1p, const char * s2p);
+int sdp_strcase_eq_upto(const char * s1p, const char * s2p, int n);
 
 /*
  * Declarations for functions found in sdparm_vpd.c

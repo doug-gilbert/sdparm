@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2012 Douglas Gilbert.
+ * Copyright (c) 2005-2014 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -62,6 +62,33 @@ sdp_strcase_eq(const char * s1p, const char * s2p)
     } while (c1);
     return 1;
 }
+
+/* Returns 1 if strings equal up to the nth character (characters same or only
+ * differ by case), else returns 0. Assumes 7 bit ASCII (English alphabet). */
+int
+sdp_strcase_eq_upto(const char * s1p, const char * s2p, int n)
+{
+    int k, c1, c2;
+
+    for (k = 0; k < n; ++k) {
+        c1 = *s1p++;
+        c2 = *s2p++;
+        if (c1 != c2) {
+            if (c2 >= 'a')
+                c2 = toupper(c2);
+            else if (c1 >= 'a')
+                c1 = toupper(c1);
+            else
+                return 0;
+            if (c1 != c2)
+                return 0;
+        }
+        if (0 == c1)
+            break;
+    }
+    return 1;
+}
+
 
 int
 sdp_get_mp_len(unsigned char * mp)
@@ -245,8 +272,9 @@ sdp_find_vendor_by_acron(const char * ap)
 {
     const struct sdparm_vendor_name_t * vnp;
 
+fprintf(stderr, "boo\n");
     for (vnp = sdparm_vendor_id; vnp->acron; ++vnp) {
-        if (sdp_strcase_eq(vnp->acron, ap))
+        if (sdp_strcase_eq_upto(vnp->acron, ap, strlen(vnp->acron)))
             return vnp;
     }
     return NULL;

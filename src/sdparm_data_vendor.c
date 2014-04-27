@@ -88,10 +88,19 @@ static struct sdparm_mode_page_item sdparm_mitem_v_seagate_arr[] = {
         "SCSI-2 lengths for control and caching mode pages",
         "0: as per recent standards\t"
         "1: SCSI-2 lengths: control, 6; caching, 10"},
+    {"DAR", UNIT_ATTENTION_MP, 0, 0, 3, 7, 1, 0,
+        "Deferred auto reallocation",
+        "0: disabled\t"
+        "1: enabled: unrecoverable read LBA remembered, re-assigned on next "
+        "write"},
     {"SSEEK", UNIT_ATTENTION_MP, 0, 0, 3, 6, 1, 0,
         "Self seek",
         "0: off (normal operating mode)\t"
         "1: enter self seek mode (test power dissipation, acoustics, etc)"},
+    {"VJIT_DIS", UNIT_ATTENTION_MP, 0, 0, 4, 7, 1, 0,
+        "VJIT disabled",
+        "0: follow settings of JIT0, JIT1, JIT2 and JIT3\t"
+        "1: ignore settings of JIT0, JIT1, JIT2 and JIT3"},
     {"JIT3", UNIT_ATTENTION_MP, 0, 0, 4, 3, 1, 0,
         "Just in time 3, slowest seek type",
         "0: can not use this seek type in seek speed algorithm\t"
