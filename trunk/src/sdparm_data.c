@@ -72,7 +72,7 @@ static struct sdparm_mode_descriptor_t sbc_atag_desc = {
 };
 
 /* Mode pages that aren't specific to any transport protocol or vendor.
-   Note that all standard periperal device types are include.
+   Note that all standard peripheral device types are included in this array.
    The pages are listed in acronym alphabetical order. */
 struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
     {ADC_MP, MSP_ADC_DT_DPP, PDT_ADC, 0, "addp",
