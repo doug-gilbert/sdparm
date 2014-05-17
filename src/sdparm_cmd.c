@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2013 Douglas Gilbert.
+ * Copyright (c) 2005-2014 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -162,16 +162,9 @@ do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
             }
             return 0;
         }
-    } else if (SG_LIB_CAT_INVALID_OP == res)
-        pr2serr("Request Sense command not supported\n");
-    else if (SG_LIB_CAT_ILLEGAL_REQ == res)
-        pr2serr("bad field in Request Sense cdb\n");
-    else if (SG_LIB_CAT_NOT_READY == res)
-        pr2serr("Request Sense failed, device not ready\n");
-    else if (SG_LIB_CAT_ABORTED_COMMAND == res)
-        pr2serr("Request Sense failed, aborted command\n");
-    else {
-        pr2serr("Request Sense command failed\n");
+    } else {
+        sg_get_category_sense_str(res, sizeof(b), b, verbose);
+        pr2serr("Request Sense command: %s\n", b);
         if (0 == verbose)
             pr2serr("    try the '-v' option for more information\n");
     }
@@ -180,7 +173,7 @@ do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
 
 /* cmd_arg is kBytes/sec if given (i.e. 1000 bytes per second */
 static int
-do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * opts)
+do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * op)
 {
     int res;
     unsigned int u;
@@ -197,7 +190,7 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * opts)
         else
             kbps = cmd_arg;
         res = sg_ll_set_cd_speed(sg_fd, 0 /* rot_control */, kbps,
-                                 0 /* drv_write_speed */, 1, opts->verbose);
+                                 0 /* drv_write_speed */, 1, op->verbose);
 #else
         memset(perf_desc, 0, sizeof(perf_desc));
         if (0 == cmd_arg)
@@ -226,7 +219,7 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * opts)
         }
         /* performance (type=0), tolerance 10% nominal, read speed */
         res = sg_ll_set_streaming(sg_fd, 0x0 /* type */, perf_desc,
-                                  sizeof(perf_desc), 1, opts->verbose);
+                                  sizeof(perf_desc), 1, op->verbose);
         if (res) {
             if (SG_LIB_CAT_NOT_READY == res)
                 pr2serr("Set Streaming failed, device not ready\n");
@@ -244,30 +237,30 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * opts)
                                     0 /* starting_lba */,
                                     max_num_desc,
                                     0 /* type */, buff, sizeof(buff),
-                                    1, opts->verbose);
+                                    1, op->verbose);
         if (0 == res) {
-            if (opts->verbose) {
+            if (op->verbose) {
                 lba = (((unsigned int)buff[8] << 24) + (buff[9] << 16) +
                        (buff[10] << 8) + buff[11]);
                 printf("starting LBA: %u\n", lba);
             }
             u = (((unsigned int)buff[12] << 24) + (buff[13] << 16) +
                  (buff[14] << 8) + buff[15]);
-            if (opts->quiet)
+            if (op->quiet)
                 printf("%u\n", u);
             else
                 printf("Nominal speed at starting LBA: %u kiloBytes/sec\n",
                        u);
-            if (opts->verbose) {
+            if (op->verbose) {
                 lba = (((unsigned int)buff[16] << 24) + (buff[17] << 16) +
                        (buff[18] << 8) + buff[19]);
                 printf("ending LBA: %u\n", lba);
             }
             u = (((unsigned int)buff[20] << 24) + (buff[21] << 16) +
                  (buff[22] << 8) + buff[23]);
-            if (1 == opts->quiet)
+            if (1 == op->quiet)
                 printf("%u\n", u);
-            else if (0 == opts->quiet)
+            else if (0 == op->quiet)
                 printf("Nominal speed at ending LBA: %u kiloBytes/sec\n",
                        u);
         }
@@ -345,14 +338,14 @@ decode_get_config(unsigned char * resp, int max_resp_len, int len)
 #define MAX_CONFIG_RESPLEN 2048
 
 static int
-do_cmd_profile(int sg_fd, const struct sdparm_opt_coll * opts)
+do_cmd_profile(int sg_fd, const struct sdparm_opt_coll * op)
 {
     int res, len;
     unsigned char resp[MAX_CONFIG_RESPLEN];
 
     /* performance (type=0), tolerance 10% nominal, read speed */
     res = sg_ll_get_config(sg_fd, 0x0 /* rt */, 0 /* starting_lba */,
-                           resp, sizeof(resp), 1, opts->verbose);
+                           resp, sizeof(resp), 1, op->verbose);
     if (0 == res) {
         len = ((unsigned int)resp[0] << 24) + (resp[1] << 16) +
                (resp[2] << 8) + resp[3] + 4;
@@ -427,11 +420,11 @@ sdp_enumerate_commands()
 /* Returns 0 if successful */
 int
 sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp, int cmd_arg,
-                int pdt, const struct sdparm_opt_coll * opts)
+                int pdt, const struct sdparm_opt_coll * op)
 {
     int res, progress;
 
-    if (! (opts->flexible ||
+    if (! (op->flexible ||
           (CMD_READY == scmdp->cmd_num) ||
           (CMD_SENSE == scmdp->cmd_num) ||
           (0 == pdt) || (5 == pdt)) ) {
@@ -442,24 +435,24 @@ sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp, int cmd_arg,
     switch (scmdp->cmd_num)
     {
     case CMD_CAPACITY:
-        res = do_cmd_read_capacity(sg_fd, opts->verbose);
+        res = do_cmd_read_capacity(sg_fd, op->verbose);
         break;
     case CMD_EJECT:
         res = sg_ll_start_stop_unit(sg_fd, 0 /* immed */, 0 /* fl_num */,
                                     0 /* power cond. */, 0 /* fl */,
                                     1 /*loej */, 0 /* start */, 1 /* noisy */,
-                                    opts->verbose);
+                                    op->verbose);
         break;
     case CMD_LOAD:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 1, 1, 1, opts->verbose);
+        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 1, 1, 1, op->verbose);
         break;
     case CMD_PROFILE:
-        res = do_cmd_profile(sg_fd, opts);
+        res = do_cmd_profile(sg_fd, op);
         break;
     case CMD_READY:
         progress = -1;
         res = sg_ll_test_unit_ready_progress(sg_fd, 0, &progress, 0,
-                                             opts->verbose);
+                                             op->verbose);
         if (0 == res)
             printf("Ready\n");
         else {
@@ -471,22 +464,22 @@ sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp, int cmd_arg,
         }
         break;
     case CMD_SENSE:
-        res = do_cmd_sense(sg_fd, opts->hex, opts->quiet, opts->verbose);
+        res = do_cmd_sense(sg_fd, op->hex, op->quiet, op->verbose);
         break;
     case CMD_SPEED:
-        res = do_cmd_speed(sg_fd, cmd_arg, opts);
+        res = do_cmd_speed(sg_fd, cmd_arg, op);
         break;
     case CMD_START:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 0, 1, 1, opts->verbose);
+        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 0, 1, 1, op->verbose);
         break;
     case CMD_STOP:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 0, 0, 1, opts->verbose);
+        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 0, 0, 1, op->verbose);
         break;
     case CMD_SYNC:
-        res = sg_ll_sync_cache_10(sg_fd, 0, 0, 0, 0, 0, 1, opts->verbose);
+        res = sg_ll_sync_cache_10(sg_fd, 0, 0, 0, 0, 0, 1, op->verbose);
         break;
     case CMD_UNLOCK:
-        res = sg_ll_prevent_allow(sg_fd, 0, 1, opts->verbose);
+        res = sg_ll_prevent_allow(sg_fd, 0, 1, op->verbose);
         break;
     default:
         pr2serr("unknown cmd number [%d]\n", scmdp->cmd_num);
