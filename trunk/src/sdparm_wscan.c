@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2013 Douglas Gilbert.
+ * Copyright (c) 2006-2014 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,16 @@
 
 #include "sg_lib.h"
 
+#ifdef _WIN32_WINNT
+ #if _WIN32_WINNT < 0x0602
+ #undef _WIN32_WINNT
+ #define _WIN32_WINNT 0x0602
+ #endif
+#else
 #define _WIN32_WINNT 0x0602
+/* claim its W8 */
+#endif
+
 #include "sg_pt_win32.h"
 
 /*
@@ -302,6 +311,8 @@ query_dev_uid(HANDLE hdevice,
     return 0;
 }
 
+/* Updates storage_arr based on sep. Returns 1 if update occurred, 0 if
+ * no update occured. */
 static int
 check_devices(const struct storage_elem * sep)
 {
@@ -311,7 +322,18 @@ check_devices(const struct storage_elem * sep)
     for (k = 0; k < next_unused_elem; ++k, ++sarr) {
         if ('\0' == sarr->name[0])
             continue;
-        if (sep->qp_descriptor_valid && sarr->qp_descriptor_valid) {
+        if (sep->qp_uid_valid && sarr->qp_uid_valid) {
+            if (0 == memcmp(&sep->qp_uid, &sarr->qp_uid,
+                            sizeof(sep->qp_uid))) {
+                for (j = 0; j < (int)sizeof(sep->volume_letters); ++j) {
+                    if ('\0' == sarr->volume_letters[j]) {
+                        sarr->volume_letters[j] = sep->name[0];
+                        break;
+                    }
+                }
+                return 1;
+            }
+        } else if (sep->qp_descriptor_valid && sarr->qp_descriptor_valid) {
             if (0 == memcmp(&sep->qp_descriptor, &sarr->qp_descriptor,
                             sizeof(sep->qp_descriptor))) {
                 for (j = 0; j < (int)sizeof(sep->volume_letters); ++j) {
@@ -323,7 +345,6 @@ check_devices(const struct storage_elem * sep)
                 return 1;
             }
         }
-        // should do uid check here (probably before descriptor compare)
     }
     return 0;
 }
@@ -636,6 +657,10 @@ do_wscan(char letter, int show_bt, int scsi_scan)
                     dStrHex(sp->qp_descriptor.raw, 144, 0);
             } else
                 printf("\n");
+            if ((verbose > 3) && sp->qp_uid_valid) {
+                printf("  UID valid, in hex:\n");
+                dStrHex(sp->qp_uid.raw, sizeof(sp->qp_uid.raw), 1);
+            }
         }
     }
 
