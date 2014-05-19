@@ -218,7 +218,8 @@ when a mode page is being modified (by using the \fI\-\-clear=STR\fR and/or
 current values mode page. When this option is given then the corresponding
 value(s) in the saved values mode page is also changed. The next time the
 device is power cycled (or reset) the saved values mode page becomes (i.e. is
-copied to) the current values mode page. See NOTES section below.
+copied to) the current values mode page. This option sets the SP field in
+the MODE SELECT command. See NOTES section below.
 .TP
 \fB\-s\fR, \fB\-\-set\fR=\fISTR\fR
 in its simplest form \fISTR\fR contains a field acronym_name or a field
@@ -264,8 +265,8 @@ is added. When used four times only a SCSI adapter scan is shown.
 See examples below and the "Win32 port" section in the README file.
 .SH NOTES
 The reference document used for interpreting mode and VPD pages (and the
-INQUIRY standard response) is T10/1713\-D Revision 36k (SPC\-4, 8 October
-2013) found at http://www.t10.org . Obsolete and reserved items in the
+INQUIRY standard response) is T10/1713\-D Revision 37 (SPC\-4, 17 May
+2014) found at http://www.t10.org . Obsolete and reserved items in the
 standard INQUIRY response output are displayed in brackets. Recent drafts
 of other T10 documents are also used: SBC\-4 (disks), SSC\-4 (tapes),
 SPL\-3 (SAS transport) and SAT\-3 (SCSI to ATA Translation).
