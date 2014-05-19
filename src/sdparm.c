@@ -78,7 +78,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static const char * version_str = "1.09 20140517 [svn: r238]";
+static const char * version_str = "1.09 20140520 [svn: r239]";
 
 
 static struct option long_options[] = {
@@ -1290,8 +1290,8 @@ change_mode_page(int sg_fd, int pdt,
         return 0;
     }
     if (op->mode_6)
-        res = sg_ll_mode_select6(sg_fd, 1, op->save, mdpg, md_len, 1,
-                                 op->verbose);
+        res = sg_ll_mode_select6(sg_fd, 1 /* PF */, op->save, mdpg, md_len,
+                                 1, op->verbose);
     else
         res = sg_ll_mode_select10(sg_fd, 1, op->save, mdpg, md_len, 1,
                                   op->verbose);
@@ -1366,7 +1366,7 @@ set_def_mode_page(int sg_fd, int pn, int spn, unsigned char * mode_pg,
         goto err_out;
     }
     if (op->mode_6)
-        ret = sg_ll_mode_select6(sg_fd, 1, op->save, mdp, md_len, 1,
+        ret = sg_ll_mode_select6(sg_fd, 1 /* PF */, op->save, mdp, md_len, 1,
                                  op->verbose);
     else
         ret = sg_ll_mode_select10(sg_fd, 1, op->save, mdp, md_len, 1,

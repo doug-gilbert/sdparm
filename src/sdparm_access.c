@@ -272,7 +272,6 @@ sdp_find_vendor_by_acron(const char * ap)
 {
     const struct sdparm_vendor_name_t * vnp;
 
-fprintf(stderr, "boo\n");
     for (vnp = sdparm_vendor_id; vnp->acron; ++vnp) {
         if (sdp_strcase_eq_upto(vnp->acron, ap, strlen(vnp->acron)))
             return vnp;

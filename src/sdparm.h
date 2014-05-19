@@ -127,6 +127,7 @@ extern "C" {
 #define VENDOR_HITACHI 0x1
 #define VENDOR_MAXTOR 0x2
 #define VENDOR_FUJITSU 0x3
+#define VENDOR_IBM 0x4
 
 /* bit flag settings for sdparm_mode_page_item::flags */
 #define MF_COMMON 0x1   /* output in summary mode */

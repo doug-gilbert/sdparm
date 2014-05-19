@@ -28,6 +28,7 @@
  */
 
 #include <stdlib.h>
+#include "sg_lib.h"
 #include "sdparm.h"
 
 
@@ -46,6 +47,7 @@ struct sdparm_vendor_name_t sdparm_vendor_id[] = {
     {VENDOR_HITACHI, "hit", "Hitachi disk"},
     {VENDOR_MAXTOR, "max", "Maxtor disk"},
     {VENDOR_FUJITSU, "fuj", "Fujitsu disk"},
+    {VENDOR_IBM, "ibm", "IBM (ultium) tape drive"},
     {0, NULL, NULL},
 };
 
@@ -172,6 +174,7 @@ static struct sdparm_mode_page_item sdparm_mitem_v_hitachi_arr[] = {
 static struct sdparm_mode_page_t sdparm_v_maxtor_mode_pg[] = {
     {UNIT_ATTENTION_MP, 0, 0, 0, "uac", "Unit attention condition (maxtor)",
         NULL},
+
     {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
@@ -179,11 +182,14 @@ static struct sdparm_mode_page_item sdparm_mitem_v_maxtor_arr[] = {
     /* Unit attention page [0x0] Seagate */
     {"DUA", UNIT_ATTENTION_MP, 0, 0, 2, 4, 1, MF_COMMON,
         "Disable unit attention", NULL},
+
+    {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
 };
 
 static struct sdparm_mode_page_t sdparm_v_fujitsu_mode_pg[] = {
     {0x21, 0, 0, 0, "aerp", "Additional error recovery parameters (fujitsu)",
         NULL},
+
     {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
@@ -191,6 +197,55 @@ static struct sdparm_mode_page_item sdparm_mitem_v_fujitsu_arr[] = {
     /* Additional error recovery parameters page [0x21] Fujitsu */
     {"RDSE", 0x21, 0, 0, 2, 3, 4, MF_COMMON,
         "Retries during a seek error", "0: no repositioning retries"},
+
+    {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
+};
+
+static struct sdparm_mode_page_t sdparm_v_ibm_mode_pg[] = {
+    {0x24, 0, PDT_TAPE, 0, "ibmvs", "Vendor specific (ibm)",
+        NULL},
+    {0x2f, 0, PDT_TAPE, 0, "ibmbc", "Behaviour configuration (ibm)",
+        NULL},
+    /* Device attribute settings [0x30] IBM */
+
+    {0, 0, 0, 0, NULL, NULL, NULL},
+};
+
+static struct sdparm_mode_page_item sdparm_mitem_v_ibm_arr[] = {
+    /* Vendor specific page [0x24] IBM */
+    {"ENCR_E", 0x24, 0, 0, 7, 3, 1, MF_COMMON,
+        "Encryption enable", NULL},
+    {"FIPS", 0x24, 0, 0, 7, 1, 1, MF_COMMON,
+        "FIPS level of code", NULL},
+    {"ENCR_C", 0x24, 0, 0, 7, 0, 1, MF_COMMON,
+        "Encryption capable", NULL},
+    /* Behaviour configuration [0x2f] IBM */
+    {"FE_BEH", 0x2f, 0, 0, 2, 7, 8, MF_COMMON,
+        "Fence behaviour", NULL},
+    {"CL_BEH", 0x2f, 0, 0, 3, 7, 8, MF_COMMON,
+        "Clean behaviour", NULL},
+    {"WO_BEH", 0x2f, 0, 0, 4, 7, 8, MF_COMMON,
+        "Worm behaviour", NULL},
+    {"SD_BEH", 0x2f, 0, 0, 5, 7, 8, MF_COMMON,
+        "Sense data behaviour", NULL},
+    {"CCDM", 0x2f, 0, 0, 6, 2, 1, MF_COMMON,
+        "Check condition for dead media", NULL},
+    {"DDEOR", 0x2f, 0, 0, 6, 1, 1, MF_COMMON,
+        "Disable deferred error on rewind", NULL},
+    {"CLNCHK", 0x2f, 0, 0, 6, 0, 1, MF_COMMON,
+        "Clean check", NULL},
+    {"DFMRDL", 0x2f, 0, 0, 7, 0, 1, MF_COMMON,
+        "Disable field microcode replacement down level", NULL},
+    {"UOE_C", 0x2f, 0, 0, 8, 5, 2, MF_COMMON,
+        "Unload on error - cleaner", NULL},
+    {"UOE_F", 0x2f, 0, 0, 8, 3, 2, MF_COMMON,
+        "Unload on error - FMR", NULL},
+    {"UOE_D", 0x2f, 0, 0, 8, 1, 2, MF_COMMON,
+        "Unload on error - data", NULL},
+    {"TA10", 0x2f, 0, 0, 9, 0, 1, MF_COMMON,
+        "Tape alert 10h", NULL},
+
+    {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
 };
 
 /* Indexed by VENDOR_* define */
@@ -199,6 +254,7 @@ struct sdparm_vendor_pair sdparm_vendor_mp[] = {
     {sdparm_v_hitachi_mode_pg, sdparm_mitem_v_hitachi_arr},
     {sdparm_v_maxtor_mode_pg, sdparm_mitem_v_maxtor_arr},
     {sdparm_v_fujitsu_mode_pg, sdparm_mitem_v_fujitsu_arr},
+    {sdparm_v_ibm_mode_pg, sdparm_mitem_v_ibm_arr},
 };
 
 int sdparm_vendor_mp_len =

@@ -1426,15 +1426,25 @@ static struct sdparm_mode_page_item sdparm_mitem_srp_arr[] = {
 
 static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     /* disconnect-reconnect mode page [0x2] sas/spl */
+    /* spl3r6 dropped the "time" from the name of BITL, keep acronym */
     {"BITL", DISCONNECT_MP, 0, -1, 4, 7, 16, MF_COMMON,
-        "Bus inactivity time limit (100us)", NULL},
+        "Bus inactivity (time) limit (100us)",
+        "0: no bus inactivity time limit\t"
+        "1-65535: limit in units of 100 us"},
     {"MCTL", DISCONNECT_MP, 0, -1, 8, 7, 16, MF_COMMON,
-        "Maximum connect time limit (100us)", NULL},
+        "Connect time limit (100us)",
+        "0: no maximum connection time limit\t"
+        "1-65535: limit in units of 100 us"},
     {"MBS", DISCONNECT_MP, 0, -1, 10, 7, 16, MF_COMMON | MF_CLASH_OK,
-        "Maximum burst size (512 bytes)", NULL},
+        "Maximum burst size (512 bytes)",
+        "0: no maximum burst size\t"
+        "1-65535: limit in units of 512 bytes\t"
+        "Ignored by persistent connections"},
         /* obsoleted spl3r2, re-instated spl3r3 */
     {"FBS", DISCONNECT_MP, 0, -1, 14, 7, 16, MF_CLASH_OK,
-        "First burst size (512 bytes)", NULL},
+        "First burst size (512 bytes)",
+        "0: no first burst size (no data-out before xfer_ready)\t"
+        "1-65535: maximum first burst size in units of 512 bytes"},
 
     /* protocol specific logical unit mode page [0x18] sas/spl */
     {"LUPID", PROT_SPEC_LU_MP, 0, -1, 2, 3, 4, MF_COMMON | MF_CLASH_OK,

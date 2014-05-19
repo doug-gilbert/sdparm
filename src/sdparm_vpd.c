@@ -43,6 +43,7 @@
  * INQUIRY SCSI command.
  */
 
+/* VPD_DEVICE_ID  0x83 */
 /* Prints outs an abridged set of device identification designators
    selected by association, designator type and/or code set. */
 static int
@@ -524,6 +525,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
     }
 }
 
+/* VPD_DEVICE_ID  0x83 */
 /* Prints outs device identification designators selected by association,
    designator type and/or code set. */
 static int
@@ -564,7 +566,7 @@ decode_dev_ids(const char * print_if_found, unsigned char * buff, int len,
     return 0;
 }
 
-/* VPD_MODE_PG_POLICY */
+/* VPD_MODE_PG_POLICY   0x87 */
 static int
 decode_mode_policy_vpd(unsigned char * buff, int len)
 {
@@ -595,7 +597,7 @@ decode_mode_policy_vpd(unsigned char * buff, int len)
     return 0;
 }
 
-/* VPD_MAN_NET_ADDR */
+/* VPD_MAN_NET_ADDR  0x85 */
 static int
 decode_man_net_vpd(unsigned char * buff, int len)
 {
@@ -720,7 +722,7 @@ decode_rod_descriptor(const unsigned char * buff, int len)
     }
 }
 
-/* VPD_3PARTY_COPY (3PC, THIRD PARTY COPY, SPC-4, SBC-3) */
+/* VPD_3PARTY_COPY (3PC, THIRD PARTY COPY, SPC-4, SBC-3)  0x8f */
 static void
 decode_3party_copy_vpd(unsigned char * buff, int len, int do_hex, int verbose)
 {
@@ -891,7 +893,7 @@ decode_3party_copy_vpd(unsigned char * buff, int len, int do_hex, int verbose)
 }
 
 
-/* VPD_PROTO_LU */
+/* VPD_PROTO_LU  0x90 */
 static int
 decode_proto_lu_vpd(unsigned char * buff, int len)
 {
@@ -932,7 +934,7 @@ decode_proto_lu_vpd(unsigned char * buff, int len)
     return 0;
 }
 
-/* VPD_PROTO_PORT */
+/* VPD_PROTO_PORT  0x91 */
 static int
 decode_proto_port_vpd(unsigned char * buff, int len)
 {
@@ -964,7 +966,7 @@ decode_proto_port_vpd(unsigned char * buff, int len)
                 printf(" pwr_d_s=%d\n", !!(ucp[3] & 0x1));
                 pidp = ucp + 8;
                 for (j = 0; j < desc_len; j += 4, pidp += 4)
-                    printf("  phy id=%d, ssp persistent capable=%d\n",
+                    printf("  phy id=%d, SSP persistent capable=%d\n",
                            pidp[1], (0x1 & pidp[2]));
                 break;
             default:
@@ -977,7 +979,7 @@ decode_proto_port_vpd(unsigned char * buff, int len)
     return 0;
 }
 
-/* VPD_SCSI_PORTS */
+/* VPD_SCSI_PORTS  0x88 */
 static int
 decode_scsi_ports_vpd(unsigned char * buff, int len, int long_out, int quiet)
 {
@@ -1028,7 +1030,7 @@ decode_scsi_ports_vpd(unsigned char * buff, int len, int long_out, int quiet)
     return 0;
 }
 
-/* VPD_EXT_INQ  Extended Inquiry page */
+/* VPD_EXT_INQ  Extended Inquiry page  0x86 */
 static int
 decode_ext_inq_vpd(unsigned char * b, int len, int long_out, int protect)
 {
@@ -1129,7 +1131,7 @@ decode_ext_inq_vpd(unsigned char * b, int len, int long_out, int protect)
     return 0;
 }
 
-/* VPD_ATA_INFO */
+/* VPD_ATA_INFO  0x89 */
 static int
 decode_ata_info_vpd(unsigned char * buff, int len, int long_out, int do_hex)
 {
@@ -1188,7 +1190,7 @@ decode_ata_info_vpd(unsigned char * buff, int len, int long_out, int do_hex)
     return 0;
 }
 
-/* VPD_POWER_CONDITION */
+/* VPD_POWER_CONDITION  0x8a */
 static int
 decode_power_condition(unsigned char * buff, int len)
 {
@@ -1226,7 +1228,7 @@ static const char * power_unit_arr[] =
     "Unit reserved",
 };
 
-/* VPD_POWER_CONSUMPTION */
+/* VPD_POWER_CONSUMPTION   0x8d */
 static int
 decode_power_consumption_vpd(unsigned char * buff, int len)
 {
@@ -1260,7 +1262,7 @@ decode_power_consumption_vpd(unsigned char * buff, int len)
     return 0;
 }
 
-/* VPD_BLOCK_LIMITS */
+/* VPD_BLOCK_LIMITS  0xb0 */
 static int
 decode_block_limits_vpd(unsigned char * buff, int len)
 {
@@ -1330,7 +1332,7 @@ static const char * product_type_arr[] =
     "Universal Flash Storage Card (UFS)",
 };
 
-/* VPD_BLOCK_DEV_CHARS */
+/* VPD_BLOCK_DEV_CHARS  0xb1 */
 static int
 decode_block_dev_chars_vpd(unsigned char * buff, int len)
 {
@@ -1391,7 +1393,7 @@ decode_block_dev_chars_vpd(unsigned char * buff, int len)
     return 0;
 }
 
-/* VPD_SA_DEV_CAP */
+/* VPD_SA_DEV_CAP  0xb0 */
 static int
 decode_tape_dev_caps_vpd(unsigned char * buff, int len)
 {
@@ -1404,7 +1406,7 @@ decode_tape_dev_caps_vpd(unsigned char * buff, int len)
     return 0;
 }
 
-/* VPD_MAN_ASS_SN */
+/* VPD_MAN_ASS_SN  0xb1 */
 static int
 decode_tape_man_ass_sn_vpd(unsigned char * buff, int len)
 {
@@ -1418,7 +1420,7 @@ decode_tape_man_ass_sn_vpd(unsigned char * buff, int len)
     return 0;
 }
 
-/* VPD_LB_PROVISIONING [0xb2] */
+/* VPD_LB_PROVISIONING  0xb2 */
 static int
 decode_block_lb_prov_vpd(unsigned char * b, int len)
 {
@@ -1457,7 +1459,7 @@ decode_block_lb_prov_vpd(unsigned char * b, int len)
     return 0;
 }
 
-/* VPD_TA_SUPPORTED */
+/* VPD_TA_SUPPORTED  0xb2 */
 static int
 decode_tapealert_supported_vpd(unsigned char * b, int len)
 {
@@ -1500,7 +1502,7 @@ decode_tapealert_supported_vpd(unsigned char * b, int len)
     return 0;
 }
 
-/* VPD_REFERRALS */
+/* VPD_REFERRALS  0xb3 */
 static int
 decode_referrals_vpd(unsigned char * b, int len)
 {
@@ -1539,6 +1541,7 @@ const char * sg_ansi_version_arr[] =
     "reserved [Fh]",
 };
 
+/* Hack: use vpd page=-1 to indicate want standard INQUIRY response */
 static int
 decode_std_inq(int sg_fd, const struct sdparm_opt_coll * op)
 {
@@ -1644,7 +1647,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         pdt = dev_pdt;
 
     switch (pn) {
-    case VPD_SUPPORTED_VPDS:
+    case VPD_SUPPORTED_VPDS:    /* 0x0 */
         if (b[1] != pn)
             goto dumb_inq;
         len = (b[2] << 8) + b[3];       /* spc4r25 */
@@ -1668,7 +1671,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         } else
             printf("  <empty>\n");
         break;
-    case VPD_ATA_INFO:
+    case VPD_ATA_INFO:          /* 0x89 */
         if (b[1] != pn)
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
@@ -1693,7 +1696,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (res)
             return res;
         break;
-    case VPD_DEVICE_ID:
+    case VPD_DEVICE_ID:         /* 0x83 */
         if (b[1] != pn)
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
@@ -1728,7 +1731,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (res)
             return res;
         break;
-    case VPD_EXT_INQ:
+    case VPD_EXT_INQ:           /* 0x86 */
         if (b[1] != pn)
             goto dumb_inq;
         len = (b[2] << 8) + b[3];   /* spc4r25 */
@@ -1748,7 +1751,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (res)
             return res;
         break;
-    case VPD_MAN_NET_ADDR:
+    case VPD_MAN_NET_ADDR:              /* 0x85 */
         if (b[1] != pn)
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
@@ -1769,7 +1772,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (res)
             return res;
         break;
-    case VPD_MODE_PG_POLICY:
+    case VPD_MODE_PG_POLICY:            /* 0x87 */
         if (b[1] != pn)
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
@@ -1789,7 +1792,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (res)
             return res;
         break;
-    case VPD_POWER_CONDITION:
+    case VPD_POWER_CONDITION:           /* 0x8a */
         if (b[1] != pn)
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
@@ -1809,7 +1812,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (res)
             return res;
         break;
-    case VPD_POWER_CONSUMPTION:
+    case VPD_POWER_CONSUMPTION:         /* 0x8d */
         if (b[1] != pn)
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
@@ -1829,7 +1832,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (res)
             return res;
         break;
-    case VPD_PROTO_LU:
+    case VPD_PROTO_LU:                  /* 0x90 */
         if (b[1] != pn)
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
@@ -1851,7 +1854,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (res)
             return res;
         break;
-    case VPD_PROTO_PORT:
+    case VPD_PROTO_PORT:                /* 0x91 */
         if (b[1] != pn)
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
@@ -1873,7 +1876,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (res)
             return res;
         break;
-    case VPD_SCSI_PORTS:
+    case VPD_SCSI_PORTS:                /* 0x88 */
         if (b[1] != pn)
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
@@ -1893,7 +1896,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (res)
             return res;
         break;
-    case VPD_SOFTW_INF_ID:
+    case VPD_SOFTW_INF_ID:              /* 0x84 */
         if (b[1] != pn)
             goto dumb_inq;
         len = (b[2] << 8) + b[3];       /* spc4r25 */
@@ -1916,7 +1919,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
                    "id: 0x%06x\n", (up[0] << 16) | (up[1] << 8) | up[2],
                    (up[3] << 16) | (up[4] << 8) | up[5]);
         break;
-    case VPD_UNIT_SERIAL_NUM:
+    case VPD_UNIT_SERIAL_NUM:           /* 0x80 */
         if (b[1] != pn)
             goto dumb_inq;
         len = (b[2] << 8) + b[3];       /* spc4r25 */
@@ -1935,7 +1938,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         } else
             printf("  <empty>\n");
         break;
-    case VPD_3PARTY_COPY:
+    case VPD_3PARTY_COPY:               /* 0x8f */
         if (b[1] != pn)
             goto dumb_inq;
         len = (b[2] << 8) + b[3];       /* spc4r25 */
