@@ -47,7 +47,8 @@ struct sdparm_vendor_name_t sdparm_vendor_id[] = {
     {VENDOR_HITACHI, "hit", "Hitachi disk"},
     {VENDOR_MAXTOR, "max", "Maxtor disk"},
     {VENDOR_FUJITSU, "fuj", "Fujitsu disk"},
-    {VENDOR_IBM, "ibm", "IBM (ultium) tape drive"},
+    {VENDOR_LTO5, "lto5", "LTO-5 tape drive (IBM)"},
+    {VENDOR_LTO6, "lto6", "LTO-6 tape drive (IBM)"},
     {0, NULL, NULL},
 };
 
@@ -201,25 +202,25 @@ static struct sdparm_mode_page_item sdparm_mitem_v_fujitsu_arr[] = {
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
 };
 
-static struct sdparm_mode_page_t sdparm_v_ibm_mode_pg[] = {
-    {0x24, 0, PDT_TAPE, 0, "ibmvs", "Vendor specific (ibm)",
+static struct sdparm_mode_page_t sdparm_v_lto5_mode_pg[] = {
+    {0x24, 0, PDT_TAPE, 0, "l5vs", "Vendor specific (LTO-5)",
         NULL},
-    {0x2f, 0, PDT_TAPE, 0, "ibmbc", "Behaviour configuration (ibm)",
+    {0x2f, 0, PDT_TAPE, 0, "l5bc", "Behaviour configuration (LTO-5)",
         NULL},
-    /* Device attribute settings [0x30] IBM */
+    /* Device attribute settings [0x30] LTO-5 */
 
     {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
-static struct sdparm_mode_page_item sdparm_mitem_v_ibm_arr[] = {
-    /* Vendor specific page [0x24] IBM */
+static struct sdparm_mode_page_item sdparm_mitem_v_lto5_arr[] = {
+    /* Vendor specific page [0x24] LTO-5 */
     {"ENCR_E", 0x24, 0, 0, 7, 3, 1, MF_COMMON,
         "Encryption enable", NULL},
     {"FIPS", 0x24, 0, 0, 7, 1, 1, MF_COMMON,
         "FIPS level of code", NULL},
     {"ENCR_C", 0x24, 0, 0, 7, 0, 1, MF_COMMON,
         "Encryption capable", NULL},
-    /* Behaviour configuration [0x2f] IBM */
+    /* Behaviour configuration [0x2f] LTO-5 */
     {"FE_BEH", 0x2f, 0, 0, 2, 7, 8, MF_COMMON,
         "Fence behaviour", NULL},
     {"CL_BEH", 0x2f, 0, 0, 3, 7, 8, MF_COMMON,
@@ -248,13 +249,32 @@ static struct sdparm_mode_page_item sdparm_mitem_v_ibm_arr[] = {
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
 };
 
+static struct sdparm_mode_page_t sdparm_v_lto6_mode_pg[] = {
+    /* Serial number override vendor unique [snovu ?] [0x3b] LTO-6 */
+    {0x3b, 0, PDT_TAPE, 0, "snov", "Serial number override vendor unique "
+     "(LTO-6)", NULL},
+    {0x3c, 0, PDT_TAPE, 0, "dtim", "Device time (LTO-6)", NULL},
+    {0x3d, 0, PDT_TAPE, 0, "ervu", "Extended reset vendor unique (LTO-6)",
+     NULL},
+
+    {0, 0, 0, 0, NULL, NULL, NULL},
+};
+
+static struct sdparm_mode_page_item sdparm_mitem_v_lto6_arr[] = {
+
+    /* To be added xxxx */
+    {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
+};
+
 /* Indexed by VENDOR_* define */
 struct sdparm_vendor_pair sdparm_vendor_mp[] = {
     {sdparm_v_seagate_mode_pg, sdparm_mitem_v_seagate_arr},
     {sdparm_v_hitachi_mode_pg, sdparm_mitem_v_hitachi_arr},
     {sdparm_v_maxtor_mode_pg, sdparm_mitem_v_maxtor_arr},
     {sdparm_v_fujitsu_mode_pg, sdparm_mitem_v_fujitsu_arr},
-    {sdparm_v_ibm_mode_pg, sdparm_mitem_v_ibm_arr},
+    {NULL, NULL},       /* hole in sequence, re-use asap */
+    {sdparm_v_lto5_mode_pg, sdparm_mitem_v_lto5_arr},
+    {sdparm_v_lto6_mode_pg, sdparm_mitem_v_lto6_arr},
 };
 
 int sdparm_vendor_mp_len =
