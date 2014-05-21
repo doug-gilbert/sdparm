@@ -2206,7 +2206,7 @@ main(int argc, char * argv[])
                         enumerate_mpages(op->transport, op->vendor);
                     }
                 } else {        /* neither vendor nor transport given */
-                    if (op->long_out) {
+                    if (op->long_out || (op->enumerate > 1)) {
                         printf("Mode pages (not related to any transport "
                                "protocol or vendor):\n");
                         enumerate_mpages(-1, -1);
@@ -2236,7 +2236,7 @@ main(int argc, char * argv[])
                             for (k = 0; k < sdparm_vendor_mp_len; ++k) {
                                 ccp = sdp_get_vendor_name(k);
                                 if (NULL == ccp)
-                                    break;
+                                    continue;
                                 printf("\n");
                                 printf("Mode pages for %s vendor:\n", ccp);
                                 t_opts.transport = -1;
@@ -2256,7 +2256,7 @@ main(int argc, char * argv[])
                             for (k = 0; k < sdparm_vendor_mp_len; ++k) {
                                 ccp = sdp_get_vendor_name(k);
                                 if (NULL == ccp)
-                                    break;
+                                    continue;
                                 printf("\n");
                                 printf("Mode pages for %s vendor:\n", ccp);
                                 enumerate_mpages(-1, k);
