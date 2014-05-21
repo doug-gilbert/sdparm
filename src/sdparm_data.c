@@ -290,8 +290,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"RC", RW_ERR_RECOVERY_MP, 0, -1, 2, 4, 1, 0,
         "Read continuous", "0: error recovery may cause delays\t"
         "1: transfer data without waiting for error recovery"},
-    {"EER", RW_ERR_RECOVERY_MP, 0, -1, 2, 3, 1, 0,
-        "Enable early recovery",
+    {"EER", RW_ERR_RECOVERY_MP, 0, -1, 2, 3, 1, 0,  /* obsoleted in sbc4r02 */
+        "Enable early recovery (obsolete)",
         "1: increase chance of mis-detection or mis-correction of error"},
     {"PER", RW_ERR_RECOVERY_MP, 0, -1, 2, 2, 1, MF_COMMON,
         "Post error", "0: do not post recovered errors\t"
@@ -299,8 +299,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"DTE", RW_ERR_RECOVERY_MP, 0, -1, 2, 1, 1, 0,
         "Data terminate on error",
         "1: terminate data transfer when recovered error detected"},
-    {"DCR", RW_ERR_RECOVERY_MP, 0, -1, 2, 0, 1, 0,
-        "Disable correction", NULL},
+    {"DCR", RW_ERR_RECOVERY_MP, 0, -1, 2, 0, 1, 0,  /* obsoleted in sbc4r02 */
+        "Disable correction (obsolete)", NULL},
     {"RRC", RW_ERR_RECOVERY_MP, 0, -1, 3, 7, 8, 0,
         "Read retry count", NULL},
     {"COR_S", RW_ERR_RECOVERY_MP, 0, -1, 4, 7, 8, 0,
