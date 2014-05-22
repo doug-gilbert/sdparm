@@ -1317,6 +1317,17 @@ decode_block_limits_vpd(unsigned char * buff, int len)
         }
         printf("  Maximum write same length: 0x%" PRIx64 " blocks\n", mwsl);
     }
+    if (len > 44) {     /* added in sbc4r02 */
+        u = ((unsigned int)buff[44] << 24) | (buff[45] << 16) |
+            (buff[46] << 8) | buff[47];
+        printf("  Maximum atomic transfer length: %u\n", u);
+        u = ((unsigned int)buff[48] << 24) | (buff[49] << 16) |
+            (buff[50] << 8) | buff[51];
+        printf("  Atomic alignment: %u\n", u);
+        u = ((unsigned int)buff[52] << 24) | (buff[53] << 16) |
+            (buff[54] << 8) | buff[55];
+        printf("  Atomic transfer length granularity: %u\n", u);
+    }
     return 0;
 }
 
@@ -1517,6 +1528,106 @@ decode_referrals_vpd(unsigned char * b, int len)
     u = ((unsigned int)b[12] << 24) | (b[13] << 16) |
         (b[14] << 8) | b[15];
     printf("  User data segment multiplier: %u\n", u);
+    return 0;
+}
+
+/* VPD_SUP_BLOCK_LENS  0xb4  [added sbc4r01] */
+static int
+decode_sup_block_lens_vpd(unsigned char * buff, int len)
+{
+    int k;
+    unsigned int u;
+    unsigned char * ucp;
+
+    if (len < 4) {
+        pr2serr("Supported block lengths and protection types VPD page "
+                "length too short=%d\n", len);
+        return SG_LIB_CAT_MALFORMED;
+    }
+    len -= 4;
+    ucp = buff + 4;
+    for (k = 0; k < len; k += 8, ucp += 8) {
+        u = ((unsigned int)ucp[0] << 24) | (ucp[1] << 16) | (ucp[2] << 8) |
+            ucp[3];
+        printf("  Logical block length: %u\n", u);
+        printf("    P_I_I_SUP: %d\n", !!(ucp[4] & 0x40));
+        printf("    GRD_CHK: %d\n", !!(ucp[4] & 0x4));
+        printf("    APP_CHK: %d\n", !!(ucp[4] & 0x2));
+        printf("    REF_CHK: %d\n", !!(ucp[4] & 0x1));
+        printf("    T3PS_SUP: %d\n", !!(ucp[5] & 0x8));
+        printf("    T2PS_SUP: %d\n", !!(ucp[5] & 0x4));
+        printf("    T1PS_SUP: %d\n", !!(ucp[5] & 0x2));
+        printf("    T0PS_SUP: %d\n", !!(ucp[5] & 0x1));
+    }
+    return 0;
+}
+
+/* VPD_BLOCK_DEV_C_EXTENS  0xb5  [added sbc4r02] */
+static int
+decode_block_dev_char_ext_vpd(unsigned char * b, int len)
+{
+    unsigned int u;
+
+    if (len < 16) {
+        pr2serr("Block device characteristics extension VPD page "
+                "length too short=%d\n", len);
+        return SG_LIB_CAT_MALFORMED;
+    }
+    printf("  Utilization type: ");
+    switch (b[5]) {
+    case 1:
+        printf("Combined writes and reads");
+        break;
+    case 2:
+        printf("Writes only");
+        break;
+    case 3:
+        printf("Separate writes and reads");
+        break;
+    default:
+        printf("Reserved");
+        break;
+    }
+    printf(" [0x%x]\n", b[5]);
+    printf("  Utilization units: ");
+    switch (b[6]) {
+    case 2:
+        printf("megabytes");
+        break;
+    case 3:
+        printf("gigabytes");
+        break;
+    case 4:
+        printf("terabytes");
+        break;
+    case 5:
+        printf("petabytes");
+        break;
+    case 6:
+        printf("exabytes");
+        break;
+    default:
+        printf("Reserved");
+        break;
+    }
+    printf(" [0x%x]\n", b[6]);
+    printf("  Utilization interval: ");
+    switch (b[7]) {
+    case 0xa:
+        printf("per day");
+        break;
+    case 0xe:
+        printf("per year");
+        break;
+    default:
+        printf("Reserved");
+        break;
+    }
+    printf(" [0x%x]\n", b[7]);
+    u = ((unsigned int)b[8] << 24) | (b[9] << 16) | (b[10] << 8) | b[11];
+    printf("  Utilization B: %u\n", u);
+    u = ((unsigned int)b[12] << 24) | (b[13] << 16) | (b[14] << 8) | b[15];
+    printf("  Utilization A: %u\n", u);
     return 0;
 }
 
@@ -2125,29 +2236,75 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (res)
             return res;
         break;
-    case VPD_DTDE_ADDRESS:      /* 0xb4 */
+    case 0xb4:          /* VPD page depends on pdt */
         if (b[1] != pn)
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
-        if (len > sz) {
-            pr2serr("Response to Data transfer device element address VPD "
-                    "page truncated\n");
-            len = sz;
+        switch (pdt) {
+        case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
+            vpd_name = "Supported block lengths and protection types";
+            sbc = 1;
+            break;
+        case PDT_TAPE: case PDT_MCHANGER:
+            vpd_name = "Data transfer device element address";
+            ssc = 1;
+            break;
+        default:
+            vpd_name = "unexpected pdt for B4h";
+            break;
         }
         if (op->long_out)
-            printf("Data transfer device element address [0xB4] VPD page:\n");
+            printf("%s [0xb4] VPD page:\n", vpd_name);
         else
-            printf("Data transfer device element address VPD page:\n");
+            printf("%s VPD page:\n", vpd_name);
         if (op->hex) {
             dStrHex((const char *)b, len + 4, 0);
             return 0;
-        } else if (len > 0) {
-            printf("  0x");
-            for (k = 0; k < len; ++k)
-                printf("%02x", (unsigned int)b[4 + k]);
-            printf("\n");
-        } else
-            printf("  <empty>\n");
+        }
+        res = 0;
+        if (ssc) {
+            if (len > 0) {
+                printf("  0x");
+                for (k = 0; k < len; ++k)
+                    printf("%02x", (unsigned int)b[4 + k]);
+                printf("\n");
+            } else
+                printf("  <empty>\n");
+        } else if (sbc)       /* added in sbc4r01 */
+            res = decode_sup_block_lens_vpd(b, len + 4);
+        else
+            dStrHex((const char *)b, len + 4, 0);
+        if (res)
+            return res;
+        break;
+    case 0xb5:          /* VPD page depends on pdt */
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = (b[2] << 8) + b[3];
+        switch (pdt) {
+        case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
+            vpd_name = "Block device characteristics extension";
+            sbc = 1;
+            break;
+        default:
+            vpd_name = "unexpected pdt for B5h";
+            break;
+        }
+        if (op->long_out)
+            printf("%s [0xb5] VPD page:\n", vpd_name);
+        else
+            printf("%s VPD page:\n", vpd_name);
+        if (op->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        res = 0;
+        if (sbc)       /* added in sbc4r02 */
+            res = decode_block_dev_char_ext_vpd(b, len + 4);
+        else
+            dStrHex((const char *)b, len + 4, 0);
+        if (res)
+            return res;
         break;
     default:
         if (b[1] != pn)
