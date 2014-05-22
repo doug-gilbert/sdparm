@@ -107,7 +107,9 @@ extern "C" {
 #define VPD_LB_PROVISIONING 0xb2   /* SBC-3 */
 #define VPD_REFERRALS 0xb3
 #define VPD_AUTOMATION_DEV_SN 0xb3   /* SSC-3 */
+#define VPD_SUP_BLOCK_LENS 0xb4 /* SBC-4 */
 #define VPD_DTDE_ADDRESS 0xb4   /* SSC-4 */
+#define VPD_BLOCK_DEV_C_EXTENS 0xb5 /* SBC-4 */
 #define VPD_NOT_STD_INQ -2      /* request for standard inquiry */
 
 #define VPD_ASSOC_LU 0
