@@ -232,6 +232,8 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_BLOCK_LIMITS, 0, PDT_DISK, "bl", "Block limits (SBC)"},
     {VPD_BLOCK_DEV_CHARS, 0, PDT_DISK, "bdc", "Block device characteristics "
      "(SBC)"},
+    {VPD_BLOCK_DEV_C_EXTENS, 0, PDT_DISK, "bdce", "Block device "
+     "characteristics extension (SBC)"},
     {VPD_CFA_PROFILE_INFO, 0, -1, "cfa", "CFA profile information"},
     {VPD_DEVICE_CONSTITUENTS, 0, -1, "dc", "Device constituents"},
     {VPD_DEVICE_ID, 0, -1, "di", "Device identification"},
@@ -269,6 +271,8 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_NOT_STD_INQ, 0, -1, "sinq", "Standard inquiry response"},
     {VPD_UNIT_SERIAL_NUM, 0, -1, "sn", "Unit serial number"},
     {VPD_SCSI_PORTS, 0, -1, "sp", "SCSI ports"},
+    {VPD_SUP_BLOCK_LENS, 0, PDT_DISK, "sbl", "Supported block lengths and "
+     "protection types (SBC)"},
     {VPD_SUPPORTED_VPDS, 0, -1, "sv", "Supported VPD pages"},
     {VPD_TA_SUPPORTED, 0, PDT_TAPE, "tas", "TapeAlert supported flags (SSC)"},
     {VPD_3PARTY_COPY, 0, -1, "tpc", "Third party copy (SPC + SBC)"},
@@ -290,8 +294,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"RC", RW_ERR_RECOVERY_MP, 0, -1, 2, 4, 1, 0,
         "Read continuous", "0: error recovery may cause delays\t"
         "1: transfer data without waiting for error recovery"},
-    {"EER", RW_ERR_RECOVERY_MP, 0, -1, 2, 3, 1, 0,  /* obsoleted in sbc4r02 */
-        "Enable early recovery (obsolete)",
+    {"EER", RW_ERR_RECOVERY_MP, 0, -1, 2, 3, 1, 0,
+        "Enable early recovery (obsolete)",             /* in sbc4r02 */
         "1: increase chance of mis-detection or mis-correction of error"},
     {"PER", RW_ERR_RECOVERY_MP, 0, -1, 2, 2, 1, MF_COMMON,
         "Post error", "0: do not post recovered errors\t"
@@ -299,8 +303,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"DTE", RW_ERR_RECOVERY_MP, 0, -1, 2, 1, 1, 0,
         "Data terminate on error",
         "1: terminate data transfer when recovered error detected"},
-    {"DCR", RW_ERR_RECOVERY_MP, 0, -1, 2, 0, 1, 0,  /* obsoleted in sbc4r02 */
-        "Disable correction (obsolete)", NULL},
+    {"DCR", RW_ERR_RECOVERY_MP, 0, -1, 2, 0, 1, 0,
+        "Disable correction (obsolete)", NULL},         /* in sbc4r02 */
     {"RRC", RW_ERR_RECOVERY_MP, 0, -1, 3, 7, 8, 0,
         "Read retry count", NULL},
     {"COR_S", RW_ERR_RECOVERY_MP, 0, -1, 4, 7, 8, 0,
@@ -455,13 +459,13 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
 
     /* Verify error recovery mode page [0x7] sbc2 */
     {"V_EER", V_ERR_RECOVERY_MP, 0, PDT_DISK, 2, 3, 1, 0,
-        "Enable early recovery", NULL},
+        "Enable early recovery (obsolete) ", NULL}, /* in sbc4r02 */
     {"V_PER", V_ERR_RECOVERY_MP, 0, PDT_DISK, 2, 2, 1, 0,
         "Post error", NULL},
     {"V_DTE", V_ERR_RECOVERY_MP, 0, PDT_DISK, 2, 1, 1, 0,
         "Data terminate on error", NULL},
     {"V_DCR", V_ERR_RECOVERY_MP, 0, PDT_DISK, 2, 0, 1, 0,
-        "Disable correction", NULL},
+        "Disable correction (obsolete)", NULL},    /* in sbc4r02 */
     {"V_RC", V_ERR_RECOVERY_MP, 0, PDT_DISK, 3, 7, 8, 0,
         "Verify retry count", NULL},
     {"V_COR_S", V_ERR_RECOVERY_MP, 0, PDT_DISK, 4, 7, 8, 0,
