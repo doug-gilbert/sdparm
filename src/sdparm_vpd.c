@@ -844,11 +844,11 @@ decode_3party_copy_vpd(unsigned char * buff, int len, int do_hex, int verbose)
                         (ucp[8 + j + 2] << 8) | ucp[8 + j + 3];
                     printf("  ROD Type %u:\n", u);
                     printf("    Internal: %s\n",
-                           ucp[8 + j + 4] & 0x80 ? "yes" : "no");
+                           (ucp[8 + j + 4] & 0x80) ? "yes" : "no");
                     printf("    Token In: %s\n",
-                           ucp[8 + j + 4] & 0x02 ? "yes" : "no");
+                           (ucp[8 + j + 4] & 0x02) ? "yes" : "no");
                     printf("    Token Out: %s\n",
-                           ucp[8 + j + 4] & 0x01 ? "yes" : "no");
+                           (ucp[8 + j + 4] & 0x01) ? "yes" : "no");
                     printf("    Preference: %d\n",
                            (ucp[8 + j + 6] << 8) + ucp[8 + j + 7]);
                 }
@@ -1398,9 +1398,9 @@ decode_block_dev_chars_vpd(unsigned char * buff, int len)
         printf(": reserved\n");
         break;
     }
-    printf("  HAW_ZBC=%d\n", buff[8] & 0x10);       /* sbc4r01 */
-    printf("  FUAB=%d\n", buff[8] & 0x2);
-    printf("  VBULS=%d\n", buff[8] & 0x1);
+    printf("  HAW_ZBC=%d\n", !!(buff[8] & 0x10));       /* sbc4r01 */
+    printf("  FUAB=%d\n", !!(buff[8] & 0x2));
+    printf("  VBULS=%d\n", !!(buff[8] & 0x1));
     return 0;
 }
 
@@ -1641,7 +1641,7 @@ const char * sg_ansi_version_arr[] =
     "SPC-2",
     "SPC-3",
     "SPC-4",
-    "reserved [7h]",
+    "SPC-5",
     "ecma=1, [8h]",
     "ecma=1, [9h]",
     "ecma=1, [Ah]",
@@ -2071,7 +2071,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (b[1] != pn)
             goto dumb_inq;
         switch (pdt) {
-        case PDT_DISK: case PDT_WO: case PDT_OPTICAL:
+        case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
             vpd_name = "Block limits";
             sbc = 1;
             break;
@@ -2114,7 +2114,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (b[1] != pn)
             goto dumb_inq;
         switch (pdt) {
-        case PDT_DISK: case PDT_WO: case PDT_OPTICAL:
+        case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
             vpd_name = "Block device characteristics";
             sbc = 1;
             break;
@@ -2163,7 +2163,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
 
         len = (b[2] << 8) + b[3];
         switch (pdt) {
-        case PDT_DISK: case PDT_WO: case PDT_OPTICAL:
+        case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
             vpd_name = "Logical block provisioning";
             sbc = 1;
             break;
@@ -2198,7 +2198,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             goto dumb_inq;
         len = (b[2] << 8) + b[3];
         switch (pdt) {
-        case PDT_DISK: case PDT_WO: case PDT_OPTICAL:
+        case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
             vpd_name = "Referrals";
             sbc = 1;
             break;
