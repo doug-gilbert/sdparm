@@ -1,4 +1,4 @@
-.TH SDPARM "8" "May 2014" "sdparm\-1.09" SDPARM
+.TH SDPARM "8" "June 2014" "sdparm\-1.09" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -307,17 +307,18 @@ Only those VPD pages defined by t10.org are decoded by this utility. SPC\-4
 sets aside VPD pages codes from 0xc0 to 0xff (inclusive) for vendor
 specific pages some of which are decoded in the sg_vpd utility.
 .PP
-In the linux kernel 2.6 series any device node that understands a SCSI
+In the linux kernel 2.6 and 3 series any device node that understands a SCSI
 command set (e.g. SCSI disks and CD/DVD drives) may be specified. More
 precisely the driver that "owns" the device node must support the SG_IO
 ioctl. In the lk 2.4 series only SCSI generic (sg) device nodes support
 the SG_IO ioctl. However in the lk 2.4 series other SCSI device nodes are
 mapped within this utility to their corresponding sg device nodes. So if
 there is a SCSI disk at /dev/sda then 'sdparm /dev/sda' will work in both
-the lk 2.6 and lk 2.4 series. However if there is an ATAPI cd/dvd drive
-at /dev/hdc then 'sdparm /dev/hdc' will only work in the lk 2.6 series.
+the lk 2.4 series and later. However if there is an ATAPI cd/dvd drive
+at /dev/hdc then 'sdparm /dev/hdc' will only work in the lk 2.6 series
+and later.
 .PP
-In the Linux 2.6 series, especially with ATA disks, using sdparm to
+In the Linux 2.6 and 3 series, especially with ATA disks, using sdparm to
 stop (spin down) a disk may not be sufficient and other mechanisms will
 start the disk again some time later. The user might additionally mark
 the disk as "offline" with 'echo offline > /sys/block/sda/device/state'
@@ -606,12 +607,12 @@ values of the caching mode page:
    sdparm \-\-page=ca \-\-defaults \-\-save /dev/sda
 .PP
 If an ATAPI cd/dvd drive is at /dev/hdc then its common (mode) parameters
-could be listed in the lk 2.6 series with:
+could be listed in the lk 2.6 and 3 series with:
 .PP
    sdparm /dev/hdc
 .PP
 If there is a DVD in the drive at /dev/hdc then it could be ejected in the
-lk 2.6 series with:
+lk 2.6 and 3 series with:
 .PP
    sdparm \-\-command=eject /dev/hdc
 .PP
