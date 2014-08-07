@@ -639,7 +639,7 @@ decode_rod_descriptor(const unsigned char * buff, int len)
     uint64_t ull;
 
     for (k = 0; k < len; k += bump, ucp += bump) {
-        bump = (ucp[2] << 8) + ucp[3];
+        bump = (ucp[2] << 8) + ucp[3] + 4;
         switch (ucp[0]) {
             case 0:
                 /* Block ROD device type specific descriptor */
@@ -726,7 +726,7 @@ decode_rod_descriptor(const unsigned char * buff, int len)
 static void
 decode_3party_copy_vpd(unsigned char * buff, int len, int do_hex, int verbose)
 {
-    int j, k, bump, desc_type, desc_len, sa_len;
+    int j, k, m, bump, desc_type, desc_len, sa_len;
     unsigned int u;
     const unsigned char * ucp;
     uint64_t ull;
@@ -789,12 +789,12 @@ decode_3party_copy_vpd(unsigned char * buff, int len, int do_hex, int verbose)
                 j = 0;
                 while (j < ucp[4]) {
                     sa_len = ucp[6 + j];
-                    for (k = 0; k < sa_len; k++) {
-                        sg_get_opcode_sa_name(ucp[5 + j], ucp[7 + j + k],
+                    for (m = 0; m < sa_len; ++m) {
+                        sg_get_opcode_sa_name(ucp[5 + j], ucp[7 + j + m],
                                               0, sizeof(b), b);
                         printf("   %s\n", b);
                     }
-                    j += sa_len;
+                    j += sa_len + 2;
                 }
                 break;
             case 0x0004:
