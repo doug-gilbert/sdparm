@@ -274,14 +274,15 @@ query_dev_property(HANDLE hdevice,
         if (verbose > 2) {
             err = GetLastError();
             fprintf(stderr, "  IOCTL_STORAGE_QUERY_PROPERTY(Devprop) failed, "
-                    "Error=%ld %s\n", err, get_err_str(err, sizeof(b), b));
+                    "Error=%u %s\n", (unsigned int)err,
+                    get_err_str(err, sizeof(b), b));
         }
         return -ENOSYS;
     }
 
     if (verbose > 3)
         fprintf(stderr, "  IOCTL_STORAGE_QUERY_PROPERTY(DevProp) "
-                "num_out=%ld\n", num_out);
+                "num_out=%u\n", (unsigned int)num_out);
     return 0;
 }
 
@@ -301,11 +302,11 @@ query_dev_uid(HANDLE hdevice, union STORAGE_DEVICE_UID_DATA * data)
         if (verbose > 2) {
             err = GetLastError();
             fprintf(stderr, "  IOCTL_STORAGE_QUERY_PROPERTY(DevUid(exists)) "
-                    "failed, Error=%ld %s\n", err,
+                    "failed, Error=%u %s\n", (unsigned int)err,
                     get_err_str(err, sizeof(b), b));
         }
         if (verbose > 3)
-            fprintf(stderr, "      num_out=%ld\n", num_out);
+            fprintf(stderr, "      num_out=%u\n", (unsigned int)num_out);
         /* interpret any error to mean this property doesn't exist */
         return 0;
     }
@@ -317,13 +318,14 @@ query_dev_uid(HANDLE hdevice, union STORAGE_DEVICE_UID_DATA * data)
         if (verbose > 2) {
             err = GetLastError();
             fprintf(stderr, "  IOCTL_STORAGE_QUERY_PROPERTY(DevUid) failed, "
-                    "Error=%ld %s\n", err, get_err_str(err, sizeof(b), b));
+                    "Error=%u %s\n", (unsigned int)err,
+                    get_err_str(err, sizeof(b), b));
         }
         return -ENOSYS;
     }
     if (verbose > 3)
-        fprintf(stderr, "  IOCTL_STORAGE_QUERY_PROPERTY(DevUid) num_out=%ld\n",
-                num_out);
+        fprintf(stderr, "  IOCTL_STORAGE_QUERY_PROPERTY(DevUid) num_out=%u\n",
+                (unsigned int)num_out);
     return 0;
 }
 
@@ -423,8 +425,9 @@ enum_scsi_adapters(void)
             } else {
                 err = GetLastError();
                 fprintf(stderr, "%s: IOCTL_SCSI_GET_INQUIRY_DATA failed "
-                        "err=%lu\n\t%s",
-                        adapter_name, err, get_err_str(err, sizeof(b), b));
+                        "err=%u\n\t%s",
+                        adapter_name, (unsigned int)err,
+                        get_err_str(err, sizeof(b), b));
             }
             CloseHandle(fh);
         } else {
@@ -433,8 +436,9 @@ enum_scsi_adapters(void)
                 fprintf(stderr, "%s: in use by other process (sharing "
                         "violation [34])\n", adapter_name);
             else if (verbose > 3)
-                fprintf(stderr, "%s: CreateFile failed err=%lu\n\t%s",
-                        adapter_name, err, get_err_str(err, sizeof(b), b));
+                fprintf(stderr, "%s: CreateFile failed err=%u\n\t%s",
+                        adapter_name, (unsigned int)err,
+                        get_err_str(err, sizeof(b), b));
             if (++hole_count >= MAX_HOLE_COUNT)
                 break;
         }
@@ -517,8 +521,9 @@ enum_pds(void)
                 fprintf(stderr, "%s: in use by other process (sharing "
                         "violation [34])\n", adapter_name);
             else if (verbose > 3)
-                fprintf(stderr, "%s: CreateFile failed err=%lu\n\t%s",
-                        adapter_name, err, get_err_str(err, sizeof(b), b));
+                fprintf(stderr, "%s: CreateFile failed err=%u\n\t%s",
+                        adapter_name, (unsigned int)err,
+                        get_err_str(err, sizeof(b), b));
             if (++hole_count >= MAX_HOLE_COUNT)
                 break;
         }
@@ -565,8 +570,9 @@ enum_cdroms(void)
                 fprintf(stderr, "%s: in use by other process (sharing "
                         "violation [34])\n", adapter_name);
             else if (verbose > 3)
-                fprintf(stderr, "%s: CreateFile failed err=%lu\n\t%s",
-                        adapter_name, err, get_err_str(err, sizeof(b), b));
+                fprintf(stderr, "%s: CreateFile failed err=%u\n\t%s",
+                        adapter_name, (unsigned int)err,
+                        get_err_str(err, sizeof(b), b));
             if (++hole_count >= MAX_HOLE_COUNT)
                 break;
         }
@@ -613,8 +619,9 @@ enum_tapes(void)
                 fprintf(stderr, "%s: in use by other process (sharing "
                         "violation [34])\n", adapter_name);
             else if (verbose > 3)
-                fprintf(stderr, "%s: CreateFile failed err=%lu\n\t%s",
-                        adapter_name, err, get_err_str(err, sizeof(b), b));
+                fprintf(stderr, "%s: CreateFile failed err=%u\n\t%s",
+                        adapter_name, (unsigned int)err,
+                        get_err_str(err, sizeof(b), b));
             if (++hole_count >= MAX_HOLE_COUNT)
                 break;
         }
