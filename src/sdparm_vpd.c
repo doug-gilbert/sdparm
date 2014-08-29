@@ -1138,6 +1138,7 @@ decode_ata_info_vpd(unsigned char * buff, int len, int long_out, int do_hex)
     char b[80];
     int num, is_be;
     const char * cp;
+    const char * ata_transp;
 
     if (len < 36) {
         pr2serr("ATA information VPD page length too short=%d\n", len);
@@ -1154,10 +1155,12 @@ decode_ata_info_vpd(unsigned char * buff, int len, int long_out, int do_hex)
     printf("  SAT Product revision level: %s\n", b);
     if (len < 56)
         return SG_LIB_CAT_MALFORMED;
+    ata_transp = (0x34 == buff[36]) ? "SATA" : "PATA";
     if (long_out) {
-        printf("  Signature (Device to host FIS):\n");
+        printf("  Device signature [%s] (in hex):\n", ata_transp);
         dStrHex((const char *)buff + 36, 20, 1);
-    }
+    } else
+        printf("  Device signature indicates %s transport\n", ata_transp);
     if (len < 60)
         return SG_LIB_CAT_MALFORMED;
     is_be = sg_is_big_endian();
