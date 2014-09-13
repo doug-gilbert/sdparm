@@ -7,9 +7,9 @@ bin_PROGRAMS = sdparm
 ## CC = clang++
 
 # -std=<s> can be c99, c11, gnu11, etc. Default is gnu89 (gnu90 is the same)
-AM_CFLAGS = -I$(top_srcdir)/include -Wall -W
-# AM_CFLAGS = -I$(top_srcdir)/include -Wall -W -pedantic -std=c11
-# AM_CFLAGS = -I$(top_srcdir)/include -Wall -W -pedantic -std=c++11
+AM_CFLAGS = -iquote $(top_srcdir)/include -Wall -W
+# AM_CFLAGS = -iquote $(top_srcdir)/include -Wall -W -pedantic -std=c11
+# AM_CFLAGS = -iquote $(top_srcdir)/include -Wall -W -pedantic -std=c++11
 
 sdparm_SOURCES =	sdparm.c	\
 			sdparm.h	\
