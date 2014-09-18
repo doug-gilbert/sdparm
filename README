@@ -65,6 +65,13 @@ The ./configure script supports these extra options:
   - '--disable-scsistrings' excludes the asc/ascq and command name strings
     (defined by SCSI/T10) in an attempt to reduce the size of executables.
 
+At the request of some Linux distributions, this package will attempt to
+use the libsgutils library (name varies between distributions) at build time.
+If that library is old then the link at the end of build can fail. One way
+to sidestep that problem is by using './configure --disable-libsgutils'.
+Another way is to remove the "dev" version of the libsgutils library package
+(e.g. 'libsgutils2-dev' on a Debian based distribution).
+
 License
 -------
 This utility is covered by a FreeBSD license. The intention of the author
@@ -260,4 +267,4 @@ SCSI5:0,112,0 claimed=0 pdt=10h         LSI       PSEUDO DEVICE     2.34
 
 
 Douglas Gilbert
-10th July 2014
+18th September 2014

@@ -56,7 +56,7 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Thu Jul 10 2014 - dgilbert at interlog dot com
+* Thu Sep 18 2014 - dgilbert at interlog dot com
 - track recent spc4 and sbc4 drafts
   * sdparm-1.09
 * Thu Jun 06 2013 - dgilbert at interlog dot com
