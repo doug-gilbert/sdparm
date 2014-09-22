@@ -297,20 +297,14 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         ci_off = 0;
         if (16 == i_len) {
             ci_off = 8;
-            id_ext = 0;
-            for (m = 0; m < 8; ++m) {
-                if (m > 0)
-                    id_ext <<= 8;
-                id_ext |= ip[m];
-            }
+            id_ext = sg_get_unaligned_be64(ip);
             printf("      Identifier extension: 0x%" PRIx64 "\n", id_ext);
         } else if ((8 != i_len) && (12 != i_len)) {
             pr2serr("      << can only decode 8, 12 and 16 byte ids>>\n");
             dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
-        c_id = ((ip[ci_off] << 16) | (ip[ci_off + 1] << 8) |
-                ip[ci_off + 2]);
+        c_id = sg_get_unaligned_be24(ip + ci_off);
         printf("      IEEE Company_id: 0x%x\n", c_id);
         vsei = 0;
         for (m = 0; m < 5; ++m) {
@@ -321,8 +315,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
         printf("      Vendor Specific Extension Identifier: 0x%" PRIx64
                "\n", vsei);
         if (12 == i_len) {
-            d_id = (((unsigned int)ip[8] << 24) | (ip[9] << 16) |
-                    (ip[10] << 8) | ip[11]);
+            d_id = sg_get_unaligned_be32(ip + 8);
             printf("      Directory ID: 0x%x\n", d_id);
         }
         break;
@@ -342,8 +335,8 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
                 break;
             }
             d_id = (((ip[0] & 0xf) << 8) | ip[1]);
-            c_id = ((ip[2] << 16) | (ip[3] << 8) | ip[4]);
-            vsi = ((ip[5] << 16) | (ip[6] << 8) | ip[7]);
+            c_id = sg_get_unaligned_be24(ip + 2);
+            vsi = sg_get_unaligned_be24(ip + 5);
             if (long_out) {
                 printf("      NAA 2, vendor specific identifier A: "
                        "0x%x\n", d_id);
@@ -420,12 +413,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
                 printf("      NAA 6, IEEE Company_id: 0x%x\n", c_id);
                 printf("      Vendor Specific Identifier: 0x%" PRIx64
                        "\n", vsei);
-                vsei = 0;
-                for (m = 0; m < 8; ++m) {
-                    if (m > 0)
-                        vsei <<= 8;
-                    vsei |= ip[8 + m];
-                }
+                vsei = sg_get_unaligned_be64(ip + 8);
                 printf("      Vendor Specific Identifier Extension: "
                        "0x%" PRIx64 "\n", vsei);
                 printf("      [0x");
@@ -452,7 +440,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
             dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
-        d_id = ((ip[2] << 8) | ip[3]);
+        d_id = sg_get_unaligned_be16(ip + 2);
         printf("      Relative target port: 0x%x\n", d_id);
         break;
     case 5: /* (primary) Target port group */
@@ -462,7 +450,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
             dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
-        d_id = ((ip[2] << 8) | ip[3]);
+        d_id = sg_get_unaligned_be16(ip + 2);
         printf("      Target port group: 0x%x\n", d_id);
         break;
     case 6: /* Logical unit group */
@@ -472,7 +460,7 @@ decode_designation_descriptor(const unsigned char * ucp, int i_len,
             dStrHexErr((const char *)ip, i_len, 0);
             break;
         }
-        d_id = ((ip[2] << 8) | ip[3]);
+        d_id = sg_get_unaligned_be16(ip + 2);
         printf("      Logical unit group: 0x%x\n", d_id);
         break;
     case 7: /* MD5 logical unit identifier */
@@ -616,7 +604,7 @@ decode_man_net_vpd(unsigned char * buff, int len)
         printf("  %s, Service type: %s\n",
                sdparm_assoc_arr[(ucp[0] >> 5) & 0x3],
                sdparm_network_service_type_arr[ucp[0] & 0x1f]);
-        na_len = (ucp[2] << 8) + ucp[3];
+        na_len = sg_get_unaligned_be16(ucp + 2);
         bump = 4 + na_len;
         if ((k + bump) > len) {
             pr2serr("Management network addresses VPD page, short descriptor "
@@ -643,7 +631,7 @@ decode_rod_descriptor(const unsigned char * buff, int len)
         switch (ucp[0]) {
             case 0:
                 /* Block ROD device type specific descriptor */
-                printf("   Optimal block ROD length granularity: %d\n",
+                printf("  Optimal block ROD length granularity: %d\n",
                        sg_get_unaligned_be16(ucp + 6));
                 printf("  Maximum Bytes in block ROD: %" PRIu64 "\n",
                        sg_get_unaligned_be64(ucp + 8));
@@ -821,7 +809,7 @@ decode_3party_copy_vpd(unsigned char * buff, int len, int do_hex, int verbose)
                     for (m = 0; m < sa_len; ++m) {
                         sg_get_opcode_sa_name(ucp[5 + j], ucp[7 + j + m],
                                               0, sizeof(b), b);
-                        printf("   %s\n", b);
+                        printf("  %s\n", b);
                     }
                     j += sa_len + 2;
                 }
@@ -874,7 +862,6 @@ decode_3party_copy_vpd(unsigned char * buff, int len, int do_hex, int verbose)
                         printf("  ROD Type: %s [0x%x]\n", cp, u);
                     else
                         printf("  ROD Type: 0x%x\n", u);
-                    printf("  ROD Type 0x%x:\n", u);
                     printf("    Internal: %s\n",
                            (ucp[8 + j + 4] & 0x80) ? "yes" : "no");
                     printf("    Token In: %s\n",
@@ -935,10 +922,10 @@ decode_proto_lu_vpd(unsigned char * buff, int len)
     len -= 4;
     ucp = buff + 4;
     for (k = 0; k < len; k += bump, ucp += bump) {
-        rel_port = (ucp[0] << 8) + ucp[1];
+        rel_port = sg_get_unaligned_be16(ucp);
         printf("Relative port=%d\n", rel_port);
         proto = ucp[2] & 0xf;
-        desc_len = (ucp[6] << 8) + ucp[7];
+        desc_len = sg_get_unaligned_be16(ucp + 6);
         bump = 8 + desc_len;
         if ((k + bump) > len) {
             pr2serr("Protocol-specific logical unit information VPD page, "
@@ -977,10 +964,10 @@ decode_proto_port_vpd(unsigned char * buff, int len)
     len -= 4;
     ucp = buff + 4;
     for (k = 0; k < len; k += bump, ucp += bump) {
-        rel_port = (ucp[0] << 8) + ucp[1];
+        rel_port = sg_get_unaligned_be16(ucp);
         printf("Relative port=%d\n", rel_port);
         proto = ucp[2] & 0xf;
-        desc_len = (ucp[6] << 8) + ucp[7];
+        desc_len = sg_get_unaligned_be16(ucp + 6);
         bump = 8 + desc_len;
         if ((k + bump) > len) {
             pr2serr("Protocol-specific port information VPD page, short "
@@ -1020,9 +1007,9 @@ decode_scsi_ports_vpd(unsigned char * buff, int len, int long_out, int quiet)
     len -= 4;
     ucp = buff + 4;
     for (k = 0; k < len; k += bump, ucp += bump) {
-        rel_port = (ucp[2] << 8) + ucp[3];
+        rel_port = sg_get_unaligned_be16(ucp + 2);
         printf("Relative port=%d\n", rel_port);
-        ip_tid_len = (ucp[6] << 8) + ucp[7];
+        ip_tid_len = sg_get_unaligned_be16(ucp + 6);
         bump = 8 + ip_tid_len;
         if ((k + bump) > len) {
             pr2serr("SCSI Ports VPD page, short descriptor length=%d, "
@@ -1039,7 +1026,7 @@ decode_scsi_ports_vpd(unsigned char * buff, int len, int long_out, int quiet)
             printf(" Initiator port transport id:\n");
             dStrHex((const char *)(ucp + 8), ip_tid_len, 1);
         }
-        tpd_len = (ucp[bump + 2] << 8) + ucp[bump + 3];
+        tpd_len = sg_get_unaligned_be16(ucp + bump + 2);
         if ((k + bump + tpd_len + 4) > len) {
             pr2serr("SCSI Ports VPD page, short descriptor(tgt) length=%d, "
                     "left=%d\n", bump, (len - k));
@@ -1127,7 +1114,7 @@ decode_ext_inq_vpd(unsigned char * b, int len, int long_out, int protect)
         printf("  CBCS=%d\n", !!(b[8] & 0x1));
         printf("  Multi I_T nexus microcode download=%d\n", b[9] & 0xf);
         printf("  Extended self-test completion minutes=%d\n",
-               (b[10] << 8) + b[11]);
+               sg_get_unaligned_be16(b + 10));
         printf("  POA_SUP=%d\n", !!(b[12] & 0x80));     /* spc4r32 */
         printf("  HRA_SUP=%d\n", !!(b[12] & 0x40));     /* spc4r32 */
         printf("  VSA_SUP=%d\n", !!(b[12] & 0x20));     /* spc4r32 */
@@ -1149,7 +1136,7 @@ decode_ext_inq_vpd(unsigned char * b, int len, int long_out, int protect)
                !!(b[8] & 0x10), !!(b[8] & 0x1));
         printf("  Multi I_T nexus microcode download=%d\n", b[9] & 0xf);
         printf("  Extended self-test completion minutes=%d\n",
-               (b[10] << 8) + b[11]);
+               sg_get_unaligned_be16(b + 10));
         printf("  POA_SUP=%d HRA_SUP=%d VSA_SUP=%d\n",      /* spc4r32 */
                !!(b[12] & 0x80), !!(b[12] & 0x40), !!(b[12] & 0x20));
         printf("  Maximum supported sense data length=%d\n",
@@ -1232,17 +1219,17 @@ decode_power_condition(unsigned char * buff, int len)
            !!(buff[4] & 0x2), !!(buff[4] & 0x1),
            !!(buff[5] & 0x4), !!(buff[5] & 0x2), !!(buff[5] & 0x1));
     printf("  Stopped condition recovery time (ms) %d\n",
-            (buff[6] << 8) + buff[7]);
+           sg_get_unaligned_be16(buff + 6));
     printf("  Standby_z condition recovery time (ms) %d\n",
-            (buff[8] << 8) + buff[9]);
+           sg_get_unaligned_be16(buff + 8));
     printf("  Standby_y condition recovery time (ms) %d\n",
-            (buff[10] << 8) + buff[11]);
+           sg_get_unaligned_be16(buff + 10));
     printf("  Idle_a condition recovery time (ms) %d\n",
-            (buff[12] << 8) + buff[13]);
+           sg_get_unaligned_be16(buff + 12));
     printf("  Idle_b condition recovery time (ms) %d\n",
-            (buff[14] << 8) + buff[15]);
+           sg_get_unaligned_be16(buff + 14));
     printf("  Idle_c condition recovery time (ms) %d\n",
-            (buff[16] << 8) + buff[17]);
+           sg_get_unaligned_be16(buff + 16));
     return 0;
 }
 
@@ -1791,7 +1778,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_SUPPORTED_VPDS:    /* 0x0 */
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];       /* spc4r25 */
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         printf("Supported VPD pages VPD page:\n");
         if (op->hex) {
             dStrHex((const char *)b, len + 4, 0);
@@ -1815,7 +1802,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_ATA_INFO:          /* 0x89 */
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         if (len > sz) {
             pr2serr("Response to ATA information VPD page truncated\n");
             len = sz;
@@ -1840,7 +1827,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_DEVICE_ID:         /* 0x83 */
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         if (len > sz) {
             pr2serr("Response to device identification VPD page truncated\n");
             len = sz;
@@ -1875,7 +1862,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_EXT_INQ:           /* 0x86 */
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];   /* spc4r25 */
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         if (len > sz) {
             pr2serr("Response to Extended inquiry data VPD page truncated\n");
             len = sz;
@@ -1895,7 +1882,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_MAN_NET_ADDR:              /* 0x85 */
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         if (len > sz) {
             pr2serr("Response to Management network addresses VPD page "
                     "truncated\n");
@@ -1916,7 +1903,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_MODE_PG_POLICY:            /* 0x87 */
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         if (len > sz) {
             pr2serr("Response to Mode page policy VPD page truncated\n");
             len = sz;
@@ -1936,7 +1923,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_POWER_CONDITION:           /* 0x8a */
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         if (len > sz) {
             pr2serr("Response to Power condition VPD page truncated\n");
             len = sz;
@@ -1956,7 +1943,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_POWER_CONSUMPTION:         /* 0x8d */
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         if (len > sz) {
             pr2serr( "Response to Power consumption VPD page truncated\n");
             len = sz;
@@ -1976,7 +1963,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_PROTO_LU:                  /* 0x90 */
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         if (len > sz) {
             pr2serr("Response to Protocol-specific logical unit information "
                     "VPD page truncated\n");
@@ -1998,7 +1985,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_PROTO_PORT:                /* 0x91 */
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         if (len > sz) {
             pr2serr("Response to Protocol-specific port information VPD page "
                     "truncated\n");
@@ -2020,7 +2007,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_SCSI_PORTS:                /* 0x88 */
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         if (len > sz) {
             pr2serr("Response to SCSI Ports VPD page truncated\n");
             len = sz;
@@ -2040,7 +2027,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_SOFTW_INF_ID:              /* 0x84 */
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];       /* spc4r25 */
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         if (len > sz) {
             pr2serr("Response to Software interface identification VPD page "
                     "truncated\n");
@@ -2063,7 +2050,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_UNIT_SERIAL_NUM:           /* 0x80 */
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];       /* spc4r25 */
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         if (op->long_out)
             printf("Unit serial number [0x80] VPD page:\n");
         else
@@ -2082,10 +2069,20 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_3PARTY_COPY:               /* 0x8f */
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];       /* spc4r25 */
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         if (len > sz) {
-            pr2serr("Response to Third party copy VPD page truncated\n");
-            len = sz;
+            /* Increase response size to maximum we can handle here */
+            sz = VPD_ATA_INFO_RESP_LEN;
+            res = sg_ll_inquiry(sg_fd, 0, 1, pn, b, sz, 0, verb);
+            if (res) {
+                pr2serr("INQUIRY fetching VPD page=0x%x failed\n", pn);
+                return res;
+            }
+            len = sg_get_unaligned_be16(b + 2);
+            if (len > sz) {
+                pr2serr("Response to Third party copy VPD page truncated\n");
+                len = sz;
+            }
         }
         if (op->long_out)
             printf("Third party copy [0x8f] VPD page:\n");
@@ -2117,7 +2114,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             vpd_name = "unexpected pdt for B0h";
             break;
         }
-        len = (b[2] << 8) + b[3];
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         if (len > sz) {
             pr2serr("Response to %s VPD page truncated\n", vpd_name);
             len = sz;
@@ -2164,7 +2161,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             vpd_name = "unexpected pdt for B1h";
             break;
         }
-        len = (b[2] << 8) + b[3];
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         if (len > sz) {
             pr2serr("Response to %s VPD page truncated\n", vpd_name);
             len = sz;
@@ -2191,7 +2188,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (b[1] != pn)
             goto dumb_inq;
 
-        len = (b[2] << 8) + b[3];
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         switch (pdt) {
         case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
             vpd_name = "Logical block provisioning";
@@ -2226,7 +2223,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case 0xb3:          /* VPD page depends on pdt */
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         switch (pdt) {
         case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
             vpd_name = "Referrals";
@@ -2269,7 +2266,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case 0xb4:          /* VPD page depends on pdt */
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];
+        len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         switch (pdt) {
         case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
             vpd_name = "Supported block lengths and protection types";
@@ -2310,7 +2307,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case 0xb5:          /* VPD page depends on pdt */
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3];
+        len = sg_get_unaligned_be16(b + 2);
         switch (pdt) {
         case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
             vpd_name = "Block device characteristics extension";
@@ -2339,7 +2336,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     default:
         if (b[1] != pn)
             goto dumb_inq;
-        len = (b[2] << 8) + b[3] + 4;
+        len = sg_get_unaligned_be16(b + 2) + 4;
         vpp = sdp_get_vpd_detail(pn, -1, pdt);
         if (vpp)
             pr2serr("%s VPD page in hex:\n", vpp->name);
