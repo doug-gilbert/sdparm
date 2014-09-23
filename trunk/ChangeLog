@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.09 [20140921] [svn: r250]
+ChangeLog for sdparm-1.09 [20140923] [svn: r251]
   - decode Third Party Copy VPD page
   - Supported block lengths and protection types (sbc4r01) +
     Block device characterics extension VPD pages added
@@ -12,7 +12,7 @@ ChangeLog for sdparm-1.09 [20140921] [svn: r250]
   - SAS/SPL disconnect-reconnect mpage: expand
   - standard inquiry response (sinq): add LU_CONG
   - change ibm vendor code to lto5 and lto6
-  - point svn:externals to rev 608 of sg3_utils
+  - point svn:externals to rev 609 of sg3_utils
   - upgrade automake to version 1.14.1
   - configure: add --disable-libsgutils so build bypasses that
     library if present
