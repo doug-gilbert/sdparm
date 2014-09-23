@@ -605,6 +605,7 @@ OS_LINUX_TRUE
 OS_FREEBSD_FALSE
 OS_FREEBSD_TRUE
 os_libs
+os_cflags
 os_deps
 host_os
 host_vendor
@@ -4233,6 +4234,8 @@ cat >>confdefs.h <<_ACEOF
 #define SG_LIB_LINUX 1
 _ACEOF
 
+		os_cflags=''
+
                 os_libs=''
  ;;
         *-*-linux*)
@@ -4242,6 +4245,8 @@ _ACEOF
 cat >>confdefs.h <<_ACEOF
 #define SG_LIB_LINUX 1
 _ACEOF
+
+		os_cflags=''
 
                 os_libs=''
  ;;
@@ -4253,6 +4258,8 @@ cat >>confdefs.h <<_ACEOF
 #define SG_LIB_FREEBSD 1
 _ACEOF
 
+		os_cflags=''
+
                 os_libs='-lcam'
 ;;
         *-*-solaris*)
@@ -4263,6 +4270,8 @@ cat >>confdefs.h <<_ACEOF
 #define SG_LIB_SOLARIS 1
 _ACEOF
 
+		os_cflags=''
+
                 os_libs=''
 ;;
         *-*-osf*)
@@ -4272,6 +4281,8 @@ _ACEOF
 cat >>confdefs.h <<_ACEOF
 #define SG_LIB_OSF1 1
 _ACEOF
+
+		os_cflags=''
 
                 os_libs=''
  ;;
@@ -4287,6 +4298,8 @@ _ACEOF
 cat >>confdefs.h <<_ACEOF
 #define WIN32_SPT_DIRECT 1
 _ACEOF
+
+		os_cflags='-Wno-char-subscripts'
 
                 os_libs=''
  ;;
@@ -4308,6 +4321,8 @@ cat >>confdefs.h <<_ACEOF
 #define WIN32_SPT_DIRECT 1
 _ACEOF
 
+		os_cflags=''
+
                 os_libs=''
  ;;
         *)
@@ -4317,6 +4332,8 @@ _ACEOF
 cat >>confdefs.h <<_ACEOF
 #define SG_LIB_LINUX 1
 _ACEOF
+
+		os_cflags=''
 
                 os_libs=''
  ;;
