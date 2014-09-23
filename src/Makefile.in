@@ -259,6 +259,7 @@ localstatedir = @localstatedir@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
+os_cflags = @os_cflags@
 os_deps = @os_deps@
 os_libs = @os_libs@
 pdfdir = @pdfdir@
@@ -277,9 +278,9 @@ top_srcdir = @top_srcdir@
 # for C++/clang testing
 
 # -std=<s> can be c99, c11, gnu11, etc. Default is gnu89 (gnu90 is the same)
-AM_CFLAGS = -iquote $(top_srcdir)/include -Wall -W
-# AM_CFLAGS = -iquote $(top_srcdir)/include -Wall -W -pedantic -std=c11
-# AM_CFLAGS = -iquote $(top_srcdir)/include -Wall -W -pedantic -std=c++11
+AM_CFLAGS = -iquote $(top_srcdir)/include -Wall -W @os_cflags@
+# AM_CFLAGS = -iquote $(top_srcdir)/include -Wall -W @os_cflags@ -pedantic -std=c11
+# AM_CFLAGS = -iquote $(top_srcdir)/include -Wall -W @os_cflags@ -pedantic -std=c++11
 sdparm_SOURCES = sdparm.c sdparm.h sdparm_data.c sdparm_data_vendor.c \
 	sdparm_access.c sdparm_vpd.c sdparm_cmd.c $(am__append_1) \
 	$(am__append_2) $(am__append_3)
