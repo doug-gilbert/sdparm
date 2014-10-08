@@ -1480,6 +1480,8 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"RTOL", PROT_SPEC_PORT_MP, 0, -1, 8, 7, 16, MF_COMMON,
         "Reject to open limit (10 us)",         /* added in sas2r14 */
         "0: vendor specific"},
+    {"MAXR", PROT_SPEC_PORT_MP, 0, -1, 10, 7, 8, MF_COMMON,
+        "Maximum allowed xfer ready", NULL},    /* added in spl4r01 */
 
     /* phy control and discover mode page [0x19,0x1] sas/spl */
     {"PPID_1", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 5, 3, 4, 0,
@@ -1494,7 +1496,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"PHID", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 9, 7, 8, 0,
         "Phy identifier", NULL},
     {"ADT", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 12, 6, 3, 0,
-        "Attached device type",
+        "Attached SAS device type",	/* the word SAS added in spl4r01 */
         "0: no device attached; 1: end device\t"
         "2: expander device; " /* in SAS-1.1 this was a "edge expander" */
         "3: expander device (fanout, SAS-1.1)"}, /* obsolete in SAS-2 */
