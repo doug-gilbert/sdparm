@@ -1648,6 +1648,40 @@ decode_block_dev_char_ext_vpd(unsigned char * b, int len)
     return 0;
 }
 
+/* VPD_ZBC_DEV_CHARS  sbc or zbc */
+static int
+decode_zbdc_vpd(unsigned char * b, int len)
+{
+    uint32_t u;
+
+    if (len < 64) {
+        pr2serr("Zoned block device characteristics VPD page length too "
+                "short=%d\n", len);
+        return SG_LIB_CAT_MALFORMED;
+    }
+    printf("  URSWRZ type: %d\n", !!(b[4] & 0x1));
+    u = sg_get_unaligned_be32(b + 8);
+    printf("  Optimal number of open sequential write preferred zones: ");
+    if (0xffffffff == u)
+        printf("0xffffffff\n");
+    else
+        printf("%" PRIu32 "\n", u);
+    u = sg_get_unaligned_be32(b + 12);
+    printf("  Optimal number of non-sequentially written sequential write "
+           "preferred zones: ");
+    if (0xffffffff == u)
+        printf("0xffffffff\n");
+    else
+        printf("%" PRIu32 "\n", u);
+    u = sg_get_unaligned_be32(b + 16);
+    printf("  Maximum number of open sequential write required: ");
+    if (0xffffffff == u)
+        printf("0xffffffff\n");
+    else
+        printf("%" PRIu32 "\n", u);
+    return 0;
+}
+
 /* Assume index is less than 16 */
 const char * sg_ansi_version_arr[] =
 {
@@ -2328,6 +2362,35 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         res = 0;
         if (sbc)       /* added in sbc4r02 */
             res = decode_block_dev_char_ext_vpd(b, len + 4);
+        else
+            dStrHex((const char *)b, len + 4, 0);
+        if (res)
+            return res;
+        break;
+    case VPD_ZBC_DEV_CHARS:       /* 0xb6 for both pdt=0 and pdt=0x14 */
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = sg_get_unaligned_be16(b + 2);
+        switch (pdt) {
+        case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
+            vpd_name = "Zoned block device characteristics";
+            sbc = 1;
+            break;
+        default:
+            vpd_name = "unexpected pdt for B6h";
+            break;
+        }
+        if (op->long_out)
+            printf("%s [0xb6] VPD page:\n", vpd_name);
+        else
+            printf("%s VPD page:\n", vpd_name);
+        if (op->hex) {
+            dStrHex((const char *)b, len + 4, 0);
+            return 0;
+        }
+        res = 0;
+        if (sbc)       /* added in zbc-r01c */
+            res = decode_zbdc_vpd(b, len + 4);
         else
             dStrHex((const char *)b, len + 4, 0);
         if (res)
