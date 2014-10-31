@@ -110,6 +110,7 @@ extern "C" {
 #define VPD_SUP_BLOCK_LENS 0xb4 /* SBC-4 */
 #define VPD_DTDE_ADDRESS 0xb4   /* SSC-4 */
 #define VPD_BLOCK_DEV_C_EXTENS 0xb5 /* SBC-4 */
+#define VPD_ZBC_DEV_CHARS 0xb6  /* ZBC */
 #define VPD_NOT_STD_INQ -2      /* request for standard inquiry */
 
 #define VPD_ASSOC_LU 0
