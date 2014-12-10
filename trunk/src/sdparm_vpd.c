@@ -976,11 +976,12 @@ decode_proto_port_vpd(unsigned char * buff, int len)
         }
         if (desc_len > 0) {
             switch (proto) {
-            case TPROTO_SAS:    /* for SSP, added spl3r2 */
-                printf(" pwr_d_s=%d\n", !!(ucp[3] & 0x1));
+            case TPROTO_SAS:    /* page added in spl3r02 */
+                printf("    power disable supported (pwr_d_s)=%d\n",
+                       !!(ucp[3] & 0x1));       /* added spl3r03 */
                 pidp = ucp + 8;
                 for (j = 0; j < desc_len; j += 4, pidp += 4)
-                    printf("  phy id=%d, SSP persistent capable=%d\n",
+                    printf("      phy id=%d, ssp persistent capable=%d\n",
                            pidp[1], (0x1 & pidp[2]));
                 break;
             default:
