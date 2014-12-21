@@ -2,14 +2,14 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.09 [20141114] [svn: r255]
+ChangeLog for sdparm-1.09 [20141220] [svn: r256]
   - decode Third Party Copy VPD page
   - Supported block lengths and protection types (sbc4r01) +
-    Block device characterics extension VPD pages added
+    Block device characteristics extension VPD pages added
   - zoned block device characterics VPD page added (zbc-r01c)
   - fix manufacturer-assigned serial number VPD page length
   - device id VPD: T10 vendor identification designator clean up
-  - block device characteristics VPD: add HAW_ZBC (sbc4r01)
+  - block device characteristics VPD: add ZONED (sbc4r04)
   - SAS/SPL disconnect-reconnect mpage: expand
   - SAS protocol specific port mpage: add MAXR field (spl4r01)
   - standard inquiry response (sinq): add LU_CONG
