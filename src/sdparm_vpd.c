@@ -1285,8 +1285,7 @@ static int
 decode_block_limits_vpd(unsigned char * buff, int len)
 {
     unsigned int u;
-    int m;
-    uint64_t mwsl;
+    unsigned char b[4];
 
     if (len < 16) {
         pr2serr("Block limits VPD page length too short=%d\n", len);
@@ -1294,57 +1293,50 @@ decode_block_limits_vpd(unsigned char * buff, int len)
     }
     printf("  Write same non-zero (WSNZ): %d\n", !!(buff[4] & 0x1));
     printf("  Maximum compare and write length: %u blocks\n", buff[5]);
-    u = (buff[6] << 8) | buff[7];
+    u = sg_get_unaligned_be16(buff + 6);
     printf("  Optimal transfer length granularity: %u blocks\n", u);
-    u = ((unsigned int)buff[8] << 24) | (buff[9] << 16) |
-        (buff[10] << 8) | buff[11];
+    u = sg_get_unaligned_be32(buff + 8);
     printf("  Maximum transfer length: %u blocks\n", u);
-    u = ((unsigned int)buff[12] << 24) | (buff[13] << 16) |
-        (buff[14] << 8) | buff[15];
+    u = sg_get_unaligned_be32(buff + 12);
     printf("  Optimal transfer length: %u blocks\n", u);
     if (len > 19) {     /* added in sbc3r09 */
-        u = ((unsigned int)buff[16] << 24) | (buff[17] << 16) |
-            (buff[18] << 8) | buff[19];
+        u = sg_get_unaligned_be32(buff + 16);
         printf("  Maximum prefetch length: %u blocks\n", u);
         /* was 'Maximum prefetch transfer length' prior to sbc3r33 */
     }
     if (len > 27) {     /* added in sbc3r18 */
-        u = ((unsigned int)buff[20] << 24) | (buff[21] << 16) |
-            (buff[22] << 8) | buff[23];
+        u = sg_get_unaligned_be32(buff + 29);
         printf("  Maximum unmap LBA count: %u\n", u);
-        u = ((unsigned int)buff[24] << 24) | (buff[25] << 16) |
-            (buff[26] << 8) | buff[27];
+        u = sg_get_unaligned_be32(buff + 24);
         printf("  Maximum unmap block descriptor count: %u\n", u);
     }
     if (len > 35) {     /* added in sbc3r19 */
-        u = ((unsigned int)buff[28] << 24) | (buff[29] << 16) |
-            (buff[30] << 8) | buff[31];
+        u = sg_get_unaligned_be32(buff + 28);
         printf("  Optimal unmap granularity: %u\n", u);
         printf("  Unmap granularity alignment valid: %u\n",
                !!(buff[32] & 0x80));
-        u = ((unsigned int)(buff[32] & 0x7f) << 24) | (buff[33] << 16) |
-            (buff[34] << 8) | buff[35];
+        memcpy(b, buff + 32, 4);
+        b[0] &= 0x7f;       /* mask off top bit */
+        u = sg_get_unaligned_be32(b);
         printf("  Unmap granularity alignment: %u\n", u);
     }
-    if (len > 43) {     /* added in sbc3r26 */
-        mwsl = 0;
-        for (m = 0; m < 8; ++m) {
-            if (m > 0)
-                mwsl <<= 8;
-            mwsl |= buff[36 + m];
-        }
-        printf("  Maximum write same length: 0x%" PRIx64 " blocks\n", mwsl);
-    }
+    if (len > 43)      /* added in sbc3r26 */
+        printf("  Maximum write same length: 0x%" PRIx64 " blocks\n",
+               sg_get_unaligned_be64(buff + 36));
     if (len > 44) {     /* added in sbc4r02 */
-        u = ((unsigned int)buff[44] << 24) | (buff[45] << 16) |
-            (buff[46] << 8) | buff[47];
+        u = sg_get_unaligned_be32(buff + 44);
         printf("  Maximum atomic transfer length: %u\n", u);
-        u = ((unsigned int)buff[48] << 24) | (buff[49] << 16) |
-            (buff[50] << 8) | buff[51];
+        u = sg_get_unaligned_be32(buff + 48);
         printf("  Atomic alignment: %u\n", u);
-        u = ((unsigned int)buff[52] << 24) | (buff[53] << 16) |
-            (buff[54] << 8) | buff[55];
+        u = sg_get_unaligned_be32(buff + 52);
         printf("  Atomic transfer length granularity: %u\n", u);
+    }
+    if (len > 56) {     /* added in sbc4r04 */
+        u = sg_get_unaligned_be32(buff + 56);
+        printf("  Maximum atomic transfer length with atomic boundary: %u\n",
+               u);
+        u = sg_get_unaligned_be32(buff + 60);
+        printf("  Maximum atomic boundary size: %u\n", u);
     }
     return 0;
 }
@@ -1416,7 +1408,7 @@ decode_block_dev_chars_vpd(unsigned char * buff, int len)
         printf(": reserved\n");
         break;
     }
-    printf("  HAW_ZBC=%d\n", !!(buff[8] & 0x10));       /* sbc4r01 */
+    printf("  ZONED=%d\n", (buff[8] >> 4) & 0x3);       /* sbc4r04 */
     printf("  FUAB=%d\n", !!(buff[8] & 0x2));
     printf("  VBULS=%d\n", !!(buff[8] & 0x1));
     return 0;
@@ -1584,8 +1576,6 @@ decode_sup_block_lens_vpd(unsigned char * buff, int len)
 static int
 decode_block_dev_char_ext_vpd(unsigned char * b, int len)
 {
-    unsigned int u;
-
     if (len < 16) {
         pr2serr("Block device characteristics extension VPD page "
                 "length too short=%d\n", len);
@@ -1642,10 +1632,8 @@ decode_block_dev_char_ext_vpd(unsigned char * b, int len)
         break;
     }
     printf(" [0x%x]\n", b[7]);
-    u = ((unsigned int)b[8] << 24) | (b[9] << 16) | (b[10] << 8) | b[11];
-    printf("  Utilization B: %u\n", u);
-    u = ((unsigned int)b[12] << 24) | (b[13] << 16) | (b[14] << 8) | b[15];
-    printf("  Utilization A: %u\n", u);
+    printf("  Utilization B: %" PRIu32 "\n", sg_get_unaligned_be32(b + 8));
+    printf("  Utilization A: %" PRIu32 "\n", sg_get_unaligned_be32(b + 12));
     return 0;
 }
 
@@ -1664,20 +1652,20 @@ decode_zbdc_vpd(unsigned char * b, int len)
     u = sg_get_unaligned_be32(b + 8);
     printf("  Optimal number of open sequential write preferred zones: ");
     if (0xffffffff == u)
-        printf("0xffffffff\n");
+        printf("not reported\n");
     else
         printf("%" PRIu32 "\n", u);
     u = sg_get_unaligned_be32(b + 12);
     printf("  Optimal number of non-sequentially written sequential write "
            "preferred zones: ");
     if (0xffffffff == u)
-        printf("0xffffffff\n");
+        printf("not reported\n");
     else
         printf("%" PRIu32 "\n", u);
     u = sg_get_unaligned_be32(b + 16);
-    printf("  Maximum number of open sequential write required: ");
+    printf("  Maximum number of open sequential write required zones: ");
     if (0xffffffff == u)
-        printf("0xffffffff\n");
+        printf("no limit\n");
     else
         printf("%" PRIu32 "\n", u);
     return 0;
