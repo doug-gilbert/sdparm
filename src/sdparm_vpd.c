@@ -1112,7 +1112,7 @@ decode_ext_inq_vpd(unsigned char * b, int len, int long_out, int protect)
         printf("  P_I_I_SUP=%d\n", !!(b[7] & 0x10));
         printf("  LUICLR=%d\n", !!(b[7] & 0x1));
         printf("  R_SUP=%d\n", !!(b[8] & 0x10));
-        printf("  CBCS=%d\n", !!(b[8] & 0x1));
+        printf("  CBCS=%d\n", !!(b[8] & 0x1));  /* obsolete in spc5r01 */
         printf("  Multi I_T nexus microcode download=%d\n", b[9] & 0xf);
         printf("  Extended self-test completion minutes=%d\n",
                sg_get_unaligned_be16(b + 10));
@@ -1132,6 +1132,7 @@ decode_ext_inq_vpd(unsigned char * b, int len, int long_out, int protect)
         printf("  WU_SUP=%d CRD_SUP=%d NV_SUP=%d V_SUP=%d\n",
                !!(b[6] & 0x8), !!(b[6] & 0x4),
                !!(b[6] & 0x2), !!(b[6] & 0x1));
+        /* CBCS, capability-based command security, obsolete in spc5r01 */
         printf("  P_I_I_SUP=%d LUICLR=%d R_SUP=%d CBCS=%d\n",
                !!(b[7] & 0x10), !!(b[7] & 0x1),
                !!(b[8] & 0x10), !!(b[8] & 0x1));
