@@ -162,7 +162,8 @@ bytes; with '\-HHH' outputs the same response in a format suitable
 for 'hdparm \-\-Istdin' to decode.
 .TP
 \fB\-i\fR, \fB\-\-inquiry\fR
-output INQUIRY VPD pages. In the absence of this option the default action
+output a VPD page which is in the response of a SCSI INQUIRY command sent
+to \fIDEVICE\fR. In the absence of this option the default action
 is to output mode pages. If the \fI\-\-inquiry\fR option is given without
 the \fI\-\-page=PG[,SPG]\fR option then the device identification VPD
 page (0x83) is decoded and output. If this option and the \fI\-\-all\fR
@@ -306,6 +307,8 @@ VPD page use "di_asis".
 Only those VPD pages defined by t10.org are decoded by this utility. SPC\-4
 sets aside VPD pages codes from 0xc0 to 0xff (inclusive) for vendor
 specific pages some of which are decoded in the sg_vpd utility.
+.PP
+To see all VPD pages supported by a \fIDEVICE\fR use 'sg_vpd --all'.
 .PP
 In the linux kernel 2.6 and 3 series any device node that understands a SCSI
 command set (e.g. SCSI disks and CD/DVD drives) may be specified. More

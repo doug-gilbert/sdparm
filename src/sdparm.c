@@ -78,7 +78,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 
 #define MAX_DEV_NAMES 256
 
-static const char * version_str = "1.09 20141220 [svn: r256]";
+static const char * version_str = "1.09 20141226 [svn: r257]";
 
 
 static struct option long_options[] = {
@@ -1635,20 +1635,20 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
             /* start_byte may be in hex ('0x' prefix or 'h' suffix) */
             if ((0 == strncmp("0x", buff, 2)) ||
                 (0 == strncmp("0X", buff, 2))) {
-                num = sscanf(buff + 2, "%x:%d:%d=%s", &u,
+                num = sscanf(buff + 2, "%x:%d:%d=%62s", &u,
                              &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
                 ivp->mpi.start_byte = u;
             } else {
                 if (strstr(buff, "h:")) {
-                    num = sscanf(buff, "%xh:%d:%d=%s", &u,
+                    num = sscanf(buff, "%xh:%d:%d=%62s", &u,
                                  &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
                     ivp->mpi.start_byte = u;
                 } else if (strstr(buff, "H:")) {
-                    num = sscanf(buff, "%xH:%d:%d=%s", &u,
+                    num = sscanf(buff, "%xH:%d:%d=%62s", &u,
                                  &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
                     ivp->mpi.start_byte = u;
                 } else
-                    num = sscanf(buff, "%d:%d:%d=%s", &ivp->mpi.start_byte,
+                    num = sscanf(buff, "%d:%d:%d=%62s", &ivp->mpi.start_byte,
                                  &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
             }
             if (num < 3) {

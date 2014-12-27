@@ -842,6 +842,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Idle_c condition timer (100 ms)", NULL},
     {"SYCT", POWER_MP, 0, -1, 20, 7, 32, 0,
         "Standby_y condition timer (100 ms)", NULL},
+    /* The "0: restricted (SAS-2)" became obsolete in spc5r01 */
     {"CCF_IDLE", POWER_MP, 0, -1, 39, 7, 2, 0,     /* changed spc4r35 */
         "check condition on transition from idle", /* was FIDCPC (spc4r25) */
         "0: restricted (SAS-2); 1: disabled; 2: enabled\n"},
