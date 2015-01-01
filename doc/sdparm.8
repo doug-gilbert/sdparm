@@ -1,4 +1,4 @@
-.TH SDPARM "8" "December 2014" "sdparm\-1.09" SDPARM
+.TH SDPARM "8" "January 2015" "sdparm\-1.10" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -266,11 +266,11 @@ is added. When used four times only a SCSI adapter scan is shown.
 See examples below and the "Win32 port" section in the README file.
 .SH NOTES
 The reference document used for interpreting mode and VPD pages (and the
-INQUIRY standard response) is T10/1713\-D Revision 37 (SPC\-4, 17 May
-2014) found at http://www.t10.org . Obsolete and reserved items in the
-standard INQUIRY response output are displayed in brackets. Recent drafts
-of other T10 documents are also used: SBC\-4 (disks), SSC\-4 (tapes),
-SPL\-3 (SAS transport) and SAT\-3 (SCSI to ATA Translation).
+INQUIRY standard response) is T10/BSR INCITS 502 Revision 01 (SPC\-5, 24
+December 2015) found at http://www.t10.org . Obsolete and reserved items
+in the standard INQUIRY response output are displayed in brackets. Recent
+drafts of other T10 documents are also used: SBC\-4 (disks), SSC\-5 (tapes),
+SPL\-4 (SAS transport) and SAT\-4 (SCSI to ATA Translation).
 .PP
 A mode page for which no abbreviation is known (e.g. a vendor specific mode
 page) can be listed in hexadecimal by using the option
@@ -768,7 +768,7 @@ Written by Douglas Gilbert.
 .SH "REPORTING BUGS"
 Report bugs to <dgilbert at interlog dot com>.
 .SH COPYRIGHT
-Copyright \(co 2005\-2014 Douglas Gilbert
+Copyright \(co 2005\-2015 Douglas Gilbert
 .br
 This software is distributed under a FreeBSD license. There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
