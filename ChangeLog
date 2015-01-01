@@ -2,8 +2,9 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.10 [20150101] [svn: r258]
+ChangeLog for sdparm-1.10 [20150101] [svn: r259]
   - point svn:externals to rev 625 of sg3_utils
+  - upgrade automake to version 1.14.1 (U14.10)
 
 ChangeLog for sdparm-1.09 [20141226] [svn: r257]
   - decode Third Party Copy VPD page
