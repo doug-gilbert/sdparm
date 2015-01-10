@@ -34,6 +34,7 @@
 #include <ctype.h>
 
 #include "sdparm.h"
+#include "sg_unaligned.h"
 
 /* sdparm_access.c : helpers for sdparm to access tables in
  * sdparm_data.c
@@ -93,7 +94,7 @@ sdp_strcase_eq_upto(const char * s1p, const char * s2p, int n)
 int
 sdp_get_mp_len(unsigned char * mp)
 {
-    return (mp[0] & 0x40) ? ((mp[2] << 8) + mp[3] + 4) : (mp[1] + 2);
+    return (mp[0] & 0x40) ? (sg_get_unaligned_be16(mp + 2) + 4) : (mp[1] + 2);
 }
 
 const struct sdparm_mode_page_t *
@@ -321,6 +322,9 @@ sdp_find_mitem_by_acron(const char * ap, int * from, int transp_proto,
     return mpi;
 }
 
+/* Does similar job to sg_get_unaligned_be*() but this function starts at
+ * a given start_bit offset. Maximum number of num_bits is 64. For example
+ *     sdp_get_big_endian(from,7,16)==sg_get_unaligned_be16(from)    */
 uint64_t
 sdp_get_big_endian(const unsigned char * from, int start_bit, int num_bits)
 {
@@ -339,6 +343,9 @@ sdp_get_big_endian(const unsigned char * from, int start_bit, int num_bits)
     return res;
 }
 
+/* Does similar job to sg_put_unaligned_be*() but this function starts at
+ * a given start_bit offset. Maximum number of num_bits is 64. Preserves
+ * residual bits in partially written bytes. */
 void
 sdp_set_big_endian(uint64_t val, unsigned char * to, int start_bit,
                    int num_bits)

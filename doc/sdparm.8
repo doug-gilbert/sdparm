@@ -16,6 +16,11 @@ sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 [\fI\-\-page=PG[,SPG]\fR] [\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
 .PP
 .B sdparm
+\fI\-\-inhex=FN\fR [\fI\-\-all\fR] [\fI\-\-flex\fR] [\fI\-\-hex\fR]
+[\fI\-\-long\fR] [\fI\-\-pdt=PDT\fR] [\fI\-\-six\fR] [\fI\-\-transport=TN\fR]
+[\fI\-\-vendor=VN\fR]
+.PP
+.B sdparm
 \fI\-\-wscan\fR [\fI\-\-verbose\fR]
 .SH DESCRIPTION
 .\" Add any additional description here
@@ -90,6 +95,12 @@ from different pages. When a specific (mode) page number is given with the
 \fI\-\-page=PG[,SPG]\fR option then all the fields of that page are
 output (irrespective of the setting of this option). For this option's action
 when used with the \fI\-\-enumerate\fR option see the ENUMERATE section below.
+.br
+By default \fI\-\-inhex=FN\fR will only decode the first mode page found in
+\fIFN\fR. With this option, more mode pages will be decoded if present. When
+\fI\-\-transport=TN\fR or \fI\-\-vendor=VN\fR is also given then if a given
+mode page is not defined for that transport or vendor, then it is decoded
+as a generic mode page.
 .TP
 \fB\-c\fR, \fB\-\-clear\fR=\fISTR\fR
 In its simplest form \fISTR\fR contains a field acronym_name or a field
@@ -170,6 +181,24 @@ page (0x83) is decoded and output. If this option and the \fI\-\-all\fR
 option are given then the supported VPD pages page (0x0) is decoded and
 output.
 .TP
+\fB\-I\fR, \fB\-\-inhex\fR=\fIFN\fR
+\fIFN\fR is expected to be a file name (or '\-' for stdin) which contains
+ASCII hexadecimal (or binary) representing the response to MODE SENSE(10).
+If \fI\-\-six\fR is also given then the response from MODE SENSE(6) is
+assumed. A MODE SENSE response contains one or more mode pages. This
+utility will decode the first one unless the \fI\-\-all\fR option is
+given. In order to decode a mode page the peripheral device type is often
+needed and can be supplied with the \fI\-\-pdt=PDT\fR option. If the
+\fI\-\-pdt=PDT\fR is not given then a mode page found in two device type
+standards (e.g. SBC and SSC) may be decoded twice.
+.br
+The hexadecimal in \fIFN\fR should be arranged as 1 or 2 digits representing
+a byte each of which is whitespace or comma separated. Anything from and
+including a hash mark to the end of line is ignored. If the \fI\-\-hex\fR
+option is also given twice then \fIFN\fR is treated as binary. Apart from
+this usage the \fI\-\-hex\fR option is otherwise ignored with
+\fI\-\-inhex=FN\fR.
+.TP
 \fB\-l\fR, \fB\-\-long\fR
 output extra information. In the case of mode page fields a description (with
 units if applicable) is output to the right. If used twice, then for some
@@ -196,6 +225,14 @@ then an error is issued and a list of possibilities in the current context
 is given (so '\-p x' can be quite useful). If the \fISTR\fR matches a known
 VPD page abbreviation then the \fI\-\-inquiry\fR option is assumed. For
 usage with \fI\-\-enumerate\fR see the ENUMERATE section below.
+.TP
+\fB\-P\fR, \fB\-\-pdt\fR=\fIPDT\fR
+This option is only active when the \fI\-\-inhex=FN\fR option is given.
+\fIPDT\fR is the peripheral device type, a value between 0 and 31 and
+can be found in the reponse to the INQUIRY command. The default value
+is -1 (which may also be given for \fIPDT\fR) and it is interpreted as
+SPC (i.e. common mode pages) or as a wild card. If available this option
+should be supplied with the \fI\-\-inhex=FN\fR option.
 .TP
 \fB\-q\fR, \fB\-\-quiet\fR
 suppress output of device name followed by the vendor, product and revision

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2014 Douglas Gilbert.
+ * Copyright (c) 2005-2015 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -687,12 +687,14 @@ struct tpc_desc_type tpc_desc_arr[] = {
     {0xe, "stream -> stream&application_client"},
     {0xf, "stream -> discard&application_client"},
     {0x10, "filemark -> tape"},
-    {0x11, "space -> tape"},
-    {0x12, "locate -> tape"},
+    {0x11, "space -> tape"},            /* obsolete: spc5r02 */
+    {0x12, "locate -> tape"},           /* obsolete: spc5r02 */
     {0x13, "<i>tape -> <i>tape"},
     {0x14, "register persistent reservation key"},
     {0x15, "third party persistent reservation source I_T nexus"},
     {0x16, "<i>block -> <i>block"},
+    {0x17, "positioning -> tape"},      /* this and next added spc5r02 */
+    {0x18, "<loi>tape -> <loi>tape"},   /* loi: logical object identifier */
     {0xbe, "ROD <- block range(n)"},
     {0xbf, "ROD <- block range(1)"},
     {0xe0, "CSCD: FC N_Port_Name"},
@@ -751,6 +753,33 @@ get_tpc_rod_name(uint32_t rod_type)
     }
     return "";
 }
+
+struct cscd_desc_id_t {
+    uint16_t id;
+    const char * name;
+};
+
+static struct cscd_desc_id_t cscd_desc_id_arr[] = {
+    /* only values higher than 0x7ff are listed */
+    {0xc000, "copy src or dst null LU, pdt=0"},
+    {0xc001, "copy src or dst null LU, pdt=1"},
+    {0xf800, "copy src or dst in ROD token"},
+    {0xffff, "copy src or dst is copy manager LU"},
+    {0x0, NULL},
+};
+
+static const char *
+get_cscd_desc_id_name(uint16_t cscd_desc_id)
+{
+    const struct cscd_desc_id_t * cdip;
+
+    for (cdip = cscd_desc_id_arr; cdip->name; ++cdip) {
+        if (cscd_desc_id == cdip->id)
+            return cdip->name;
+    }
+    return "";
+}
+
 
 /* VPD_3PARTY_COPY (3PC, THIRD PARTY COPY, SPC-4, SBC-3)  0x8f */
 static void
@@ -836,9 +865,14 @@ decode_3party_copy_vpd(unsigned char * buff, int len, int do_hex, int verbose)
                 }
                 break;
             case 0x000C:
-                printf(" Supported CSCD IDs:\n");
+                printf(" Supported CSCD IDs (above 0x7ff):\n");
                 for (j = 0; j < sg_get_unaligned_be16(ucp + 4); j += 2) {
-                    printf("  0x%04x\n", sg_get_unaligned_be16(ucp + 6 + j));
+                    u = sg_get_unaligned_be16(ucp + 6 + j);
+                    cp = get_cscd_desc_id_name(u);
+                    if (strlen(cp) > 0)
+                        printf("  %s [0x%04x]\n", cp, u);
+                    else
+                        printf("  0x%04x\n", u);
                 }
                 break;
             case 0x0106:

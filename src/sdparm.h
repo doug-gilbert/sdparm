@@ -71,6 +71,8 @@ extern "C" {
 #define MSP_SSC_CDP 0xf0
 #define MSP_SBC_APP_TAG 0x2     /* changed from 0xf0 to 0x2 sbc3r28 */
 #define MSP_SPC_PS 0x1          /* power consumption */
+#define MSP_SPC_CDLA 0x3
+#define MSP_SPC_CDLB 0x4
 
 #define MODE_DATA_OVERHEAD 128
 #define EBUFF_SZ 256
@@ -171,12 +173,14 @@ struct sdparm_opt_coll {
     int long_out;
     int mode_6;
     int num_desc;
+    int pdt;
     int quiet;
     int read_only;
     int save;
     int transport;      /* -1 means not transport specific (def) */
     int vendor;         /* -1 means not vendor specific (def) */
     int verbose;
+    const char * inhex_fn;
 };
 
 struct sdparm_mode_descriptor_t {

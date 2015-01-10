@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2014 Douglas Gilbert.
+ * Copyright (c) 2005-2015 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,11 +64,19 @@ static struct sdparm_mode_descriptor_t smc_tg_desc = {
 static struct sdparm_mode_descriptor_t sbc_lbp_desc = {
     2, 2, -1, 16, 8, -1, -1, "SBC logical block provisioning"
 };
+
 /* SBC's application tag mode page doesn't give the number of
    following descriptors but rather parameter length (in bytes).
    This is flagged by -1 in num_descs_inc (third) field */
 static struct sdparm_mode_descriptor_t sbc_atag_desc = {
     2, 2, -1, 16, 24, -1, -1, "SBC application tag"
+};
+
+/* SPC's command duration limit A/B mode pages don't give the number of
+   following descriptors but rather parameter length (in bytes).
+   This is flagged by -1 in num_descs_inc (third) field */
+static struct sdparm_mode_descriptor_t spc_cdl_desc = {
+    2, 2, -1, 8, 4, -1, -1, "command duration limit"
 };
 
 /* Mode pages that aren't specific to any transport protocol or vendor.
@@ -88,6 +96,10 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
     {IEC_MP, MSP_BACK_CTL, PDT_DISK, 0, "bc", "Background control (SBC)",
         NULL},
     {CACHING_MP, 0, PDT_DISK, 0, "ca", "Caching (SBC)", NULL},
+    {CONTROL_MP, MSP_SPC_CDLA, -1, 0, "cdla", "Command duration limit A",
+        &spc_cdl_desc},
+    {CONTROL_MP, MSP_SPC_CDLB, -1, 0, "cdlb", "Command duration limit B",
+        &spc_cdl_desc},
     {MMCMS_MP, 0, PDT_MMC, 1, "cms", "CD/DVD (MM) capabilities and "
         "mechanical status (MMC)", NULL},        /* read only */
     {CONTROL_MP, 0, -1, 0, "co", "Control", NULL},
@@ -606,17 +618,41 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"MSDL", CONTROL_MP, MSP_SPC_CE, -1, 6, 7, 8, 0,  /* spc4r34 */
         "Maximum sense data length", "0: unlimited"},
 
-    /* Application tag mode subpage [0xa,0xf0] sbc3 */
+    /* Application tag mode subpage [0xa,0x2] sbc4 */
     /* descriptor starts here, <start_byte> is relative to start of mode
      * page (i.e. 16 more than shown in descriptor format table) */
     {"AT_LAST", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 16, 7, 1, 0,
         "Last", NULL},
-    {"AT_LBAT", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 22, 7, 16, 0,
+    {"AT_LBAT", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 22, 7, 16, MF_HEX,
         "Logical block application tag", NULL},
     {"AT_LBA", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 24, 7, 64, MF_HEX,
         "Logical block address", NULL},
     {"AT_COUNT", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 32, 7, 64, MF_HEX,
         "Logical block count", NULL},
+
+    /* Command duration limit A mode subpage [0xa,0x3] spc5 */
+    /* descriptor starts here, <start_byte> is relative to start of mode
+     * page (i.e. 8 more than shown in descriptor format table) */
+    {"CDA_UNIT", CONTROL_MP, MSP_SPC_CDLA, -1, 8, 7, 3, 0,
+        "CDLA unit",
+        "0: no limit\t"
+        "4: 1 microsecond\t"
+        "5: 10 microseconds\t"
+        "6: 500 microseconds"},
+    {"CDA_LIMIT", CONTROL_MP, MSP_SPC_CDLA, -1, 10, 7, 16, 0,
+        "Command duration limit", NULL},
+
+    /* Command duration limit B mode subpage [0xa,0x4] spc5 */
+    /* descriptor starts here, <start_byte> is relative to start of mode
+     * page (i.e. 8 more than shown in descriptor format table) */
+    {"CDB_UNIT", CONTROL_MP, MSP_SPC_CDLB, -1, 8, 7, 3, 0,
+        "CDL unit",
+        "0: no limit\t"
+        "4: 1 microsecond\t"
+        "5: 10 microseconds\t"
+        "6: 500 microseconds"},
+    {"CDB_LIMIT", CONTROL_MP, MSP_SPC_CDLB, -1, 10, 7, 16, 0,
+        "Command duration limit", NULL},
 
     /* Control data protection mode subpage [0xa,0xf0] ssc4 */
     {"LBPM", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 4, 7, 8, 0,
