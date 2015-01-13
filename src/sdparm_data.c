@@ -394,7 +394,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"SURF", FORMAT_MP, 0, PDT_DISK, 20, 4, 1, 0,
         "Surface", NULL},
 
-    /* Mount Rainier reWitable mode page [0x3] mmc4  */
+    /* Mount Rainier reWritable mode page [0x3] mmc4  */
     {"LBAS", MRW_MP, 0, PDT_MMC, 3, 0, 1, 0,
         "LBA space", NULL},
 
@@ -890,7 +890,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "0: restricted (SAS-2); 1: disabled; 2: enabled\n"},
 
     /* Power consumption mode page [0x1a,1] added spc4r33 */
-    {"ps_id", POWER_MP, MSP_SPC_PS, -1, 7, 7, 8, 0,      /* added spc4r24 */
+    {"PS_ID", POWER_MP, MSP_SPC_PS, -1, 7, 7, 8, 0,
         "Power consumption identifier",
         "references Power consumption VPD page"},
 
