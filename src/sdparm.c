@@ -78,7 +78,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_unaligned.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.10 20150110 [svn: r260]";
+static const char * version_str = "1.10 20150113 [svn: r261]";
 
 
 #define MAX_DEV_NAMES 256
@@ -611,7 +611,8 @@ print_mp_entry(const char * pre, int smask,
                const unsigned char * cha_mp,
                const unsigned char * def_mp,
                const unsigned char * sav_mp,
-               int long_out, int force_decimal)
+               int force_decimal,
+               const struct sdparm_opt_coll * op)
 {
     int sep = 0;
     int all_set;
@@ -630,7 +631,7 @@ print_mp_entry(const char * pre, int smask,
         printf("-1");
     else
         printf("%" PRIu64 "", u);
-    if (smask & 0xe) {
+    if ((smask & 0xe) && (op->quiet < 2)) {
         printf("  [");
         if (cha_mp && (smask & 2)) {
             printf("cha: %s",
@@ -642,11 +643,11 @@ print_mp_entry(const char * pre, int smask,
             u = sdp_mp_get_value_check(mpi, def_mp, &all_set);
             printf("%sdef:", (sep ? ", " : " "));
             if (force_decimal)
-                printf("%" PRId64 "", (int64_t)u);
+                printf(" %" PRId64 "", (int64_t)u);
             else if (mpi->flags & MF_HEX)
-                printf("0x%" PRIx64 "", u);
+                printf(" 0x%" PRIx64 "", u);
             else if (all_set)
-                printf("-1");
+                printf(" -1");
             else
                 printf("%3" PRIu64 "", u);
             sep = 1;
@@ -656,27 +657,28 @@ print_mp_entry(const char * pre, int smask,
             u = sdp_mp_get_value_check(mpi, sav_mp, &all_set);
             printf("%ssav:", (sep ? ", " : " "));
             if (force_decimal)
-                printf("%" PRId64 "", (int64_t)u);
+                printf(" %" PRId64 "", (int64_t)u);
             else if (mpi->flags & MF_HEX)
-                printf("0x%" PRIx64 "", u);
+                printf(" 0x%" PRIx64 "", u);
             else if (all_set)
-                printf("-1");
+                printf(" -1");
             else
                 printf("%3" PRIu64 "", u);
         }
         printf("]");
     }
-    if (long_out && mpi->description)
+    if (op->long_out && mpi->description)
         printf("  %s", mpi->description);
     printf("\n");
-    if ((long_out > 1) && mpi->extra)
+    if ((op->long_out > 1) && mpi->extra)
         print_mp_extra(mpi->extra);
 }
 
 static void
 print_mp_arr_entry(const char * pre, int smask,
                    const struct sdparm_mode_page_item *mpi,
-                   void ** pc_arr, int long_out, int force_decimal)
+                   void ** pc_arr, int force_decimal,
+                   const struct sdparm_opt_coll * op)
 {
     const unsigned char * cur_mp = (const unsigned char *)pc_arr[0];
     const unsigned char * cha_mp = (const unsigned char *)pc_arr[1];
@@ -684,7 +686,7 @@ print_mp_arr_entry(const char * pre, int smask,
     const unsigned char * sav_mp = (const unsigned char *)pc_arr[3];
 
     print_mp_entry(pre, smask, mpi, cur_mp, cha_mp, def_mp, sav_mp,
-                   long_out, force_decimal);
+                   force_decimal, op);
 }
 
 static int
@@ -792,7 +794,7 @@ print_mpage_extra_desc(void ** pc_arr, int rep_len,
                 break;
             }
             print_mp_entry("  ", smask, &ampi, cur_mp, cha_mp, def_mp,
-                           sav_mp, op->long_out, 0);
+                           sav_mp, 0, op);
         }
         if (bad)
             break;
@@ -1079,7 +1081,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                 if (0 == op->flexible)
                     continue;
             }
-            print_mp_arr_entry("  ", smask, mpi, pc_arr, op->long_out, 0);
+            print_mp_arr_entry("  ", smask, mpi, pc_arr, 0, op);
         }
     }
     if (mpi && (NULL == mpi->acron) && fdesc_mpi) {
@@ -1122,6 +1124,11 @@ print_mode_page_given(uint8_t * cur_mp, int cur_mp_len,
         pr2serr("%s\n", ebuff);
         return SG_LIB_CAT_OTHER;
     }
+    if ((0 == op->pdt) && (op->long_out > 0) && (0 == op->quiet)) {
+        v = cur_mp[op->mode_6 ? 2 : 3];
+        printf("    Direct access device specific parameters: WP=%d  "
+               "DPOFUA=%d\n", !!(v & 0x80), !!(v & 0x10));
+    }
 
 and_again:
     pg_p = cur_mp + off;
@@ -1135,11 +1142,6 @@ and_again:
     smask = 0x1;        /* treat as single "current" page */
 
     buff[0] = '\0';
-    if ((0 == op->pdt) && (op->long_out > 0) && (0 == op->quiet)) {
-        v = cur_mp[op->mode_6 ? 2 : 3];
-        printf("    Direct access device specific parameters: WP=%d  "
-               "DPOFUA=%d\n", !!(v & 0x80), !!(v & 0x10));
-    }
     orig_pn = pn;
     /* choose a mode page item namespace (vendor, transport or generic) */
     transport = op->transport;
@@ -1279,7 +1281,7 @@ now_try_generic:
                 if (0 == op->flexible)
                     continue;
             }
-            print_mp_arr_entry("  ", smask, mpi, pc_arr, op->long_out, 0);
+            print_mp_arr_entry("  ", smask, mpi, pc_arr, 0, op);
         }
     }
     if (mpi && (NULL == mpi->acron) && fdesc_mpi) {
@@ -1386,7 +1388,6 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
                  int pdt, const struct sdparm_opt_coll * op)
 {
     int k, res, verb, smask, pn, spn, warned, rep_len, len, desc_num, adapt;
-    int long_o;
     uint64_t u;
     int64_t val;
     const struct sdparm_mode_page_item * mpi;
@@ -1403,14 +1404,13 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
 
     warned = 0;
     verb = (op->verbose > 0) ? op->verbose - 1 : 0;
-    long_o = op->long_out;
     for (k = 0, pn = 0, spn = 0; k < mps->num_it_vals; ++k) {
         ivp = &mps->it_vals[k];
         val = ivp->val;
         desc_num = ivp->descriptor_num;
         mpi = &ivp->mpi;
         mpp = sdp_get_mpage_name(mpi->page_num, mpi->subpage_num, mpi->pdt,
-                                 op->transport, op->vendor, long_o,
+                                 op->transport, op->vendor, op->long_out,
                                  op->hex, buff, sizeof(buff));
         if (desc_num > 0) {
             if (check_desc_convert_mpi(desc_num, mpp, mpi, &ampi, b_tmp,
@@ -1543,7 +1543,7 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
                     printf("-    ");
                 printf("\n");
             } else
-                print_mp_arr_entry("", smask, mpi, pc_arr, long_o, 0);
+                print_mp_arr_entry("", smask, mpi, pc_arr, 0, op);
         } else if (1 == val) {
             if (op->hex) {
                 if (smask & 1) {
@@ -1553,7 +1553,7 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
                     printf("-    ");
                 printf("\n");
             } else
-                print_mp_arr_entry("", smask & 1, mpi, pc_arr, long_o, 0);
+                print_mp_arr_entry("", smask & 1, mpi, pc_arr, 0, op);
         } else if (2 == val) {
             if (op->hex) {
                 if (smask & 1) {
@@ -1563,7 +1563,7 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
                     printf("-    ");
                 printf("\n");
             } else
-                print_mp_arr_entry("", smask & 1, mpi, pc_arr, long_o, 1);
+                print_mp_arr_entry("", smask & 1, mpi, pc_arr, 1, op);
         }
     }
     return 0;

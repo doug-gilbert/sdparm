@@ -240,6 +240,10 @@ strings fetched from an INQUIRY response. Without this option such a line is
 typically the first line output by sdparm. Reduces output from the device
 identification VPD page, typically to one line (or none) for each of di_lu,
 di_port, di_target and di_asis.
+.br
+If this option is used twice then additionally mode page output suppresses the
+changeable, default and saved values that are usually shown in braces, if
+available.
 .TP
 \fB\-r\fR, \fB\-\-readonly\fR
 override other logic to open \fIDEVICE\fR in read\-only mode. The default
