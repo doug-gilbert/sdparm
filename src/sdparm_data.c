@@ -592,6 +592,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Application tag mode page enabled", NULL},
     {"RWWP", CONTROL_MP, 0, -1, 5, 4, 1, 0,     /* spc4r27 */
         "Reject write without protection", NULL},
+    {"SBLP", CONTROL_MP, 0, -1, 5, 3, 1, 0,     /* spc5r02 */
+        "Supported block lengths and protection information", NULL},
     {"AUTOLOAD", CONTROL_MP, 0, -1, 5, 2, 3, 0,
         "Autoload mode",
         "0: medium loaded for full access\t"
@@ -606,6 +608,10 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "0ffffh (-1) takes 65535 seconds or longer"},
 
     /* Control extension mode subpage [0xa,0x1] spc3 */
+    {"DLC", CONTROL_MP, MSP_SPC_CE, -1, 4, 3, 1, 0,   /* spc5r02 */
+        "Device life control",
+        "0: may degrade performance to prolong life\t"
+        "1: shall not degrade performance"},
     {"TCMOS", CONTROL_MP, MSP_SPC_CE, -1, 4, 2, 1, 0,
         "Timestamp changeable by methods outside standard", NULL},
     {"SCSIP", CONTROL_MP, MSP_SPC_CE, -1, 4, 1, 1, 0,
@@ -635,7 +641,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
      * page (i.e. 8 more than shown in descriptor format table) */
     {"CDA_UNIT", CONTROL_MP, MSP_SPC_CDLA, -1, 8, 7, 3, 0,
         "CDLA unit",
-        "0: no limit\t"
+        "0: no duration limit\t"
         "4: 1 microsecond\t"
         "5: 10 microseconds\t"
         "6: 500 microseconds"},
@@ -647,7 +653,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
      * page (i.e. 8 more than shown in descriptor format table) */
     {"CDB_UNIT", CONTROL_MP, MSP_SPC_CDLB, -1, 8, 7, 3, 0,
         "CDL unit",
-        "0: no limit\t"
+        "0: no duration limit\t"
         "4: 1 microsecond\t"
         "5: 10 microseconds\t"
         "6: 500 microseconds"},
