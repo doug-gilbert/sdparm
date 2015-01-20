@@ -2,10 +2,11 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.10 [20150118] [svn: r262]
+ChangeLog for sdparm-1.10 [20150119] [svn: r263]
   - add --inhex=FN option for decoding with device present
   - add --pdt=PDT option for use with --inhex=FN
   - --quiet used twice hides changeable, default + saved
+  - add Unit serial number VPD page specific sanity check
   - sync to spc5r02
   - point svn:externals to rev 629 of sg3_utils
   - upgrade automake to version 1.14.1 (U14.10)

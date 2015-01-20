@@ -78,7 +78,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_unaligned.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.10 20150118 [svn: r262]";
+static const char * version_str = "1.10 20150119 [svn: r263]";
 
 
 #define MAX_DEV_NAMES 256

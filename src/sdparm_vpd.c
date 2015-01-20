@@ -2114,6 +2114,14 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     case VPD_UNIT_SERIAL_NUM:           /* 0x80 */
         if (b[1] != pn)
             goto dumb_inq;
+        if ((0x2 == b[2]) && (0x2 == b[3])) {
+            /* could be a Unit Serial number VPD page with a very long
+             * length of 4+514 bytes; more likely standard response for
+             * SCSI-2, RMB=1 and a response_data_format of 0x2. */
+            pr2serr("very unlikely to be a Unit Serial Number VPD "
+                    "response, so ...\n");
+            goto dumb_inq;
+        }
         len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         if (op->long_out)
             printf("Unit serial number [0x80] VPD page:\n");
