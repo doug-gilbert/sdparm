@@ -44,6 +44,9 @@
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <errno.h>
 #define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
 
@@ -58,10 +61,7 @@
 #endif
 
 #ifdef SG_LIB_LINUX
-#include <errno.h>
 #include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <sys/utsname.h>
 
 /* Following needed for lk 2.4 series; may be dropped in future */
@@ -78,7 +78,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_unaligned.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.10 20150206 [svn: r264]";
+static const char * version_str = "1.10 20150207 [svn: r265]";
 
 
 #define MAX_DEV_NAMES 256
