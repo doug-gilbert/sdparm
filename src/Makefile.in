@@ -297,7 +297,7 @@ sglib_SOURCES = ../lib/sg_lib.c \
 			../lib/sg_pt_common.c
 
 @HAVE_SGUTILS_FALSE@INCLUDES = -I$(top_srcdir)/include
-@HAVE_SGUTILS_TRUE@INCLUDES = -I/usr/include/scsi
+@HAVE_SGUTILS_TRUE@INCLUDES = -I/scsi
 @HAVE_SGUTILS_FALSE@sdparm_LDADD = @os_deps@ @GETOPT_O_FILES@ @os_libs@ @SGUTILS_LIBS@
 @HAVE_SGUTILS_TRUE@sdparm_LDADD = @GETOPT_O_FILES@ @os_libs@ @SGUTILS_LIBS@
 @HAVE_SGUTILS_FALSE@sdparm_DEPENDENCIES = @os_deps@ @GETOPT_O_FILES@
