@@ -1602,6 +1602,7 @@ decode_sup_block_lens_vpd(unsigned char * buff, int len)
             ucp[3];
         printf("  Logical block length: %u\n", u);
         printf("    P_I_I_SUP: %d\n", !!(ucp[4] & 0x40));
+        printf("    NO_PI_CHK: %d\n", !!(ucp[4] & 0x8));  /* sbc4r05 */
         printf("    GRD_CHK: %d\n", !!(ucp[4] & 0x4));
         printf("    APP_CHK: %d\n", !!(ucp[4] & 0x2));
         printf("    REF_CHK: %d\n", !!(ucp[4] & 0x1));
