@@ -78,7 +78,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_unaligned.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.10 20150428 [svn: r266]";
+static const char * version_str = "1.10 20151126 [svn: r268]";
 
 
 #define MAX_DEV_NAMES 256
@@ -134,49 +134,33 @@ pr2serr(const char * fmt, ...)
 }
 
 static void
-usage()
+usage(int do_help)
 {
+    if (1 != do_help)
+        goto secondary_help;
     pr2serr("Usage: "
-            "sdparm [--all] [--clear=STR] [--command=CMD] [--dbd] "
-            "[--defaults]\n"
-            "              [--dummy] [--flexible] [--get=STR] [--help] "
-            "[--hex] [--inquiry]\n"
-            "              [--long] [--num-desc] [--page=PG[,SPG]] [--quiet] "
+            "sdparm [--all] [--clear=STR] [--dbd] [--defaults] [--dummy]\n"
+            "              [--flexible] [--get=STR] [--help] [--hex] "
+            "[--long]\n"
+            "              [--num-desc] [--page=PG[,SPG]] [--quiet] "
             "[--readonly]\n"
             "              [--save] [--set=STR] [--six] [--transport=TN] "
             "[--vendor=VN]\n"
             "              [--verbose] [--version] DEVICE [DEVICE...]\n\n"
-            "       sdparm --enumerate [--all] [--inquiry] [--long] "
-            "[--page=PG[,SPG]]\n"
-            "              [--transport=TN] [--vendor=VN]\n\n"
-            "       sdparm --inhex=FN [--all] [--flexible] [--hex] [--long] "
-            "[--pdt=PDT]\n"
-            "              [--six] [--transport=TN] [--vendor=VN]\n"
-            "  where:\n"
+            "  where the common and mode page options are:\n"
             "    --all | -a            list all known fields for given "
-            "device\n"
+            "DEVICE\n"
             "    --clear=STR | -c STR    clear (zero) field value(s)\n"
-            "    --command=CMD | -C CMD    perform CMD (e.g. 'eject')\n"
             "    --dbd | -B            set DBD bit in mode sense cdb\n"
             "    --defaults | -D       set a mode page to its default "
             "values\n"
             "    --dummy | -d          don't write back modified mode page\n"
-            "    --enumerate | -e      list known pages and fields "
-            "(ignore device)\n"
             "    --flexible | -f       compensate for common errors, "
             "relax some checks\n"
             "    --get=STR | -g STR    get (fetch) field value(s)\n"
             "    --help | -h           print out usage message\n"
             "    --hex | -H            output in hex rather than name/value "
             "pairs\n"
-            "    --inquiry | -i        output INQUIRY VPD page(s) (def: mode "
-            "page(s))\n"
-            "                          use --page=PG for VPD number (-1 "
-            "for std inq)\n"
-            "    --inhex=FN|-I FN      read ASCII hex from file FN instead "
-            "of DEVICE;\n"
-            "                          if used with -HH then read binary "
-            "from FN\n"
             "    --long | -l           add description to field output\n"
             "    --num-desc | -n       report number of mode page "
             "descriptors\n"
@@ -184,7 +168,9 @@ usage()
             "subpage) number\n"
             "                          [or abbrev] to output, change or "
             "enumerate\n"
-            "    --quiet | -q          suppress device vendor/product/"
+            "    --pdt=DT|-P DT        peripheral Device Type (e.g. "
+            "0->disk)\n"
+            "    --quiet | -q          suppress DEVICE vendor/product/"
             "revision string line\n"
             "    --readonly | -r       force read-only open of DEVICE (def: "
             "depends\n"
@@ -200,12 +186,58 @@ usage()
             "[or abbrev]\n"
             "    --verbose | -v        increase verbosity\n"
             "    --version | -V        print version string and exit\n"
-#ifdef SG_LIB_WIN32
-            "    --wscan | -w          windows scan for device names\n"
-#endif
             "\nView or change SCSI mode page fields (e.g. of a disk or "
             "CD/DVD drive).\nSTR can be <acronym>[=val] or "
-            "<start_byte>:<start_bit>:<num_bits>[=val].\n"
+            "<start_byte>:<start_bit>:<num_bits>[=val].\nUse '-h' or "
+            "'--help' twice for help on other usages including "
+            "executing\nsome simple commands, reading and decoding VPD "
+            "pages, enumerating internal\ntables of mode and VPD pages, and "
+            "decoding response data supplied in a\nfile or stdin (rather "
+            "than from a DEVICE).\n"
+           );
+    return;
+secondary_help:
+    pr2serr("Further usages of the sdparm utility:\n"
+            "       sdparm --command=CMD [-hex] [--readonly] [--verbose]\n"
+            "              DEVICE [DEVICE...]\n"
+            "       sdparm --inquiry [--all] [--flexible] [--hex] "
+            "[--num-desc]\n"
+            "              [--page=PG[,SPG]] [--quiet] [--readonly] "
+            "[--transport=TN]\n"
+            "              [--vendor=VN] [--verbose] DEVICE [DEVICE...]\n");
+    pr2serr("       sdparm --enumerate [--all] [--inquiry] [--long] "
+            "[--page=PG[,SPG]]\n"
+            "              [--transport=TN] [--vendor=VN]\n"
+            "       sdparm --inhex=FN [--all] [--flexible] [--hex] "
+            "[--inquiry]\n"
+            "              [--long] [--pdt=PDT] [--six] [--transport=TN] "
+            "[--vendor=VN]\n"
+            "       sdparm --wscan [--verbose]\n\n"
+            "  where the additional options are:\n"
+            "    --command=CMD | -C CMD    perform CMD (e.g. 'eject')\n"
+            "    --enumerate | -e      list known pages and fields "
+            "(ignore DEVICE)\n"
+            "    --inhex=FN|-I FN      read ASCII hex from file FN instead "
+            "of DEVICE;\n"
+            "                          if used with -HH then read binary "
+            "from FN\n"
+            "    --inquiry | -i        output INQUIRY VPD page(s) (def: mode "
+            "page(s))\n"
+            "                          use --page=PG for VPD number (-1 "
+            "for std inq)\n"
+            "    --inhex=FN|-I FN      read ASCII hex from file FN instead "
+            "of DEVICE;\n"
+            "                          if used with -HH then read binary "
+            "from FN\n"
+            "    --wscan | -w          windows scan for device names\n"
+            "\nThe available commands will be listed when a invalid CMD is "
+            "given\n(e.g. '--command=xxx'). VPD page(s) are read and decoded "
+            "in the\n'--inquiry DEVICE' form. The '--enumerate' form outputs "
+            "internal data\nabout mode or VPD pages (and ignores DEVICE if "
+            "given). The '--inhex'\nform reads data from the the file FN "
+            "(or stdin) and decodes it as a\nmode or VPD page response. The "
+            "'--wscan' form is for listing Windows\ndevices and is only "
+            "available on Windows machines.\n"
            );
 }
 
@@ -915,15 +947,10 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
     mdp = NULL;
     pg_len = 0;
 
-    /* loop over each mode page item in given namespace */
+    /* starting at first match, loop over each mode page item in given
+     * namespace */
     for (smask = 0, warned = 0 ; mpi->acron; ++mpi, fetch_pg = 0) {
         if (0 == fetch_pg) {
-            if ((pdt >=0) && (mpi->pdt >= 0) &&
-                (pdt != mpi->pdt) && (0 == op->flexible))
-                continue;
-            if (! (((orig_pn >= 0) ? 1 : op->all) ||
-                   (MF_COMMON & mpi->flags)))
-                continue;
             if ((pn != mpi->page_num) || (spn != mpi->subpage_num)) {
                 if (fdesc_mpi) {
                     hmpi = mpi - 1;
@@ -936,6 +963,13 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                 fetch_pg = 1;
                 pn = mpi->page_num;
                 spn = mpi->subpage_num;
+            } else {
+                if ((pdt >=0) && (mpi->pdt >= 0) &&
+                    (pdt != mpi->pdt) && (0 == op->flexible))
+                    continue;
+                if (! (((orig_pn >= 0) ? 1 : op->all) ||
+                       (MF_COMMON & mpi->flags)))
+                    continue;
             }
         }
         if (fetch_pg) {
@@ -1083,7 +1117,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
             }
             print_mp_arr_entry("  ", smask, mpi, pc_arr, 0, op);
         }
-    }
+    }   /* end of mode page item loop */
     if (mpi && (NULL == mpi->acron) && fdesc_mpi) {
         --mpi;
         if ((pn == mpi->page_num) && (spn == mpi->subpage_num))
@@ -1188,7 +1222,8 @@ now_try_generic:
     }
     mdp = NULL;
 
-    /* loop over each mode page item in given namespace */
+    /* starting at first match, loop over each mode page item in given
+     * namespace */
     for (warned = 0, first_time = 1 ; mpi->acron; ++mpi) {
         if (first_time) {
             first_time = 0;
@@ -1247,12 +1282,6 @@ now_try_generic:
                 printf(":\n");
             check_mode_page(pg_p, pn, pg_len, op);
         } else {        /* if not first_time */
-            if ((op->pdt >=0) && (mpi->pdt >= 0) &&
-                (op->pdt != mpi->pdt) && (0 == op->flexible))
-                continue;
-            if (! (((orig_pn >= 0) ? 1 : op->all) ||
-                   (MF_COMMON & mpi->flags)))
-                continue;
             if ((pn != mpi->page_num) || (spn != mpi->subpage_num)) {
                 if (fdesc_mpi) {
                     hmpi = mpi - 1;
@@ -1261,6 +1290,13 @@ now_try_generic:
                                                fdesc_mpi, hmpi, op, smask);
                 }
                 break;
+            } else {
+                if ((op->pdt >=0) && (mpi->pdt >= 0) &&
+                    (op->pdt != mpi->pdt) && (0 == op->flexible))
+                    continue;
+                if (! (((orig_pn >= 0) ? 1 : op->all) ||
+                       (MF_COMMON & mpi->flags)))
+                    continue;
             }
         }
         if (smask && (! op->hex)) {
@@ -1283,7 +1319,7 @@ now_try_generic:
             }
             print_mp_arr_entry("  ", smask, mpi, pc_arr, 0, op);
         }
-    }
+    }   /* end of mode page item loop */
     if (mpi && (NULL == mpi->acron) && fdesc_mpi) {
         --mpi;
         if ((pn == mpi->page_num) && (spn == mpi->subpage_num))
@@ -2252,6 +2288,7 @@ main(int argc, char * argv[])
     int rw = 0;         /* 1: requires RDWR, 0: perhaps RDONLY ok */
     int set_clear = 0;
     int protect = 0;
+    int do_help = 0;
     int cmd_arg = -1;
     const struct sdparm_mode_page_t * mpp = NULL;
     const struct sdparm_transport_id_t * tip;
@@ -2322,8 +2359,8 @@ main(int argc, char * argv[])
             break;
         case 'h':
         case '?':
-            usage();
-            return 0;
+            ++do_help;
+            break;
         case 'H':
             ++op->hex;
             break;
@@ -2370,7 +2407,7 @@ main(int argc, char * argv[])
         case 'p':
             if (page_str) {
                 pr2serr("only one '--page=' option permitted\n");
-                usage();
+                usage(1);
                 return SG_LIB_SYNTAX_ERROR;
             } else
                 page_str = optarg;
@@ -2432,7 +2469,7 @@ main(int argc, char * argv[])
 #endif
         default:
             pr2serr("unrecognised option code 0x%x ??\n", c);
-            usage();
+            usage(1);
             return SG_LIB_SYNTAX_ERROR;
         }
     }
@@ -2443,9 +2480,14 @@ main(int argc, char * argv[])
         } else {
             for (; optind < argc; ++optind)
                 pr2serr("Unexpected extra argument: %s\n", argv[optind]);
-            usage();
+            usage(1);
             return SG_LIB_SYNTAX_ERROR;
         }
+    }
+
+    if (do_help) {
+        usage(do_help);
+        return 0;
     }
 
     if (op->read_only)
@@ -2748,13 +2790,21 @@ main(int argc, char * argv[])
         if (f2hex_arr(op->inhex_fn, (op->hex > 1), 0, inhex_buff, &inhex_len,
                       sizeof(inhex_buff)))
             return SG_LIB_FILE_ERROR;
+        if (op->verbose > 2)
+            pr2serr("Read %d bytes from user input\n", inhex_len);
+        if (op->verbose > 3)
+            dStrHexErr((const char *)inhex_buff, inhex_len, 0);
         op->hex = 0;
-        return print_mode_page_given(inhex_buff, inhex_len, op);
+        if (op->inquiry)
+            return sdp_process_vpd_page(0, pn, ((spn < 0) ? 0: spn), op,
+                                        pdt, protect, inhex_buff, inhex_len);
+        else
+            return print_mode_page_given(inhex_buff, inhex_len, op);
     }
 
     if (0 == num_devices) {
         pr2serr("one or more device names required\n");
-        usage();
+        usage(1);
         return SG_LIB_SYNTAX_ERROR;
     }
 
@@ -2777,7 +2827,7 @@ main(int argc, char * argv[])
 
         if (op->inquiry)
             r = sdp_process_vpd_page(sg_fd, pn, ((spn < 0) ? 0: spn), op,
-                                     req_pdt, protect);
+                                     req_pdt, protect, NULL, 0);
         else {
             if (cmd_str && scmdp)   /* process command */
                 r = sdp_process_cmd(sg_fd, scmdp, cmd_arg, pdt, op);

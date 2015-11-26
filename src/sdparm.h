@@ -73,6 +73,8 @@ extern "C" {
 #define MSP_SPC_PS 0x1          /* power consumption */
 #define MSP_SPC_CDLA 0x3
 #define MSP_SPC_CDLB 0x4
+#define MSP_SBC_IO_ADVI 0x5
+#define MSP_SBC_BACK_OP 0x6
 
 #define MODE_DATA_OVERHEAD 128
 #define EBUFF_SZ 256
@@ -113,6 +115,7 @@ extern "C" {
 #define VPD_DTDE_ADDRESS 0xb4   /* SSC-4 */
 #define VPD_BLOCK_DEV_C_EXTENS 0xb5 /* SBC-4 */
 #define VPD_ZBC_DEV_CHARS 0xb6  /* ZBC */
+#define VPD_BLOCK_LIMITS_EXT 0xb7   /* SBC-4 */
 #define VPD_NOT_STD_INQ -2      /* request for standard inquiry */
 
 #define VPD_ASSOC_LU 0
@@ -350,7 +353,8 @@ int sdp_strcase_eq_upto(const char * s1p, const char * s2p, int n);
 
 int sdp_process_vpd_page(int sg_fd, int pn, int spn,
                          const struct sdparm_opt_coll * opts, int req_pdt,
-                         int protect);
+                         int protect, const unsigned char * ihbp,
+                         int ihb_len);
 
 /*
  * Declarations for functions found in sdparm_cmd.c
