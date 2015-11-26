@@ -1,24 +1,34 @@
-.TH SDPARM "8" "January 2015" "sdparm\-1.10" SDPARM
+.TH SDPARM "8" "November 2015" "sdparm\-1.10" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
 .B sdparm
-[\fI\-\-all\fR] [\fI\-\-clear=STR\fR] [\fI\-\-command=CMD\fR]
-[\fI\-\-dbd\fR] [\fI\-\-defaults\fR] [\fI\-\-dummy\fR] [\fI\-\-flexible\fR]
-[\fI\-\-get=STR\fR] [\fI\-\-help\fR] [\fI\-\-hex\fR] [\fI\-\-inquiry\fR]
+[\fI\-\-all\fR] [\fI\-\-clear=STR\fR] [\fI\-\-dbd\fR] [\fI\-\-defaults\fR]
+[\fI\-\-dummy\fR] [\fI\-\-flexible\fR] [\fI\-\-get=STR\fR] [\fI\-\-help\fR]
+[\fI\-\-hex\fR] [\fI\-\-inquiry\fR]
 [\fI\-\-long\fR] [\fI\-\-num\-desc\fR] [\fI\-\-page=PG[,SPG]\fR]
 [\fI\-\-quiet\fR] [\fI\-\-readonly\fR] [\fI\-\-save\fR] [\fI\-\-set=STR\fR]
 [\fI\-\-six\fR] [\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
 [\fI\-\-verbose\fR] [\fI\-\-version\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
 .PP
 .B sdparm
+\fI\-\-command=CMD\fR [\fI\-\-hex\fR] [\fI\-\-readonly\fR]
+[\fI\-\-verbose\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
+.PP
+.B sdparm
+\fI\-\-inquiry\fR [\fI\-\-all\fR] [\fI\-\-flexible\fR] [\fI\-\-hex\fR]
+[\fI\-\-num\-desc\fR] [\fI\-\-page=PG[,SPG]\fR] [\fI\-\-quiet\fR]
+[\fI\-\-readonly\fR] [\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
+[\fI\-\-verbose\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
+.PP
+.B sdparm
 \fI\-\-enumerate\fR [\fI\-\-all\fR] [\fI\-\-inquiry\fR] [\fI\-\-long\fR]
 [\fI\-\-page=PG[,SPG]\fR] [\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
 .PP
 .B sdparm
-\fI\-\-inhex=FN\fR [\fI\-\-all\fR] [\fI\-\-flex\fR] [\fI\-\-hex\fR]
-[\fI\-\-long\fR] [\fI\-\-pdt=PDT\fR] [\fI\-\-six\fR] [\fI\-\-transport=TN\fR]
-[\fI\-\-vendor=VN\fR]
+\fI\-\-inhex=FN\fR [\fI\-\-all\fR] [\fI\-\-flexible\fR] [\fI\-\-hex\fR]
+[\fI\-\-inquiry\fR] [\fI\-\-long\fR] [\fI\-\-pdt=DT\fR] [\fI\-\-six\fR]
+[\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
 .PP
 .B sdparm
 \fI\-\-wscan\fR [\fI\-\-verbose\fR]
@@ -31,11 +41,17 @@ pages can also be displayed. Commands associated with starting
 and stopping the medium; loading and unloading the medium; and
 other housekeeping function may also be issued by this utility.
 .PP
-Of the three invocations shown in the synopsis, the first is the
-most general. The second variant that uses \fI\-\-enumerate\fR is
-for dumping information held in sdparm's internal tables. The last
-variant is for Windows only and lists the available device names;
-see the OPTIONS entry for \fI\-\-wscan\fR.
+The first invocation shown in the synopsis is for accessing and potentially
+changing mode page fields held on the \fIDEVICE\fR. The second form is for
+executing some simple SCSI commands. The third form (i.e.
+the '\fI\-\-inquiry\fR ... \fIDEVICE\fR' form) is for fetching and decoding
+VPD pages from the given \fIDEVICE\fR. The \fI\-\-enumerate\fR form is for
+listing out mode or VPD field data held by this utility (and if a
+\fIDEVICE\fR is given then it is ignored). The \fI\-\-inhex=FN\fR form
+decodes mode or VPD response data provided on file (or from stdin
+if \fIFN\fR is '\-'); that data may either be in hexadecimal or binary. The
+last form is for Windows only and lists the available device names; see the
+OPTIONS entry for \fI\-\-wscan\fR.
 .PP
 If no options (other than \fIDEVICE\fR) are given then a selection of
 common mode page fields for that device are listed. If the \fI\-\-long\fR
@@ -188,16 +204,18 @@ If \fI\-\-six\fR is also given then the response from MODE SENSE(6) is
 assumed. A MODE SENSE response contains one or more mode pages. This
 utility will decode the first one unless the \fI\-\-all\fR option is
 given. In order to decode a mode page the peripheral device type is often
-needed and can be supplied with the \fI\-\-pdt=PDT\fR option. If the
-\fI\-\-pdt=PDT\fR is not given then a mode page found in two device type
+needed and can be supplied with the \fI\-\-pdt=DT\fR option. If the
+\fI\-\-pdt=DT\fR is not given then a mode page found in two device type
 standards (e.g. SBC and SSC) may be decoded twice.
+.br
+If \fI\-\-inquiry\fR is given then \fIFN\fR is interpreted as the response
+data of a single VPD page.
 .br
 The hexadecimal in \fIFN\fR should be arranged as 1 or 2 digits representing
 a byte each of which is whitespace or comma separated. Anything from and
 including a hash mark to the end of line is ignored. If the \fI\-\-hex\fR
-option is also given twice then \fIFN\fR is treated as binary. Apart from
-this usage the \fI\-\-hex\fR option is otherwise ignored with
-\fI\-\-inhex=FN\fR.
+option is given twice then \fIFN\fR is treated as binary. Apart from this
+usage the \fI\-\-hex\fR option is otherwise ignored with \fI\-\-inhex=FN\fR.
 .TP
 \fB\-l\fR, \fB\-\-long\fR
 output extra information. In the case of mode page fields a description (with
@@ -226,11 +244,11 @@ is given (so '\-p x' can be quite useful). If the \fISTR\fR matches a known
 VPD page abbreviation then the \fI\-\-inquiry\fR option is assumed. For
 usage with \fI\-\-enumerate\fR see the ENUMERATE section below.
 .TP
-\fB\-P\fR, \fB\-\-pdt\fR=\fIPDT\fR
+\fB\-P\fR, \fB\-\-pdt\fR=\fIDT\fR
 This option is only active when the \fI\-\-inhex=FN\fR option is given.
-\fIPDT\fR is the peripheral device type, a value between 0 and 31 and
+\fIDT\fR is the peripheral Device Type, a value between 0 and 31 and
 can be found in the reponse to the INQUIRY command. The default value
-is -1 (which may also be given for \fIPDT\fR) and it is interpreted as
+is -1 (which may also be given for \fIDT\fR) and it is interpreted as
 SPC (i.e. common mode pages) or as a wild card. If available this option
 should be supplied with the \fI\-\-inhex=FN\fR option.
 .TP

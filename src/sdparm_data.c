@@ -79,6 +79,13 @@ static struct sdparm_mode_descriptor_t spc_cdl_desc = {
     2, 2, -1, 8, 4, -1, -1, "command duration limit"
 };
 
+/* SBC's IO advice hints grouping mode page doesn't give the number of
+   following descriptors but rather parameter length (in bytes).
+   This is flagged by -1 in num_descs_inc (third) field */
+static struct sdparm_mode_descriptor_t sbc_ioadvi_desc = {
+    2, 2, -1, 16, 16, -1, -1, "IO advice hints group"
+};
+
 /* Mode pages that aren't specific to any transport protocol or vendor.
    Note that all standard peripheral device types are included in this array.
    The pages are listed in acronym alphabetical order. */
@@ -95,6 +102,8 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
         "(SBC)", &sbc_atag_desc},
     {IEC_MP, MSP_BACK_CTL, PDT_DISK, 0, "bc", "Background control (SBC)",
         NULL},
+    {CONTROL_MP, MSP_SBC_BACK_OP, PDT_DISK, 0, "bop", "Background operation "
+        "control (SBC)", NULL},
     {CACHING_MP, 0, PDT_DISK, 0, "ca", "Caching (SBC)", NULL},
     {CONTROL_MP, MSP_SPC_CDLA, -1, 0, "cdla", "Command duration limit A",
         &spc_cdl_desc},
@@ -122,6 +131,8 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
         NULL},
     {FORMAT_MP, 0, PDT_DISK, 0, "fo", "Format (SBC)", NULL},
     {IEC_MP, 0, -1, 0, "ie", "Informational exceptions control", NULL},
+    {CONTROL_MP, MSP_SBC_IO_ADVI, 0, 0, "ioad", "IO advice hints grouping",
+        &sbc_ioadvi_desc},
     {IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 0, "lbp", "Logical block "
         "provisioning (SBC)", &sbc_lbp_desc},
     {MED_CONF_MP, 0, PDT_TAPE, 0, "mco", "Medium configuration (SSC)", NULL},
@@ -241,11 +252,13 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
      "ASCII implemented operating definition (obs)"},
     {VPD_AUTOMATION_DEV_SN, 0, PDT_TAPE, "adsn", "Automation device serial "
      "number (SSC)"},
-    {VPD_BLOCK_LIMITS, 0, PDT_DISK, "bl", "Block limits (SBC)"},
     {VPD_BLOCK_DEV_CHARS, 0, PDT_DISK, "bdc", "Block device characteristics "
      "(SBC)"},
     {VPD_BLOCK_DEV_C_EXTENS, 0, PDT_DISK, "bdce", "Block device "
      "characteristics extension (SBC)"},
+    {VPD_BLOCK_LIMITS, 0, PDT_DISK, "bl", "Block limits (SBC)"},
+    {VPD_BLOCK_LIMITS_EXT, 0, PDT_DISK, "ble",
+     "Block limits extension (SBC)"},
     {VPD_CFA_PROFILE_INFO, 0, -1, "cfa", "CFA profile information"},
     {VPD_DEVICE_CONSTITUENTS, 0, -1, "dc", "Device constituents"},
     {VPD_DEVICE_ID, 0, -1, "di", "Device identification"},
@@ -660,6 +673,44 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"CDB_LIMIT", CONTROL_MP, MSP_SPC_CDLB, -1, 10, 7, 16, 0,
         "Command duration limit", NULL},
 
+    /* IO advice hints grouping mode subpage [0xa,0x5] sbc4 */
+    /* descriptor starts here, <start_byte> is relative to start of mode
+     * page (i.e. 16 more than shown in descriptor format table) */
+    {"IOA_MODE", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 16, 7, 2, 0,
+        "IO advice hints mode", "0: valid; 1: invalid"},
+    {"CS_EN", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 16, 1, 1, 0,
+        "Cache segment enable", NULL},
+    {"IC_EN", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 16, 0, 1, 0,
+        "Information collection enable", NULL},
+    /* Assume Logical Block Markup (LBM) descriptor type 0 (i.e. access
+     * patterns) */
+    {"ACDLU", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 20, 7, 1, 0,
+        "Access continue during low utilization", NULL},
+    {"LBM_DT", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 20, 3, 4, 0,
+        "LBM descriptor type", "0: access patterns; else trouble"},
+    {"OV_FR", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 21, 7, 2, 0,
+        "Overall frequency", "0: equally; 1: less; 2: more"},
+    {"RW_FR", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 21, 5, 2, 0,
+        "Read/write frequency", "0: equally; 1: rd > wr; 2: wr > rd"},
+    {"WR_SE", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 21, 3, 2, 0,
+        "Write sequentiality",
+        "0: equally; 1: random more; 2: sequential more"},
+    {"RD_SE", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 21, 1, 2, 0,
+        "Read sequentiality",
+        "0: equally; 1: random more; 2: sequential more"},
+    {"SU_IO", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 22, 3, 2, 0,
+        "Subsequent I/O",
+        "0: unknown; 1: low probability; 2: high probability"},
+    {"OSI_PR", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 22, 1, 2, 0,
+        "Operating System Initialization (OSI) proximity",
+        "0: unknown; 1: improbable; 2: probable"},
+
+    /* Background operation control mode subpage [0xa,0x6] sbc4 */
+    {"BO_MODE", CONTROL_MP, MSP_SBC_BACK_OP, PDT_DISK, 4, 7, 2, 0,
+        "Background operation mode", "0: advance background ops "
+        "suspended during IO\t"
+        "1: host initiated background operations continue during IO"},
+
     /* Control data protection mode subpage [0xa,0xf0] ssc4 */
     {"LBPM", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 4, 7, 8, 0,
         "Logical block protection method", "0: none\t"
@@ -896,7 +947,10 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "0: restricted (SAS-2); 1: disabled; 2: enabled\n"},
 
     /* Power consumption mode page [0x1a,1] added spc4r33 */
-    {"PS_ID", POWER_MP, MSP_SPC_PS, -1, 7, 7, 8, 0,
+    {"ACT_LEV", POWER_MP, MSP_SPC_PS, -1, 6, 1, 2, 0,
+        "Active level",
+        "1: highest; 2: intermediate; 3: lowest"},
+    {"PC_ID", POWER_MP, MSP_SPC_PS, -1, 7, 7, 8, 0,
         "Power consumption identifier",
         "references Power consumption VPD page"},
 
@@ -958,7 +1012,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"LBP_EN", IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 16, 7, 1, 0,
         "Threshold enabled", NULL},
     {"LBP_TYPE", IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 16, 5, 3, 0,
-        "Threshold type", NULL},
+        "Threshold type", "0: soft threshold count\t"
+        "1: threshold count is a percentage"},
     {"LBP_ARM", IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 16, 2, 3, 0,
         "Threshold arming", NULL},
     {"LBP_RES", IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 17, 7, 8, 0,
@@ -1557,7 +1612,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Negotiated logical link rate",         /* sas2r07 */
         "0: unknown; 1: disabled; 2: phy reset problem; 3: spinup hold\t"
         "4: port selector; 5: resetting; 6: attached unsupported\t"
-        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps"},
+        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps; 12: 22.5 Gbps"},
     {"ASIP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 14, 3, 1, 0,
         "Attached SSP initiator port", NULL},
     {"ATIP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 14, 2, 1, 0,
@@ -1590,16 +1645,18 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Attached break reply capable", NULL},
     {"PMILR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 40, 7, 4, 0,
         "Programmed minimum link rate",
-        "0: not programmed; 8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps"},
+        "0: not programmed; 8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps\t"
+        "12: 22.5 Gbps"},
     {"HMILR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 40, 3, 4, 0,
         "Hardware minimum link rate",
-        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps"},
+        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps; 12: 22.5 Gbps"},
     {"PMALR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 41, 7, 4, 0,
         "Programmed maximum link rate",
-        "0: not programmed; 8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps"},
+        "0: not programmed; 8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps\t"
+        "12: 22.5 Gbps"},
     {"HMALR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 41, 3, 4, 0,
         "Hardware maximum link rate",
-        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps"},
+        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps; 12: 22.5 Gbps"},
 
     /* shared port control mode page [0x19,0x2] sas/spl */
     {"PPID_2", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 5, 3, 4, 0,
@@ -1636,7 +1693,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Negotiated physical link rate",
         "0: unknown; 1: disabled; 2: phy reset problem; 3: spinup hold\t"
         "4: port selector; 5: resetting; 6: attached unsupported\t"
-        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps"},
+        "8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps; 12: 22.5 Gbps"},
     {"EN_SL", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 27, 2, 1, 0,
         "Enable slumber phy power condition", NULL},
     {"EN_PA", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 27, 1, 1, 0,
