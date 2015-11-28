@@ -78,7 +78,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_unaligned.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.10 20151126 [svn: r268]";
+static const char * version_str = "1.10 20151127 [svn: r269]";
 
 
 #define MAX_DEV_NAMES 256
@@ -225,10 +225,6 @@ secondary_help:
             "page(s))\n"
             "                          use --page=PG for VPD number (-1 "
             "for std inq)\n"
-            "    --inhex=FN|-I FN      read ASCII hex from file FN instead "
-            "of DEVICE;\n"
-            "                          if used with -HH then read binary "
-            "from FN\n"
             "    --wscan | -w          windows scan for device names\n"
             "\nThe available commands will be listed when a invalid CMD is "
             "given\n(e.g. '--command=xxx'). VPD page(s) are read and decoded "
