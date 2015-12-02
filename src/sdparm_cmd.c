@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2014 Douglas Gilbert.
+ * Copyright (c) 2005-2015 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 #include "sg_cmds_basic.h"
 #include "sg_cmds_mmc.h"
 #include "sdparm.h"
+#include "sg_unaligned.h"
 
 /* sdparm_cmd.c : contains code to implement commands
  * (i.e "--command=<cmd>") in sdparm.
@@ -51,7 +52,7 @@
 static int
 do_cmd_read_capacity(int sg_fd, int verbose)
 {
-    int res, k, do16;
+    int res, do16;
     unsigned int last_blk_addr, block_size;
     unsigned char resp_buff[RCAP16_REPLY_LEN];
     uint64_t llast_blk_addr;
@@ -61,13 +62,9 @@ do_cmd_read_capacity(int sg_fd, int verbose)
     res = sg_ll_readcap_10(sg_fd, 0 /* pmi */, 0 /* lba */, resp_buff,
                            RCAP_REPLY_LEN, 1, verbose);
     if (0 == res) {
-        last_blk_addr = (((unsigned int)resp_buff[0] << 24) |
-                         (resp_buff[1] << 16) | (resp_buff[2] << 8) |
-                         resp_buff[3]);
+        last_blk_addr = sg_get_unaligned_be32(resp_buff + 0);
         if (0xffffffff != last_blk_addr) {
-            block_size = (((unsigned int)resp_buff[4] << 24) |
-                          (resp_buff[5] << 16) | (resp_buff[6] << 8) |
-                          resp_buff[7]);
+            block_size = sg_get_unaligned_be32(resp_buff + 4);
             printf("blocks: %u\n", last_blk_addr + 1);
             printf("block_length: %u\n", block_size);
             sz_mib = ((double)(last_blk_addr + 1) * block_size) /
@@ -86,13 +83,8 @@ do_cmd_read_capacity(int sg_fd, int verbose)
         res = sg_ll_readcap_16(sg_fd, 0 /* pmi */, 0 /* llba */, resp_buff,
                                RCAP16_REPLY_LEN, 1, verbose);
         if (0 == res) {
-            for (k = 0, llast_blk_addr = 0; k < 8; ++k) {
-                llast_blk_addr <<= 8;
-                llast_blk_addr |= resp_buff[k];
-            }
-            block_size = (((unsigned int)resp_buff[8] << 24) |
-                          (resp_buff[9] << 16) | (resp_buff[10] << 8) |
-                          resp_buff[11]);
+            llast_blk_addr = sg_get_unaligned_be64(resp_buff + 0);
+            block_size = sg_get_unaligned_be32(resp_buff + 8);
             printf("blocks: %" PRIu64 "\n", llast_blk_addr + 1);
             printf("block_length: %u\n", block_size);
             sz_mib = ((double)(llast_blk_addr + 1) * block_size) /
@@ -196,26 +188,11 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * op)
         if (0 == cmd_arg)
             perf_desc[0] |= 0x4;  /* set RDD bit: restore drive defaults */
         else {
-            perf_desc[8] = (last_lba >> 24) & 0xff;
-            perf_desc[9] = (last_lba >> 16) & 0xff;
-            perf_desc[10] = (last_lba >> 8) & 0xff;
-            perf_desc[11] = last_lba & 0xff;
-            perf_desc[12] = (cmd_arg >> 24) & 0xff;
-            perf_desc[13] = (cmd_arg >> 16) & 0xff;
-            perf_desc[14] = (cmd_arg >> 8) & 0xff;
-            perf_desc[15] = cmd_arg & 0xff;
-            perf_desc[16] = (rw_time >> 24) & 0xff;
-            perf_desc[17] = (rw_time >> 16) & 0xff;
-            perf_desc[18] = (rw_time >> 8) & 0xff;
-            perf_desc[19] = rw_time & 0xff;
-            perf_desc[20] = (cmd_arg >> 24) & 0xff;
-            perf_desc[21] = (cmd_arg >> 16) & 0xff;
-            perf_desc[22] = (cmd_arg >> 8) & 0xff;
-            perf_desc[23] = cmd_arg & 0xff;
-            perf_desc[24] = (rw_time >> 24) & 0xff;
-            perf_desc[25] = (rw_time >> 16) & 0xff;
-            perf_desc[26] = (rw_time >> 8) & 0xff;
-            perf_desc[27] = rw_time & 0xff;
+            sg_put_unaligned_be32((uint32_t)last_lba, perf_desc + 8);
+            sg_put_unaligned_be32((uint32_t)cmd_arg, perf_desc + 12);
+            sg_put_unaligned_be32((uint32_t)rw_time, perf_desc + 16);
+            sg_put_unaligned_be32((uint32_t)cmd_arg, perf_desc + 20);
+            sg_put_unaligned_be32((uint32_t)rw_time, perf_desc + 24);
         }
         /* performance (type=0), tolerance 10% nominal, read speed */
         res = sg_ll_set_streaming(sg_fd, 0x0 /* type */, perf_desc,
@@ -240,24 +217,20 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * op)
                                     1, op->verbose);
         if (0 == res) {
             if (op->verbose) {
-                lba = (((unsigned int)buff[8] << 24) + (buff[9] << 16) +
-                       (buff[10] << 8) + buff[11]);
+                lba = sg_get_unaligned_be32(buff + 8);
                 printf("starting LBA: %u\n", lba);
             }
-            u = (((unsigned int)buff[12] << 24) + (buff[13] << 16) +
-                 (buff[14] << 8) + buff[15]);
+            u = sg_get_unaligned_be32(buff + 12);
             if (op->quiet)
                 printf("%u\n", u);
             else
                 printf("Nominal speed at starting LBA: %u kiloBytes/sec\n",
                        u);
             if (op->verbose) {
-                lba = (((unsigned int)buff[16] << 24) + (buff[17] << 16) +
-                       (buff[18] << 8) + buff[19]);
+                lba = sg_get_unaligned_be32(buff + 16);
                 printf("ending LBA: %u\n", lba);
             }
-            u = (((unsigned int)buff[20] << 24) + (buff[21] << 16) +
-                 (buff[22] << 8) + buff[23]);
+            u = sg_get_unaligned_be32(buff + 20);
             if (1 == op->quiet)
                 printf("%u\n", u);
             else if (0 == op->quiet)
@@ -295,7 +268,7 @@ decode_get_config_feature(int feature, unsigned char * ucp, int len)
         printf("Available profiles, profile of current media marked "
                "with * \n");
         for (k = 4; k < len; k += 4) {
-            profile = (ucp[k] << 8) + ucp[k + 1];
+            profile = sg_get_unaligned_be16(ucp + k);
             printf("    %s   %s\n", get_profile_str(profile, buff),
                    ((ucp[k + 2] & 1) ? "*" : ""));
         }
@@ -326,7 +299,7 @@ decode_get_config(unsigned char * resp, int max_resp_len, int len)
     len -= 8;
     for (k = 0; k < len; k += extra, ucp += extra) {
         extra = 4 + ucp[3];
-        feature = (ucp[0] << 8) + ucp[1];
+        feature = sg_get_unaligned_be16(ucp + 0);
         if (0 != (extra % 4))
             printf("    get_config: additional length [%d] not a multiple "
                    "of 4, ignore\n", extra - 4);
@@ -347,8 +320,7 @@ do_cmd_profile(int sg_fd, const struct sdparm_opt_coll * op)
     res = sg_ll_get_config(sg_fd, 0x0 /* rt */, 0 /* starting_lba */,
                            resp, sizeof(resp), 1, op->verbose);
     if (0 == res) {
-        len = ((unsigned int)resp[0] << 24) + (resp[1] << 16) +
-               (resp[2] << 8) + resp[3] + 4;
+        len = sg_get_unaligned_be32(resp + 0);
         decode_get_config(resp, sizeof(resp), len);
     }
     return res;
