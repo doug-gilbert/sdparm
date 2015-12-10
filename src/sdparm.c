@@ -78,7 +78,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_unaligned.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.10 20151201 [svn: r271]";
+static const char * version_str = "1.10 20151210 [svn: r272]";
 
 
 #define MAX_DEV_NAMES 256
@@ -168,8 +168,6 @@ usage(int do_help)
             "subpage) number\n"
             "                          [or abbrev] to output, change or "
             "enumerate\n"
-            "    --pdt=DT|-P DT        peripheral Device Type (e.g. "
-            "0->disk)\n"
             "    --quiet | -q          suppress DEVICE vendor/product/"
             "revision string line\n"
             "    --readonly | -r       force read-only open of DEVICE (def: "
@@ -225,6 +223,8 @@ secondary_help:
             "page(s))\n"
             "                          use --page=PG for VPD number (-1 "
             "for std inq)\n"
+            "    --pdt=DT|-P DT        peripheral Device Type (e.g. "
+            "0->disk)\n"
             "    --wscan | -w          windows scan for device names\n"
             "\nThe available commands will be listed when a invalid CMD is "
             "given\n(e.g. '--command=xxx'). VPD page(s) are read and decoded "
