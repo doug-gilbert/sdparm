@@ -352,7 +352,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Recovery time limit (ms)", "0: default, -1: 65.5 seconds"},
 
     /* Disconnect-reconnect mode page [0x2]: spc-4 + */
-    /* See transport sections for more detailed information */
+    /* See transport sections for more detailed information about this page */
     {"BFR", DISCONNECT_MP, 0, -1, 2, 7, 8, 0,
         "Buffer full ratio",
         "fraction where this value is numerator, 256 is denominator"},
@@ -1374,6 +1374,7 @@ static struct sdparm_mode_page_item sdparm_mitem_fcp_arr[] = {
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
 };
 
+/* SPI == SCSI Parallel Interface (legacy) */
 static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
     /* disconnect-reconnect mode page [0x2] spi4 */
     {"BFR", DISCONNECT_MP, 0, -1, 2, 7, 8, 0,

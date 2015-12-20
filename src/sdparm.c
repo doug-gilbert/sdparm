@@ -41,7 +41,6 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
 #include <sys/types.h>
@@ -76,9 +75,10 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_lib.h"
 #include "sg_cmds_basic.h"
 #include "sg_unaligned.h"
+#include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.10 20151210 [svn: r272]";
+static const char * version_str = "1.10 20151220 [svn: r273]";
 
 
 #define MAX_DEV_NAMES 256
@@ -120,18 +120,6 @@ static struct option long_options[] = {
     {0, 0, 0, 0},
 };
 
-
-int
-pr2serr(const char * fmt, ...)
-{
-    va_list args;
-    int n;
-
-    va_start(args, fmt);
-    n = vfprintf(stderr, fmt, args);
-    va_end(args);
-    return n;
-}
 
 static void
 usage(int do_help)
