@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2015 Douglas Gilbert.
+ * Copyright (c) 2005-2016 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1786,7 +1786,8 @@ const char * sdparm_desig_type_arr[] =
     "MD5 logical unit identifier",
     "SCSI name string",
     "Protocol specific port identifier",        /* spc4r36 */
-    "Reserved [0xa]", "Reserved [0xb]",
+    "UUID identifier",		/* 15-267r2 */
+    "Reserved [0xb]",
     "Reserved [0xc]", "Reserved [0xd]", "Reserved [0xe]", "Reserved [0xf]",
 };
 

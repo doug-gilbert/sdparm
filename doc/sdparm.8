@@ -1,15 +1,20 @@
-.TH SDPARM "8" "December 2015" "sdparm\-1.10" SDPARM
+.TH SDPARM "8" "January 2016" "sdparm\-1.10" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
 .B sdparm
-[\fI\-\-all\fR] [\fI\-\-clear=STR\fR] [\fI\-\-dbd\fR] [\fI\-\-defaults\fR]
-[\fI\-\-dummy\fR] [\fI\-\-flexible\fR] [\fI\-\-get=STR\fR] [\fI\-\-help\fR]
-[\fI\-\-hex\fR] [\fI\-\-inquiry\fR]
-[\fI\-\-long\fR] [\fI\-\-num\-desc\fR] [\fI\-\-page=PG[,SPG]\fR]
-[\fI\-\-quiet\fR] [\fI\-\-readonly\fR] [\fI\-\-save\fR] [\fI\-\-set=STR\fR]
+[\fI\-\-all\fR] [\fI\-\-dbd\fR] [\fI\-\-flexible\fR] [\fI\-\-get=STR\fR]
+[\fI\-\-hex\fR] [\fI\-\-long\fR] [\fI\-\-num\-desc\fR]
+[\fI\-\-page=PG[,SPG]\fR] [\fI\-\-quiet\fR] [\fI\-\-readonly\fR]
 [\fI\-\-six\fR] [\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
-[\fI\-\-verbose\fR] [\fI\-\-version\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
+[\fI\-\-verbose\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
+.PP
+.B sdparm
+[\fI\-\-clear=STR\fR] [\fI\-\-defaults\fR] [\fI\-\-dummy\fR]
+[\fI\-\-flexible\fR] [\fI\-\-page=PG[,SPG]\fR] [\fI\-\-quiet\fR]
+[\fI\-\-readonly\fR] [\fI\-\-save\fR] [\fI\-\-set=STR\fR]
+[\fI\-\-six\fR] [\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
+[\fI\-\-verbose\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
 .PP
 .B sdparm
 \fI\-\-command=CMD\fR [\fI\-\-hex\fR] [\fI\-\-readonly\fR]
@@ -32,6 +37,9 @@ sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .PP
 .B sdparm
 \fI\-\-wscan\fR [\fI\-\-verbose\fR]
+.PP
+.B sdparm
+[\fI\-\-help\fR] [\fI\-\-version\fR]
 .SH DESCRIPTION
 .\" Add any additional description here
 .PP
@@ -41,17 +49,19 @@ pages can also be displayed. Commands associated with starting
 and stopping the medium; loading and unloading the medium; and
 other housekeeping function may also be issued by this utility.
 .PP
-The first invocation shown in the synopsis is for accessing and potentially
-changing mode page fields held on the \fIDEVICE\fR. The second form is for
-executing some simple SCSI commands. The third form (i.e.
+The first invocation shown in the synopsis is for accessing (reading)
+mode page fields held on the \fIDEVICE\fR. The second form is for
+changing mode page fields held on the \fIDEVICE\fR. The third form is for
+executing some simple SCSI commands. The fourth form (i.e.
 the '\fI\-\-inquiry\fR ... \fIDEVICE\fR' form) is for fetching and decoding
 VPD pages from the given \fIDEVICE\fR. The \fI\-\-enumerate\fR form is for
 listing out mode or VPD field data held by this utility (and if a
 \fIDEVICE\fR is given then it is ignored). The \fI\-\-inhex=FN\fR form
-decodes mode or VPD response data provided on file (or from stdin
+decodes mode or VPD response data provided in the named file (or from stdin
 if \fIFN\fR is '\-'); that data may either be in hexadecimal or binary. The
-last form is for Windows only and lists the available device names; see the
-OPTIONS entry for \fI\-\-wscan\fR.
+second last form is for Windows only and lists the available device names;
+see the OPTIONS entry for \fI\-\-wscan\fR. The final form is to provide
+command line help or the version number (and date).
 .PP
 If no options (other than \fIDEVICE\fR) are given then a selection of
 common mode page fields for that device are listed. If the \fI\-\-long\fR
@@ -801,6 +811,35 @@ was successful. Most likely a utility will report a recovered error
 to stderr and continue, probably leaving the utility with an exit
 status of 0 .
 .TP
+.B 24
+the \fIDEVICE\fR reports a SCSI status of "reservation conflict". This
+means access to the \fIDEVICE\fR with the current command has been blocked
+because another machine (HBA or SCSI "initiator") holds a reservation on
+this \fIDEVICE\fR. On modern SCSI systems this is related to the use of
+the PERSISTENT RESERVATION family of commands.
+.TP
+.B 25
+the \fIDEVICE\fR reports a SCSI status of "condition met". Currently only
+the PRE\-FETCH command (see SBC\-4) yields this status.
+.TP
+.B 26
+the \fIDEVICE\fR reports a SCSI status of "busy". SAM\-5 defines this
+status as the logical unit is temporarily unable to process a command.
+It is recommended to re-issue the command.
+.TP
+.B 27
+the \fIDEVICE\fR reports a SCSI status of "task set full".
+.TP
+.B 28
+the \fIDEVICE\fR reports a SCSI status of "ACA active". ACA is "auto
+contingent allegiance" and is seldom used.
+.TP
+.B 29
+the \fIDEVICE\fR reports a SCSI status of "task aborted". SAM\-5 says:
+"This status shall be returned if a command is aborted by a command or task
+management function on another I_T nexus and the Control mode page TAS bit
+is set to one".
+.TP
 .B 33
 the command sent to \fIDEVICE\fR has timed out. This occurs in Linux
 only; in other ports a command timeout will appear as a transport (or OS)
@@ -827,7 +866,7 @@ Written by Douglas Gilbert.
 .SH "REPORTING BUGS"
 Report bugs to <dgilbert at interlog dot com>.
 .SH COPYRIGHT
-Copyright \(co 2005\-2015 Douglas Gilbert
+Copyright \(co 2005\-2016 Douglas Gilbert
 .br
 This software is distributed under a FreeBSD license. There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.

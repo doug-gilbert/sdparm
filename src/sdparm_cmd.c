@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2015 Douglas Gilbert.
+ * Copyright (c) 2005-2016 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -101,7 +101,7 @@ do_cmd_read_capacity(int sg_fd, int verbose)
 }
 
 static int
-do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
+do_cmd_sense(int sg_fd, int hex, int do_quiet, int verbose)
 {
     int res, resp_len, sk, asc, ascq, progress, pr, rem, something;
     unsigned char buff[32];
@@ -148,7 +148,7 @@ do_cmd_sense(int sg_fd, int hex, int quiet, int verbose)
                                                    (int)sizeof(b), b));
             return 0;
         } else {
-            if (! (something || verbose || quiet)) {
+            if (! (something || verbose || do_quiet)) {
                 pr2serr("Decode response as sense data:\n");
                 sg_print_sense(NULL, buff, resp_len, 0);
             }
@@ -221,7 +221,7 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * op)
                 printf("starting LBA: %u\n", lba);
             }
             u = sg_get_unaligned_be32(buff + 12);
-            if (op->quiet)
+            if (op->do_quiet)
                 printf("%u\n", u);
             else
                 printf("Nominal speed at starting LBA: %u kiloBytes/sec\n",
@@ -231,9 +231,9 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * op)
                 printf("ending LBA: %u\n", lba);
             }
             u = sg_get_unaligned_be32(buff + 20);
-            if (1 == op->quiet)
+            if (1 == op->do_quiet)
                 printf("%u\n", u);
-            else if (0 == op->quiet)
+            else if (0 == op->do_quiet)
                 printf("Nominal speed at ending LBA: %u kiloBytes/sec\n",
                        u);
         }
@@ -436,7 +436,7 @@ sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp, int cmd_arg,
         }
         break;
     case CMD_SENSE:
-        res = do_cmd_sense(sg_fd, op->hex, op->quiet, op->verbose);
+        res = do_cmd_sense(sg_fd, op->do_hex, op->do_quiet, op->verbose);
         break;
     case CMD_SPEED:
         res = do_cmd_speed(sg_fd, cmd_arg, op);
