@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2015 Douglas Gilbert.
+ * Copyright (c) 2005-2016 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -78,7 +78,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.10 20151220 [svn: r273]";
+static const char * version_str = "1.10 20160106 [svn: r274]";
 
 
 #define MAX_DEV_NAMES 256
@@ -126,16 +126,22 @@ usage(int do_help)
 {
     if (1 != do_help)
         goto secondary_help;
-    pr2serr("Usage: "
-            "sdparm [--all] [--clear=STR] [--dbd] [--defaults] [--dummy]\n"
-            "              [--flexible] [--get=STR] [--help] [--hex] "
+    pr2serr("Usage: sdparm [--all] [--dbd] [--flexible] [--get=STR] [--hex] "
             "[--long]\n"
             "              [--num-desc] [--page=PG[,SPG]] [--quiet] "
             "[--readonly]\n"
-            "              [--save] [--set=STR] [--six] [--transport=TN] "
-            "[--vendor=VN]\n"
-            "              [--verbose] [--version] DEVICE [DEVICE...]\n\n"
-            "  where the common and mode page options are:\n"
+            "              [--six] [--transport=TN] [--vendor=VN] "
+            "[--verbose]\n"
+            "              DEVICE [DEVICE...]\n"
+            "       sdparm [--clear=STR] [--defaults] [--dummy] "
+            "[--flexible]\n"
+            "              [--page=PG[,SPG]] [--quiet] [--readonly] "
+            "[--save] [--set=STR]\n"
+            "              [--six] [--transport=TN] [--vendor=VN] "
+            "[--verbose]\n"
+            "              DEVICE [DEVICE...]\n\n"
+            "  where mode page read (1st usage) and change (2nd usage) "
+            "options are:\n"
             "    --all | -a            list all known fields for given "
             "DEVICE\n"
             "    --clear=STR | -c STR    clear (zero) field value(s)\n"
@@ -146,7 +152,6 @@ usage(int do_help)
             "    --flexible | -f       compensate for common errors, "
             "relax some checks\n"
             "    --get=STR | -g STR    get (fetch) field value(s)\n"
-            "    --help | -h           print out usage message\n"
             "    --hex | -H            output in hex rather than name/value "
             "pairs\n"
             "    --long | -l           add description to field output\n"
@@ -171,7 +176,6 @@ usage(int do_help)
             "    --vendor=VN | -M VN    vendor (manufacturer) number "
             "[or abbrev]\n"
             "    --verbose | -v        increase verbosity\n"
-            "    --version | -V        print version string and exit\n"
             "\nView or change SCSI mode page fields (e.g. of a disk or "
             "CD/DVD drive).\nSTR can be <acronym>[=val] or "
             "<start_byte>:<start_bit>:<num_bits>[=val].\nUse '-h' or "
@@ -186,8 +190,7 @@ secondary_help:
     pr2serr("Further usages of the sdparm utility:\n"
             "       sdparm --command=CMD [-hex] [--readonly] [--verbose]\n"
             "              DEVICE [DEVICE...]\n"
-            "       sdparm --inquiry [--all] [--flexible] [--hex] "
-            "[--num-desc]\n"
+            "       sdparm --inquiry [--all] [--flexible] [--hex]\n"
             "              [--page=PG[,SPG]] [--quiet] [--readonly] "
             "[--transport=TN]\n"
             "              [--vendor=VN] [--verbose] DEVICE [DEVICE...]\n");
@@ -198,11 +201,13 @@ secondary_help:
             "[--inquiry]\n"
             "              [--long] [--pdt=PDT] [--six] [--transport=TN] "
             "[--vendor=VN]\n"
-            "       sdparm --wscan [--verbose]\n\n"
+            "       sdparm --wscan [--verbose]\n"
+            "       sdparm [--help] [--version]\n\n"
             "  where the additional options are:\n"
             "    --command=CMD | -C CMD    perform CMD (e.g. 'eject')\n"
             "    --enumerate | -e      list known pages and fields "
             "(ignore DEVICE)\n"
+            "    --help | -h           print out usage message\n"
             "    --inhex=FN|-I FN      read ASCII hex from file FN instead "
             "of DEVICE;\n"
             "                          if used with -HH then read binary "
@@ -213,6 +218,7 @@ secondary_help:
             "for std inq)\n"
             "    --pdt=DT|-P DT        peripheral Device Type (e.g. "
             "0->disk)\n"
+            "    --version | -V        print version string and exit\n"
             "    --wscan | -w          windows scan for device names\n"
             "\nThe available commands will be listed when a invalid CMD is "
             "given\n(e.g. '--command=xxx'). VPD page(s) are read and decoded "
@@ -524,7 +530,7 @@ enumerate_mitems(int pn, int spn, int pdt,
     t_pdt = -2;
     vendor = op->vendor;
     transp = op->transport;
-    long_o = op->long_out;
+    long_o = op->do_long;
     if (vendor >= 0) {
         const struct sdparm_vendor_pair * vpp;
 
@@ -647,7 +653,7 @@ print_mp_entry(const char * pre, int smask,
         printf("-1");
     else
         printf("%" PRIu64 "", u);
-    if ((smask & 0xe) && (op->quiet < 2)) {
+    if ((smask & 0xe) && (op->do_quiet < 2)) {
         printf("  [");
         if (cha_mp && (smask & 2)) {
             printf("cha: %s",
@@ -683,10 +689,10 @@ print_mp_entry(const char * pre, int smask,
         }
         printf("]");
     }
-    if (op->long_out && mpi->description)
+    if (op->do_long && mpi->description)
         printf("  %s", mpi->description);
     printf("\n");
-    if ((op->long_out > 1) && mpi->extra)
+    if ((op->do_long > 1) && mpi->extra)
         print_mp_extra(mpi->extra);
 }
 
@@ -879,7 +885,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
 
     buff[0] = '\0';
     verb = (op->verbose > 0) ? op->verbose - 1 : 0;
-    if ((0 == pdt) && (op->long_out > 0) && (0 == op->quiet)) {
+    if ((0 == pdt) && (op->do_long > 0) && (0 == op->do_quiet)) {
         if (0 != (res = print_direct_access_info(sg_fd, op, verb)))
             return res;
     }
@@ -909,7 +915,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
             }
         }
         if (NULL == mpi->acron) {       /* page has no known fields */
-            if (op->hex)
+            if (op->do_hex)
                 mpi = hmpi;    /* trick to enter main loop once */
             else {
                 sdp_get_mpage_name(pn, spn, pdt, op->transport,
@@ -951,7 +957,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                 if ((pdt >=0) && (mpi->pdt >= 0) &&
                     (pdt != mpi->pdt) && (0 == op->flexible))
                     continue;
-                if (! (((orig_pn >= 0) ? 1 : op->all) ||
+                if (! (((orig_pn >= 0) ? 1 : op->do_all) ||
                        (MF_COMMON & mpi->flags)))
                     continue;
             }
@@ -960,7 +966,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
             pg_len = 0;
             /* Only fetch mode page when needed (e.g. item page changed) */
             mpp = sdp_get_mpage_name(pn, spn, pdt, op->transport,
-                                     op->vendor, op->long_out, op->hex,
+                                     op->vendor, op->do_long, op->do_hex,
                                      buff, sizeof(buff));
             smask = 0;
             warned = 0;
@@ -992,7 +998,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                 return res;
             }
             /* check for mode page descriptors */
-            mdp = (mpp && (! op->hex)) ? mpp->mp_desc : NULL;
+            mdp = (mpp && (! op->do_hex)) ? mpp->mp_desc : NULL;
             first_desc_off = mdp ? mdp->first_desc_off : 0;
             if (first_desc_off > 1) {
                 for (res = 0, fdesc_mpi = mpi;
@@ -1021,7 +1027,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                             mdp->num_descs_inc;
                     num = (int)u;
                 }
-                if (op->long_out)
+                if (op->do_long)
                     printf("number of descriptors=%d\n", num);
                 else
                     printf("%d\n", num);
@@ -1037,12 +1043,12 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                         printf("[0x%x] ", pn);
                 }
                 printf("mode page");
-                if ((op->long_out > 1) || op->verbose)
+                if ((op->do_long > 1) || op->verbose)
                     printf(" [PS=%d]:\n", !!(cur_mp[0] & 0x80));
                 else
                     printf(":\n");
                 check_mode_page(cur_mp, pn, pg_len, op);
-                if (op->hex) {
+                if (op->do_hex) {
                     if (pg_len > (int)sizeof(cur_mp)) {
                         pr2serr(">> decoded page length too large=%d, trim\n",
                                 pg_len);
@@ -1081,7 +1087,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                 }
             }
         }       /* end of fetch_pg */
-        if (smask && (! op->hex)) {
+        if (smask && (! op->do_hex)) {
             if (mpi->start_byte >= pg_len) {
                 if ((0 == op->flexible) && (0 == op->verbose))
                     continue;   // step over
@@ -1134,6 +1140,9 @@ print_mode_page_given(uint8_t * cur_mp, int cur_mp_len,
     if (cur_mp_len < rep_len) {
         pr2serr("given mode page is too short, given %d bytes, expected "
                 "%d\n", cur_mp_len, rep_len);
+        if (op->inhex_fn)
+            pr2serr("perhaps %s is a VPD page, if so add '-i'\n",
+                    op->inhex_fn);
         return SG_LIB_CAT_OTHER;
     }
     off = sg_mode_page_offset(cur_mp, cur_mp_len, op->mode_6, ebuff,
@@ -1142,7 +1151,7 @@ print_mode_page_given(uint8_t * cur_mp, int cur_mp_len,
         pr2serr("%s\n", ebuff);
         return SG_LIB_CAT_OTHER;
     }
-    if ((0 == op->pdt) && (op->long_out > 0) && (0 == op->quiet)) {
+    if ((0 == op->pdt) && (op->do_long > 0) && (0 == op->do_quiet)) {
         v = cur_mp[op->mode_6 ? 2 : 3];
         printf("    Direct access device specific parameters: WP=%d  "
                "DPOFUA=%d\n", !!(v & 0x80), !!(v & 0x10));
@@ -1186,7 +1195,7 @@ now_try_generic:
         }
     }
     if (NULL == mpi->acron) {       /* page has no known fields */
-        if (op->all && ((transport >= 0) || (vendor >= 0))) {
+        if (op->do_all && ((transport >= 0) || (vendor >= 0))) {
             if (transport >= 0)
                 transport = -1;
             if (vendor >= 0)
@@ -1212,12 +1221,12 @@ now_try_generic:
         if (first_time) {
             first_time = 0;
             mpp = sdp_get_mpage_name(pn, spn, op->pdt, transport, vendor,
-                                     op->long_out, op->hex, buff,
+                                     op->do_long, op->do_hex, buff,
                                      sizeof(buff));
             warned = 0;
             fdesc_mpi = NULL;
             /* check for mode page descriptors */
-            mdp = (mpp && (! op->hex)) ? mpp->mp_desc : NULL;
+            mdp = (mpp && (! op->do_hex)) ? mpp->mp_desc : NULL;
             first_desc_off = mdp ? mdp->first_desc_off : 0;
             if (first_desc_off > 1) {
                 for (res = 0, fdesc_mpi = mpi;
@@ -1246,7 +1255,7 @@ now_try_generic:
                             mdp->num_descs_inc;
                     num = (int)u;
                 }
-                if (op->long_out)
+                if (op->do_long)
                     printf("number of descriptors=%d\n", num);
                 else
                     printf("%d\n", num);
@@ -1260,7 +1269,7 @@ now_try_generic:
                     printf("[0x%x] ", pn);
             }
             printf("mode page");
-            if ((op->long_out > 1) || op->verbose)
+            if ((op->do_long > 1) || op->verbose)
                 printf(" [PS=%d]:\n", !!(pg_p[0] & 0x80));
             else
                 printf(":\n");
@@ -1278,12 +1287,12 @@ now_try_generic:
                 if ((op->pdt >=0) && (mpi->pdt >= 0) &&
                     (op->pdt != mpi->pdt) && (0 == op->flexible))
                     continue;
-                if (! (((orig_pn >= 0) ? 1 : op->all) ||
+                if (! (((orig_pn >= 0) ? 1 : op->do_all) ||
                        (MF_COMMON & mpi->flags)))
                     continue;
             }
         }
-        if (smask && (! op->hex)) {
+        if (smask && (! op->do_hex)) {
             if (mpi->start_byte >= pg_len) {
                 if ((0 == op->flexible) && (0 == op->verbose))
                     continue;   // step over
@@ -1310,7 +1319,7 @@ now_try_generic:
             print_mpage_extra_desc(pc_arr, pg_len, mpp, fdesc_mpi, mpi,
                                    op, smask);
     }
-    if (op->all) {
+    if (op->do_all) {
         off += pg_len;
         if ((off + 4) < rep_len)
             goto and_again;
@@ -1430,8 +1439,8 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
         desc_num = ivp->descriptor_num;
         mpi = &ivp->mpi;
         mpp = sdp_get_mpage_name(mpi->page_num, mpi->subpage_num, mpi->pdt,
-                                 op->transport, op->vendor, op->long_out,
-                                 op->hex, buff, sizeof(buff));
+                                 op->transport, op->vendor, op->do_long,
+                                 op->do_hex, buff, sizeof(buff));
         if (desc_num > 0) {
             if (check_desc_convert_mpi(desc_num, mpp, mpi, &ampi, b_tmp,
                                        sizeof(b_tmp))) {
@@ -1540,7 +1549,7 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
                 continue;
         }
         if (0 == val) {
-            if (op->hex) {
+            if (op->do_hex) {
                 if (smask & 1) {
                     u = sdp_mp_get_value(mpi, cur_mp);
                     printf("0x%02" PRIx64 " ", u);
@@ -1565,7 +1574,7 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
             } else
                 print_mp_arr_entry("", smask, mpi, pc_arr, 0, op);
         } else if (1 == val) {
-            if (op->hex) {
+            if (op->do_hex) {
                 if (smask & 1) {
                     u = sdp_mp_get_value(mpi, cur_mp);
                     printf("0x%02" PRIx64 " ", u);
@@ -1575,7 +1584,7 @@ print_mode_items(int sg_fd, const struct sdparm_mode_page_settings * mps,
             } else
                 print_mp_arr_entry("", smask & 1, mpi, pc_arr, 0, op);
         } else if (2 == val) {
-            if (op->hex) {
+            if (op->do_hex) {
                 if (smask & 1) {
                     u = sdp_mp_get_value(mpi, cur_mp);
                     printf("%02" PRId64 " ", (int64_t)u);
@@ -1705,7 +1714,7 @@ change_mode_page(int sg_fd, int pdt,
             }
         }
         if ((ivp->val >= 0) && (ivp->orig_val > 0) &&
-            (ivp->orig_val > ivp->val) && (0 == op->quiet)) {
+            (ivp->orig_val > ivp->val) && (0 == op->do_quiet)) {
             pr2serr("warning: given value (%" PRId64 ") truncated "
                     "to %" PRId64 " by field size [%d bits]\n", ivp->orig_val,
                     ivp->val, mpi->num_bits);
@@ -2187,7 +2196,7 @@ open_and_simple_inquiry(const char * device_name, int rw, int * pdt,
         *pdt = l_pdt;
     if (protect)
         *protect = sir.byte_5 & 0x1;     /* PROTECT bit SPC-3 and later */
-    if ((0 == op->hex) && (0 == op->quiet)) {
+    if ((0 == op->do_hex) && (0 == op->do_quiet)) {
         printf("    %s: %.8s  %.16s  %.4s",
                device_name, sir.vendor, sir.product, sir.revision);
         if (0 != l_pdt)
@@ -2313,7 +2322,7 @@ main(int argc, char * argv[])
             ++op->mode_6;
             break;
         case 'a':
-            ++op->all;
+            ++op->do_all;
             break;
         case 'B':
             ++op->dbd;
@@ -2333,7 +2342,7 @@ main(int argc, char * argv[])
             rw = 1;
             break;
         case 'e':
-            ++op->enumerate;
+            ++op->do_enum;
             break;
         case 'f':
             ++op->flexible;
@@ -2346,7 +2355,7 @@ main(int argc, char * argv[])
             ++do_help;
             break;
         case 'H':
-            ++op->hex;
+            ++op->do_hex;
             break;
         case 'i':
             ++op->inquiry;
@@ -2355,7 +2364,7 @@ main(int argc, char * argv[])
             op->inhex_fn = optarg;
             break;
         case 'l':
-            ++op->long_out;
+            ++op->do_long;
             break;
         case 'M':
             if (isalpha(optarg[0])) {
@@ -2386,7 +2395,7 @@ main(int argc, char * argv[])
             ++op->num_desc;
             break;
         case 'q':
-            ++op->quiet;
+            ++op->do_quiet;
             break;
         case 'p':
             if (page_str) {
@@ -2589,7 +2598,7 @@ main(int argc, char * argv[])
             pr2serr("VPD page numbers are from 0 to 255\n");
             return SG_LIB_SYNTAX_ERROR;
         }
-        if (op->enumerate) {
+        if (op->do_enum) {
             printf("VPD pages:\n");
             enumerate_vpds();
             return 0;
@@ -2600,7 +2609,7 @@ main(int argc, char * argv[])
                     "options that are\nconcerned with mode pages\n");
             return SG_LIB_SYNTAX_ERROR;
         }
-        if (op->enumerate) {
+        if (op->do_enum) {
             printf("Available commands:\n");
             sdp_enumerate_commands();
             return 0;
@@ -2632,7 +2641,7 @@ main(int argc, char * argv[])
             if (build_mp_settings(get_str, &mp_settings, op, 0, 1))
                 return SG_LIB_SYNTAX_ERROR;
         }
-        if (op->enumerate) {
+        if (op->do_enum) {
             if ((num_devices > 0) || set_clear || get_str || op->save)
                 /* think about --get= with --enumerate */
                 printf("<scsi_device> as well as most options are ignored "
@@ -2644,7 +2653,7 @@ main(int argc, char * argv[])
                         printf("Mode pages for %s vendor:\n", ccp);
                     else
                         printf("Mode pages for vendor 0x%x:\n", op->vendor);
-                    if (op->all)
+                    if (op->do_all)
                         enumerate_mitems(pn, spn, pdt, op);
                     else {
                         enumerate_mpages(op->transport, op->vendor);
@@ -2657,13 +2666,13 @@ main(int argc, char * argv[])
                     else
                         printf("Mode pages for transport protocol 0x%x:\n",
                                op->transport);
-                    if (op->all)
+                    if (op->do_all)
                         enumerate_mitems(pn, spn, pdt, op);
                     else {
                         enumerate_mpages(op->transport, op->vendor);
                     }
                 } else {        /* neither vendor nor transport given */
-                    if (op->long_out || (op->enumerate > 1)) {
+                    if (op->do_long || (op->do_enum > 1)) {
                         printf("Mode pages (not related to any transport "
                                "protocol or vendor):\n");
                         enumerate_mpages(-1, -1);
@@ -2673,7 +2682,7 @@ main(int argc, char * argv[])
                         printf("\n");
                         printf("Vendors:\n");
                         enumerate_vendors();
-                        if (op->all) {
+                        if (op->do_all) {
                             struct sdparm_opt_coll t_opts;
 
                             printf("\n");
@@ -2725,7 +2734,7 @@ main(int argc, char * argv[])
                     } else {
                         printf("Mode pages:\n");
                         enumerate_mpages(-1, -1);
-                        if (opts.all)
+                        if (op->do_all)
                             enumerate_mitems(pn, spn, pdt, op);
                     }
                 }
@@ -2771,14 +2780,14 @@ main(int argc, char * argv[])
             pr2serr("Cannot have both a DEVICE and --inhex= option\n");
             return SG_LIB_SYNTAX_ERROR;
         }
-        if (f2hex_arr(op->inhex_fn, (op->hex > 1), 0, inhex_buff, &inhex_len,
-                      sizeof(inhex_buff)))
+        if (f2hex_arr(op->inhex_fn, (op->do_hex > 1), 0, inhex_buff,
+                      &inhex_len, sizeof(inhex_buff)))
             return SG_LIB_FILE_ERROR;
         if (op->verbose > 2)
             pr2serr("Read %d bytes from user input\n", inhex_len);
         if (op->verbose > 3)
             dStrHexErr((const char *)inhex_buff, inhex_len, 0);
-        op->hex = 0;
+        op->do_hex = 0;
         if (op->inquiry)
             return sdp_process_vpd_page(0, pn, ((spn < 0) ? 0: spn), op,
                                         pdt, protect, inhex_buff, inhex_len);
