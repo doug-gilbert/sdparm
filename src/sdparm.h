@@ -165,19 +165,19 @@ extern "C" {
 
 
 struct sdparm_opt_coll {
-    int all;
+    int do_all;
     int dbd;
     int defaults;
     int dummy;
-    int enumerate;
+    int do_enum;
     int flexible;
-    int hex;
+    int do_hex;
     int inquiry;
-    int long_out;
+    int do_long;
     int mode_6;
     int num_desc;
     int pdt;
-    int quiet;
+    int do_quiet;
     int read_only;
     int save;
     int transport;      /* -1 means not transport specific (def) */
