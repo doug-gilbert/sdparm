@@ -78,7 +78,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.10 20160106 [svn: r274]";
+static const char * version_str = "1.10 20160201 [svn: r275]";
 
 
 #define MAX_DEV_NAMES 256
@@ -559,7 +559,7 @@ enumerate_mitems(int pn, int spn, int pdt,
                                      long_o, 1, buff, sizeof(buff));
             if (long_o && (transp < 0) && (vendor < 0))
                 printf("%s [%s] mode page:\n", buff,
-                       sdp_get_pdt_doc_str(t_pdt, sizeof(b), b));
+                       sg_get_pdt_str(t_pdt, sizeof(b), b));
             else
                 printf("%s mode page:\n", buff);
         } else {
@@ -788,7 +788,7 @@ print_mpage_extra_desc(void ** pc_arr, int rep_len,
         u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
                        mdp->num_descs_bytes * 8) + mdp->num_descs_inc;
     num = (int)u;
-    if (op->verbose)
+    if (op->verbose > 1)
         pr2serr("    >>> mode page says it has %d descriptors\n", num);
     if ((u < 2) || (u > 256))
         return;
@@ -2806,7 +2806,7 @@ main(int argc, char * argv[])
     for (k = 0; k < num_devices; ++k) {
         r = 0;
         pdt = -1;
-        if (op->verbose > 0)
+        if (op->verbose > 1)
             pr2serr(">>> about to open device name: %s\n",
                     device_name_arr[k]);
         sg_fd = open_and_simple_inquiry(device_name_arr[k], rw, &pdt,

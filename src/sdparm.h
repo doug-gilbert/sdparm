@@ -295,11 +295,6 @@ extern struct sdparm_mode_page_item sdparm_mitem_arr[];
 extern struct sdparm_command_t sdparm_command_arr[];
 extern struct sdparm_val_desc_t sdparm_profile_arr[];
 
-extern const char * sdparm_pdt_doc_strs[];
-extern const char * sdparm_transport_proto_arr[];
-extern const char * sdparm_code_set_arr[];
-extern const char * sdparm_assoc_arr[];
-extern const char * sdparm_desig_type_arr[];
 extern const char * sdparm_ansi_version_arr[];
 extern const char * sdparm_network_service_type_arr[];
 extern const char * sdparm_mode_page_policy_arr[];
@@ -343,7 +338,6 @@ uint64_t sdp_mp_get_value_check(const struct sdparm_mode_page_item *mpi,
 void sdp_mp_set_value(uint64_t val, const struct sdparm_mode_page_item *mpi,
                       unsigned char * mp);
 char * sdp_get_ansi_version_str(int version, int buff_len, char * buff);
-char * sdp_get_pdt_doc_str(int version, int buff_len, char * buff);
 int sdp_strcase_eq(const char * s1p, const char * s2p);
 int sdp_strcase_eq_upto(const char * s1p, const char * s2p, int n);
 

@@ -342,6 +342,10 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Data strobe offset count (obsolete)", NULL},
     {"LBPERE", RW_ERR_RECOVERY_MP, 0, 0, 7, 7, 1, 0, /* SBC */
         "Logical block provisioning error reporting enabled", NULL},
+    {"MWR", RW_ERR_RECOVERY_MP, 0, 0, 7, 6, 2, 0, /* sbc4r10 */
+        "Misaligned write reporting", "0: disabled, don't report\t"
+        "1: enabled, complete and report\t2: terminate, terminate "
+        "and report"},
     {"EMCDR", RW_ERR_RECOVERY_MP, 0, 5, 7, 1, 2, 0, /* MMC */
         "Enhanced media certification and defect reporting", NULL},
     {"WRC", RW_ERR_RECOVERY_MP, 0, -1, 8, 7, 8, 0,
@@ -698,6 +702,9 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"RD_SE", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 21, 1, 2, 0,
         "Read sequentiality",
         "0: equally; 1: random more; 2: sequential more"},
+    {"IO_CL", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 22, 7, 4, 0,
+        "IO class",
+        "0: none; 1: meta-data; 4: small colloection; 5: large collection"},
     {"SU_IO", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 22, 3, 2, 0,
         "Subsequent I/O",
         "0: unknown; 1: low probability; 2: high probability"},
@@ -773,10 +780,10 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Report exception on decompression", NULL},
     {"COMPR_A", DATA_COMPR_MP, 0, PDT_TAPE, 4, 7, 32, 0,
         "Compression algorithm",
-        "0: none; 5: ALDC (2048 byte): 16: IDRC; 32: DCLZ"},
+        "0: none; 1: default; 5: ALDC (2048 byte); 16: IDRC; 32: DCLZ"},
     {"DCOMPR_A", DATA_COMPR_MP, 0, PDT_TAPE, 8, 7, 32, 0,
         "Decompression algorithm",
-        "0: none; 5: ALDC (2048 byte): 16: IDRC; 32: DCLZ"},
+        "0: none; 1: default; 5: ALDC (2048 byte); 16: IDRC; 32: DCLZ"},
 
     /* XOR control mode page [0x10] sbc2 << obsolete in sbc3r32>> */
     {"XORDIS", XOR_MP, 0, PDT_DISK, 2, 1, 1, 0,
@@ -1556,7 +1563,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Logical unit's (transport) protocol identifier",
         PROTO_IDENT_STR },
     {"TLR", PROT_SPEC_LU_MP, 0, -1, 2, 4, 1, 0,
-        "Transport layer retries (supported)", NULL},
+        "Transport layer retries", "0: disabled; 1: enabled (on target)"},
 
     /* protocol specific port mode page [0x19] sas/spl */
     {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, MF_COMMON | MF_CLASH_OK,
@@ -1723,72 +1730,6 @@ struct sdparm_transport_pair sdparm_transport_mp[] = {
     {NULL, NULL},
     {NULL, NULL},
     {NULL, NULL},       /* 15 */
-};
-
-
-const char * sdparm_pdt_doc_strs[] = {
-    /* 0 */ "SBC-3",    /* disk */
-    "SSC-3",            /* tape */
-    "SSC",              /* printer */
-    "SPC-2",            /* processor */
-    "SBC",              /* write once optical disk */
-    /* 5 */ "MMC-5",    /* cd/dvd */
-    "SCSI-2",           /* scanner */
-    "SBC-2",            /* optical memory device */
-    "SMC-2",            /* medium changer */
-    "SCSI-2",           /* communications */
-    /* 0xa */ "SCSI-2", /* graphics [0xa] */
-    "SCSI-2",           /* graphics [0xb] */
-    "SCC-2",            /* storage array controller */
-    "SES-2",            /* enclosure services device */
-    "RBC",              /* simplified direct access device */
-    "OCRW",             /* optical card reader/writer device */
-    /* 0x10 */ "BCC",   /* bridge controller commands */
-    "OSD-2",            /* object based storage */
-    "ADC",              /* automation/driver interface */
-    "SPC-4",            /* security manager device */
-    "ZBC",              /* zoned block commands */
-    "unknown", "unknown", "unknown", "unknown",
-    "unknown", "unknown", "unknown", "unknown",
-    "unknown",          /* 0x1d */
-    "SPC-4",            /* well known logical unit */
-    "SPC-4",            /* no physical device on this lu */
-};
-
-const char * sdparm_code_set_arr[] =
-{
-    "Reserved [0x0]",
-    "Binary",
-    "ASCII",
-    "UTF-8",
-    "Reserved [0x4]", "Reserved [0x5]", "Reserved [0x6]", "Reserved [0x7]",
-    "Reserved [0x8]", "Reserved [0x9]", "Reserved [0xa]", "Reserved [0xb]",
-    "Reserved [0xc]", "Reserved [0xd]", "Reserved [0xe]", "Reserved [0xf]",
-};
-
-const char * sdparm_assoc_arr[] =
-{
-    "Addressed logical unit",
-    "Target port",      /* that received request; unless SCSI ports VPD */
-    "Target device that contains addressed lu",
-    "Reserved [0x3]",
-};
-
-const char * sdparm_desig_type_arr[] =
-{
-    "vendor specific [0x0]",
-    "T10 vendor identification",
-    "EUI-64 based",
-    "NAA",
-    "Relative target port",
-    "Target port group",        /* spc4r09: _primary_ target port group */
-    "Logical unit group",
-    "MD5 logical unit identifier",
-    "SCSI name string",
-    "Protocol specific port identifier",        /* spc4r36 */
-    "UUID identifier",		/* 15-267r2 */
-    "Reserved [0xb]",
-    "Reserved [0xc]", "Reserved [0xd]", "Reserved [0xe]", "Reserved [0xf]",
 };
 
 const char * sdparm_ansi_version_arr[] =
