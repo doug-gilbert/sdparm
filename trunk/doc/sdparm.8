@@ -1,4 +1,4 @@
-.TH SDPARM "8" "January 2016" "sdparm\-1.10" SDPARM
+.TH SDPARM "8" "February 2016" "sdparm\-1.10" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -312,6 +312,8 @@ the range 0 to 15 (inclusive) or an abbreviation (e.g. "fcp" for
 the Fibre Channel Protocol). One way to list available transport protocols
 numbers and their associated abbreviations is to give an invalid
 transport protocol number such as '\-t x'; another way is '\-e \-l'.
+N.B. The \fI\-\-all\fR option may still be needed to show all available
+fields.
 .TP
 \fB\-M\fR, \fB\-\-vendor\fR=\fIVN\fR
 Specifies the vendor (i.e. manufacturer) where \fIVN\fR is either a number (0
