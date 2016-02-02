@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.10 [20160201] [svn: r275]
+ChangeLog for sdparm-1.10 [20160202] [svn: r276]
   - add IO advice hints grouping mode page (sbc4r06, 8)
   - add --inhex=FN option for decoding without device present,
     FN is interpreted as response to mode sense(10) command

@@ -40,6 +40,7 @@
 #include "sg_cmds_mmc.h"
 #include "sdparm.h"
 #include "sg_unaligned.h"
+#include "sg_pr2serr.h"
 
 /* sdparm_cmd.c : contains code to implement commands
  * (i.e "--command=<cmd>") in sdparm.
