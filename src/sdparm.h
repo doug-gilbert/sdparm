@@ -300,14 +300,6 @@ extern const char * sdparm_network_service_type_arr[];
 extern const char * sdparm_mode_page_policy_arr[];
 
 
-/* Declared below are functions shared by different compilation units */
-#ifdef __GNUC__
-int pr2serr(const char * fmt, ...)
-        __attribute__ ((format (printf, 1, 2)));
-#else
-int pr2serr(const char * fmt, ...);
-#endif
-
 int sdp_get_mp_len(unsigned char * mp);
 const struct sdparm_mode_page_t * sdp_get_mode_detail(int page_num,
                 int subpage_num, int pdt, int transp_proto, int vendor_num);
