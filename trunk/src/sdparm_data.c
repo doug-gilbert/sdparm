@@ -861,9 +861,17 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "TapeAlert respect page control", NULL},
     {"TAPLSD", DEV_CONF_MP, MSP_DEV_CONF_EXT, PDT_TAPE, 4, 0, 1, 0,
         "TapeAlert prevent log sense deactivation", NULL},
+    {"WR_MOD", DEV_CONF_MP, MSP_DEV_CONF_EXT, PDT_TAPE, 5, 7, 4, 0,
+        "Write mode",
+        "0: overwrite allowed; 1: append only; 0xe,0xf: vendor specific"},
     {"SEM", DEV_CONF_MP, MSP_DEV_CONF_EXT, PDT_TAPE, 5, 3, 4, 0,
         "Short erase mode",
         "0: as per SSC-2; 1: erase has no effect; 2: record EOD indication"},
+    {"PEWS", DEV_CONF_MP, MSP_DEV_CONF_EXT, PDT_TAPE, 6, 7, 16, 0,
+        "Programmable early warning size [MB]", NULL},
+    {"VCELBRE", DEV_CONF_MP, MSP_DEV_CONF_EXT, PDT_TAPE, 8, 0, 1, 0,
+        "Volume containing encrypted logical blocks requires encryption",
+        NULL},
 
     /* Medium partition mode page [0x11] ssc3 */
     {"MAX_AP", MED_PART_MP, 0, PDT_TAPE, 2, 7, 8, 0,
@@ -889,6 +897,12 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Medium format recognition",
         "0: incapable; 1: format recognition; 2: partition recognition\t"
         "3: format and partition recognition"},
+    {"PART_T", MED_PART_MP, 0, PDT_TAPE, 6, 7, 4, 0,
+        "Partition type", "0: vendor specific or unknown\t"
+        "1: optimized for streaming\t"
+        "2: reduces total native capacity\t"
+        "0x3-0xe: capable of format and partition recognition\t"
+        "0xf: multiple partition types"},
     {"PART_U", MED_PART_MP, 0, PDT_TAPE, 6, 3, 4, 0,
         "Partition units (exponent of 10, bytes)", NULL},
     /* "descriptor" starts here */
