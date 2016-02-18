@@ -2,10 +2,11 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.10 [20160209] [svn: r277]
+ChangeLog for sdparm-1.10 [20160218] [svn: r278]
   - add IO advice hints grouping mode page (sbc4r06, 8)
   - add --inhex=FN option for decoding without device present,
     FN is interpreted as response to mode sense(10) command
+  - add --raw option to interpret FN as binary (def: ASCII hex)
   - add --pdt=PDT option for use with --inhex=FN
   - --quiet used twice hides changeable, default + saved
   - add Unit serial number VPD page specific sanity check
@@ -20,12 +21,12 @@ ChangeLog for sdparm-1.10 [20160209] [svn: r277]
   - LB provisioning VPD page: expand LBPRZ, add Minimum and
     Threshold percentage fields
   - device identification VPD page: add decoding for locally
-    assigned UUIDs (15-267r2)
+    assigned UUIDs (spc5r08)
   - the --inhex=FN option together with --inquiry decodes
     FN as a single VPD page
   - sync to spc5r08 and sbc4r10
   - add SAS G5 (22.5 Gbps) settings [anticipate t10 additions]
-  - point svn:externals to rev 661 of sg3_utils
+  - point svn:externals to rev 663 of sg3_utils
   - upgrade automake to version 1.14.1 (U14.10)
   - autogen.sh: upgrade to buildconf 20091223 version
 

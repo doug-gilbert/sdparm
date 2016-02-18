@@ -78,7 +78,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.10 20160209 [svn: r277]";
+static const char * version_str = "1.10 20160218 [svn: r278]";
 
 
 #define MAX_DEV_NAMES 256
@@ -107,6 +107,7 @@ static struct option long_options[] = {
     {"page", required_argument, 0, 'p'},
     {"pdt", required_argument, 0, 'P'},
     {"quiet", no_argument, 0, 'q'},
+    {"raw", no_argument, 0, 'R'},
     {"readonly", no_argument, 0, 'r'},
     {"set", required_argument, 0, 's'},
     {"save", no_argument, 0, 'S'},
@@ -199,8 +200,9 @@ secondary_help:
             "              [--transport=TN] [--vendor=VN]\n"
             "       sdparm --inhex=FN [--all] [--flexible] [--hex] "
             "[--inquiry]\n"
-            "              [--long] [--pdt=PDT] [--six] [--transport=TN] "
-            "[--vendor=VN]\n"
+            "              [--long] [--pdt=PDT] [--raw] [--six] "
+            "[--transport=TN]\n"
+            "              [--vendor=VN]\n"
             "       sdparm --wscan [--verbose]\n"
             "       sdparm [--help] [--version]\n\n"
             "  where the additional options are:\n"
@@ -218,6 +220,8 @@ secondary_help:
             "for std inq)\n"
             "    --pdt=DT|-P DT        peripheral Device Type (e.g. "
             "0->disk)\n"
+            "    --raw | -R            FN (in '-I FN') assumed to be "
+            "binary\n"
             "    --version | -V        print version string and exit\n"
             "    --wscan | -w          windows scan for device names\n"
             "\nThe available commands will be listed when a invalid CMD is "
@@ -2308,10 +2312,10 @@ main(int argc, char * argv[])
         int option_index = 0;
 
 #ifdef SG_LIB_WIN32
-        c = getopt_long(argc, argv, "6aBc:C:dDefg:hHiI:lM:np:P:qrs:St:vVw",
+        c = getopt_long(argc, argv, "6aBc:C:dDefg:hHiI:lM:np:P:qrRs:St:vVw",
                         long_options, &option_index);
 #else
-        c = getopt_long(argc, argv, "6aBc:C:dDefg:hHiI:lM:np:P:qrs:St:vV",
+        c = getopt_long(argc, argv, "6aBc:C:dDefg:hHiI:lM:np:P:qrRs:St:vV",
                         long_options, &option_index);
 #endif
         if (c == -1)
@@ -2418,6 +2422,9 @@ main(int argc, char * argv[])
             break;
         case 'r':
             ++op->read_only;
+            break;
+        case 'R':
+            ++op->do_raw;
             break;
         case 's':
             set_str = optarg;
@@ -2780,14 +2787,14 @@ main(int argc, char * argv[])
             pr2serr("Cannot have both a DEVICE and --inhex= option\n");
             return SG_LIB_SYNTAX_ERROR;
         }
-        if (f2hex_arr(op->inhex_fn, (op->do_hex > 1), 0, inhex_buff,
-                      &inhex_len, sizeof(inhex_buff)))
+        if (f2hex_arr(op->inhex_fn, op->do_raw, 0, inhex_buff, &inhex_len,
+                      sizeof(inhex_buff)))
             return SG_LIB_FILE_ERROR;
         if (op->verbose > 2)
             pr2serr("Read %d bytes from user input\n", inhex_len);
         if (op->verbose > 3)
             dStrHexErr((const char *)inhex_buff, inhex_len, 0);
-        op->do_hex = 0;
+        op->do_raw = 0;
         if (op->inquiry)
             return sdp_process_vpd_page(0, pn, ((spn < 0) ? 0: spn), op,
                                         pdt, protect, inhex_buff, inhex_len);

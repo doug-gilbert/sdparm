@@ -32,8 +32,8 @@ sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .PP
 .B sdparm
 \fI\-\-inhex=FN\fR [\fI\-\-all\fR] [\fI\-\-flexible\fR] [\fI\-\-hex\fR]
-[\fI\-\-inquiry\fR] [\fI\-\-long\fR] [\fI\-\-pdt=DT\fR] [\fI\-\-six\fR]
-[\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
+[\fI\-\-inquiry\fR] [\fI\-\-long\fR] [\fI\-\-pdt=DT\fR] [\fI\-\-raw\fR]
+[\fI\-\-six\fR] [\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
 .PP
 .B sdparm
 \fI\-\-wscan\fR [\fI\-\-verbose\fR]
@@ -59,9 +59,9 @@ listing out mode or VPD field data held by this utility (and if a
 \fIDEVICE\fR is given then it is ignored). The \fI\-\-inhex=FN\fR form
 decodes mode or VPD response data provided in the named file (or from stdin
 if \fIFN\fR is '\-'); that data may either be in hexadecimal or binary. The
-second last form is for Windows only and lists the available device names;
-see the OPTIONS entry for \fI\-\-wscan\fR. The final form is to provide
-command line help or the version number (and date).
+second last form is for Windows only and lists the available storage device
+names; see the OPTIONS entry for \fI\-\-wscan\fR. The final form is to
+provide command line help or the version number (and date).
 .PP
 If no options (other than \fIDEVICE\fR) are given then a selection of
 common mode page fields for that device are listed. If the \fI\-\-long\fR
@@ -223,9 +223,8 @@ data of a single VPD page.
 .br
 The hexadecimal in \fIFN\fR should be arranged as 1 or 2 digits representing
 a byte each of which is whitespace or comma separated. Anything from and
-including a hash mark to the end of line is ignored. If the \fI\-\-hex\fR
-option is given twice then \fIFN\fR is treated as binary. Apart from this
-usage the \fI\-\-hex\fR option is otherwise ignored with \fI\-\-inhex=FN\fR.
+including a hash mark to the end of line is ignored. If the \fI\-\-raw\fR
+option is given then \fIFN\fR is treated as binary.
 .TP
 \fB\-l\fR, \fB\-\-long\fR
 output extra information. In the case of mode page fields a description (with
@@ -281,6 +280,12 @@ read\-write mode open on \fIDEVICE\fR). This option may be useful if a
 command is being sent to an ATA disk via a SCSI command set. For example in
 Linux '\-C stop' may require this option to stop an ATA disk being restarted
 immediately.
+.TP
+\fB\-R\fR, \fB\-\-raw\fR
+this option is only active when used with the \fI\-\-inhex=FN\fR option.
+When this option is given then the file \fIFN\fR is interpreted as binary;
+the default action (i.e. when this option is not given) is to interpret
+\fIFN\fR as ASCII hexadecimal.
 .TP
 \fB\-S\fR, \fB\-\-save\fR
 when a mode page is being modified (by using the \fI\-\-clear=STR\fR and/or
