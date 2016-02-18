@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
@@ -1473,6 +1474,34 @@ decode_block_dev_char_ext_vpd(unsigned char * b, int len)
     return 0;
 }
 
+/* VPD_LB_PROTECTION_ADDR  0xb5  [added ssc5r02a] */
+static int
+decode_lb_protection_vpd(unsigned char * buff, int len)
+{
+    int k, bump;
+    unsigned char * ucp;
+
+    if (len < 8) {
+        pr2serr("Logical block protection VPD page length too short=%d\n",
+                len);
+        return SG_LIB_CAT_MALFORMED;
+    }
+    len -= 8;
+    ucp = buff + 8;
+    for (k = 0; k < len; k += bump, ucp += bump) {
+        bump = 1 + ucp[0];
+        printf("  method: %d, info_len: %d, LBP_W_C=%d, LBP_R_C=%d, "
+               "RBDP_C=%d\n", ucp[1], 0x3f & ucp[2], !!(0x80 & ucp[3]),
+               !!(0x40 & ucp[3]), !!(0x20 & ucp[3]));
+        if ((k + bump) > len) {
+            pr2serr("Logical block protection VPD page, short descriptor "
+                    "length=%d, left=%d\n", bump, (len - k));
+            return SG_LIB_CAT_MALFORMED;
+        }
+    }
+    return 0;
+}
+
 /* VPD_ZBC_DEV_CHARS  sbc or zbc */
 static int
 decode_zbdc_vpd(unsigned char * b, int len)
@@ -1597,17 +1626,18 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
                      const struct sdparm_opt_coll * op, int req_pdt,
                      int protect, const unsigned char * ihbp, int ihb_len)
 {
-    int res, len, k, verb, dev_pdt, pdt;
-    unsigned char b[VPD_ATA_INFO_RESP_LEN];
-    int sz;
+    int res, len, k, verb, dev_pdt, pdt, sz, hex_format;
+    bool adc = false;
+    bool sbc = false;
+    bool ssc = false;
     unsigned char * up;
     const struct sdparm_vpd_page_t * vpp;
     const char * vpd_name;
-    int adc = 0;
-    int sbc = 0;
-    int ssc = 0;
+    unsigned char b[VPD_ATA_INFO_RESP_LEN];
+    char c[80];
 
     verb = (op->verbose > 0) ? op->verbose - 1 : 0;
+    hex_format = (op->do_hex > 2) ? -1 : 0;
     sz = sizeof(b);
     memset(b, 0, sz);
     if (ihbp) {         /* response data supplied by user as hex or binary */
@@ -1647,7 +1677,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         printf("Supported VPD pages VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         if (len > 0) {
@@ -1703,7 +1733,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else if (! op->do_quiet)
             printf("Device identification VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = 0;
@@ -1734,7 +1764,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else if (! op->do_quiet)
             printf("Extended inquiry data VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = decode_ext_inq_vpd(b, len + 4, op->do_long, protect);
@@ -1755,7 +1785,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("Management network addresses VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = decode_man_net_vpd(b, len + 4);
@@ -1775,7 +1805,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("mode page policy VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = decode_mode_policy_vpd(b, len + 4);
@@ -1795,7 +1825,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else if (! op->do_quiet)
             printf("Power condition VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = decode_power_condition(b, len + 4);
@@ -1815,7 +1845,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else if (! op->do_quiet)
             printf("Device constituents VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = decode_dev_const_vpd(b, len + 4);
@@ -1835,7 +1865,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("Power consumption VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = decode_power_consumption_vpd(b, len + 4);
@@ -1857,7 +1887,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("Protocol-specific logical unit information VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = decode_proto_lu_vpd(b, len + 4);
@@ -1879,7 +1909,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("Protocol-specific port information VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = decode_proto_port_vpd(b, len + 4);
@@ -1899,7 +1929,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("SCSI Ports VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = decode_scsi_ports_vpd(b, len + 4, op);
@@ -1920,7 +1950,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("Software interface identification VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         up = b + 4;
@@ -1946,7 +1976,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("Unit serial number VPD page:\n");
         if (op->do_hex)
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
         else if (len > 0) {
             if (len + 4 < (int)sizeof(b))
                 b[len + 4] = '\0';
@@ -1989,15 +2019,15 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             goto dumb_inq;
         switch (pdt) {
         case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
-            vpd_name = "Block limits";
-            sbc = 1;
+            vpd_name = "Block limits (SBC)";
+            sbc = true;
             break;
         case PDT_TAPE: case PDT_MCHANGER:
-            vpd_name = "Sequential access device capabilities";
-            ssc = 1;
+            vpd_name = "Sequential-access device capabilities (SSC)";
+            ssc = true;
             break;
         case PDT_OSD:
-            vpd_name = "OSD information";
+            vpd_name = "OSD information (OSD)" ;
             /* osd = 1; */
             break;
         default:
@@ -2014,7 +2044,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("%s VPD page:\n", vpd_name);
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = 0;
@@ -2032,20 +2062,20 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             goto dumb_inq;
         switch (pdt) {
         case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
-            vpd_name = "Block device characteristics";
-            sbc = 1;
+            vpd_name = "Block device characteristics (SBC)";
+            sbc = true;
             break;
         case PDT_TAPE: case PDT_MCHANGER:
-            vpd_name = "Manufactured assigned serial number";
-            ssc = 1;
+            vpd_name = "Manufactured-assigned serial number (SSC)";
+            ssc = true;
             break;
         case PDT_OSD:
-            vpd_name = "Security token";
+            vpd_name = "Security token (OSD)";
             /* osd = 1; */
             break;
         case PDT_ADC:
-            vpd_name = "Manufactured assigned serial number";
-            adc = 1;
+            vpd_name = "Manufactured assigned serial number (ADC)";
+            adc = true;
             break;
         default:
             vpd_name = "unexpected pdt for B1h";
@@ -2061,7 +2091,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("%s VPD page:\n", vpd_name);
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = 0;
@@ -2081,12 +2111,12 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         switch (pdt) {
         case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
-            vpd_name = "Logical block provisioning";
-            sbc = 1;
+            vpd_name = "Logical block provisioning (SBC)";
+            sbc = true;
             break;
         case PDT_TAPE: case PDT_MCHANGER:
-            vpd_name = "TapeAlert supported flags";
-            ssc = 1;
+            vpd_name = "TapeAlert supported flags (SSC)";
+            ssc = true;
             break;
         default:
             vpd_name = "unexpected pdt for B2h";
@@ -2097,7 +2127,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("%s VPD page:\n", vpd_name);
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = 0;
@@ -2116,12 +2146,12 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         switch (pdt) {
         case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
-            vpd_name = "Referrals";
-            sbc = 1;
+            vpd_name = "Referrals (SBC)";
+            sbc = true;
             break;
         case PDT_TAPE: case PDT_MCHANGER:
-            vpd_name = "Automation device serial number";
-            ssc = 1;
+            vpd_name = "Automation device serial number (SSC)";
+            ssc = true;
             break;
         default:
             vpd_name = "unexpected pdt for B3h";
@@ -2132,7 +2162,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("%s VPD page:\n", vpd_name);
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = 0;
@@ -2159,12 +2189,12 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         switch (pdt) {
         case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
-            vpd_name = "Supported block lengths and protection types";
-            sbc = 1;
+            vpd_name = "Supported block lengths and protection types (SBC)";
+            sbc = true;
             break;
         case PDT_TAPE: case PDT_MCHANGER:
-            vpd_name = "Data transfer device element address";
-            ssc = 1;
+            vpd_name = "Data transfer device element address (SSC)";
+            ssc = true;
             break;
         default:
             vpd_name = "unexpected pdt for B4h";
@@ -2175,7 +2205,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("%s VPD page:\n", vpd_name);
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = 0;
@@ -2200,8 +2230,12 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         len = sg_get_unaligned_be16(b + 2);
         switch (pdt) {
         case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
-            vpd_name = "Block device characteristics extension";
-            sbc = 1;
+            vpd_name = "Block device characteristics extension (SBC)";
+            sbc = true;
+            break;
+        case PDT_TAPE: case PDT_MCHANGER:
+            vpd_name = "Logical block protection (SSC)";
+            ssc = true;
             break;
         default:
             vpd_name = "unexpected pdt for B5h";
@@ -2212,12 +2246,14 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("%s VPD page:\n", vpd_name);
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = 0;
         if (sbc)       /* added in sbc4r02 */
             res = decode_block_dev_char_ext_vpd(b, len + 4);
+        else if (ssc)       /* added in ssc5r02a */
+            res = decode_lb_protection_vpd(b, len + 4);
         else
             dStrHex((const char *)b, len + 4, 0);
         if (res)
@@ -2230,7 +2266,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         switch (pdt) {
         case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
             vpd_name = "Zoned block device characteristics";
-            sbc = 1;
+            sbc = true;
             break;
         default:
             vpd_name = "unexpected pdt for B6h";
@@ -2241,7 +2277,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("%s VPD page:\n", vpd_name);
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = 0;
@@ -2259,7 +2295,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         switch (pdt) {
         case PDT_DISK: case PDT_WO: case PDT_OPTICAL: case PDT_ZBC:
             vpd_name = "Block limits extension";
-            sbc = 1;
+            sbc = true;
             break;
         default:
             vpd_name = "unexpected pdt for B7h";
@@ -2270,7 +2306,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("%s VPD page:\n", vpd_name);
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            dStrHex((const char *)b, len + 4, hex_format);
             return 0;
         }
         res = 0;
@@ -2287,15 +2323,22 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         len = sg_get_unaligned_be16(b + 2) + 4;
         vpp = sdp_get_vpd_detail(pn, -1, pdt);
         if (vpp)
-            pr2serr("%s VPD page in hex:\n", vpp->name);
+            snprintf(c, sizeof(c), "%s VPD page", vpp->name);
         else
-            pr2serr("VPD page 0x%x in hex:\n", pn);
+            snprintf(c, sizeof(c), "VPD page 0x%x", pn);
+        if (op->do_hex)
+            printf("%s in hex:\n", c);
+        else
+            pr2serr("%s in hex:\n", c);
         if (len > (int)sizeof(b)) {
             if (op->verbose)
                 pr2serr("page length=%d too long, trim\n", len);
             len = sizeof(b);
         }
-        dStrHexErr((const char *)b, len, 0);
+        if (op->do_hex)
+            dStrHex((const char *)b, len, hex_format);
+        else
+            dStrHexErr((const char *)b, len, 0);
         break;
     }
     return 0;
