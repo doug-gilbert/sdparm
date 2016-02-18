@@ -114,6 +114,7 @@ extern "C" {
 #define VPD_SUP_BLOCK_LENS 0xb4 /* SBC-4 */
 #define VPD_DTDE_ADDRESS 0xb4   /* SSC-4 */
 #define VPD_BLOCK_DEV_C_EXTENS 0xb5 /* SBC-4 */
+#define VPD_LB_PROTECTION 0xb5  /* SSC-5 */
 #define VPD_ZBC_DEV_CHARS 0xb6  /* ZBC */
 #define VPD_BLOCK_LIMITS_EXT 0xb7   /* SBC-4 */
 #define VPD_NOT_STD_INQ -2      /* request for standard inquiry */
@@ -178,6 +179,7 @@ struct sdparm_opt_coll {
     int num_desc;
     int pdt;
     int do_quiet;
+    int do_raw;         /* -R (usually '-r' but already used) */
     int read_only;
     int save;
     int transport;      /* -1 means not transport specific (def) */

@@ -275,6 +275,8 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
      "Data transfer device element address (SSC)"},
     {VPD_IMP_OP_DEF, 0, -1, "iod",
      "Implemented operating definition (obs)"},
+    {VPD_LB_PROTECTION, 0, PDT_TAPE, "lbpro", "Logical block protection "
+     "(SSC)"},
     {VPD_LB_PROVISIONING, 0, PDT_DISK, "lbpv", "Logical block provisioning "
      "(SBC)"},
     {VPD_MAN_ASS_SN, 0, PDT_TAPE, "mas",
@@ -721,7 +723,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     /* Control data protection mode subpage [0xa,0xf0] ssc4 */
     {"LBPM", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 4, 7, 8, 0,
         "Logical block protection method", "0: none\t"
-        "1: Reed-Solomon CRC"},
+        "1: Reed-Solomon CRC\t2: CRC32C (Castagnoli)\t>= 0xf0: vendor"},
     {"LBPIL", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 5, 5, 6, 0,
         "Logical block protection information length", NULL},
     {"LBP_W", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 6, 7, 1, 0,
