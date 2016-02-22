@@ -1048,11 +1048,11 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"WORMM", MED_CONF_MP, 0, PDT_TAPE, 2, 0, 1, 0,
         "Worm mode", NULL},
     {"WMLR", MED_CONF_MP, 0, PDT_TAPE, 4, 7, 8, 0,
-        "Worm mode label restrictions",
-        "0: disallow overwrite; 1: disallow some format labels overwrite\t"
+        "Worm volume label restrictions",	/* mode->volume renaming */
+        "0: disallow overwrite\t1: disallow some format labels overwrite\t"
         "2: allow all format labels to be overwritten"},
     {"WMFR", MED_CONF_MP, 0, PDT_TAPE, 5, 7, 8, 0,
-        "Worm mode filemark restrictions",
+        "Worm volume filemark restrictions",	/* mode->volume renaming */
         "2: allow filemarks before EOD except closest to BOP\t"
         "3: allow any number of filemarks before EOD"},
 
