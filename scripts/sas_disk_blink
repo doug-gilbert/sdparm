@@ -9,15 +9,14 @@
 # Uses sdparm rather than sg3_utils as the former is simpler to
 # use for setting mode page value.
 #
-# Douglas Gilbert 20130513
+# Douglas Gilbert 20070317
 
 
 seconds=30
-verbose=""
 
 usage()
 {
-  echo "Usage: sas_disk_blink [-h] [-s <n>] [-v] <sas_device>"
+  echo "Usage: sas_disk_blink [-h] [-s <n>] <sas_device>"
   echo "  where:"
   echo "    -h, --help           print usage message"
   echo "    -s <n>, --set <n>    where <n> is:"
@@ -25,10 +24,15 @@ usage()
   echo "                           1  - set RLM to 1"
   echo "                           >1 - blink LED for <n> seconds"
   echo "                                (default: blink for 30 seconds)"
-  echo "    -v, --verbose        more verbose output"
   echo ""
   echo "Use Ready LED Meaning (RLM) mode page field to blink SAS device LED"
 }
+
+if (( $# < 1 ))
+  then
+    usage
+    exit 1
+fi 
 
 opt="$1"
 while test ! -z "$opt" -a -z "${opt##-*}"; do
@@ -36,20 +40,11 @@ while test ! -z "$opt" -a -z "${opt##-*}"; do
   case "$opt" in
     h|-help) usage ; exit 0 ;;
     s|-set) shift ; let seconds=$1 ;;
-    v|-verbose) verbose="-v" ;;
-    vv) verbose="-vv" ;;
-    vvv) verbose="-vvv" ;;
     *) echo "Unknown option: -$opt " ; exit 1 ;;
   esac
   shift
   opt="$1"
 done
-
-if [ $# -lt 1 ]
-  then
-    usage
-    exit 1
-fi 
 
 if ( which sdparm >/dev/null 2>&1 ) ; then
   true
@@ -60,15 +55,15 @@ fi
 
 if [ $seconds = "0" ]
 then
-    sdparm ${verbose} -t sas -c RLM $1
+    sdparm -t sas -c RLM $1
     exit $?
 elif [ $seconds = "1" ]
 then
-    sdparm ${verbose} -t sas -s RLM $1
+    sdparm -t sas -s RLM $1
     exit $?
 elif [ $seconds -gt 1 ]
 then
-    outt=$(sdparm ${verbose} -t sas -g RLM -H $1)
+    outt=$(sdparm -t sas -g RLM -H $1)
     let res=$?
     if [ $res -ne 0 ]
     then
@@ -84,24 +79,24 @@ then
     for (( times = 1; times < $seconds; times=$times+2 )); do
         if [ $start -eq 0 ]
         then
-            sdparm ${verbose} -q -t sas -s RLM $1
+            sdparm -q -t sas -s RLM $1
             let res=$?
             if [ $res -ne 0 ]
             then
                 exit $res
             fi
             sleep 1
-            sdparm ${verbose} -q -t sas -c RLM $1
+            sdparm -q -t sas -c RLM $1
             sleep 1
         else
-            sdparm ${verbose} -q -t sas -c RLM $1
+            sdparm -q -t sas -c RLM $1
             let res=$?
             if [ $res -ne 0 ]
             then
                 exit $res
             fi
             sleep 1
-            sdparm ${verbose} -q -t sas -s RLM $1
+            sdparm -q -t sas -s RLM $1
             sleep 1
         fi
     done

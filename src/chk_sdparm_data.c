@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2016 Douglas Gilbert.
+ * Copyright (c) 2005-2008 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,13 +25,12 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Version 1.8 20160220
+ * Version 1.5 20080218
  */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
 #include "sdparm.h"
 
 /*
@@ -39,8 +38,7 @@
  * data in the sdparm_data.c tables.
  *
  * Build with a line like:
- *      gcc -Wall -o chk_sdparm_data sdparm_data.o sdparm_data_vendor.o
- *                       chk_sdparm_data.c
+ *      gcc -Wall -o chk_sdparm_data sdparm_data.o sdparm_data_vendor.o chk_sdparm_data.c
  *
  */
 
@@ -241,12 +239,6 @@ int main(int argc, char ** argv)
     const struct sdparm_vendor_pair * vp;
     const char * ccp;
 
-    if (argc) {
-        ;       /* suppress unused warning */
-    }
-    if (argv) {
-        ;       /* suppress unused warning */
-    }
     printf("    Check integrity of mode page item tables in sdparm\n");
     printf("    ==================================================\n\n");
     printf("Generic (i.e. non-transport specific) mode page items:\n");

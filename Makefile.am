@@ -1,4 +1,4 @@
-SUBDIRS =	src doc scripts
+SUBDIRS =	src doc
 
 EXTRA_DIST=autogen.sh
 

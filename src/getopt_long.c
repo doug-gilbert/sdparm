@@ -118,7 +118,7 @@ gcd(int a, int b)
 		b = c;
 		c = a % b;
 	}
-
+	
 	return b;
 }
 
@@ -343,7 +343,7 @@ getopt_long(int nargc, char * const *nargv, const char *options,
 			has_equal++;
 		} else
 			current_argv_len = strlen(current_argv);
-
+	
 		for (i = 0; long_options[i].name; i++) {
 			/* find matching long option */
 			if (strncmp(current_argv, long_options[i].name,
