@@ -71,10 +71,6 @@ extern "C" {
 #define MSP_SSC_CDP 0xf0
 #define MSP_SBC_APP_TAG 0x2     /* changed from 0xf0 to 0x2 sbc3r28 */
 #define MSP_SPC_PS 0x1          /* power consumption */
-#define MSP_SPC_CDLA 0x3
-#define MSP_SPC_CDLB 0x4
-#define MSP_SBC_IO_ADVI 0x5
-#define MSP_SBC_BACK_OP 0x6
 
 #define MODE_DATA_OVERHEAD 128
 #define EBUFF_SZ 256
@@ -114,9 +110,7 @@ extern "C" {
 #define VPD_SUP_BLOCK_LENS 0xb4 /* SBC-4 */
 #define VPD_DTDE_ADDRESS 0xb4   /* SSC-4 */
 #define VPD_BLOCK_DEV_C_EXTENS 0xb5 /* SBC-4 */
-#define VPD_LB_PROTECTION 0xb5  /* SSC-5 */
 #define VPD_ZBC_DEV_CHARS 0xb6  /* ZBC */
-#define VPD_BLOCK_LIMITS_EXT 0xb7   /* SBC-4 */
 #define VPD_NOT_STD_INQ -2      /* request for standard inquiry */
 
 #define VPD_ASSOC_LU 0
@@ -166,26 +160,23 @@ extern "C" {
 
 
 struct sdparm_opt_coll {
-    int do_all;
+    int all;
     int dbd;
     int defaults;
     int dummy;
-    int do_enum;
+    int enumerate;
     int flexible;
-    int do_hex;
+    int hex;
     int inquiry;
-    int do_long;
+    int long_out;
     int mode_6;
     int num_desc;
-    int pdt;
-    int do_quiet;
-    int do_raw;         /* -R (usually '-r' but already used) */
+    int quiet;
     int read_only;
     int save;
     int transport;      /* -1 means not transport specific (def) */
     int vendor;         /* -1 means not vendor specific (def) */
     int verbose;
-    const char * inhex_fn;
 };
 
 struct sdparm_mode_descriptor_t {
@@ -297,10 +288,23 @@ extern struct sdparm_mode_page_item sdparm_mitem_arr[];
 extern struct sdparm_command_t sdparm_command_arr[];
 extern struct sdparm_val_desc_t sdparm_profile_arr[];
 
+extern const char * sdparm_pdt_doc_strs[];
+extern const char * sdparm_transport_proto_arr[];
+extern const char * sdparm_code_set_arr[];
+extern const char * sdparm_assoc_arr[];
+extern const char * sdparm_desig_type_arr[];
 extern const char * sdparm_ansi_version_arr[];
 extern const char * sdparm_network_service_type_arr[];
 extern const char * sdparm_mode_page_policy_arr[];
 
+
+/* Declared below are functions shared by different compilation units */
+#ifdef __GNUC__
+int pr2serr(const char * fmt, ...)
+        __attribute__ ((format (printf, 1, 2)));
+#else
+int pr2serr(const char * fmt, ...);
+#endif
 
 int sdp_get_mp_len(unsigned char * mp);
 const struct sdparm_mode_page_t * sdp_get_mode_detail(int page_num,
@@ -332,6 +336,7 @@ uint64_t sdp_mp_get_value_check(const struct sdparm_mode_page_item *mpi,
 void sdp_mp_set_value(uint64_t val, const struct sdparm_mode_page_item *mpi,
                       unsigned char * mp);
 char * sdp_get_ansi_version_str(int version, int buff_len, char * buff);
+char * sdp_get_pdt_doc_str(int version, int buff_len, char * buff);
 int sdp_strcase_eq(const char * s1p, const char * s2p);
 int sdp_strcase_eq_upto(const char * s1p, const char * s2p, int n);
 
@@ -341,8 +346,7 @@ int sdp_strcase_eq_upto(const char * s1p, const char * s2p, int n);
 
 int sdp_process_vpd_page(int sg_fd, int pn, int spn,
                          const struct sdparm_opt_coll * opts, int req_pdt,
-                         int protect, const unsigned char * ihbp,
-                         int ihb_len);
+                         int protect);
 
 /*
  * Declarations for functions found in sdparm_cmd.c

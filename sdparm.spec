@@ -1,5 +1,5 @@
 %define	name	sdparm
-%define	version	1.10
+%define	version	1.09
 %define	release	1
 
 Summary:	List or change SCSI disk parameters
@@ -56,9 +56,6 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Mon Feb 22 2016 - dgilbert at interlog dot com
-- track recent spc5 and sbc4 drafts
-  * sdparm-1.09
 * Fri Dec 26 2014 - dgilbert at interlog dot com
 - track recent spc5 and sbc4 drafts
   * sdparm-1.09

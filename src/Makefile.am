@@ -41,7 +41,7 @@ sglib_SOURCES =		../lib/sg_lib.c \
 			../lib/sg_pt_common.c
 
 if HAVE_SGUTILS
-INCLUDES = -I/scsi
+INCLUDES = -I/usr/include/scsi
 sdparm_LDADD = @GETOPT_O_FILES@ @os_libs@ @SGUTILS_LIBS@
 sdparm_DEPENDENCIES = @GETOPT_O_FILES@
 else

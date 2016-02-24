@@ -1,4 +1,4 @@
-AC_INIT(sdparm, 1.10, dgilbert@interlog.com)
+AC_INIT(sdparm, 1.09, dgilbert@interlog.com)
 
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
