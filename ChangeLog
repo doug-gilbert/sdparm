@@ -2,54 +2,6 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.10 [20160222] [svn: r279]
-  - add --inhex=FN option for decoding without device present,
-    FN is interpreted as response to mode sense(10) command
-  - add --raw option to interpret FN as binary (def: ASCII hex)
-  - add --pdt=PDT option for use with --inhex=FN
-  - --quiet used twice hides changeable, default + saved
-  - add IO advice hints grouping mode page (sbc4r06, 8)
-  - add Unit serial number VPD page specific sanity check
-  - add NO_PI_CHK to Supported block lengths and protection
-    types VPD page
-  - add Background operation control mpage (sbc4r07)
-  - Read-write error recovery mpage: add Misaligned writes
-    reporting field (MWR)
-  - sync tape mpages with ssc5r02
-  - add Block limits extension VPD page
-  - add Device constituents VPD page
-  - add LB protection VPD page (ssc5r02a)
-  - LB provisioning VPD page: expand LBPRZ, add Minimum and
-    Threshold percentage fields
-  - device identification VPD page: add decoding for locally
-    assigned UUIDs (spc5r08)
-  - the --inhex=FN option together with --inquiry decodes
-    FN as a single VPD page
-  - improve lto5 and lto6 vendor mpage support
-  - sync to spc5r08 and sbc4r10
-  - add SAS G5 (22.5 Gbps) settings (spl4r06)
-  - point svn:externals to rev 663 of sg3_utils
-  - upgrade automake to version 1.15 (U15.10)
-  - autogen.sh: upgrade to buildconf 20091223 version
-
-ChangeLog for sdparm-1.09 [20141226] [svn: r257]
-  - decode Third Party Copy VPD page
-  - Supported block lengths and protection types (sbc4r01) +
-    Block device characteristics extension VPD pages added
-  - zoned block device characterics VPD page added (zbc-r01c)
-  - fix manufacturer-assigned serial number VPD page length
-  - device id VPD: T10 vendor identification designator clean up
-  - block device characteristics VPD: add ZONED (sbc4r04)
-  - SAS/SPL disconnect-reconnect mpage: expand
-  - SAS protocol specific port mpage: add MAXR field (spl4r01)
-  - standard inquiry response (sinq): add LU_CONG
-  - change ibm vendor code to lto5 and lto6
-  - point svn:externals to rev 620 of sg3_utils
-  - upgrade automake to version 1.14.1
-  - configure: add --disable-libsgutils so build bypasses that
-    library if present
-  - win32: some --wscan and compile fixes
-
 ChangeLog for sdparm-1.08 [20130606] [svn: r215]
   - device id VPD: add protocol specific port identifier
   - control extension mpage: add max sense data length
@@ -225,8 +177,8 @@ ChangeLog for sdparm-0.99 [20060708]
 ChangeLog for sdparm-0.98 [20060518]
   - add decode for Medium configuration mode page, "mco" (ssc)
   - sync with SPC-4 rev 04
-  - fix trailing "h" parsing (e.g. "-p 19h,1")
-  - fix vpd 0x83 designator code 8 name
+  - fix trailing "h" parsing (e.g. "-p 19h,1") 
+  - fix vpd 0x83 designator code 8 name 
     - clean vpd 0x83 output format
   - fix tape vpd page 0xb0 and 0xb2 mix-up
   - fix unit serial number vpd length
@@ -287,7 +239,7 @@ ChangeLog for sdparm-0.95 [20050920]
   - process '-p' option last since it depends on '-t' and '-i'
     - output available arguments when '-p' or '-t' arguments
       don't match
-  - fix command line problem with '--dbd', '--defaults' and
+  - fix command line problem with '--dbd', '--defaults' and 
     '--dummy'
 
 ChangeLog for sdparm-0.94 [20050728]

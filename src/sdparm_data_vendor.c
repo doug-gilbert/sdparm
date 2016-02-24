@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007-2016 Douglas Gilbert.
+ * Copyright (c) 2007-2012 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,7 +28,6 @@
  */
 
 #include <stdlib.h>
-#include "sg_lib.h"
 #include "sdparm.h"
 
 
@@ -47,8 +46,6 @@ struct sdparm_vendor_name_t sdparm_vendor_id[] = {
     {VENDOR_HITACHI, "hit", "Hitachi disk"},
     {VENDOR_MAXTOR, "max", "Maxtor disk"},
     {VENDOR_FUJITSU, "fuj", "Fujitsu disk"},
-    {VENDOR_LTO5, "lto5", "LTO-5 tape drive (IBM, HP)"},
-    {VENDOR_LTO6, "lto6", "LTO-6 tape drive (IBM, HP)"},
     {0, NULL, NULL},
 };
 
@@ -91,19 +88,10 @@ static struct sdparm_mode_page_item sdparm_mitem_v_seagate_arr[] = {
         "SCSI-2 lengths for control and caching mode pages",
         "0: as per recent standards\t"
         "1: SCSI-2 lengths: control, 6; caching, 10"},
-    {"DAR", UNIT_ATTENTION_MP, 0, 0, 3, 7, 1, 0,
-        "Deferred auto reallocation",
-        "0: disabled\t"
-        "1: enabled: unrecoverable read LBA remembered, re-assigned on next "
-        "write"},
     {"SSEEK", UNIT_ATTENTION_MP, 0, 0, 3, 6, 1, 0,
         "Self seek",
         "0: off (normal operating mode)\t"
         "1: enter self seek mode (test power dissipation, acoustics, etc)"},
-    {"VJIT_DIS", UNIT_ATTENTION_MP, 0, 0, 4, 7, 1, 0,
-        "VJIT disabled",
-        "0: follow settings of JIT0, JIT1, JIT2 and JIT3\t"
-        "1: ignore settings of JIT0, JIT1, JIT2 and JIT3"},
     {"JIT3", UNIT_ATTENTION_MP, 0, 0, 4, 3, 1, 0,
         "Just in time 3, slowest seek type",
         "0: can not use this seek type in seek speed algorithm\t"
@@ -175,7 +163,6 @@ static struct sdparm_mode_page_item sdparm_mitem_v_hitachi_arr[] = {
 static struct sdparm_mode_page_t sdparm_v_maxtor_mode_pg[] = {
     {UNIT_ATTENTION_MP, 0, 0, 0, "uac", "Unit attention condition (maxtor)",
         NULL},
-
     {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
@@ -183,14 +170,11 @@ static struct sdparm_mode_page_item sdparm_mitem_v_maxtor_arr[] = {
     /* Unit attention page [0x0] Seagate */
     {"DUA", UNIT_ATTENTION_MP, 0, 0, 2, 4, 1, MF_COMMON,
         "Disable unit attention", NULL},
-
-    {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
 };
 
 static struct sdparm_mode_page_t sdparm_v_fujitsu_mode_pg[] = {
     {0x21, 0, 0, 0, "aerp", "Additional error recovery parameters (fujitsu)",
         NULL},
-
     {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
@@ -198,166 +182,6 @@ static struct sdparm_mode_page_item sdparm_mitem_v_fujitsu_arr[] = {
     /* Additional error recovery parameters page [0x21] Fujitsu */
     {"RDSE", 0x21, 0, 0, 2, 3, 4, MF_COMMON,
         "Retries during a seek error", "0: no repositioning retries"},
-
-    {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
-};
-
-static struct sdparm_mode_page_t sdparm_v_lto5_mode_pg[] = {
-    {0x24, 0, PDT_TAPE, 0, "l5vs", "Vendor specific (LTO-5)",
-        NULL},
-    {0x2f, 0, PDT_TAPE, 0, "l5bc", "Behaviour configuration (LTO-5)",
-        NULL},
-    {0x3b, 0, PDT_TAPE, 0, "l5sno", "Serial number override (LTO-5)",
-        NULL},
-    {0x3c, 0, PDT_TAPE, 0, "l5dt", "Device time (LTO-5)",
-        NULL},
-    {0x3d, 0, PDT_TAPE, 0, "l5er", "Extended reset (LTO-5)",
-        NULL},
-    {0x3e, 0, PDT_TAPE, 0, "l5cde", "cd-rom emulation / disaster recovery "
-        "(LTO-5)", NULL},
-    /* Device attribute settings [0x30] LTO-5 */
-
-    {0, 0, 0, 0, NULL, NULL, NULL},
-};
-
-static struct sdparm_mode_page_item sdparm_mitem_v_lto5_arr[] = {
-    /* Vendor specific page [0x24] LTO-5 */
-    {"ENCR_E", 0x24, 0, PDT_TAPE, 7, 3, 1, MF_COMMON,
-        "Encryption enable", NULL},
-    {"FIPS", 0x24, 0, PDT_TAPE, 7, 1, 1, MF_COMMON,
-        "FIPS level of code", NULL},
-    {"ENCR_C", 0x24, 0, PDT_TAPE, 7, 0, 1, MF_COMMON,
-        "Encryption capable", NULL},
-    /* Behaviour configuration [0x2f] LTO-5 */
-    {"FE_BEH", 0x2f, 0, PDT_TAPE, 2, 7, 8, MF_COMMON,
-        "Fence behaviour", NULL},
-    {"CL_BEH", 0x2f, 0, PDT_TAPE, 3, 7, 8, MF_COMMON,
-        "Clean behaviour", NULL},
-    {"WO_BEH", 0x2f, 0, PDT_TAPE, 4, 7, 8, MF_COMMON,
-        "Worm behaviour", NULL},
-    {"SD_BEH", 0x2f, 0, PDT_TAPE, 5, 7, 8, MF_COMMON,
-        "Sense data behaviour", NULL},
-    {"CCDM", 0x2f, 0, PDT_TAPE, 6, 2, 1, MF_COMMON,
-        "Check condition for dead media", NULL},
-    {"DDEOR", 0x2f, 0, PDT_TAPE, 6, 1, 1, MF_COMMON,
-        "Disable deferred error on rewind", NULL},
-    {"CLNCHK", 0x2f, 0, PDT_TAPE, 6, 0, 1, MF_COMMON,
-        "Clean check", NULL},
-    {"DFMRDL", 0x2f, 0, PDT_TAPE, 7, 0, 1, MF_COMMON,
-        "Disable field microcode replacement down level", NULL},
-    {"UOE_C", 0x2f, 0, PDT_TAPE, 8, 5, 2, MF_COMMON,
-        "Unload on error - cleaner", NULL},
-    {"UOE_F", 0x2f, 0, PDT_TAPE, 8, 3, 2, MF_COMMON,
-        "Unload on error - FMR", NULL},
-    {"UOE_D", 0x2f, 0, PDT_TAPE, 8, 1, 2, MF_COMMON,
-        "Unload on error - data", NULL},
-    {"TA10", 0x2f, 0, PDT_TAPE, 9, 0, 1, MF_COMMON,
-        "Tape alert 10h", NULL},
-    /* Serial number override [0x3b] LTO-5, HP */
-    {"MSN", 0x3b, 0, PDT_TAPE, 2, 1, 2, MF_COMMON | MF_CLASH_OK,
-        "Non-auto", "0: not reported\t1: manufacturer's default SN\t2: not "
-        "reported\t3: non-default Serial Number"},
-    {"SN0_7", 0x3b, 0, PDT_TAPE, 6, 7, 8 * 8, MF_HEX | MF_CLASH_OK,
-     "Serial Number, bytes 0 to 7", "ASCII hex in range 0x20 to 0x7f"},
-    {"SN8_11", 0x3b, 0, PDT_TAPE, 14, 7, 4 * 8, MF_HEX | MF_CLASH_OK,
-     "Serial Number, bytes 8 to 11", "ASCII hex in range 0x20 to 0x7f"},
-    /* Device time [0x3c] LTO-5, HP */
-    {"LT_VAL", 0x3c, 0, PDT_TAPE, 2, 2, 1, MF_COMMON | MF_CLASH_OK,
-     "Library time valid", NULL},
-    {"WT_VAL", 0x3c, 0, PDT_TAPE, 2, 1, 1, MF_COMMON | MF_CLASH_OK,
-     "World time valid", NULL},
-    {"PT_VAL", 0x3c, 0, PDT_TAPE, 2, 0, 1, MF_COMMON | MF_CLASH_OK,
-     "Power-on time valid", NULL},
-    {"CP_COUNT", 0x3c, 0, PDT_TAPE, 6, 7, 2 * 8, MF_COMMON | MF_CLASH_OK,
-     "Current power-on count", NULL},
-    {"UTC", 0x3c, 0, PDT_TAPE, 14, 1, 1, MF_COMMON | MF_CLASH_OK,
-     "UTC", "0: local time zone\t1: UTC"},
-    {"NTP", 0x3c, 0, PDT_TAPE, 14, 0, 1, MF_COMMON | MF_CLASH_OK,
-     "NTP", "0: unsure if NTP synced\t1: NTP synced"},
-    {"WOR_TIME", 0x3c, 0, PDT_TAPE, 16, 7, 4 * 8, MF_COMMON | MF_CLASH_OK,
-     "World time", "seconds since 00:00:00, 1 January 1970 UTC"},
-    {"LT_HR", 0x3c, 0, PDT_TAPE, 23, 7, 8, MF_COMMON | MF_CLASH_OK,
-     "Library time (hours)", NULL},
-    {"LT_MIN", 0x3c, 0, PDT_TAPE, 24, 7, 8, MF_COMMON | MF_CLASH_OK,
-     "Library time (minutes)", NULL},
-    {"LT_SEC", 0x3c, 0, PDT_TAPE, 25, 7, 8, MF_COMMON | MF_CLASH_OK,
-     "Library time (seconds)", NULL},
-    {"CUM_PT", 0x3c, 0, PDT_TAPE, 32, 7, 4 * 8, MF_COMMON | MF_CLASH_OK,
-     "Cumulative power-on time (seconds)", NULL},
-    /* Extended reset [0x3d] LTO-5, HP */
-    {"RES_BEH", 0x3d, 0, PDT_TAPE, 2, 1, 2, MF_COMMON | MF_CLASH_OK,
-        "Reset behaviour", "0: normal\t1: flush, rewind\t2: no flush, "
-        "maintain position"},
-    /* CD-ROM emulator / disaster recovery [0x3e] LTO-5, HP */
-    {"NON_AUTO", 0x3e, 0, PDT_TAPE, 2, 1, 1, MF_COMMON | MF_CLASH_OK,
-        "Non-auto", "0: reverts to tape after 100 blocks read in cd-rom "
-        "emulation mode\t1: inhibits return and stays in cd-rom emulation "
-        "mode"},
-    {"CD_MODE", 0x3e, 0, PDT_TAPE, 2, 0, 1, MF_COMMON | MF_CLASH_OK,
-        "CDmode", "0: tape drive mode\t1: cd-rom emulation mode"},
-
-    {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
-};
-
-static struct sdparm_mode_page_t sdparm_v_lto6_mode_pg[] = {
-    {0x3b, 0, PDT_TAPE, 0, "l6sno", "Serial number override (LTO-5)",
-        NULL},
-    {0x3c, 0, PDT_TAPE, 0, "l6dt", "Device time (LTO-5)",
-        NULL},
-    {0x3d, 0, PDT_TAPE, 0, "l6er", "Extended reset (LTO-5)",
-        NULL},
-    {0x3e, 0, PDT_TAPE, 0, "l6cde", "cd-rom emulation / disaster recovery "
-        "(LTO-5)", NULL},
-
-    {0, 0, 0, 0, NULL, NULL, NULL},
-};
-
-static struct sdparm_mode_page_item sdparm_mitem_v_lto6_arr[] = {
-
-    /* Serial number override [0x3b] LTO-5, HP */
-    {"MSN", 0x3b, 0, PDT_TAPE, 2, 1, 2, MF_COMMON | MF_CLASH_OK,
-        "Non-auto", "0: not reported\t1: manufacturer's default SN\t2: not "
-        "reported\t3: non-default Serial Number"},
-    {"SN0_7", 0x3b, 0, PDT_TAPE, 6, 7, 8 * 8, MF_HEX | MF_CLASH_OK,
-     "Serial Number, bytes 0 to 7", "ASCII hex in range 0x20 to 0x7f"},
-    {"SN8_11", 0x3b, 0, PDT_TAPE, 14, 7, 4 * 8, MF_HEX | MF_CLASH_OK,
-     "Serial Number, bytes 8 to 11", "ASCII hex in range 0x20 to 0x7f"},
-    /* Device time [0x3c] LTO-5, HP */
-    {"LT_VAL", 0x3c, 0, PDT_TAPE, 2, 2, 1, MF_COMMON | MF_CLASH_OK,
-     "Library time valid", NULL},
-    {"WT_VAL", 0x3c, 0, PDT_TAPE, 2, 1, 1, MF_COMMON | MF_CLASH_OK,
-     "World time valid", NULL},
-    {"PT_VAL", 0x3c, 0, PDT_TAPE, 2, 0, 1, MF_COMMON | MF_CLASH_OK,
-     "Current power-on count", NULL},
-    {"CP_COUNT", 0x3c, 0, PDT_TAPE, 6, 7, 2 * 8, MF_COMMON | MF_CLASH_OK,
-     "Power-on time (seconds)", NULL},
-    {"UTC", 0x3c, 0, PDT_TAPE, 14, 1, 1, MF_COMMON | MF_CLASH_OK,
-     "UTC", "0: local time zone\t1: UTC"},
-    {"NTP", 0x3c, 0, PDT_TAPE, 14, 0, 1, MF_COMMON | MF_CLASH_OK,
-     "NTP", "0: unsure if NTP synced\t1: NTP synced"},
-    {"WOR_TIME", 0x3c, 0, PDT_TAPE, 16, 7, 4 * 8, MF_COMMON | MF_CLASH_OK,
-     "World time", "seconds since 00:00:00, 1 January 1970 UTC"},
-    {"LT_HR", 0x3c, 0, PDT_TAPE, 23, 7, 8, MF_COMMON | MF_CLASH_OK,
-     "Library time (hours)", NULL},
-    {"LT_MIN", 0x3c, 0, PDT_TAPE, 24, 7, 8, MF_COMMON | MF_CLASH_OK,
-     "Library time (minutes)", NULL},
-    {"LT_SEC", 0x3c, 0, PDT_TAPE, 25, 7, 8, MF_COMMON | MF_CLASH_OK,
-     "Library time (seconds)", NULL},
-    {"CUM_PT", 0x3c, 0, PDT_TAPE, 32, 7, 4 * 8, MF_COMMON | MF_CLASH_OK,
-     "Cumulative power-on time (seconds)", NULL},
-    /* Extended reset [0x3d] LTO-5, HP */
-    {"RES_BEH", 0x3d, 0, PDT_TAPE, 2, 1, 2, MF_COMMON | MF_CLASH_OK,
-        "Reset behaviour", "0: normal\t1: flush, rewind\t2: no flush, "
-        "maintain position"},
-    /* CD-ROM emulator / disaster recovery [0x3e] LTO-5, HP */
-    {"NON_AUTO", 0x3e, 0, PDT_TAPE, 2, 1, 1, MF_COMMON | MF_CLASH_OK,
-        "Non-auto", "0: reverts to tape after 100 blocks read in cd-rom "
-        "emulation mode\t1: inhibits return and stays in cd-rom emulation "
-        "mode"},
-    {"CD_MODE", 0x3e, 0, PDT_TAPE, 2, 0, 1, MF_COMMON | MF_CLASH_OK,
-        "CDmode", "0: tape drive mode\t1: cd-rom emulation mode"},
-
-    {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
 };
 
 /* Indexed by VENDOR_* define */
@@ -366,9 +190,6 @@ struct sdparm_vendor_pair sdparm_vendor_mp[] = {
     {sdparm_v_hitachi_mode_pg, sdparm_mitem_v_hitachi_arr},
     {sdparm_v_maxtor_mode_pg, sdparm_mitem_v_maxtor_arr},
     {sdparm_v_fujitsu_mode_pg, sdparm_mitem_v_fujitsu_arr},
-    {NULL, NULL},       /* hole in sequence, re-use asap */
-    {sdparm_v_lto5_mode_pg, sdparm_mitem_v_lto5_arr},
-    {sdparm_v_lto6_mode_pg, sdparm_mitem_v_lto6_arr},
 };
 
 int sdparm_vendor_mp_len =
