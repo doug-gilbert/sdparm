@@ -6,7 +6,7 @@
 #
 # Uses sdparm and blockdev utilities.
 #
-# Douglas Gilbert 20130606
+# Douglas Gilbert 20160224
 
 
 rdonly="--readonly"
@@ -40,7 +40,7 @@ while test ! -z "$opt" -a -z "${opt##-*}"; do
     opt=${opt#-}
     case "$opt" in
         h|-help) usage ; exit 0 ;;
-        s|-set) shift ; let swp=$1 ;;
+        s|-set) shift ; let swp="$1" ;;
         v|-verbose) verbose="-v" ;;
         w|-wr) rdonly="" ;;
         vv) verbose="-vv" ;;
@@ -76,29 +76,29 @@ else
     blockdev
 fi
 
-if [ $swp -lt 0 ] ; then
+if [ "$swp" -lt 0 ] ; then
     if [ ${verbose} ] ; then
-        echo sdparm --quiet ${rdonly} ${verbose} --get=SWP=1 $1
+        echo sdparm --quiet ${rdonly} ${verbose} --get=SWP=1 "$1"
     fi
-    sdparm --quiet ${rdonly} ${verbose} --get=SWP=1 $1
+    sdparm --quiet ${rdonly} ${verbose} --get=SWP=1 "$1"
     if [ ${bdverbose} ] ; then
         echo "blockdev --getro ${bdverbose} $1"
     fi
     echo -n "blockdev's RO flag: "
-    blockdev --getro ${bdverbose} $1
-elif [ $swp = "0" ] ; then
+    blockdev --getro ${bdverbose} "$1"
+elif [ "$swp" = "0" ] ; then
     if [ ${verbose} ] ; then
-        echo sdparm --quiet ${rdonly} ${verbose} --clear=SWP $1
+        echo sdparm --quiet ${rdonly} ${verbose} --clear=SWP "$1"
     fi
-    sdparm --quiet ${rdonly} ${verbose} --clear=SWP $1
+    sdparm --quiet ${rdonly} ${verbose} --clear=SWP "$1"
     res=$?
     if [ $res -ne 0 ] ; then
         exit $res
     fi
     if [ ${bdverbose} ] ; then
-        echo blockdev --setrw ${bdverbose} $1
+        echo blockdev --setrw ${bdverbose} "$1"
     fi
-    blockdev --setrw ${bdverbose} $1
+    blockdev --setrw ${bdverbose} "$1"
     # res=$?
     # if [ $res -ne 0 ] ; then
         # exit $res
@@ -110,19 +110,19 @@ elif [ $swp = "0" ] ; then
         # echo blockdev --rereadpt ${bdverbose} $1
     # fi
     # blockdev --rereadpt ${bdverbose} $1
-elif [ $swp = "1" ] ; then
+elif [ "$swp" = "1" ] ; then
     if [ ${verbose} ] ; then
-        echo sdparm --quiet ${verbose} --set=SWP $1
+        echo sdparm --quiet ${verbose} --set=SWP "$1"
     fi
-    sdparm --quiet ${verbose} --set=SWP $1
+    sdparm --quiet ${verbose} --set=SWP "$1"
     res=$?
     if [ $res -ne 0 ] ; then
         exit $res
     fi
     if [ ${bdverbose} ] ; then
-        echo blockdev --setro ${bdverbose} $1
+        echo blockdev --setro ${bdverbose} "$1"
     fi
-    blockdev --setro ${bdverbose} $1
+    blockdev --setro ${bdverbose} "$1"
     # res=$?
     # if [ $res -ne 0 ] ; then
         # exit $res

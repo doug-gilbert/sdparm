@@ -9,7 +9,7 @@
 # Uses sdparm rather than sg3_utils as the former is simpler to
 # use for setting mode page value.
 #
-# Douglas Gilbert 20130513
+# Douglas Gilbert 20160224
 
 
 seconds=30
@@ -35,7 +35,7 @@ while test ! -z "$opt" -a -z "${opt##-*}"; do
   opt=${opt#-}
   case "$opt" in
     h|-help) usage ; exit 0 ;;
-    s|-set) shift ; let seconds=$1 ;;
+    s|-set) shift ; let seconds="$1" ;;
     v|-verbose) verbose="-v" ;;
     vv) verbose="-vv" ;;
     vvv) verbose="-vvv" ;;
@@ -58,50 +58,50 @@ else
   sdparm
 fi
 
-if [ $seconds = "0" ]
+if [ "$seconds" = "0" ]
 then
-    sdparm ${verbose} -t sas -c RLM $1
+    sdparm ${verbose} -t sas -c RLM "$1"
     exit $?
-elif [ $seconds = "1" ]
+elif [ "$seconds" = "1" ]
 then
-    sdparm ${verbose} -t sas -s RLM $1
+    sdparm ${verbose} -t sas -s RLM "$1"
     exit $?
-elif [ $seconds -gt 1 ]
+elif [ "$seconds" -gt 1 ]
 then
-    outt=$(sdparm ${verbose} -t sas -g RLM -H $1)
+    outt=$(sdparm ${verbose} -t sas -g RLM -H "$1")
     let res=$?
     if [ $res -ne 0 ]
     then
         exit $res
     fi
-    if [ ${outt:0:4} = "0x00" ]
+    if [ "${outt:0:4}" = "0x00" ]
     then
         let start=0
     else
         let start=1
     fi
     echo "start blinking for $seconds seconds"
-    for (( times = 1; times < $seconds; times=$times+2 )); do
+    for (( times = 1; times < seconds; times=times+2 )); do
         if [ $start -eq 0 ]
         then
-            sdparm ${verbose} -q -t sas -s RLM $1
+            sdparm ${verbose} -q -t sas -s RLM "$1"
             let res=$?
             if [ $res -ne 0 ]
             then
                 exit $res
             fi
             sleep 1
-            sdparm ${verbose} -q -t sas -c RLM $1
+            sdparm ${verbose} -q -t sas -c RLM "$1"
             sleep 1
         else
-            sdparm ${verbose} -q -t sas -c RLM $1
+            sdparm ${verbose} -q -t sas -c RLM "$1"
             let res=$?
             if [ $res -ne 0 ]
             then
                 exit $res
             fi
             sleep 1
-            sdparm ${verbose} -q -t sas -s RLM $1
+            sdparm ${verbose} -q -t sas -s RLM "$1"
             sleep 1
         fi
     done
