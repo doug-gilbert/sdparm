@@ -1293,7 +1293,7 @@ decode_block_lb_prov_vpd(unsigned char * b, int len,
     printf("  Write same (10) with unmap bit supported (LBWS10): %d\n",
            !!(0x20 & b[5]));
     printf("  Logical block provisioning read zeros (LBPRZ): %d\n",
-           (0x7 & (b[5] >> 2)));
+           (0x7 & (b[5] >> 2)));  /* expanded from 1 to 3 bits in sbc4r07 */
     printf("  Anchored LBAs supported (ANC_SUP): %d\n", !!(0x2 & b[5]));
     printf("  Threshold exponent: %d\n", b[4]);
     dp = !!(b[5] & 0x1);
@@ -1322,42 +1322,23 @@ decode_block_lb_prov_vpd(unsigned char * b, int len,
 static int
 decode_tapealert_supported_vpd(unsigned char * b, int len)
 {
+    int k, mod, div;
+
     if (len < 12) {
         pr2serr("TapeAlert supported flags length too short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
-    printf("  Flag01h: %d  02h: %d  03h: %d  04h: %d  05h: %d  06h: %d  "
-           "07h: %d  08h: %d\n", !!(b[4] & 0x80), !!(b[4] & 0x40),
-           !!(b[4] & 0x20), !!(b[4] & 0x10), !!(b[4] & 0x8), !!(b[4] & 0x4),
-           !!(b[4] & 0x2), !!(b[4] & 0x1));
-    printf("  Flag09h: %d  0ah: %d  0bh: %d  0ch: %d  0dh: %d  0eh: %d  "
-           "0fh: %d  10h: %d\n", !!(b[5] & 0x80), !!(b[5] & 0x40),
-           !!(b[5] & 0x20), !!(b[5] & 0x10), !!(b[5] & 0x8), !!(b[5] & 0x4),
-           !!(b[5] & 0x2), !!(b[5] & 0x1));
-    printf("  Flag11h: %d  12h: %d  13h: %d  14h: %d  15h: %d  16h: %d  "
-           "17h: %d  18h: %d\n", !!(b[6] & 0x80), !!(b[6] & 0x40),
-           !!(b[6] & 0x20), !!(b[6] & 0x10), !!(b[6] & 0x8), !!(b[6] & 0x4),
-           !!(b[6] & 0x2), !!(b[6] & 0x1));
-    printf("  Flag19h: %d  1ah: %d  1bh: %d  1ch: %d  1dh: %d  1eh: %d  "
-           "1fh: %d  20h: %d\n", !!(b[7] & 0x80), !!(b[7] & 0x40),
-           !!(b[7] & 0x20), !!(b[7] & 0x10), !!(b[7] & 0x8), !!(b[7] & 0x4),
-           !!(b[7] & 0x2), !!(b[7] & 0x1));
-    printf("  Flag21h: %d  22h: %d  23h: %d  24h: %d  25h: %d  26h: %d  "
-           "27h: %d  28h: %d\n", !!(b[8] & 0x80), !!(b[8] & 0x40),
-           !!(b[8] & 0x20), !!(b[8] & 0x10), !!(b[8] & 0x8), !!(b[8] & 0x4),
-           !!(b[8] & 0x2), !!(b[8] & 0x1));
-    printf("  Flag29h: %d  2ah: %d  2bh: %d  2ch: %d  2dh: %d  2eh: %d  "
-           "2fh: %d  30h: %d\n", !!(b[9] & 0x80), !!(b[9] & 0x40),
-           !!(b[9] & 0x20), !!(b[9] & 0x10), !!(b[9] & 0x8), !!(b[9] & 0x4),
-           !!(b[9] & 0x2), !!(b[9] & 0x1));
-    printf("  Flag31h: %d  32h: %d  33h: %d  34h: %d  35h: %d  36h: %d  "
-           "37h: %d  38h: %d\n", !!(b[10] & 0x80), !!(b[10] & 0x40),
-           !!(b[10] & 0x20), !!(b[10] & 0x10), !!(b[10] & 0x8),
-           !!(b[10] & 0x4), !!(b[10] & 0x2), !!(b[10] & 0x1));
-    printf("  Flag39h: %d  3ah: %d  3bh: %d  3ch: %d  3dh: %d  3eh: %d  "
-           "3fh: %d  40h: %d\n", !!(b[11] & 0x80), !!(b[11] & 0x40),
-           !!(b[11] & 0x20), !!(b[11] & 0x10), !!(b[11] & 0x8),
-           !!(b[11] & 0x4), !!(b[11] & 0x2), !!(b[11] & 0x1));
+    for (k = 1; k < 0x41; ++k) {
+        mod = ((k - 1) % 8);
+        div = (k - 1) / 8;
+        if (0 == mod) {
+            if (div > 0)
+                printf("\n");
+            printf("  Flag%02Xh: %d", k, !! (b[4 + div] & 0x80));
+        } else
+            printf("  %02Xh: %d", k, !! (b[4 + div] & (1 << (7 - mod))));
+    }
+    printf("\n");
     return 0;
 }
 
