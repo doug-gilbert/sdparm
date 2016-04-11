@@ -2,9 +2,9 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.11 [20160327] [svn: r287]
+ChangeLog for sdparm-1.11 [20160405] [svn: r288]
   - shellcheck corrections on scripts
-  - point svn:externals to rev 687 of sg3_utils
+  - point svn:externals to rev 690 of sg3_utils
 
 ChangeLog for sdparm-1.10 [20160222] [svn: r279]
   - add --inhex=FN option for decoding without device present,

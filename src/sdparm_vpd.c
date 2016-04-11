@@ -53,8 +53,8 @@ static int
 decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                      int m_desig_type, int m_code_set)
 {
-    int m, p_id, c_set, piv, assoc, desig_type, i_len, is_sas;
-    int naa, off, u, rtp;
+    int m, p_id, c_set, assoc, desig_type, i_len, naa, off, u, rtp;
+    bool piv, is_sas;
     const unsigned char * ucp;
     const unsigned char * ip;
     unsigned char sas_tport_addr[8];
@@ -74,8 +74,8 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
         ip = ucp + 4;
         p_id = ((ucp[0] >> 4) & 0xf);
         c_set = (ucp[0] & 0xf);
-        piv = ((ucp[1] & 0x80) ? 1 : 0);
-        is_sas = (piv && (6 == p_id)) ? 1 : 0;
+        piv = !!(ucp[1] & 0x80);
+        is_sas = (piv && (6 == p_id));
         assoc = ((ucp[1] >> 4) & 0x3);
         desig_type = (ucp[1] & 0xf);
         switch (desig_type) {
@@ -132,7 +132,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                     dStrHexErr((const char *)ip, i_len, 0);
                     break;
                 }
-                if ((0 == is_sas) || (1 != assoc)) {
+                if ((! is_sas) || (1 != assoc)) {
                     printf("0x");
                     for (m = 0; m < 8; ++m)
                         printf("%02x", (unsigned int)ip[m]);
@@ -173,7 +173,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
             }
             break;
         case 4: /* Relative target port */
-            if ((0 == is_sas) || (1 != c_set) || (1 != assoc) || (4 != i_len))
+            if ((! is_sas) || (1 != c_set) || (1 != assoc) || (4 != i_len))
                 break;
             rtp = sg_get_unaligned_be16(ip + 2);
             if (sas_tport_addr[0]) {
@@ -192,7 +192,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
         case 7: /* MD5 logical unit identifier */
             break;
         case 8: /* SCSI name string */
-            if (3 != c_set) {
+            if (c_set < 2) {    /* accept ASCII as subset of UTF-8 */
                 pr2serr("      << expected UTF-8 code_set >>\n");
                 dStrHexErr((const char *)ip, i_len, 0);
                 break;
@@ -201,7 +201,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
              * Seems to depend on the locale. Looks ok here with my
              * locale setting: en_AU.UTF-8
              */
-            printf("%s\n", (const char *)ip);
+            printf("%.*s\n", i_len, (const char *)ip);
             break;
         case 9: /* Protocol specific port identifier */
             break;
@@ -1523,10 +1523,10 @@ const char * sg_ansi_version_arr[] =
     "no conformance claimed",
     "SCSI-1",           /* obsolete, ANSI X3.131-1986 */
     "SCSI-2",           /* obsolete, ANSI X3.131-1994 */
-    "SPC",              /* withdrawn */
-    "SPC-2",
-    "SPC-3",
-    "SPC-4",
+    "SPC",              /* withdrawn, ANSI INCITS 301-1997 */
+    "SPC-2",            /* ANSI INCITS 351-2001, ISO/IEC 14776-452 */
+    "SPC-3",            /* ANSI INCITS 408-2005, ISO/IEC 14776-453 */
+    "SPC-4",            /* ANSI INCITS 513-2015 */
     "SPC-5",
     "ecma=1, [8h]",
     "ecma=1, [9h]",
