@@ -981,7 +981,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"APMP", POWER_MP, MSP_SAT_POWER, -1, 5, 0, 1, 0,
         "Advanced Power Management (APM) enabled/change", NULL},
     {"APM", POWER_MP, MSP_SAT_POWER, -1, 6, 7, 8, 0,
-        "Advanced Power Management (APM) value", NULL},
+        "Advanced Power Management (APM) value",
+        "0: disable APM feature set; >0: enable"},
 
     /* Informational exception control mode page [0x1c] spc3 */
     {"PERF", IEC_MP, 0, -1, 2, 7, 1, 0,
@@ -1048,11 +1049,11 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"WORMM", MED_CONF_MP, 0, PDT_TAPE, 2, 0, 1, 0,
         "Worm mode", NULL},
     {"WMLR", MED_CONF_MP, 0, PDT_TAPE, 4, 7, 8, 0,
-        "Worm volume label restrictions",	/* mode->volume renaming */
+        "Worm volume label restrictions",       /* mode->volume renaming */
         "0: disallow overwrite\t1: disallow some format labels overwrite\t"
         "2: allow all format labels to be overwritten"},
     {"WMFR", MED_CONF_MP, 0, PDT_TAPE, 5, 7, 8, 0,
-        "Worm volume filemark restrictions",	/* mode->volume renaming */
+        "Worm volume filemark restrictions",    /* mode->volume renaming */
         "2: allow filemarks before EOD except closest to BOP\t"
         "3: allow any number of filemarks before EOD"},
 
@@ -1664,7 +1665,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"AIZPER", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 33, 2, 1, 0,
         "Attached inside ZPSDS persistent", NULL},
     {"AREQIZ", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 33, 1, 1, 0,
-        "Attached request inside ZPSDS", NULL},
+        "Attached requested inside ZPSDS", NULL},
     {"ABRCAP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 33, 0, 1, 0,
         "Attached break reply capable", NULL},
     {"PMILR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 40, 7, 4, 0,
