@@ -1,4 +1,4 @@
-.TH SDPARM "8" "March 2016" "sdparm\-1.11" SDPARM
+.TH SDPARM "8" "April 2016" "sdparm\-1.11" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -323,8 +323,9 @@ fields.
 \fB\-M\fR, \fB\-\-vendor\fR=\fIVN\fR
 Specifies the vendor (i.e. manufacturer) where \fIVN\fR is either a number (0
 or more) or an abbreviation (e.g. "sea" for Seagate disk vendor specific).
-One way to list available vendor numbers and their associated abbreviations
-is to give an invalid vendor number such as '\-M x'; another way is '\-e \-l'.
+For tape drives "lto5" and "lto6" are treated as vendors. One way to list
+the available vendor numbers and their associated abbreviations is to give an
+invalid vendor number such as '\-M x'; another way is '\-e \-l'.
 .TP
 \fB\-v\fR, \fB\-\-verbose\fR
 increase the level of verbosity, (i.e. debug output). In some cases
