@@ -78,7 +78,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20160424 [svn: r290]";
+static const char * version_str = "1.11 20160426 [svn: r291]";
 
 
 #define MAX_DEV_NAMES 256
@@ -774,7 +774,7 @@ print_mpage_extra_desc(void ** pc_arr, int rep_len,
     const unsigned char * cha_mp = (const unsigned char *)pc_arr[1];
     const unsigned char * def_mp = (const unsigned char *)pc_arr[2];
     const unsigned char * sav_mp = (const unsigned char *)pc_arr[3];
-    const unsigned char * ucp;
+    const unsigned char * bp;
     struct sdparm_mode_page_item ampi;
     uint64_t u;
     int k, num, len, d_off, n, bad;
@@ -797,8 +797,8 @@ print_mpage_extra_desc(void ** pc_arr, int rep_len,
     if ((u < 2) || (u > 256))
         return;
     if (mdp->desc_len <= 0) {
-        ucp = cur_mp + mdp->first_desc_off + mdp->desc_len_off;
-        u = sdp_get_big_endian(ucp, 7, mdp->desc_len_bytes * 8);
+        bp = cur_mp + mdp->first_desc_off + mdp->desc_len_off;
+        u = sdp_get_big_endian(bp, 7, mdp->desc_len_bytes * 8);
         len = mdp->desc_len_off + mdp->desc_len_bytes + u;
     } else
         len = mdp->desc_len;
@@ -825,8 +825,8 @@ print_mpage_extra_desc(void ** pc_arr, int rep_len,
         if (bad)
             break;
         if (mdp->desc_len <= 0) {
-            ucp = cur_mp + d_off + mdp->desc_len_off;
-            u = sdp_get_big_endian(ucp, 7, mdp->desc_len_bytes * 8);
+            bp = cur_mp + d_off + mdp->desc_len_off;
+            u = sdp_get_big_endian(bp, 7, mdp->desc_len_bytes * 8);
             len = mdp->desc_len_off + mdp->desc_len_bytes + u;
         }
     }
@@ -1361,7 +1361,7 @@ desc_adjust_start_byte(int desc_num, const struct sdparm_mode_page_t * mpp,
 {
     const struct sdparm_mode_descriptor_t * mdp;
     uint64_t u;
-    const unsigned char * ucp;
+    const unsigned char * bp;
     int d_off, sb_off, j;
 
     mdp = mpp->mp_desc;
@@ -1396,9 +1396,8 @@ desc_adjust_start_byte(int desc_num, const struct sdparm_mode_page_t * mpp,
                                     "...\n");
                         break;
                     }
-                    ucp = cur_mp + d_off + mdp->desc_len_off;
-                    u = sdp_get_big_endian(ucp, 7,
-                                           mdp->desc_len_bytes * 8);
+                    bp = cur_mp + d_off + mdp->desc_len_off;
+                    u = sdp_get_big_endian(bp, 7, mdp->desc_len_bytes * 8);
                     d_off += mdp->desc_len_off +
                              mdp->desc_len_bytes + u;
                     if (d_off >= rep_len) {
