@@ -157,13 +157,6 @@ extern "C" {
 #define CMD_SPEED 10
 #define CMD_PROFILE 11
 
-#ifndef TPROTO_UAS
-#define TPROTO_UAS 0x9
-#endif
-#ifndef TPROTO_SOP
-#define TPROTO_SOP 0xa
-#endif
-
 
 struct sdparm_opt_coll {
     int do_all;
