@@ -916,9 +916,10 @@ decode_ext_inq_vpd(unsigned char * b, int len, int do_long, int protect)
         printf("  CRD_SUP=%d\n", !!(b[6] & 0x4));
         printf("  NV_SUP=%d\n", !!(b[6] & 0x2));
         printf("  V_SUP=%d\n", !!(b[6] & 0x1));
-        printf("  NO_PI_CHK=%d\n", !!(b[7] & 0x10));    /* spc5r02 */
+        printf("  NO_PI_CHK=%d\n", !!(b[7] & 0x20));    /* spc5r02 */
         printf("  P_I_I_SUP=%d\n", !!(b[7] & 0x10));
         printf("  LUICLR=%d\n", !!(b[7] & 0x1));
+        printf("  LU_COLL_TYPE=%d\n", (b[8] >> 5) & 0x7); /* spc5r09 */
         printf("  R_SUP=%d\n", !!(b[8] & 0x10));
         printf("  HSSRELEF=%d\n", !!(b[8] & 0x2));      /* spc5r02 */
         printf("  CBCS=%d\n", !!(b[8] & 0x1));  /* obsolete in spc5r01 */
@@ -930,6 +931,11 @@ decode_ext_inq_vpd(unsigned char * b, int len, int do_long, int protect)
         printf("  VSA_SUP=%d\n", !!(b[12] & 0x20));     /* spc4r32 */
         printf("  Maximum supported sense data length=%d\n",
                b[13]); /* spc4r34 */
+        printf("  IBS=%d\n", !!(b[14] & 0x80));     /* spc5r09 */
+        printf("  IAS=%d\n", !!(b[14] & 0x40));     /* spc5r09 */
+        printf("  SAC=%d\n", !!(b[14] & 0x4));      /* spc5r09 */
+        printf("  NRD1=%d\n", !!(b[14] & 0x2));     /* spc5r09 */
+        printf("  NRD0=%d\n", !!(b[14] & 0x1));     /* spc5r09 */
     } else {
         printf("  ACTIVATE_MICROCODE=%d SPT=%d GRD_CHK=%d APP_CHK=%d "
                "REF_CHK=%d\n", ((b[4] >> 6) & 0x3), ((b[4] >> 3) & 0x7),
@@ -942,10 +948,12 @@ decode_ext_inq_vpd(unsigned char * b, int len, int do_long, int protect)
         printf("  WU_SUP=%d [CRD_SUP=%d] NV_SUP=%d V_SUP=%d\n",
                !!(b[6] & 0x8), !!(b[6] & 0x4),
                !!(b[6] & 0x2), !!(b[6] & 0x1));
-        /* CBCS, capability-based command security, obsolete in spc5r01 */
-        printf("  P_I_I_SUP=%d LUICLR=%d R_SUP=%d CBCS=%d\n",
-               !!(b[7] & 0x10), !!(b[7] & 0x1),
-               !!(b[8] & 0x10), !!(b[8] & 0x1));
+        printf("  NO_PI_CHK=%d P_I_I_SUP=%d LUICLR=%d\n", !!(b[7] & 0x20),
+               !!(b[7] & 0x10), !!(b[7] & 0x1));
+        /* LU_COLL_TYPE in spc5r09, CBCS obsolete in spc5r01 */
+        printf("  LU_COLL_TYPE=%d R_SUP=%d HSSRELEF=%d [CBCS=%d]\n",
+               (b[8] >> 5) & 0x7, !!(b[8] & 0x10), !!(b[8] & 0x2),
+               !!(b[8] & 0x1));
         printf("  Multi I_T nexus microcode download=%d\n", b[9] & 0xf);
         printf("  Extended self-test completion minutes=%d\n",
                sg_get_unaligned_be16(b + 10));
@@ -953,6 +961,9 @@ decode_ext_inq_vpd(unsigned char * b, int len, int do_long, int protect)
                !!(b[12] & 0x80), !!(b[12] & 0x40), !!(b[12] & 0x20));
         printf("  Maximum supported sense data length=%d\n",
                b[13]); /* spc4r34 */
+        printf("  IBS=%d IAS=%d SAC=%d NRD1=%d NRD0=%d\n", !!(b[14] & 0x80),
+               !!(b[14] & 0x40), !!(b[14] & 0x4), !!(b[14] & 0x2),
+               !!(b[14] & 0x1));  /* added in spc5r09 */
     }
     return 0;
 }
