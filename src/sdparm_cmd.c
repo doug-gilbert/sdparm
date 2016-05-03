@@ -259,7 +259,7 @@ get_profile_str(int profile_num, char * buff)
 }
 
 static void
-decode_get_config_feature(int feature, unsigned char * ucp, int len)
+decode_get_config_feature(int feature, unsigned char * bp, int len)
 {
     int k, profile;
     char buff[128];
@@ -269,9 +269,9 @@ decode_get_config_feature(int feature, unsigned char * ucp, int len)
         printf("Available profiles, profile of current media marked "
                "with * \n");
         for (k = 4; k < len; k += 4) {
-            profile = sg_get_unaligned_be16(ucp + k);
+            profile = sg_get_unaligned_be16(bp + k);
             printf("    %s   %s\n", get_profile_str(profile, buff),
-                   ((ucp[k + 2] & 1) ? "*" : ""));
+                   ((bp[k + 2] & 1) ? "*" : ""));
         }
         break;
     default:
@@ -285,7 +285,7 @@ static void
 decode_get_config(unsigned char * resp, int max_resp_len, int len)
 {
     int k, extra, feature;
-    unsigned char * ucp;
+    unsigned char * bp;
 
     if (max_resp_len < len) {
         printf("get_config: response to long for buffer, resp_len=%d>>>\n",
@@ -296,16 +296,16 @@ decode_get_config(unsigned char * resp, int max_resp_len, int len)
         printf("get_config: response length too short: %d\n", len);
         return;
     }
-    ucp = resp + 8;
+    bp = resp + 8;
     len -= 8;
-    for (k = 0; k < len; k += extra, ucp += extra) {
-        extra = 4 + ucp[3];
-        feature = sg_get_unaligned_be16(ucp + 0);
+    for (k = 0; k < len; k += extra, bp += extra) {
+        extra = 4 + bp[3];
+        feature = sg_get_unaligned_be16(bp + 0);
         if (0 != (extra % 4))
             printf("    get_config: additional length [%d] not a multiple "
                    "of 4, ignore\n", extra - 4);
         else
-            decode_get_config_feature(feature, ucp, extra);
+            decode_get_config_feature(feature, bp, extra);
     }
 }
 
