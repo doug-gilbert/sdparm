@@ -555,7 +555,8 @@ get_cscd_desc_id_name(uint16_t cscd_desc_id)
 
 /* VPD_3PARTY_COPY (3PC, THIRD PARTY COPY, SPC-4, SBC-3)  0x8f */
 static void
-decode_3party_copy_vpd(unsigned char * buff, int len, int do_hex, int verbose)
+decode_3party_copy_vpd(unsigned char * buff, int len, int do_hex, int pdt,
+                       int verbose)
 {
     int j, k, m, bump, desc_type, desc_len, sa_len;
     unsigned int u;
@@ -588,6 +589,8 @@ decode_3party_copy_vpd(unsigned char * buff, int len, int do_hex, int verbose)
         else if (do_hex > 2)
             dStrHex((const char *)bp, bump, 1);
         else {
+            int csll;
+
             switch (desc_type) {
             case 0x0000:    /* Required if POPULATE TOKEN (or friend) used */
                 printf(" Block Device ROD Token Limits:\n");
@@ -605,14 +608,27 @@ decode_3party_copy_vpd(unsigned char * buff, int len, int do_hex, int verbose)
             case 0x0001:    /* Mandatory (SPC-4) */
                 printf(" Supported Commands:\n");
                 j = 0;
-                while (j < bp[4]) {
+                csll = bp[4];
+                if (csll >= desc_len) {
+                    pr2serr("Command supported list length (%d) >= "
+                            "descriptor length (%d), wrong so trim\n",
+                            csll, desc_len);
+                    csll = desc_len - 1;
+                }
+                while (j < csll) {
                     sa_len = bp[6 + j];
-                    for (m = 0; m < sa_len; ++m) {
+                    for (m = 0; (m < sa_len) && ((j + m) < csll); ++m) {
                         sg_get_opcode_sa_name(bp[5 + j], bp[7 + j + m],
-                                              0, sizeof(b), b);
+                                              pdt, sizeof(b), b);
                         printf("  %s\n", b);
                     }
-                    j += sa_len + 2;
+                    if (0 == sa_len) {
+                        sg_get_opcode_name(bp[5 + j], pdt, sizeof(b), b);
+                        printf("  %s\n",  b);
+                    } else if (m < sa_len)
+                        pr2serr("Supported service actions list length (%d) "
+                                "is too large\n", sa_len);
+                    j += m + 2;
                 }
                 break;
             case 0x0004:
@@ -1283,17 +1299,29 @@ decode_tape_man_ass_sn_vpd(unsigned char * buff, int len)
     return 0;
 }
 
+static const char * prov_type_arr[8] = {
+    "not known or fully provisioned",
+    "resource provisioned",
+    "thin provisioned",
+    "reserved [0x3]",
+    "reserved [0x4]",
+    "reserved [0x5]",
+    "reserved [0x6]",
+    "reserved [0x7]",
+};
+
 /* VPD_LB_PROVISIONING  0xb2 */
 static int
 decode_block_lb_prov_vpd(unsigned char * b, int len,
                          const struct sdparm_opt_coll * op)
 {
-    int dp;
+    int dp, pt;
 
     if (len < 4) {
         pr2serr("Logical block provisioning page too short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
+    pt = b[6] & 0x7;
     printf("  Unmap command supported (LBPU): %d\n", !!(0x80 & b[5]));
     printf("  Write same (16) with unmap bit supported (LBWS): %d\n",
            !!(0x40 & b[5]));
@@ -1306,7 +1334,7 @@ decode_block_lb_prov_vpd(unsigned char * b, int len,
     dp = !!(b[5] & 0x1);
     printf("  Descriptor present: %d\n", dp);
     printf("  Minimum percentage: %d\n", 0x1f & (b[6] >> 3));
-    printf("  Provisioning type: %d\n", b[6] & 0x7);
+    printf("  Provisioning type: %d (%s)\n", pt, prov_type_arr[pt]);
     printf("  Threshold percentage: %d\n", b[7]);
     if (dp) {
         const unsigned char * bp;
@@ -2000,7 +2028,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             dStrHex((const char *)b, len + 4, 0);
             return 0;
         }
-        decode_3party_copy_vpd(b, len + 4, op->do_hex, op->verbose);
+        decode_3party_copy_vpd(b, len + 4, op->do_hex, pdt, op->verbose);
         break;
     case 0xb0:          /* VPD page depends on pdt */
         if (b[1] != pn)

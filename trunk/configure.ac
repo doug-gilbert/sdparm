@@ -1,6 +1,6 @@
 AC_INIT(sdparm, 1.11, dgilbert@interlog.com)
 
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([foreign])
 AM_MAINTAINER_MODE
 AM_CONFIG_HEADER(config.h)
 
