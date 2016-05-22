@@ -989,7 +989,7 @@ static int
 decode_ata_info_vpd(unsigned char * buff, int len, int do_long, int do_hex)
 {
     char b[80];
-    int num, is_be;
+    int num, is_be, cc;
     const char * cp;
     const char * ata_transp;
 
@@ -1014,11 +1014,19 @@ decode_ata_info_vpd(unsigned char * buff, int len, int do_long, int do_hex)
         dStrHex((const char *)buff + 36, 20, 1);
     } else
         printf("  Device signature indicates %s transport\n", ata_transp);
+    cc = buff[56];      /* 0xec for IDENTIFY DEVICE and 0xa1 for IDENTIFY
+                         * PACKET DEVICE (obsolete) */
+    printf("  Command code: 0x%x\n", cc);
     if (len < 60)
         return SG_LIB_CAT_MALFORMED;
+    if (0xec == cc)
+        cp = "";
+    else if (0xa1 == cc)
+        cp = "PACKET ";
+    else
+        cp = NULL;
     is_be = sg_is_big_endian();
-    if ((0xec == buff[56]) || (0xa1 == buff[56])) {
-        cp = (0xa1 == buff[56]) ? "PACKET " : "";
+    if (cp) {
         printf("  ATA command IDENTIFY %sDEVICE response summary:\n", cp);
         num = sg_ata_get_chars((const unsigned short *)(buff + 60), 27, 20,
                                is_be, b);
@@ -1323,9 +1331,9 @@ decode_block_lb_prov_vpd(unsigned char * b, int len,
     }
     pt = b[6] & 0x7;
     printf("  Unmap command supported (LBPU): %d\n", !!(0x80 & b[5]));
-    printf("  Write same (16) with unmap bit supported (LBWS): %d\n",
+    printf("  Write same (16) with unmap bit supported (LBPWS): %d\n",
            !!(0x40 & b[5]));
-    printf("  Write same (10) with unmap bit supported (LBWS10): %d\n",
+    printf("  Write same (10) with unmap bit supported (LBPWS10): %d\n",
            !!(0x20 & b[5]));
     printf("  Logical block provisioning read zeros (LBPRZ): %d\n",
            (0x7 & (b[5] >> 2)));  /* expanded from 1 to 3 bits in sbc4r07 */
