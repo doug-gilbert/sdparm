@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2016 Douglas Gilbert.
+ * Copyright (c) 2005-2017 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -78,7 +78,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, int rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20160521 [svn: r294]";
+static const char * version_str = "1.11 20170925 [svn: r295]";
 
 
 #define MAX_DEV_NAMES 256
@@ -721,10 +721,10 @@ ll_mode_sense(int fd, const struct sdparm_opt_coll * op, int pn, int spn,
 {
     if (op->mode_6)
         return sg_ll_mode_sense6(fd, op->dbd, 0 /*current */, pn, spn,
-                                 resp, mx_resp_len, 1 /* noisy */, verb);
+                                 resp, mx_resp_len, true /* noisy */, verb);
     else
         return sg_ll_mode_sense10(fd, 0 /* llbaa */, op->dbd, 0, pn,
-                                  spn, resp, mx_resp_len, 1 /* noisy */,
+                                  spn, resp, mx_resp_len, true /* noisy */,
                                   verb);
 }
 
@@ -1739,9 +1739,9 @@ change_mode_page(int sg_fd, int pdt,
     }
     if (op->mode_6)
         res = sg_ll_mode_select6(sg_fd, 1 /* PF */, op->save, mdpg, md_len,
-                                 1, op->verbose);
+                                 true, op->verbose);
     else
-        res = sg_ll_mode_select10(sg_fd, 1, op->save, mdpg, md_len, 1,
+        res = sg_ll_mode_select10(sg_fd, 1, op->save, mdpg, md_len, true,
                                   op->verbose);
     if (0 != res) {
         pr2serr("%s: failed setting page: %s\n", __func__, b);
@@ -1814,10 +1814,10 @@ set_def_mode_page(int sg_fd, int pn, int spn, unsigned char * mode_pg,
         goto err_out;
     }
     if (op->mode_6)
-        ret = sg_ll_mode_select6(sg_fd, 1 /* PF */, op->save, mdp, md_len, 1,
-                                 op->verbose);
+        ret = sg_ll_mode_select6(sg_fd, 1 /* PF */, op->save, mdp, md_len,
+                                 true, op->verbose);
     else
-        ret = sg_ll_mode_select10(sg_fd, 1, op->save, mdp, md_len, 1,
+        ret = sg_ll_mode_select10(sg_fd, 1, op->save, mdp, md_len, true,
                                   op->verbose);
     if (0 != ret) {
         sdp_get_mpage_name(pn, spn, -1, op->transport, op->vendor,
@@ -1890,30 +1890,6 @@ set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
     }
 }
 
-/* Returns 64 bit signed integer given in either decimal or in hex. The
- * hex number is either preceded by "0x" or followed by "h". Returns -1
- * on error (so check for "-1" string before using this function). */
-static int64_t
-get_llnum(const char * buf)
-{
-    int res, len;
-    int64_t num;
-    uint64_t unum;
-
-    if ((NULL == buf) || ('\0' == buf[0]))
-        return -1;
-    len = strlen(buf);
-    if (('0' == buf[0]) && (('x' == buf[1]) || ('X' == buf[1]))) {
-        res = sscanf(buf + 2, "%" SCNx64 "", &unum);
-        num = unum;
-    } else if ('H' == toupper(buf[len - 1])) {
-        res = sscanf(buf, "%" SCNx64 "", &unum);
-        num = unum;
-    } else
-        res = sscanf(buf, "%" SCNd64 "", &num);
-    return (1 == res) ? num : -1;
-}
-
 static int
 build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
                   struct sdparm_opt_coll * op, int clear, int get)
@@ -1959,7 +1935,7 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
                 if (0 == strcmp("-1", vb))
                     ivp->val = -1;
                 else {
-                    ivp->val = get_llnum(vb);
+                    ivp->val = sg_get_llnum_nomult(vb);
                     if (-1 == ivp->val) {
                         pr2serr("unable to decode: %s value\n", buff);
                         pr2serr("    expected: <acronym>[=<val>]\n");
@@ -1975,7 +1951,7 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
                 strncpy(acron, vb, ecp - acron);
                 acron[ecp - acron] = '\0';
                 strcpy(vb, ecp + 1);
-                ivp->descriptor_num = get_llnum(vb);
+                ivp->descriptor_num = sg_get_llnum_nomult(vb);
                 if (ivp->descriptor_num < 0) {
                     pr2serr("unable to decode: %s descriptor number\n", buff);
                     pr2serr("    expected: <acronym_name>"
@@ -2111,7 +2087,7 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
                 if (0 == strcmp("-1", vb))
                     ivp->val = -1;
                 else {
-                    ivp->val = get_llnum(vb);
+                    ivp->val = sg_get_llnum_nomult(vb);
                     if (-1 == ivp->val) {
                         pr2serr("unable to decode start_byte:start_bit:"
                                 "num_bits value\n");
