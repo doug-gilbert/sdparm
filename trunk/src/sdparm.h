@@ -101,22 +101,23 @@ extern "C" {
 #define VPD_3PARTY_COPY 0x8f
 #define VPD_PROTO_LU 0x90
 #define VPD_PROTO_PORT 0x91
-#define VPD_BLOCK_LIMITS 0xb0   /* SBC-3 */
-#define VPD_SA_DEV_CAP 0xb0     /* SSC-3 */
-#define VPD_OSD_INFO 0xb0       /* OSD */
-#define VPD_BLOCK_DEV_CHARS 0xb1 /* SBC-3 */
-#define VPD_MAN_ASS_SN 0xb1     /* SSC-3, ADC-2 */
-#define VPD_SECURITY_TOKEN 0xb1 /* OSD */
-#define VPD_TA_SUPPORTED 0xb2   /* SSC-3 */
-#define VPD_LB_PROVISIONING 0xb2   /* SBC-3 */
-#define VPD_REFERRALS 0xb3
-#define VPD_AUTOMATION_DEV_SN 0xb3   /* SSC-3 */
-#define VPD_SUP_BLOCK_LENS 0xb4 /* SBC-4 */
-#define VPD_DTDE_ADDRESS 0xb4   /* SSC-4 */
-#define VPD_BLOCK_DEV_C_EXTENS 0xb5 /* SBC-4 */
-#define VPD_LB_PROTECTION 0xb5  /* SSC-5 */
-#define VPD_ZBC_DEV_CHARS 0xb6  /* ZBC */
-#define VPD_BLOCK_LIMITS_EXT 0xb7   /* SBC-4 */
+#define VPD_SCSI_FEATURE_SETS 0x92      /* spc5r11 */
+#define VPD_BLOCK_LIMITS 0xb0           /* SBC-3 */
+#define VPD_SA_DEV_CAP 0xb0             /* SSC-3 */
+#define VPD_OSD_INFO 0xb0               /* OSD */
+#define VPD_BLOCK_DEV_CHARS 0xb1        /* SBC-3 */
+#define VPD_MAN_ASS_SN 0xb1             /* SSC-3, ADC-2 */
+#define VPD_SECURITY_TOKEN 0xb1         /* OSD */
+#define VPD_TA_SUPPORTED 0xb2           /* SSC-3 */
+#define VPD_LB_PROVISIONING 0xb2        /* SBC-3 */
+#define VPD_REFERRALS 0xb3              /* SBC-3 */
+#define VPD_AUTOMATION_DEV_SN 0xb3      /* SSC-3 */
+#define VPD_SUP_BLOCK_LENS 0xb4         /* sbc4r01 */
+#define VPD_DTDE_ADDRESS 0xb4           /* SSC-4 */
+#define VPD_BLOCK_DEV_C_EXTENS 0xb5     /* sbc4r02 */
+#define VPD_LB_PROTECTION 0xb5          /* SSC-5 */
+#define VPD_ZBC_DEV_CHARS 0xb6          /* zbc-r01b */
+#define VPD_BLOCK_LIMITS_EXT 0xb7       /* sbc4r08 */
 #define VPD_NOT_STD_INQ -2      /* request for standard inquiry */
 
 #define VPD_ASSOC_LU 0
