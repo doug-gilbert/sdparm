@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2016 Douglas Gilbert.
+ * Copyright (c) 2005-2017 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -102,8 +102,8 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
         "(SBC)", &sbc_atag_desc},
     {IEC_MP, MSP_BACK_CTL, PDT_DISK, 0, "bc", "Background control (SBC)",
         NULL},
-    {CONTROL_MP, MSP_SBC_BACK_OP, PDT_DISK, 0, "bop", "Background operation "
-        "control (SBC)", NULL},
+    {CONTROL_MP, MSP_SBC_BACK_OP, PDT_DISK, 0, "bop",
+        "Background operation control (SBC)", NULL},
     {CACHING_MP, 0, PDT_DISK, 0, "ca", "Caching (SBC)", NULL},
     {CONTROL_MP, MSP_SPC_CDLA, -1, 0, "cdla", "Command duration limit A",
         &spc_cdl_desc},
@@ -294,6 +294,7 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_REFERRALS, 0, PDT_DISK, "ref", "Referrals (SBC)"},
     {VPD_SA_DEV_CAP, 0, PDT_TAPE, "sad",
      "Sequential access device capabilities (SSC)"},
+    {VPD_SCSI_FEATURE_SETS, 0, -1, "sfs", "SCSI Feature sets"},
     {VPD_SOFTW_INF_ID, 0, -1, "sii", "Software interface identification"},
     {VPD_NOT_STD_INQ, 0, -1, "sinq", "Standard inquiry response"},
     {VPD_UNIT_SERIAL_NUM, 0, -1, "sn", "Unit serial number"},
@@ -692,6 +693,10 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
      * patterns) */
     {"ACDLU", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 20, 7, 1, 0,
         "Access continue during low utilization", NULL},
+    {"RLBSR", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 20, 5, 2, 0,
+        "Related logical blocks and subsequent reads",
+     "0: no information; 1: LBs associated, no subsequent reads expected;\t"
+     "3: LBs associated, subsequent reads expected"},
     {"LBM_DT", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 20, 3, 4, 0,
         "LBM descriptor type", "0: access patterns; else trouble"},
     {"OV_FR", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 21, 7, 2, 0,
@@ -716,9 +721,10 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
 
     /* Background operation control mode subpage [0xa,0x6] sbc4 */
     {"BO_MODE", CONTROL_MP, MSP_SBC_BACK_OP, PDT_DISK, 4, 7, 2, 0,
-        "Background operation mode", "0: advance background ops "
-        "suspended during IO\t"
-        "1: host initiated background operations continue during IO"},
+        "Background operation mode", "host initiated advanced background "
+        "operations:\t"
+        "0: suspended during IO\t"
+        "1: continue during IO"},
 
     /* Control data protection mode subpage [0xa,0xf0] ssc4 */
     {"LBPM", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 4, 7, 8, 0,
@@ -1656,6 +1662,8 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
          MF_HEX | MF_COMMON, "Attached SAS address", NULL},
     {"APHID", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 32, 7, 8, 0,
         "Attached phy identifier", NULL},
+    {"APERCAP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 33, 7, 1, 0,
+        "Attached persistent capable", NULL},
     {"APOWCAP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 33, 6, 2, 0,
         "Attached power capable", "0: not; 1: can consume; 2: can source"},
     {"ASLCAP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 33, 4, 1, 0,
@@ -1668,6 +1676,12 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Attached requested inside ZPSDS", NULL},
     {"ABRCAP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 33, 0, 1, 0,
         "Attached break reply capable", NULL},
+    {"AAPTACAP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 34, 2, 1, 0,
+        "Attached APTA capable", NULL},
+    {"ASMPPCAP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 34, 1, 1, 0,
+        "Attached SMP priority capable", NULL},
+    {"APOWDCAP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 34, 0, 1, 0,
+        "Attached power disable capable", NULL},
     {"PMILR", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 40, 7, 4, 0,
         "Programmed minimum link rate",
         "0: not programmed; 8: 1.5 Gbps; 9: 3 Gbps; 10: 6 Gbps; 11: 12 Gbps\t"
