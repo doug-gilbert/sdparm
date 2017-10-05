@@ -1012,6 +1012,10 @@ decode_ext_inq_vpd(unsigned char * b, int len, int do_long, int protect)
         printf("  SAC=%d\n", !!(b[14] & 0x4));      /* spc5r09 */
         printf("  NRD1=%d\n", !!(b[14] & 0x2));     /* spc5r09 */
         printf("  NRD0=%d\n", !!(b[14] & 0x1));     /* spc5r09 */
+        printf("  Maximum inquiry change logs=%u\n",
+               sg_get_unaligned_be16(b + 15));      /* spc5r17 */
+        printf("  Maximum mode page change logs=%u\n",
+               sg_get_unaligned_be16(b + 17));      /* spc5r17 */
     } else {
         printf("  ACTIVATE_MICROCODE=%d SPT=%d GRD_CHK=%d APP_CHK=%d "
                "REF_CHK=%d\n", ((b[4] >> 6) & 0x3), ((b[4] >> 3) & 0x7),
@@ -1040,6 +1044,10 @@ decode_ext_inq_vpd(unsigned char * b, int len, int do_long, int protect)
         printf("  IBS=%d IAS=%d SAC=%d NRD1=%d NRD0=%d\n", !!(b[14] & 0x80),
                !!(b[14] & 0x40), !!(b[14] & 0x4), !!(b[14] & 0x2),
                !!(b[14] & 0x1));  /* added in spc5r09 */
+        printf("  Maximum inquiry change logs=%u\n",
+               sg_get_unaligned_be16(b + 15));     /* spc5r17 */
+        printf("  Maximum mode page change logs=%u\n",
+               sg_get_unaligned_be16(b + 17));     /* spc5r17 */
     }
     return 0;
 }

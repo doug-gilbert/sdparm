@@ -2,14 +2,16 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.11 [20170925] [svn: r295]
+ChangeLog for sdparm-1.11 [20171003] [svn: r296]
   - vpd: decode TransportIDs in SCSI port page
     - decode SCSI Feature sets page (spc5r16)
     - extended inquiry data, sync with spc5r09 + sbc4r11
     - 3 party copy page improvements
     - block limits and block limit extension VPD pages:
       add extra info about corner cases
-  - point svn:externals to rev 717 of sg3_utils
+    - add maximum inquiry|mode_page change logs fields
+      to extended inquiry vpd page (spc5r17)
+  - point svn:externals to rev 718 of sg3_utils
   - shellcheck corrections on scripts
   - upgrade automake to version 1.15 (U16.04)
 

@@ -593,6 +593,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Queue error management",
         "0: only affected task gets CC; 1: affected tasks aborted\t"
         "3: affected tasks aborted on same I_T nexus"},
+    {"VS_CTL", CONTROL_MP, 0, -1, 4, 7, 1, 0,
+        "Vendor specific [byte 4, bit 7]", NULL},
     {"RAC", CONTROL_MP, 0, -1, 4, 6, 1, 0,
         "Report a check", NULL},
     {"UA_INTLCK", CONTROL_MP, 0, -1, 4, 5, 2, 0,
@@ -644,21 +646,21 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"MSDL", CONTROL_MP, MSP_SPC_CE, -1, 6, 7, 8, 0,  /* spc4r34 */
         "Maximum sense data length", "0: unlimited"},
 
-    /* Application tag mode subpage [0xa,0x2] sbc4 */
+    /* Application tag mode subpage [0xa,0x2] sbc3r25 */
     /* descriptor starts here, <start_byte> is relative to start of mode
-     * page (i.e. 16 more than shown in descriptor format table) */
+     * page (i.e. 16 more than shown in t10's descriptor format table) */
     {"AT_LAST", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 16, 7, 1, 0,
         "Last", NULL},
     {"AT_LBAT", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 22, 7, 16, MF_HEX,
         "Logical block application tag", NULL},
     {"AT_LBA", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 24, 7, 64, MF_HEX,
-        "Logical block address", NULL},
+        "Logical block address", "start LBA for this application tag"},
     {"AT_COUNT", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 32, 7, 64, MF_HEX,
         "Logical block count", NULL},
 
     /* Command duration limit A mode subpage [0xa,0x3] spc5 */
     /* descriptor starts here, <start_byte> is relative to start of mode
-     * page (i.e. 8 more than shown in descriptor format table) */
+     * page (i.e. 8 more than shown in t10's descriptor format table) */
     {"CDA_UNIT", CONTROL_MP, MSP_SPC_CDLA, -1, 8, 7, 3, 0,
         "CDLA unit",
         "0: no duration limit\t"
@@ -670,7 +672,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
 
     /* Command duration limit B mode subpage [0xa,0x4] spc5 */
     /* descriptor starts here, <start_byte> is relative to start of mode
-     * page (i.e. 8 more than shown in descriptor format table) */
+     * page (i.e. 8 more than shown in t10's descriptor format table) */
     {"CDB_UNIT", CONTROL_MP, MSP_SPC_CDLB, -1, 8, 7, 3, 0,
         "CDL unit",
         "0: no duration limit\t"
@@ -682,7 +684,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
 
     /* IO advice hints grouping mode subpage [0xa,0x5] sbc4 */
     /* descriptor starts here, <start_byte> is relative to start of mode
-     * page (i.e. 16 more than shown in descriptor format table) */
+     * page (i.e. 16 more than shown in t10's descriptor format table) */
     {"IOA_MODE", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 16, 7, 2, 0,
         "IO advice hints mode", "0: valid; 1: invalid"},
     {"CS_EN", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 16, 1, 1, 0,
@@ -1038,7 +1040,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"SITUA", IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 4, 0, 1, 0,
         "Single initiator threshold unit attention", NULL},
     /* descriptor starts here, the <start_byte> is relative to the start
-     * of the mode page (i.e. 16 more than descriptor format table) */
+     * of the mode page (i.e. 16 more than t10's descriptor format table) */
     {"LBP_EN", IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 16, 7, 1, 0,
         "Threshold enabled", NULL},
     {"LBP_TYPE", IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 16, 5, 3, 0,
@@ -1098,7 +1100,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
 
     /* Transport geometry parameters mode page [0x1e] smc2 */
     /* transport geometry descriptor starts here, <start_byte> is relative
-     * to start of mode page (i.e. 2 more than shown in descriptor table */
+     * to start of mode page (i.e. 2 more than shown in t10's descriptor
+     * table */
     {"ROTAT", TRANS_GEO_PAR_MP, 0, PDT_MCHANGER, 2, 0, 1, 0,
         "Rotation for double sided media handling", NULL},
     {"MNTES", TRANS_GEO_PAR_MP, 0, PDT_MCHANGER, 3, 7, 8, 0,
@@ -1623,7 +1626,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"NOP", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 7, 7, 8, MF_COMMON,
         "Number of phys", "one descriptor per phy"},
     /* Phy mode descriptor starts here, <start_byte> relative to start of
-     * mode page (i.e. 8 more than phy mode descriptor table) */
+     * mode page (i.e. 8 more than t10's phy mode descriptor table) */
     {"PHID", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 9, 7, 8, 0,
         "Phy identifier", NULL},
     {"ADT", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 12, 6, 3, 0,
@@ -1715,7 +1718,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"NOP_1", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 7, 7, 8, 0,
         "Number of phys", "one descriptor per phy"},
     /* Phy mode descriptor starts here, <start_byte> relative to start of
-     * mode page (i.e. 8 more than phy mode descriptor table) */
+     * mode page (i.e. 8 more than t10's phy mode descriptor table) */
     {"PHID_1", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 9, 7, 8, 0,
         "Phy identifier", NULL},
     {"PPCAP", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 12, 7, 32, MF_HEX,
