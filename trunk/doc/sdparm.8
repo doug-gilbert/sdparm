@@ -17,7 +17,7 @@ sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 [\fI\-\-verbose\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
 .PP
 .B sdparm
-\fI\-\-command=CMD\fR [\fI\-\-hex\fR] [\fI\-\-readonly\fR]
+\fI\-\-command=CMD\fR [\fI\-\-hex\fR] [\fI\-\-long\fR] [\fI\-\-readonly\fR]
 [\fI\-\-verbose\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
 .PP
 .B sdparm
@@ -232,6 +232,10 @@ units if applicable) is output to the right. If used twice, then for some
 fields more information about its values is given on one or more following
 lines, each prefixed by a tab character. For usage with \fI\-\-enumerate\fR
 see the ENUMERATE section below.
+.PP
+When this option is used along with \fI\-\-command=capacity\fR then the
+READ CAPACITY(16) is sent to the \fIDEVICE\fR and if successful its extended
+response is output.
 .TP
 \fB\-n\fR, \fB\-\-num\-desc\fR
 for a mode page that can have descriptors, the number of descriptors for the
@@ -560,10 +564,15 @@ command fails then this is reflected in the non\-zero exit status.
 To obtain more information about the error use the \fI\-v\fR option.
 .TP
 capacity
-sends a READ CAPACITY command (valid for
-disks and cd/dvd media). If successful yields "blocks: " [the number
-of blocks], "block_length: " [typically either 512 or 2048]
+sends a READ CAPACITY(10) command (valid for disks and cd/dvd media) by
+default. If successful yields "blocks: " [the number of
+blocks], "block_length: " [typically either 512 or 2048]
 and "capacity_mib: " [capacity in MibiBytes (1048576 byte units)].
+.PP
+If the number of blocks is too large to fit in the 4 byte field provided
+by READ CAPACITY(10) or, the \fI\-\-long\fR option is given, then the
+READ CAPACITY(16) command is sent. If the \fI\-\-long\fR option is given,
+then the extra fields found in the READ CAPACITY(16) response are output.
 .TP
 eject
 stops the medium and ejects it from the device.
@@ -727,7 +736,7 @@ PD1     [DF]    WD        2500BEV External  1.05  WD\-WXE90
 CDROM0  [E]     MATSHITA DVD/CDRW UJDA775  CB03
 .PP
 So 'sdparm \-a CDROM0' and 'sdparm \-a E' will show all the (known) mode page
-fields for the Matshita DVD/CD drive. By using the '\-\-wsacan' option twice,
+fields for the Matshita DVD/CD drive. By using the '\-\-wscan' option twice,
 the bus type (as seen by the OS) is added to the output:
 .PP
   # sdparm \-ww

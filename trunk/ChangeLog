@@ -2,7 +2,9 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.11 [20171003] [svn: r296]
+ChangeLog for sdparm-1.11 [20171023] [svn: r297]
+  - power condition mpage: rename fields IDLE->IDLE_A;
+    STANDBY->STANDBY_Z; ICT->IACT and SCT->SZCT
   - vpd: decode TransportIDs in SCSI port page
     - decode SCSI Feature sets page (spc5r16)
     - extended inquiry data, sync with spc5r09 + sbc4r11
@@ -11,7 +13,10 @@ ChangeLog for sdparm-1.11 [20171003] [svn: r296]
       add extra info about corner cases
     - add maximum inquiry|mode_page change logs fields
       to extended inquiry vpd page (spc5r17)
-  - point svn:externals to rev 718 of sg3_utils
+  - command=capacity with --long force read capacity(16)
+    with full reporting of response
+  - point svn:externals to rev 722 of sg3_utils
+  - convert many two valued 'int's to bool
   - shellcheck corrections on scripts
   - upgrade automake to version 1.15 (U16.04)
 
