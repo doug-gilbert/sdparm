@@ -938,6 +938,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "[try adding '-t <transport>' to get more fields]"},
 
     /* Power condition mode page [0x1a] spc3 (expanded in spc4r18) */
+    /* In sdparm v1.11 changed IDLE->IDLE_A; STANDBY->STANDBY_Z; */
+    /* ICT->IACT and SCT->SZCT */
     {"PM_BG", POWER_MP, 0, -1, 2, 7, 2, 0,      /* added spc4r24 */
         "Power management, background functions, precedence",
         "0: vendor specific; 1: background function higher\t"
@@ -948,18 +950,14 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Idle_c timer enable", NULL},
     {"IDLE_B", POWER_MP, 0, -1, 3, 2, 1, 0,
         "Idle_b timer enable", NULL},
-    {"IDLE", POWER_MP, 0, -1, 3, 1, 1, 0,   /* IDLE_A in future ? */
-        "Idle_a timer enable",
-        "named IDLE prior to spc4r18, thence IDLE_A"},
-    {"STANDBY", POWER_MP, 0, -1, 3, 0, 1, 0, /* STANDBY_Z in future ? */
-        "Standby_z timer enable",
-        "named STANDBY prior to spc4r18, thence STANDBY_Z"},
-    {"ICT", POWER_MP, 0, -1, 4, 7, 32, 0,    /* IACT in future ? */
-        "Idle_a condition timer (100 ms)",
-        "named IDLE prior to spc4r18, thence IDLE_A"},
-    {"SCT", POWER_MP, 0, -1, 8, 7, 32, 0,    /* SZCT in future ? */
-        "Standby_z condition timer (100 ms)",
-        "named STANDBY prior to spc4r18, thence STANDBY_Z"},
+    {"IDLE_A", POWER_MP, 0, -1, 3, 1, 1, 0,
+        "Idle_a timer enable", NULL},
+    {"STANDBY_Z", POWER_MP, 0, -1, 3, 0, 1, 0,
+        "Standby_z timer enable", NULL},
+    {"IACT", POWER_MP, 0, -1, 4, 7, 32, 0,
+        "Idle_a condition timer (100 ms)", NULL},
+    {"SZCT", POWER_MP, 0, -1, 8, 7, 32, 0,
+        "Standby_z condition timer (100 ms)", NULL},
     {"IBCT", POWER_MP, 0, -1, 12, 7, 32, 0,
         "Idle_b condition timer (100 ms)", NULL},
     {"ICCT", POWER_MP, 0, -1, 16, 7, 32, 0,
@@ -968,19 +966,19 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Standby_y condition timer (100 ms)", NULL},
     /* The "0: restricted (SAS-2)" became obsolete in spc5r01 */
     {"CCF_IDLE", POWER_MP, 0, -1, 39, 7, 2, 0,     /* changed spc4r35 */
-        "check condition on transition from idle", /* was FIDCPC (spc4r25) */
+        "check condition if from idle_c",          /* was FIDCPC (spc4r25) */
         "0: restricted (SAS-2); 1: disabled; 2: enabled\n"},
-    {"CCF_STAND", POWER_MP, 0, -1, 39, 5, 2, 0,        /* changed spc4r35 */
-        "check condition on transition from standby",  /* was FSBCPC */
+    {"CCF_STAND", POWER_MP, 0, -1, 39, 5, 2, 0,    /* changed spc4r35 */
+        "check condition if from a standby",         /* was FSBCPC */
         "0: restricted (SAS-2); 1: disabled; 2: enabled\n"},
-    {"CCF_STOPP", POWER_MP, 0, -1, 39, 3, 2, 0,        /* changed spc4r35 */
-        "check condition on transition from stopped",  /* was FSTCPC */
+    {"CCF_STOPP", POWER_MP, 0, -1, 39, 3, 2, 0,    /* changed spc4r35 */
+        "check condition if from stopped",         /* was FSTCPC */
         "0: restricted (SAS-2); 1: disabled; 2: enabled\n"},
 
     /* Power consumption mode page [0x1a,1] added spc4r33 */
     {"ACT_LEV", POWER_MP, MSP_SPC_PS, -1, 6, 1, 2, 0,
         "Active level",
-        "1: highest; 2: intermediate; 3: lowest"},
+        "0: per PC_ID field; 1: highest; 2: intermediate; 3: lowest"},
     {"PC_ID", POWER_MP, MSP_SPC_PS, -1, 7, 7, 8, 0,
         "Power consumption identifier",
         "references Power consumption VPD page"},

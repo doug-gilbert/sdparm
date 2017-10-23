@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2016 Douglas Gilbert.
+ * Copyright (c) 2005-2017 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,11 +25,13 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Version 1.8 20160220
+ * Version 1.10 20171022
  */
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
+#include <stdbool.h>
 #include <string.h>
 
 #include "sdparm.h"
@@ -92,16 +94,17 @@ static void set_cl(int off, int pdt, unsigned char mask)
     }
 }
 
-static void check(const struct sdparm_mode_page_item * mpi,
-                  const struct sdparm_mode_page_item * mpi_b)
+static int check(const struct sdparm_mode_page_item * mpi,
+                 const struct sdparm_mode_page_item * mpi_b)
 {
+    bool second_k = false;
+    bool second_j = false;
+    int res, prev_mp, prev_msp, prev_pdt, sbyte, sbit, nbits;
+    int bad = 0;
     unsigned char mask;
     const struct sdparm_mode_page_item * kp = mpi;
     const struct sdparm_mode_page_item * jp = mpi;
     const char * acron;
-    int res, prev_mp, prev_msp, prev_pdt, sbyte, sbit, nbits;
-    int second_k = 0;
-    int second_j = 0;
 
     clear_cl();
     for (prev_mp = 0, prev_msp = 0, prev_pdt = -1; ; ++kp) {
@@ -111,25 +114,31 @@ static void check(const struct sdparm_mode_page_item * mpi,
             prev_mp = 0;
             prev_msp = 0;
             kp = mpi_b;
-            second_k = 1;
+            second_k = true;
         }
         acron = kp->acron ? kp->acron : "?";
         if ((prev_mp != kp->page_num) || (prev_msp != kp->subpage_num)) {
-            if (prev_mp > kp->page_num)
+            if (prev_mp > kp->page_num) {
                 printf("  mode page 0x%x,0x%x out of order\n", kp->page_num,
                         kp->subpage_num);
-            if ((prev_mp == kp->page_num) && (prev_msp > kp->subpage_num))
+                ++bad;
+            }
+            if ((prev_mp == kp->page_num) && (prev_msp > kp->subpage_num)) {
                 printf("  mode subpage 0x%x,0x%x out of order, previous msp "
                        "was 0x%x\n", kp->page_num, kp->subpage_num, prev_msp);
+                ++bad;
+            }
             prev_mp = kp->page_num;
             prev_msp = kp->subpage_num;
             prev_pdt = kp->pdt;
             clear_cl();
         } else if ((prev_pdt >= 0) && (prev_pdt != kp->pdt)) {
-            if (prev_pdt > kp->pdt)
+            if (prev_pdt > kp->pdt) {
                 printf("  mode page 0x%x,0x%x pdt out of order, pdt was "
                        "%d, now %d\n", kp->page_num, kp->subpage_num,
                        prev_pdt, kp->pdt);
+                ++bad;
+            }
             prev_pdt = kp->pdt;
         }
         for (jp = kp + 1, second_j = second_k; ; ++jp) {
@@ -137,35 +146,41 @@ static void check(const struct sdparm_mode_page_item * mpi,
                 if ((NULL == mpi_b) || second_j)
                     break;
                 jp = mpi_b;
-                second_j = 1;
+                second_j = true;
             }
             if ((0 == strcmp(acron, jp->acron)) &&
-                (! (jp->flags & MF_CLASH_OK)))
+                (! (jp->flags & MF_CLASH_OK))) {
                 printf("  acronym '%s' with this description: '%s'\n    "
                        "clashes with '%s'\n", acron, kp->description,
                        jp->description);
+                ++bad;
+            }
         }
         sbyte = kp->start_byte;
         if ((unsigned)sbyte + 8 > MAX_MP_LEN) {
             printf("  acronym: %s  start byte too large: %d\n", kp->acron,
                    sbyte);
+            ++bad;
             continue;
         }
         sbit = kp->start_bit;
         if ((unsigned)sbit > 7) {
             printf("  acronym: %s  start bit too large: %d\n", kp->acron,
                    sbit);
+            ++bad;
             continue;
         }
         nbits = kp->num_bits;
         if (nbits > 64) {
             printf("  acronym: %s  number of bits too large: %d\n",
                    kp->acron, nbits);
+            ++bad;
             continue;
         }
         if (nbits < 1) {
             printf("  acronym: %s  number of bits too small: %d\n",
                    kp->acron, nbits);
+            ++bad;
             continue;
         }
         mask = (1 << (sbit + 1)) - 1;
@@ -173,26 +188,32 @@ static void check(const struct sdparm_mode_page_item * mpi,
             mask &= ~((1 << (sbit + 1 - nbits)) - 1);
         res = check_cl(sbyte, kp->pdt, mask);
         if (res) {
-            if (1 == res)
+            if (1 == res) {
                 printf("  0x%x,0x%x: clash at start_byte: %d, bit: %d "
                        "[latest acron: %s, this pdt]\n", prev_mp, prev_msp,
                        sbyte, sbit, acron);
-            else if (2 == res)
+                ++bad;
+           } else if (2 == res) {
                 printf("  0x%x,0x%x: clash at start_byte: %d, bit: %d "
                        "[latest acron: %s, another pdt]\n", prev_mp,
                        prev_msp, sbyte, sbit, acron);
-            else
+                ++bad;
+            } else {
                 printf("  0x%x,0x%x: clash, bad data at start_byte: %d, "
                        "bit: %d [latest acron: %s]\n", prev_mp,
                        prev_msp, sbyte, sbit, acron);
+                ++bad;
+            }
         }
         set_cl(sbyte, kp->pdt, mask);
         if ((nbits - 1) > sbit) {
             nbits -= (sbit + 1);
-            if ((nbits > 7) && (0 != (nbits % 8)))
+            if ((nbits > 7) && (0 != (nbits % 8))) {
                 printf("  0x%x,0x%x: check nbits: %d, start_byte: %d, bit: "
                        "%d [acron: %s]\n", prev_mp, prev_msp, kp->num_bits,
                        sbyte, sbit, acron);
+                ++bad;
+            }
             do {
                 ++sbyte;
                 mask = 0xff;
@@ -204,31 +225,36 @@ static void check(const struct sdparm_mode_page_item * mpi,
                 }
                 res = check_cl(sbyte, kp->pdt, mask);
                 if (res) {
-                    if (1 == res)
+                    if (1 == res) {
                         printf("   0x%x,0x%x: clash at start_byte: %d, "
                                "bit: %d [latest acron: %s, this pdt]\n",
                                prev_mp, prev_msp, sbyte, sbit, acron);
-                    else if (2 == res)
+                        ++bad;
+                    } else if (2 == res) {
                         printf("   0x%x,0x%x: clash at start_byte: %d, "
                                "bit: %d [latest acron: %s, another pdt]\n",
                                prev_mp, prev_msp, sbyte, sbit, acron);
-                    else
+                        ++bad;
+                    } else {
                         printf("   0x%x,0x%x: clash, bad at start_byte: "
                                "%d, bit: %d [latest acron: %s]\n",
                                prev_mp, prev_msp, sbyte, sbit, acron);
+                        ++bad;
+                    }
                 }
                 set_cl(sbyte, kp->pdt, mask);
             } while (nbits > 0);
         }
     }
+    return bad;
 }
 
-static const char * get_vendor_name(int vendor_num)
+static const char * get_vendor_name(int vendor_id)
 {
     const struct sdparm_vendor_name_t * vnp;
 
     for (vnp = sdparm_vendor_id; vnp->acron; ++vnp) {
-        if (vendor_num == vnp->vendor_num)
+        if (vendor_id == vnp->vendor_id)
             return vnp->name;
     }
     return NULL;
@@ -236,7 +262,7 @@ static const char * get_vendor_name(int vendor_num)
 
 int main(int argc, char ** argv)
 {
-    int k;
+    int k, bad;
     const struct sdparm_transport_pair * tp;
     const struct sdparm_vendor_pair * vp;
     const char * ccp;
@@ -250,14 +276,20 @@ int main(int argc, char ** argv)
     printf("    Check integrity of mode page item tables in sdparm\n");
     printf("    ==================================================\n\n");
     printf("Generic (i.e. non-transport specific) mode page items:\n");
-    check(sdparm_mitem_arr, NULL);
-    printf("\n");
+    bad = check(sdparm_mitem_arr, NULL);
+    if (bad)
+        printf("%d problems\n", bad);
+    else
+        printf("pass\n");
     tp = sdparm_transport_mp;
     for (k = 0; k < 16; ++k, ++tp) {
         if (tp->mitem) {
             printf("%s mode page items:\n", sdparm_transport_id[k].name);
-            check(tp->mitem, NULL);
-            printf("\n");
+            bad = check(tp->mitem, NULL);
+            if (bad)
+                printf("%d problems\n", bad);
+            else
+                printf("pass\n");
         }
     }
     vp = sdparm_vendor_mp;
@@ -268,11 +300,18 @@ int main(int argc, char ** argv)
                 printf("%s mode page items:\n", ccp);
             else
                 printf("0x%x mode page items:\n", k);
-            check(vp->mitem, NULL);
-            printf("\n");
+            bad = check(vp->mitem, NULL);
+            if (bad)
+                printf("%d problems\n", bad);
+            else
+                printf("pass\n");
         }
     }
     printf("Cross check Generic with SAS mode page items:\n");
-    check(sdparm_mitem_arr, sdparm_transport_mp[6].mitem);
+    bad = check(sdparm_mitem_arr, sdparm_transport_mp[6].mitem);
+    if (bad)
+        printf("%d problems\n", bad);
+    else
+        printf("pass\n");
     return 0;
 }

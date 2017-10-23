@@ -99,14 +99,14 @@ sdp_get_mp_len(unsigned char * mp)
 
 const struct sdparm_mode_page_t *
 sdp_get_mode_detail(int page_num, int subpage_num, int pdt, int transp_proto,
-                    int vendor_num)
+                    int vendor_id)
 {
     const struct sdparm_mode_page_t * mpp;
 
-    if (vendor_num >= 0) {
+    if (vendor_id >= 0) {
         const struct sdparm_vendor_pair * vpp;
 
-        vpp = sdp_get_vendor_pair(vendor_num);
+        vpp = sdp_get_vendor_pair(vendor_id);
         mpp = (vpp ? vpp->mpage : NULL);
     } else if ((transp_proto >= 0) && (transp_proto < 16))
         mpp = sdparm_transport_mp[transp_proto].mpage;
@@ -126,7 +126,7 @@ sdp_get_mode_detail(int page_num, int subpage_num, int pdt, int transp_proto,
 
 const struct sdparm_mode_page_t *
 sdp_get_mpage_name(int page_num, int subpage_num, int pdt, int transp_proto,
-                   int vendor_num, int plus_acron, int hex, char * bp,
+                   int vendor_id, bool plus_acron, bool hex, char * bp,
                    int max_b_len)
 {
     int len = max_b_len - 1;
@@ -137,10 +137,10 @@ sdp_get_mpage_name(int page_num, int subpage_num, int pdt, int transp_proto,
         return mpp;
     bp[len] = '\0';
     mpp = sdp_get_mode_detail(page_num, subpage_num, pdt, transp_proto,
-                              vendor_num);
+                              vendor_id);
     if (NULL == mpp)
         mpp = sdp_get_mode_detail(page_num, subpage_num, -1, transp_proto,
-                                  vendor_num);
+                                  vendor_id);
     if (mpp && mpp->name) {
         cp = mpp->acron;
         if (NULL == cp)
@@ -176,14 +176,14 @@ sdp_get_mpage_name(int page_num, int subpage_num, int pdt, int transp_proto,
 }
 
 const struct sdparm_mode_page_t *
-sdp_find_mp_by_acron(const char * ap, int transp_proto, int vendor_num)
+sdp_find_mp_by_acron(const char * ap, int transp_proto, int vendor_id)
 {
     const struct sdparm_mode_page_t * mpp;
 
-    if (vendor_num >= 0) {
+    if (vendor_id >= 0) {
         const struct sdparm_vendor_pair * vpp;
 
-        vpp = sdp_get_vendor_pair(vendor_num);
+        vpp = sdp_get_vendor_pair(vendor_id);
         mpp = (vpp ? vpp->mpage : NULL);
     } else if ((transp_proto >= 0) && (transp_proto < 16))
         mpp = sdparm_transport_mp[transp_proto].mpage;
@@ -257,12 +257,12 @@ sdp_find_transport_by_acron(const char * ap)
 }
 
 const char *
-sdp_get_vendor_name(int vendor_num)
+sdp_get_vendor_name(int vendor_id)
 {
     const struct sdparm_vendor_name_t * vnp;
 
     for (vnp = sdparm_vendor_id; vnp->acron; ++vnp) {
-        if (vendor_num == vnp->vendor_num)
+        if (vendor_id == vnp->vendor_id)
             return vnp->name;
     }
     return NULL;
@@ -281,15 +281,15 @@ sdp_find_vendor_by_acron(const char * ap)
 }
 
 const struct sdparm_vendor_pair *
-sdp_get_vendor_pair(int vendor_num)
+sdp_get_vendor_pair(int vendor_id)
 {
-     return ((vendor_num >= 0) && (vendor_num < sdparm_vendor_mp_len))
-            ? (sdparm_vendor_mp + vendor_num) : NULL;
+     return ((vendor_id >= 0) && (vendor_id < sdparm_vendor_mp_len))
+            ? (sdparm_vendor_mp + vendor_id) : NULL;
 }
 
 const struct sdparm_mode_page_item *
 sdp_find_mitem_by_acron(const char * ap, int * from, int transp_proto,
-                        int vendor_num)
+                        int vendor_id)
 {
     int k = 0;
     const struct sdparm_mode_page_item * mpi;
@@ -299,10 +299,10 @@ sdp_find_mitem_by_acron(const char * ap, int * from, int transp_proto,
         if (k < 0)
             k = 0;
     }
-    if (vendor_num >= 0) {
+    if (vendor_id >= 0) {
         const struct sdparm_vendor_pair * vpp;
 
-        vpp = sdp_get_vendor_pair(vendor_num);
+        vpp = sdp_get_vendor_pair(vendor_id);
         mpi = (vpp ? vpp->mitem : NULL);
     } else if ((transp_proto >= 0) && (transp_proto < 16))
         mpi = sdparm_transport_mp[transp_proto].mitem;
@@ -382,7 +382,7 @@ sdp_mp_get_value(const struct sdparm_mode_page_item *mpi,
 
 uint64_t
 sdp_mp_get_value_check(const struct sdparm_mode_page_item *mpi,
-                       const unsigned char * mp, int * all_set)
+                       const unsigned char * mp, bool * all_set)
 {
     uint64_t res;
 
@@ -390,13 +390,13 @@ sdp_mp_get_value_check(const struct sdparm_mode_page_item *mpi,
                              mpi->num_bits);
     if (all_set) {
         if ((16 == mpi->num_bits) && (0xffff == res))
-            *all_set = 1;
+            *all_set = true;
         else if ((32 == mpi->num_bits) && (0xffffffff == res))
-            *all_set = 1;
+            *all_set = true;
         else if ((64 == mpi->num_bits) && (0xffffffffffffffffULL == res))
-            *all_set = 1;
+            *all_set = true;
         else
-            *all_set = 0;
+            *all_set = false;
     }
     return res;
 }

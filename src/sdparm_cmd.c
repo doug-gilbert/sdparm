@@ -51,38 +51,41 @@
 #define RCAP16_REPLY_LEN 32
 
 static int
-do_cmd_read_capacity(int sg_fd, int verbose)
+do_cmd_read_capacity(int sg_fd, bool do_long, int verbose)
 {
-    int res, do16;
+    bool do16;
+    int res;
     unsigned int last_blk_addr, block_size;
-    unsigned char resp_buff[RCAP16_REPLY_LEN];
     uint64_t llast_blk_addr;
     double sz_mib;
+    unsigned char resp_buff[RCAP16_REPLY_LEN];
 
-    do16 = 0;
-    res = sg_ll_readcap_10(sg_fd, 0 /* pmi */, 0 /* lba */, resp_buff,
-                           RCAP_REPLY_LEN, true, verbose);
-    if (0 == res) {
-        last_blk_addr = sg_get_unaligned_be32(resp_buff + 0);
-        if (0xffffffff != last_blk_addr) {
-            block_size = sg_get_unaligned_be32(resp_buff + 4);
-            printf("blocks: %u\n", last_blk_addr + 1);
-            printf("block_length: %u\n", block_size);
-            sz_mib = ((double)(last_blk_addr + 1) * block_size) /
-                      (double)(1048576);
+    do16 = do_long;
+    if (! do16) {
+        res = sg_ll_readcap_10(sg_fd, false /* pmi */, 0 /* lba */,
+                               resp_buff, RCAP_REPLY_LEN, true, verbose);
+        if (0 == res) {
+            last_blk_addr = sg_get_unaligned_be32(resp_buff + 0);
+            if (0xffffffff != last_blk_addr) {
+                block_size = sg_get_unaligned_be32(resp_buff + 4);
+                printf("blocks: %u\n", last_blk_addr + 1);
+                printf("block_length: %u\n", block_size);
+                sz_mib = ((double)(last_blk_addr + 1) * block_size) /
+                          (double)(1048576);
 #ifdef SG3_UTILS_MINGW
-            printf("capacity_mib: %g\n", sz_mib);
+                printf("capacity_mib: %g\n", sz_mib);
 #else
-            printf("capacity_mib: %.1f\n", sz_mib);
+                printf("capacity_mib: %.1f\n", sz_mib);
 #endif
+            } else
+                do16 = true;
         } else
-            do16 = 1;
-    } else
-        return res;
+            return res;
+    }
     if (do16) {
         /* within SERVICE ACTION IN. May need RW or root permissions. */
-        res = sg_ll_readcap_16(sg_fd, 0 /* pmi */, 0 /* llba */, resp_buff,
-                               RCAP16_REPLY_LEN, true, verbose);
+        res = sg_ll_readcap_16(sg_fd, false /* pmi */, false /* llba */,
+                               resp_buff, RCAP16_REPLY_LEN, true, verbose);
         if (0 == res) {
             llast_blk_addr = sg_get_unaligned_be64(resp_buff + 0);
             block_size = sg_get_unaligned_be32(resp_buff + 8);
@@ -95,6 +98,21 @@ do_cmd_read_capacity(int sg_fd, int verbose)
 #else
             printf("capacity_mib: %.1f\n", sz_mib);
 #endif
+            if (do_long) {
+                uint8_t u[2];
+
+                printf("ZBC_rc_basis: %d\n", ((resp_buff[12] & 0x30) >> 4));
+                printf("p_type: %d\n", ((resp_buff[12] & 0xe) >> 1));
+                printf("prot_en: %d\n", (resp_buff[12] & 0x1));
+                printf("p_i_exponent: %d\n", ((resp_buff[13] & 0xf0) >> 4));
+                printf("lbs_per_physical_block_exponent: %d\n",
+                       (resp_buff[13] & 0xf));
+                printf("lbpme: %d\n", !!(resp_buff[14] & 0x80));
+                printf("lbprz: %d\n", !!(resp_buff[14] & 0x40));
+                memcpy(u, resp_buff + 14, 2);
+                u[0] &= 0x3f;
+                printf("lowest_aligned_lba: %u\n", sg_get_unaligned_be16(u));
+            }
         } else
             return res;
     }
@@ -102,15 +120,16 @@ do_cmd_read_capacity(int sg_fd, int verbose)
 }
 
 static int
-do_cmd_sense(int sg_fd, int hex, int do_quiet, int verbose)
+do_cmd_sense(int sg_fd, bool hex, bool do_quiet, int verbose)
 {
-    int res, resp_len, sk, asc, ascq, progress, pr, rem, something;
+    bool something;
+    int res, resp_len, sk, asc, ascq, progress, pr, rem;
     unsigned char buff[32];
     char b[128];
 
     memset(buff, 0, sizeof(buff));
-    res = sg_ll_request_sense(sg_fd, 0 /* fixed format */,
-                              buff, sizeof(buff), true, verbose);
+    res = sg_ll_request_sense(sg_fd, false /* DESC so fixed format */,
+                              buff, sizeof(buff), true /* noisy */, verbose);
     if (0 == res) {
         resp_len = buff[7] + 8;
         if (resp_len > (int)sizeof(buff))
@@ -120,7 +139,7 @@ do_cmd_sense(int sg_fd, int hex, int do_quiet, int verbose)
             dStrHex((const char *)buff, resp_len, 1);
             return 0;
         }
-        something = 0;
+        something = false;
         if (verbose) {
             pr2serr("Decode response as sense data:\n");
             sg_print_sense(NULL, buff, resp_len, 0);
@@ -128,7 +147,7 @@ do_cmd_sense(int sg_fd, int hex, int do_quiet, int verbose)
                 pr2serr("\nOutput response in hex\n");
                 dStrHexErr((const char *)buff, resp_len, 1);
             }
-            something = 1;
+            something = true;
         }
         asc = (resp_len > 12) ? buff[12] : 0;
         ascq = (resp_len > 13) ? buff[13] : 0;
@@ -136,7 +155,7 @@ do_cmd_sense(int sg_fd, int hex, int do_quiet, int verbose)
             pr = (progress * 100) / 65536;
             rem = ((progress * 100) % 65536) / 656;
             printf("Operation in progress: %d.%d%% done\n", pr, rem);
-            something = 1;
+            something = true;
         }
         if (0 == sk) {  /* NO SENSE */
             /* check for hardware threshold exceeded or warning */
@@ -328,14 +347,14 @@ do_cmd_profile(int sg_fd, const struct sdparm_opt_coll * op)
 }
 
 const struct sdparm_command_t *
-sdp_build_cmd(const char * cmd_str, int * rwp, int * argp)
+sdp_build_cmd(const char * cmd_str, bool * rwp, int * argp)
 {
+    int arg = -1;
+    int len;
     const struct sdparm_command_t * scmdp;
     const char * eq_cp;
     const char * cp;
     char buff[16];
-    int len;
-    int arg = -1;
 
     eq_cp = strchr(cmd_str, '=');
     if (eq_cp) {
@@ -368,9 +387,9 @@ sdp_build_cmd(const char * cmd_str, int * rwp, int * argp)
             if ((CMD_READY  == scmdp->cmd_num) ||
                 (CMD_SENSE  == scmdp->cmd_num) ||
                 (CMD_CAPACITY  == scmdp->cmd_num))
-                *rwp = 0;
+                *rwp = false;
             else
-                *rwp = 1;
+                *rwp = true;
         }
         return scmdp;
     } else
@@ -408,24 +427,24 @@ sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp, int cmd_arg,
     switch (scmdp->cmd_num)
     {
     case CMD_CAPACITY:
-        res = do_cmd_read_capacity(sg_fd, op->verbose);
+        res = do_cmd_read_capacity(sg_fd, op->do_long, op->verbose);
         break;
     case CMD_EJECT:
-        res = sg_ll_start_stop_unit(sg_fd, 0 /* immed */, 0 /* fl_num */,
-                                    0 /* power cond. */, 0 /* fl */,
-                                    1 /*loej */, 0 /* start */,
+        res = sg_ll_start_stop_unit(sg_fd, false /* immed */, 0 /* fl_num */,
+                                    0 /* power cond. */, false /* fl */,
+                                    true /*loej */, false /* start */,
                                     true /* noisy */, op->verbose);
         break;
     case CMD_LOAD:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 1, 1, true,
-                                    op->verbose);
+        res = sg_ll_start_stop_unit(sg_fd, false, 0, 0, false, true, true,
+                                    true, op->verbose);
         break;
     case CMD_PROFILE:
         res = do_cmd_profile(sg_fd, op);
         break;
     case CMD_READY:
         progress = -1;
-        res = sg_ll_test_unit_ready_progress(sg_fd, 0, &progress, false,
+        res = sg_ll_test_unit_ready_progress(sg_fd, false, &progress, false,
                                              op->verbose);
         if (0 == res)
             printf("Ready\n");
@@ -438,21 +457,23 @@ sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp, int cmd_arg,
         }
         break;
     case CMD_SENSE:
-        res = do_cmd_sense(sg_fd, op->do_hex, op->do_quiet, op->verbose);
+        res = do_cmd_sense(sg_fd, (op->do_hex > 0), (op->do_quiet > 0),
+                           op->verbose);
         break;
     case CMD_SPEED:
         res = do_cmd_speed(sg_fd, cmd_arg, op);
         break;
     case CMD_START:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 0, 1, true,
-                                    op->verbose);
+        res = sg_ll_start_stop_unit(sg_fd, false, 0, 0, false, false, true,
+                                    true, op->verbose);
         break;
     case CMD_STOP:
-        res = sg_ll_start_stop_unit(sg_fd, 0, 0, 0, 0, 0, 0, true,
-                                    op->verbose);
+        res = sg_ll_start_stop_unit(sg_fd, false, 0, 0, false, false, false,
+                                    true, op->verbose);
         break;
     case CMD_SYNC:
-        res = sg_ll_sync_cache_10(sg_fd, 0, 0, 0, 0, 0, true, op->verbose);
+        res = sg_ll_sync_cache_10(sg_fd, false, false, 0, 0, 0, true,
+                                  op->verbose);
         break;
     case CMD_UNLOCK:
         res = sg_ll_prevent_allow(sg_fd, 0, true, op->verbose);

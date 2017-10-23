@@ -234,7 +234,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
 
 static void
 decode_designation_descriptor(const unsigned char * bp, int i_len,
-                              int print_assoc,
+                              bool print_assoc,
                               const struct sdparm_opt_coll * op)
 {
     char b[2048];
@@ -252,14 +252,15 @@ decode_dev_ids(const char * print_if_found, unsigned char * buff, int len,
                int m_assoc, int m_desig_type, int m_code_set,
                const struct sdparm_opt_coll * op)
 {
-    int i_len, assoc, printed, off, u;
+    bool printed;
+    int i_len, assoc, off, u;
     const unsigned char * bp;
 
     if (op->do_quiet)
         return decode_dev_ids_quiet(buff, len, m_assoc, m_desig_type,
                                     m_code_set);
     off = -1;
-    printed = 0;
+    printed = false;
     while ((u = sg_vpd_dev_id_iter(buff, len, &off, m_assoc, m_desig_type,
                                    m_code_set)) == 0) {
         bp = buff + off;
@@ -270,13 +271,13 @@ decode_dev_ids(const char * print_if_found, unsigned char * buff, int len,
             return SG_LIB_CAT_MALFORMED;
         }
         assoc = ((bp[1] >> 4) & 0x3);
-        if (print_if_found && (0 == printed)) {
-            printed = 1;
+        if (print_if_found && (! printed)) {
+            printed = true;
             printf("  %s:\n", print_if_found);
         }
         if (NULL == print_if_found)
             printf("  %s:\n", sg_get_desig_assoc_str(assoc));
-        decode_designation_descriptor(bp, i_len, 0, op);
+        decode_designation_descriptor(bp, i_len, false, op);
     }
     if (-2 == u) {
         pr2serr("VPD page error: short designator around offset %d\n", off);
@@ -926,7 +927,7 @@ decode_scsi_ports_vpd(unsigned char * buff, int len,
 
 /* VPD_EXT_INQ  Extended Inquiry page  0x86 */
 static int
-decode_ext_inq_vpd(unsigned char * b, int len, int do_long, int protect)
+decode_ext_inq_vpd(unsigned char * b, int len, int do_long, bool protect)
 {
     int n;
 
@@ -1198,9 +1199,9 @@ decode_power_consumption_vpd(unsigned char * buff, int len)
 static int
 decode_block_limits_vpd(unsigned char * buff, int len)
 {
+    bool ugavalid;
     unsigned int u;
     uint64_t ull;
-    bool ugavalid;
 
     if (len < 16) {
         pr2serr("Block limits VPD page length too short=%d\n", len);
@@ -1528,7 +1529,7 @@ decode_block_lb_prov_vpd(unsigned char * b, int len,
             return 0;
         }
         printf("  Provisioning group descriptor\n");
-        decode_designation_descriptor(bp, i_len, 1, op);
+        decode_designation_descriptor(bp, i_len, true, op);
     }
     return 0;
 }
@@ -1762,16 +1763,25 @@ static int
 decode_std_inq(int sg_fd, const struct sdparm_opt_coll * op)
 {
     int res, verb, sz, len, pqual;
+    int resid = 0;
     unsigned char b[DEF_INQ_RESP_LEN];
 
     verb = (op->verbose > 0) ? op->verbose - 1 : 0;
     sz = sizeof(b);
     memset(b, 0, sizeof(b));
     sz = op->do_long ? sizeof(b) : 36;
-    res = sg_ll_inquiry(sg_fd, 0, 0, 0, b, sz, 0, verb);
+    res = sg_ll_inquiry_v2(sg_fd, false, 0, b, sz, 0, &resid, false, verb);
     if (res) {
         pr2serr("INQUIRY fetching standar response failed\n");
         return res;
+    }
+    if (resid > 0) {
+        sz -= resid;
+        if (sz < 5) {
+            pr2serr("%s: after resid (%d) response size is too short (%d)\n",
+                    __func__, resid, sz);
+            return SG_LIB_WILD_RESID;
+        }
     }
     pqual = (b[0] & 0xe0) >> 5;
     if (0 == pqual)
@@ -1824,12 +1834,13 @@ decode_std_inq(int sg_fd, const struct sdparm_opt_coll * op)
 int
 sdp_process_vpd_page(int sg_fd, int pn, int spn,
                      const struct sdparm_opt_coll * op, int req_pdt,
-                     int protect, const unsigned char * ihbp, int ihb_len)
+                     bool protect, const unsigned char * ihbp, int ihb_len)
 {
-    int res, len, k, verb, dev_pdt, pdt, sz, hex_format;
     bool adc = false;
     bool sbc = false;
     bool ssc = false;
+    int res, len, k, verb, dev_pdt, pdt, sz, hex_format;
+    int resid = 0;
     unsigned char * up;
     const struct sdparm_vpd_page_t * vpp;
     const char * vpd_name;
@@ -1855,10 +1866,19 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
                 pn = VPD_DEVICE_ID;  /* default to device id page */
         }
         sz = (VPD_ATA_INFO == pn) ? VPD_ATA_INFO_RESP_LEN : DEF_INQ_RESP_LEN;
-        res = sg_ll_inquiry(sg_fd, 0, 1, pn, b, sz, 0, verb);
+        res = sg_ll_inquiry_v2(sg_fd, true, pn, b, sz, 0, &resid, false,
+                               verb);
         if (res) {
             pr2serr("INQUIRY fetching VPD page=0x%x failed\n", pn);
             return res;
+        }
+        if (resid > 0) {
+            sz -= resid;
+            if (resid < 4) {
+                pr2serr("%s: resid=%d implies response too short (%d)\n",
+                        __func__, resid, sz);
+                return SG_LIB_WILD_RESID;
+            }
         }
     }
     dev_pdt = b[0] & 0x1f;
@@ -2212,11 +2232,20 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         if ((NULL == ihbp) && (len > sz)) {
             /* Increase response size to maximum we can handle here */
-            sz = VPD_ATA_INFO_RESP_LEN;
-            res = sg_ll_inquiry(sg_fd, 0, 1, pn, b, sz, 0, verb);
+            sz = VPD_XCOPY_RESP_LEN;
+            res = sg_ll_inquiry_v2(sg_fd, true, pn, b, sz, 0, &resid, false,
+                                   verb);
             if (res) {
                 pr2serr("INQUIRY fetching VPD page=0x%x failed\n", pn);
                 return res;
+            }
+            if (resid) {
+                sz -= resid;
+                if (resid < 4) {
+                    pr2serr("%s: resid=%d implies response too short (%d)\n",
+                            __func__, resid, sz);
+                    return SG_LIB_WILD_RESID;
+                }
             }
             len = sg_get_unaligned_be16(b + 2);
             if (len > sz) {

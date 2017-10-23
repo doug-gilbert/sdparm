@@ -8,6 +8,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -16,6 +17,7 @@ extern "C" {
 #define DEF_MODE_RESP_LEN 252
 #define DEF_INQ_RESP_LEN 252
 #define VPD_ATA_INFO_RESP_LEN 572
+#define VPD_XCOPY_RESP_LEN 572
 
 /* Mode page numbers */
 #define UNIT_ATTENTION_MP 0
@@ -159,29 +161,34 @@ extern "C" {
 #define CMD_PROFILE 11
 
 
+/* Mainly command line options */
 struct sdparm_opt_coll {
-    int do_all;
-    int dbd;
-    int defaults;
-    int dummy;
+    bool do_all;
+    bool dbd;
+    bool defaults;
+    bool dummy;
+    bool flexible;
+    bool inquiry;
+    bool mode_6;
+    bool num_desc;      /* report number of descriptors */
+    bool do_raw;        /* -R (usually '-r' but already used) */
+    bool read_only;
+    bool save;
     int do_enum;
-    int flexible;
     int do_hex;
-    int inquiry;
     int do_long;
-    int mode_6;
-    int num_desc;
     int pdt;
     int do_quiet;
-    int do_raw;         /* -R (usually '-r' but already used) */
-    int read_only;
-    int save;
     int transport;      /* -1 means not transport specific (def) */
-    int vendor;         /* -1 means not vendor specific (def) */
+    int vendor_id;      /* -1 means not vendor specific (def) */
     int verbose;
     const char * inhex_fn;
 };
 
+/* Instances and arrays of the following templates are mainly found in the
+ * sdparm_data.c file. */
+
+/* Template for mode pages that use descriptor format */
 struct sdparm_mode_descriptor_t {
     int num_descs_off;    /* byte offset of start of num_descriptors */
     int num_descs_bytes;  /* number of bytes in num_descriptors field */
@@ -197,6 +204,7 @@ struct sdparm_mode_descriptor_t {
     const char * name;
 };
 
+/* Template for each mode page */
 struct sdparm_mode_page_t {
     int page;
     int subpage;
@@ -209,12 +217,14 @@ struct sdparm_mode_page_t {
                     /* non-NULL when mpage has descriptor format */
 };
 
+/* Template for each transport */
 struct sdparm_transport_id_t {
     int proto_num;
     const char * acron;
     const char * name;
 };
 
+/* Template for each VPD page */
 struct sdparm_vpd_page_t {
     int vpd_num;
     int subvalue;
@@ -224,12 +234,14 @@ struct sdparm_vpd_page_t {
     const char * name;
 };
 
+/* Template for each mode/VPD page vendor */
 struct sdparm_vendor_name_t {
-    int vendor_num;
+    int vendor_id;
     const char * acron;
     const char * name;
 };
 
+/* Template for each mode page field (item) */
 struct sdparm_mode_page_item {
     const char * acron;
     int page_num;
@@ -244,6 +256,7 @@ struct sdparm_mode_page_item {
     const char * extra;
 };
 
+/* Template for a mode page field (item) and corresponding value */
 struct sdparm_mode_page_it_val {
     struct sdparm_mode_page_item mpi;
     int64_t val;
@@ -251,6 +264,7 @@ struct sdparm_mode_page_it_val {
     int descriptor_num;
 };
 
+/* Template for multiple mode page field,value pairs for a given mode page */
 struct sdparm_mode_page_settings {
     int page_num;
     int subpage_num;
@@ -258,16 +272,21 @@ struct sdparm_mode_page_settings {
     int num_it_vals;
 };
 
+/* Template for a transport's mode pages and fields */
 struct sdparm_transport_pair {
-    struct sdparm_mode_page_t * mpage;
-    struct sdparm_mode_page_item * mitem;
+    struct sdparm_mode_page_t * mpage;          /* array of transport specific
+                                                   mode pages */
+    struct sdparm_mode_page_item * mitem;       /* array of transport specific
+                                                   mode page fields (items) */
 };
 
+/* Template for a vendor's mode pages and fields */
 struct sdparm_vendor_pair {
     struct sdparm_mode_page_t * mpage;
     struct sdparm_mode_page_item * mitem;
 };
 
+/* Template for a simple SCSI command supported by sdparm */
 struct sdparm_command_t {
     int cmd_num;
     const char * name;
@@ -275,6 +294,7 @@ struct sdparm_command_t {
     const char * extra_arg;
 };
 
+/* Simple value and description pair */
 struct sdparm_val_desc_t {
         int val;
         const char * desc;
@@ -301,7 +321,7 @@ const struct sdparm_mode_page_t * sdp_get_mode_detail(int page_num,
                 int subpage_num, int pdt, int transp_proto, int vendor_num);
 const struct sdparm_mode_page_t * sdp_get_mpage_name(int page_num,
                 int subpage_num, int pdt, int transp_proto, int vendor_num,
-                int plus_acron, int hex, char * bp, int max_b_len);
+                bool plus_acron, bool hex, char * bp, int max_b_len);
 const struct sdparm_mode_page_t * sdp_find_mp_by_acron(const char * ap,
                 int transp_proto, int vendor_num);
 const struct sdparm_vpd_page_t * sdp_get_vpd_detail(int page_num,
@@ -322,7 +342,7 @@ void sdp_set_big_endian(uint64_t val, unsigned char * to, int start_bit,
 uint64_t sdp_mp_get_value(const struct sdparm_mode_page_item *mpi,
                           const unsigned char * mp);
 uint64_t sdp_mp_get_value_check(const struct sdparm_mode_page_item *mpi,
-                                const unsigned char * mp, int * all_set);
+                                const unsigned char * mp, bool * all_set);
 void sdp_mp_set_value(uint64_t val, const struct sdparm_mode_page_item *mpi,
                       unsigned char * mp);
 char * sdp_get_ansi_version_str(int version, int buff_len, char * buff);
@@ -335,15 +355,15 @@ int sdp_strcase_eq_upto(const char * s1p, const char * s2p, int n);
 
 int sdp_process_vpd_page(int sg_fd, int pn, int spn,
                          const struct sdparm_opt_coll * opts, int req_pdt,
-                         int protect, const unsigned char * ihbp,
+                         bool protect, const unsigned char * ihbp,
                          int ihb_len);
 
 /*
  * Declarations for functions found in sdparm_cmd.c
  */
 
-const struct sdparm_command_t * sdp_build_cmd(const char * cmd_str, int * rwp,
-                                              int * argp);
+const struct sdparm_command_t * sdp_build_cmd(const char * cmd_str,
+                                              bool * rwp, int * argp);
 void sdp_enumerate_commands();
 int sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp,
                     int cmd_arg, int pdt, const struct sdparm_opt_coll * opts);
