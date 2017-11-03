@@ -36,7 +36,7 @@ clean:
 .c.o:
 	$(CC) $(INCLUDES) $(CFLAGS) $(S_CFLAGS) -c -o $@ $<
 
-chk_sdparm_data: chk_sdparm_data.o sdparm_data.o sdparm_data_vendor.o
+chk_sdparm_data: chk_sdparm_data.o sdparm_data.o sdparm_data_vendor.o sg_lib.o sg_lib_data.o
 	$(LD) -o $@ $(LDFLAGS) $^
 
 install: $(EXECS)

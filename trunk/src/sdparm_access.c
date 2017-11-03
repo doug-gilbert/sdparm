@@ -29,11 +29,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <stdbool.h>
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
+#define __STDC_FORMAT_MACROS 1
+#include <inttypes.h>
 
 #include "sdparm.h"
+#include "sg_lib.h"
 #include "sg_unaligned.h"
 
 /* sdparm_access.c : helpers for sdparm to access tables in
@@ -91,15 +96,18 @@ sdp_strcase_eq_upto(const char * s1p, const char * s2p, int n)
 }
 
 
+/* Returns length of mode page. Assumes mp pointing at start of a mode
+ * page (not the start of a MODE SENSE response). */
 int
-sdp_get_mp_len(unsigned char * mp)
+sdp_mpage_len(const unsigned char * mp)
 {
+    /* if SPF (byte 0, bit 6) is set then 4 byte header, else 2 byte header */
     return (mp[0] & 0x40) ? (sg_get_unaligned_be16(mp + 2) + 4) : (mp[1] + 2);
 }
 
 const struct sdparm_mode_page_t *
-sdp_get_mode_detail(int page_num, int subpage_num, int pdt, int transp_proto,
-                    int vendor_id)
+sdp_get_mpage(int page_num, int subpage_num, int pdt, int transp_proto,
+              int vendor_id)
 {
     const struct sdparm_mode_page_t * mpp;
 
@@ -125,22 +133,22 @@ sdp_get_mode_detail(int page_num, int subpage_num, int pdt, int transp_proto,
 }
 
 const struct sdparm_mode_page_t *
-sdp_get_mpage_name(int page_num, int subpage_num, int pdt, int transp_proto,
-                   int vendor_id, bool plus_acron, bool hex, char * bp,
-                   int max_b_len)
+sdp_get_mp_with_str(int page_num, int subpage_num, int pdt, int transp_proto,
+                    int vendor_id, bool plus_acron, bool hex, int b_len,
+                    char * bp)
 {
-    int len = max_b_len - 1;
+    int len = b_len - 1;
     const struct sdparm_mode_page_t * mpp = NULL;
     const char * cp;
 
     if (len < 0)
         return mpp;
     bp[len] = '\0';
-    mpp = sdp_get_mode_detail(page_num, subpage_num, pdt, transp_proto,
-                              vendor_id);
-    if (NULL == mpp)
-        mpp = sdp_get_mode_detail(page_num, subpage_num, -1, transp_proto,
-                                  vendor_id);
+    /* first try to match given pdt */
+    mpp = sdp_get_mpage(page_num, subpage_num, pdt, transp_proto, vendor_id);
+    if (NULL == mpp) /* didn't match specific pdt so try -1 (ie. SPC) */
+        mpp = sdp_get_mpage(page_num, subpage_num, -1, transp_proto,
+                            vendor_id);
     if (mpp && mpp->name) {
         cp = mpp->acron;
         if (NULL == cp)
@@ -232,28 +240,38 @@ sdp_find_vpd_by_acron(const char * ap)
     return NULL;
 }
 
-const char *
-sdp_get_transport_name(int proto_num)
+char *
+sdp_get_transport_name(int proto_num, int b_len, char * b)
 {
-    const struct sdparm_transport_id_t * tip;
+    char d[128];
 
-    for (tip = sdparm_transport_id; tip->acron; ++tip) {
-        if (proto_num == tip->proto_num)
-            return tip->name;
-    }
-    return NULL;
+    if (NULL == b)
+        ;
+    else if (b_len < 2) {
+        if (1 == b_len)
+            b[0] = '\0';
+    } else
+        snprintf(b, b_len, "%s", sg_get_trans_proto_str(proto_num, sizeof(d),
+                 d));
+    return b;
 }
 
-const struct sdparm_transport_id_t *
-sdp_find_transport_by_acron(const char * ap)
+int
+sdp_find_transport_id_by_acron(const char * ap)
 {
-    const struct sdparm_transport_id_t * tip;
+    const struct sdparm_val_desc_t * t_vdp;
+    const struct sdparm_val_desc_t * t_addp;
 
-    for (tip = sdparm_transport_id; tip->acron; ++tip) {
-        if (sdp_strcase_eq(tip->acron, ap))
-            return tip;
+    for (t_vdp = sdparm_transport_id; t_vdp->desc; ++t_vdp) {
+        if (sdp_strcase_eq(t_vdp->desc, ap))
+            return t_vdp->val;
     }
-    return NULL;
+    /* No match ... try additional transport acronyms */
+    for (t_addp = sdparm_add_transport_acron; t_addp->desc; ++t_addp) {
+        if (sdp_strcase_eq(t_addp->desc, ap))
+            return t_addp->val;
+    }
+    return -1;
 }
 
 const char *
@@ -287,15 +305,25 @@ sdp_get_vendor_pair(int vendor_id)
             ? (sdparm_vendor_mp + vendor_id) : NULL;
 }
 
+/* Searches mpage items table from (and including) the current position
+ * looking for the first match on 'ap' (pointer to acromym). Checks
+ * against the inbuilt table (in sdparm_data.c) of generic (when both
+ * transp_proto and vendor_id are -1), transport (when transp_proto is
+ * >= 0) or vendor (when vendor_id is >= 0) mode page items (fields).
+ * If found a pointer to that mitem is returned and *from_p is set to
+ * the offset after the match. If not found then NULL is returned and
+ * *from_p is set to the offset of the sentinel at the end of the
+ * selected mitem array. Start iteration by setting from_p to NULL or
+ * point it at -1. */
 const struct sdparm_mode_page_item *
-sdp_find_mitem_by_acron(const char * ap, int * from, int transp_proto,
+sdp_find_mitem_by_acron(const char * ap, int * from_p, int transp_proto,
                         int vendor_id)
 {
     int k = 0;
     const struct sdparm_mode_page_item * mpi;
 
-    if (from) {
-        k = *from;
+    if (from_p) {
+        k = *from_p;
         if (k < 0)
             k = 0;
     }
@@ -317,25 +345,29 @@ sdp_find_mitem_by_acron(const char * ap, int * from, int transp_proto,
     }
     if (NULL == mpi->acron)
         mpi = NULL;
-    if (from)
-        *from = (mpi ? (k + 1) : k);
+    if (from_p)
+        *from_p = (mpi ? (k + 1) : k);
     return mpi;
 }
 
 /* Does similar job to sg_get_unaligned_be*() but this function starts at
- * a given start_bit offset. Maximum number of num_bits is 64. For example
- *     sdp_get_big_endian(from,7,16)==sg_get_unaligned_be16(from)    */
+ * a given start_bit (i.e. within byte, so 7 is MSbit of byte and 0 is LSbit)
+ * offset. Maximum number of num_bits is 64. For example, these two
+ * invocations are equivalent (and should yield the same result);
+ *       sdp_get_big_endian(from_bp, 7, 16)
+ *       sg_get_unaligned_be16(from_bp)  */
 uint64_t
-sdp_get_big_endian(const unsigned char * from, int start_bit, int num_bits)
+sdp_get_big_endian(const unsigned char * from_bp, int start_bit /* 0 to 7 */,
+                   int num_bits /* 1 to 64 */)
 {
     uint64_t res;
     int sbit_o1 = start_bit + 1;
 
-    res = (*from++ & ((1 << sbit_o1) - 1));
+    res = (*from_bp++ & ((1 << sbit_o1) - 1));
     num_bits -= sbit_o1;
     while (num_bits > 0) {
         res <<= 8;
-        res |= *from++;
+        res |= *from_bp++;
         num_bits -= 8;
     }
     if (num_bits < 0)
@@ -345,10 +377,10 @@ sdp_get_big_endian(const unsigned char * from, int start_bit, int num_bits)
 
 /* Does similar job to sg_put_unaligned_be*() but this function starts at
  * a given start_bit offset. Maximum number of num_bits is 64. Preserves
- * residual bits in partially written bytes. */
+ * residual bits in partially written bytes. start_bit 7 is MSb. */
 void
-sdp_set_big_endian(uint64_t val, unsigned char * to, int start_bit,
-                   int num_bits)
+sdp_set_big_endian(uint64_t val, unsigned char * to,
+                   int start_bit /* 0 to 7 */, int num_bits /* 1 to 64 */)
 {
     int sbit_o1 = start_bit + 1;
     int mask, num, k, x;
@@ -373,37 +405,120 @@ sdp_set_big_endian(uint64_t val, unsigned char * to, int start_bit,
 }
 
 uint64_t
-sdp_mp_get_value(const struct sdparm_mode_page_item *mpi,
-                 const unsigned char * mp)
+sdp_mitem_get_value(const struct sdparm_mode_page_item *mpi,
+                    const unsigned char * mp)
 {
     return sdp_get_big_endian(mp + mpi->start_byte, mpi->start_bit,
                               mpi->num_bits);
 }
 
+/* Gets a mode page item's value given a pointer to the mode page response
+ * (mp). If all_setp is non-NULL then checks 8, 16, 24, 32, 48 and 64 bit
+ * quantities for all bits set (e.g. for 8 bits that would be 0xff) and if
+ * so sets the bool addressed by all_setp to true. Otherwise if all_setp
+ * is non-NULL then it sets the bool addressed by all_setp to false.
+ * Returns the value in an unsigned 64 bit integer. To print a value as a
+ * signed quantity use sdp_print_signed_decimal(). */
 uint64_t
-sdp_mp_get_value_check(const struct sdparm_mode_page_item *mpi,
-                       const unsigned char * mp, bool * all_set)
+sdp_mitem_get_value_check(const struct sdparm_mode_page_item *mpi,
+                          const unsigned char * mp, bool * all_setp)
 {
     uint64_t res;
 
     res = sdp_get_big_endian(mp + mpi->start_byte, mpi->start_bit,
                              mpi->num_bits);
-    if (all_set) {
-        if ((16 == mpi->num_bits) && (0xffff == res))
-            *all_set = true;
-        else if ((32 == mpi->num_bits) && (0xffffffff == res))
-            *all_set = true;
-        else if ((64 == mpi->num_bits) && (0xffffffffffffffffULL == res))
-            *all_set = true;
-        else
-            *all_set = false;
+    if (all_setp) {
+        switch (mpi->num_bits) {
+        case 8:
+            if (0xff == res)
+                *all_setp = true;
+            break;
+        case 16:
+            if (0xffff == res)
+                *all_setp = true;
+            break;
+        case 24:
+            if (0xffffff == res)
+                *all_setp = true;
+            break;
+        case 32:
+            if (0xffffffff == res)
+                *all_setp = true;
+            break;
+        case 48:
+            if (0xffffffffffffULL == res)
+                *all_setp = true;
+            break;
+        case 64:
+            if (0xffffffffffffffffULL == res)
+                *all_setp = true;
+            break;
+        default:
+            *all_setp = false;
+            break;
+        }
     }
     return res;
 }
 
 void
-sdp_mp_set_value(uint64_t val, const struct sdparm_mode_page_item * mpi,
-                 unsigned char * mp)
+sdp_print_signed_decimal(uint64_t u, int num_bits, bool leading_zeros)
+{
+    unsigned int ui;
+    unsigned char uc;
+
+    switch (num_bits) {
+    /* could support other num_bits, as required */
+    case 4:     /* -8 to 7 */
+        uc = u & 0xf;
+        if (0x8 & uc)
+            uc |= 0xf0;         /* sign extend */
+        if (leading_zeros)
+            printf("%02hhd", (signed char)uc);
+        else
+            printf("%hhd", (signed char)uc);
+        break;
+    case 8:     /* -128 to 127 */
+        if (leading_zeros)
+            printf("%02hhd", (signed char)u);
+        else
+            printf("%hhd", (signed char)u);
+        break;
+    case 16:    /* -32768 to 32767 */
+        if (leading_zeros)
+            printf("%02hd", (short int)u);
+        else
+            printf("%hd", (short int)u);
+        break;
+    case 24:
+        ui = 0xffffff & u;
+        if (0x800000 & ui)
+            ui |= 0xff000000;
+        if (leading_zeros)
+            printf("%02d", (int)ui);
+        else
+            printf("%d", (int)ui);
+        break;
+    case 32:
+        if (leading_zeros)
+            printf("%02d", (int)u);
+        else
+            printf("%d", (int)u);
+        break;
+    case 64:
+    default:
+        if (leading_zeros)
+            printf("%02" PRId64 , (int64_t)u);
+        else
+            printf("%" PRId64 , (int64_t)u);
+        break;
+    }
+}
+
+/* Place 'val' at an offset to 'mp' as indicated by mpi. */
+void
+sdp_mitem_set_value(uint64_t val, const struct sdparm_mode_page_item * mpi,
+                    unsigned char * mp)
 {
     sdp_set_big_endian(val, mp + mpi->start_byte, mpi->start_bit,
                        mpi->num_bits);
@@ -416,4 +531,10 @@ sdp_get_ansi_version_str(int version, int buff_len, char * buff)
     buff[buff_len - 1] = '\0';
     strncpy(buff, sdparm_ansi_version_arr[version], buff_len - 1);
     return buff;
+}
+
+int
+sdp_get_desc_id(int flags)
+{
+    return (MF_DESC_ID_MASK & flags) >> MF_DESC_ID_SHIFT;
 }
