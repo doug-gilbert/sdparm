@@ -1830,7 +1830,11 @@ decode_std_inq(int sg_fd, const struct sdparm_opt_coll * op)
     return 0;
 }
 
-/* Returns 0 if successful, else error */
+/* If ihbp is NULL then need to send SCSI INQUIRY command to device referred
+ * to by sg_fd; then process the response received. If ihbp is non-NULL then
+ * sg_fd is ignored and the buffer pointed to by ihbp (with length no greater
+ * than ihb_len) is assumed to be the response to a SCSI INQUIRY command.
+ * Returns 0 if successful, else error */
 int
 sdp_process_vpd_page(int sg_fd, int pn, int spn,
                      const struct sdparm_opt_coll * op, int req_pdt,

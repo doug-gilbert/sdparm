@@ -47,6 +47,7 @@ struct sdparm_vendor_name_t sdparm_vendor_id[] = {
     {VENDOR_HITACHI, "hit", "Hitachi disk"},
     {VENDOR_MAXTOR, "max", "Maxtor disk"},
     {VENDOR_FUJITSU, "fuj", "Fujitsu disk"},
+    {VENDOR_NONE, "none", "maps back to generic mode pages"},
     {VENDOR_LTO5, "lto5", "LTO-5 tape drive (IBM, HP)"},
     {VENDOR_LTO6, "lto6", "LTO-6 tape drive (IBM, HP)"},
     {0, NULL, NULL},
@@ -366,7 +367,7 @@ struct sdparm_vendor_pair sdparm_vendor_mp[] = {
     {sdparm_v_hitachi_mode_pg, sdparm_mitem_v_hitachi_arr},
     {sdparm_v_maxtor_mode_pg, sdparm_mitem_v_maxtor_arr},
     {sdparm_v_fujitsu_mode_pg, sdparm_mitem_v_fujitsu_arr},
-    {NULL, NULL},       /* hole in sequence, re-use asap */
+    {sdparm_gen_mode_pg, sdparm_mitem_arr},     /* VENDOR_NONE --> generic */
     {sdparm_v_lto5_mode_pg, sdparm_mitem_v_lto5_arr},
     {sdparm_v_lto6_mode_pg, sdparm_mitem_v_lto6_arr},
 };
