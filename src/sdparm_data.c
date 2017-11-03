@@ -48,42 +48,42 @@
 /* SSC's medium partition mode page has a variable number of
    partition size fields which are treated as descriptors here */
 static struct sdparm_mode_descriptor_t ssc_mpa_desc = {
-    3, 1, 1, 8, 2, -1, -1, "SSC medium partition"
+    3, 1, 1, 8, 2, -1, -1, false, "SSC medium partition"
 };
 
 /* SMC's transport geometry parameters mode page doesn't give the number
    of following descriptors but rather parameter length (in bytes).
    This is flagged by -1 in num_descs_inc (third) field */
 static struct sdparm_mode_descriptor_t smc_tg_desc = {
-    1, 1, -1, 2, 2, -1, -1, "SMC transport geometry"
+    1, 1, -1, 2, 2, -1, -1, false, "SMC transport geometry"
 };
 
 /* SBC's logical block provisioning mode page doesn't give the number
    of following descriptors but rather parameter length (in bytes).
    This is flagged by -1 in num_descs_inc (third) field */
 static struct sdparm_mode_descriptor_t sbc_lbp_desc = {
-    2, 2, -1, 16, 8, -1, -1, "SBC logical block provisioning"
+    2, 2, -1, 16, 8, -1, -1, false, "SBC logical block provisioning"
 };
 
 /* SBC's application tag mode page doesn't give the number of
    following descriptors but rather parameter length (in bytes).
    This is flagged by -1 in num_descs_inc (third) field */
 static struct sdparm_mode_descriptor_t sbc_atag_desc = {
-    2, 2, -1, 16, 24, -1, -1, "SBC application tag"
+    2, 2, -1, 16, 24, -1, -1, false, "SBC application tag"
 };
 
 /* SPC's command duration limit A/B mode pages don't give the number of
    following descriptors but rather parameter length (in bytes).
    This is flagged by -1 in num_descs_inc (third) field */
 static struct sdparm_mode_descriptor_t spc_cdl_desc = {
-    2, 2, -1, 8, 4, -1, -1, "command duration limit"
+    2, 2, -1, 8, 4, -1, -1, false, "command duration limit"
 };
 
 /* SBC's IO advice hints grouping mode page doesn't give the number of
    following descriptors but rather parameter length (in bytes).
    This is flagged by -1 in num_descs_inc (third) field */
 static struct sdparm_mode_descriptor_t sbc_ioadvi_desc = {
-    2, 2, -1, 16, 16, -1, -1, "IO advice hints group"
+    2, 2, -1, 16, 16, -1, -1, false, "IO advice hints group"
 };
 
 /* Mode pages that aren't specific to any transport protocol or vendor.
@@ -93,10 +93,10 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
     {ADC_MP, MSP_ADC_DT_DPP, PDT_ADC, 0, "addp",
         "DT device primary port (ADC)", NULL},
     {ADC_MP, MSP_ADC_LU, PDT_ADC, 0, "adlu", "logical unit (ADC)", NULL},
-    {ADC_MP, MSP_ADC_TGT_DEV, PDT_ADC, 0, "adtd", "Targer device (ADC)",
+    {ADC_MP, MSP_ADC_TGT_DEV, PDT_ADC, 0, "adtd", "Target device (ADC)",
         NULL},
     {ADC_MP, MSP_ADC_TD_SN, PDT_ADC, 0, "adts",
-        "Targer device serial number (ADC)", NULL},
+        "Target device serial number (ADC)", NULL},
     {POWER_MP, MSP_SAT_POWER, -1, 0, "apo", "SAT ATA Power condition", NULL},
     {CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 0, "atag", "Application tag "
         "(SBC)", &sbc_atag_desc},
@@ -162,27 +162,38 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
     {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
-/* Array for transport id, acronym and name association. */
-/* Those transports commented with "none" don't have transport specific */
-/* mode pages. */
-struct sdparm_transport_id_t sdparm_transport_id[] = {
-    {TPROTO_FCP, "fcp", "Fibre channel (FCP)"},
-    {TPROTO_SPI, "spi", "SCSI parallel interface (SPI)"},
-    {TPROTO_SSA, "ssa", "Serial storage architecture (SSA)"},
-    {TPROTO_1394, "sbp", "Serial bus (SBP)"}, /* none */
-    {TPROTO_SRP, "srp", "SCSI remote DMA (SRP)"},
-    {TPROTO_ISCSI, "iscsi", "Internet SCSI (iSCSI)"}, /* none */
-    {TPROTO_SAS, "sas", "Serial attached SCSI (SAS, SPL) "},
-    {TPROTO_ADT, "adt", "Automation/Drive interface (ADT)"},
-    {TPROTO_ATA, "ata", "AT attachment interface (ATA, ACS)"}, /* none */
-    {TPROTO_UAS, "uas", "USB attached SCSI (UAS)"}, /* none */
-    {TPROTO_SOP, "sop", "SCSI over PCIe (SOP)"}, /* none */
-    {0x9, "u0xb", NULL},      /* leading "u" so not number */
-    {0xc, "u0xc", NULL},
-    {0xd, "u0xd", NULL},
-    {0xe, "u0xe", NULL},
-    {TPROTO_NONE, "none", "No specific"},
-    {0, NULL, NULL},
+/* Array for transport id and corresponding acronyms. The
+ * sg_get_trans_proto_str() function from the sg3_utils' library provides
+ * the full protocol (transport) name. Those transports commented with
+ * "none" don't have transport specific mode pages at this time. */
+struct sdparm_val_desc_t sdparm_transport_id[] = {
+    {TPROTO_FCP, "fcp"},
+    {TPROTO_SPI, "spi"},
+    {TPROTO_SSA, "ssa"},
+    {TPROTO_1394, "sbp"},       /* none */
+    {TPROTO_SRP, "srp"},
+    {TPROTO_ISCSI, "iscsi"},    /* none */
+    {TPROTO_SAS, "sas"},
+    {TPROTO_ADT, "adt"},
+    {TPROTO_ATA, "ata"},        /* none */
+    {TPROTO_UAS, "uas"},        /* none */
+    {TPROTO_SOP, "sop"},        /* none */
+    {TPROTO_PCIE, "pcie"},      /* none */
+    {0xc, "u0xc"},              /* leading "u" so not number */
+    {0xd, "u0xd"},
+    {0xe, "u0xe"},
+    {TPROTO_NONE, "none"},
+    {-1, NULL},
+};
+
+struct sdparm_val_desc_t sdparm_add_transport_acron[] = {
+    {TPROTO_SPI, "para"},
+    {TPROTO_SAS, "spl"},
+    {TPROTO_PCIE, "nvme"},
+    {TPROTO_ATA, "sata"},
+    {TPROTO_SRP, "ib"},         /* InfiniBand */
+    {TPROTO_UAS, "usb"},
+    {-1, NULL},
 };
 
 static struct sdparm_mode_page_t sdparm_fcp_mode_pg[] = {    /* FCP-3 */
@@ -219,11 +230,15 @@ static struct sdparm_mode_page_t sdparm_srp_mode_pg[] = {    /* SRP */
 };
 
 static struct sdparm_mode_descriptor_t sas_pcd_desc = {   /* desc SAS/SPL */
-    7, 1, 0, 8, 48, -1, -1, "SAS phy"
+    7, 1, 0, 8, 48, -1, -1, false, "SAS phy"
 };
 
 static struct sdparm_mode_descriptor_t sas_e_phy_desc = {  /* desc SAS/SPL */
-    7, 1, 0, 8, -1, 2, 2, "Enhanced phy"
+    7, 1, 0, 8, -1, 2, 2, false, "Enhanced phy"
+};
+
+static struct sdparm_mode_descriptor_t sas_oob_m_c_desc = { /* desc SAS/SPL */
+    -1, -1, 0, 8, -1, 2, 2, true, "Attribute control"
 };
 
 /* N.B. In SAS 2.1 the spec was split with the upper levels going into the
@@ -231,6 +246,8 @@ static struct sdparm_mode_descriptor_t sas_e_phy_desc = {  /* desc SAS/SPL */
  * relevant SAS references. */
 static struct sdparm_mode_page_t sdparm_sas_mode_pg[] = {    /* SAS/SPL */
     {DISCONNECT_MP, 0, -1, 0, "dr", "Disconnect-reconnect (SAS)", NULL},
+    {PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 0, "oobm",     /* spl5r01 */
+        "Out of band management control (SAS)", &sas_oob_m_c_desc},
     {PROT_SPEC_LU_MP, 0, -1, 0, "pl", "Protocol specific logical unit (SAS)",
         NULL},
     {PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 0, "pcd",
@@ -1028,7 +1045,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"BMS_I", IEC_MP, MSP_BACK_CTL, PDT_DISK, 6, 7, 16, 0,
         "Background medium scan interval time (hour)", NULL},
     {"BPS_TL", IEC_MP, MSP_BACK_CTL, PDT_DISK, 8, 7, 16, 0,
-        "Background pre-scan time limit (hour)", NULL},
+        "Background pre-scan time limit (hour)", "0: no limit"},
     {"MIN_IDLE", IEC_MP, MSP_BACK_CTL, PDT_DISK, 10, 7, 16, 0,
         "Minumum idle time before background scan (ms)", NULL},
     {"MAX_SUSP", IEC_MP, MSP_BACK_CTL, PDT_DISK, 12, 7, 16, 0,
@@ -1741,6 +1758,38 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"HMS", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 27, 0, 1, 0,
         "Hardware muxing supported", NULL},
 
+    /* SPL-5 Out of band management control mode page [0x19,0x4] sas/spl */
+    {"OOB_RE", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 4, 7, 1, 0,
+        "Out of band reporting enabled", NULL},
+    {"OOB_PRV", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 6, 7, 16, MF_HEX,
+        "Out of band protocol revision code",
+        "example: SFF-8609 revison 1.2 is code 0x102"},
+    {"OOB_D_ID", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 8, 3, 4,
+        0, "Out of band descriptor identifier",
+        "0: temperature attribute; 1-15: restricted for SFF-8209"},
+    /* MF_DESC_ID_B0-3 bits are all zero for Temperature attribute */
+    {"TA_TRE", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 12, 0, 1, MF_CLASH_OK,
+        "Temperature attribute, temperature reporting enabled", NULL},
+    {"TA_RI", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 13, 7, 8, MF_CLASH_OK,
+        "Temperature attribute, reporting interval (seconds)", NULL},
+    {"TA_TM", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 16, 1, 2, MF_CLASH_OK,
+        "Temperature attribute, test mode",
+        "0: test mode disabled, transfer actual temperature\t"
+        "1: TM enabled, send incrementing sequence of temps\t"
+        "2: TM enabled, send decrementing sequence of temps\t"
+        "3: TM enabled, send value in TA_TM_T every interval"},
+    {"TA_TM_T", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 18, 7, 8,
+        MF_CLASH_OK | MF_TWOS_COMP,
+        "Temperature attribute test mode temperature", NULL},
+#if 0
+    {"MY_TEST", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 13, 7, 8,
+        MF_CLASH_OK | MF_DESC_ID_B0,
+        "My test (dpg), 8 bit number, desc_id=1", NULL},
+    {"MY_EXTRA", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 18, 7, 8,
+        MF_CLASH_OK | MF_DESC_ID_B0,
+        "My test (dpg), 8 bit number, desc_id=1", NULL},
+#endif
+
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
 };
 
@@ -1754,14 +1803,14 @@ struct sdparm_transport_pair sdparm_transport_mp[] = {
     {NULL, NULL},
     {sdparm_sas_mode_pg, sdparm_mitem_sas_arr},
     {NULL, NULL},
-    {NULL, NULL},       /* 8 */
+    {NULL, NULL},       /* 8: ata (SAT mpages in generic) */
     {NULL, NULL},
     {NULL, NULL},
     {NULL, NULL},
     {NULL, NULL},
     {NULL, NULL},
     {NULL, NULL},
-    {NULL, NULL},       /* 15 */
+    {sdparm_gen_mode_pg, sdparm_mitem_arr}, /* 15: none, treat as generic */
 };
 
 const char * sdparm_ansi_version_arr[] =

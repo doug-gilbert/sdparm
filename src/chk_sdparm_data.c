@@ -25,7 +25,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * Version 1.10 20171022
+ * Version 1.11 20171028
  */
 
 #include <stdlib.h>
@@ -35,6 +35,7 @@
 #include <string.h>
 
 #include "sdparm.h"
+#include "sg_lib.h"
 
 /*
  * This is a maintenance program for checking the integrity of
@@ -99,8 +100,9 @@ static int check(const struct sdparm_mode_page_item * mpi,
 {
     bool second_k = false;
     bool second_j = false;
+    bool k_clash_ok;
     int res, prev_mp, prev_msp, prev_pdt, sbyte, sbit, nbits;
-    int bad = 0;
+    int bad_count = 0;
     unsigned char mask;
     const struct sdparm_mode_page_item * kp = mpi;
     const struct sdparm_mode_page_item * jp = mpi;
@@ -116,17 +118,18 @@ static int check(const struct sdparm_mode_page_item * mpi,
             kp = mpi_b;
             second_k = true;
         }
+        k_clash_ok = !! (kp->flags & MF_CLASH_OK);
         acron = kp->acron ? kp->acron : "?";
         if ((prev_mp != kp->page_num) || (prev_msp != kp->subpage_num)) {
             if (prev_mp > kp->page_num) {
                 printf("  mode page 0x%x,0x%x out of order\n", kp->page_num,
                         kp->subpage_num);
-                ++bad;
+                ++bad_count;
             }
             if ((prev_mp == kp->page_num) && (prev_msp > kp->subpage_num)) {
                 printf("  mode subpage 0x%x,0x%x out of order, previous msp "
                        "was 0x%x\n", kp->page_num, kp->subpage_num, prev_msp);
-                ++bad;
+                ++bad_count;
             }
             prev_mp = kp->page_num;
             prev_msp = kp->subpage_num;
@@ -137,7 +140,7 @@ static int check(const struct sdparm_mode_page_item * mpi,
                 printf("  mode page 0x%x,0x%x pdt out of order, pdt was "
                        "%d, now %d\n", kp->page_num, kp->subpage_num,
                        prev_pdt, kp->pdt);
-                ++bad;
+                ++bad_count;
             }
             prev_pdt = kp->pdt;
         }
@@ -149,40 +152,44 @@ static int check(const struct sdparm_mode_page_item * mpi,
                 second_j = true;
             }
             if ((0 == strcmp(acron, jp->acron)) &&
-                (! (jp->flags & MF_CLASH_OK))) {
+                (! ((jp->flags & MF_CLASH_OK) || k_clash_ok))) {
                 printf("  acronym '%s' with this description: '%s'\n    "
                        "clashes with '%s'\n", acron, kp->description,
                        jp->description);
-                ++bad;
+                ++bad_count;
             }
         }
         sbyte = kp->start_byte;
         if ((unsigned)sbyte + 8 > MAX_MP_LEN) {
             printf("  acronym: %s  start byte too large: %d\n", kp->acron,
                    sbyte);
-            ++bad;
+            ++bad_count;
             continue;
         }
         sbit = kp->start_bit;
         if ((unsigned)sbit > 7) {
             printf("  acronym: %s  start bit too large: %d\n", kp->acron,
                    sbit);
-            ++bad;
+            ++bad_count;
             continue;
         }
         nbits = kp->num_bits;
         if (nbits > 64) {
             printf("  acronym: %s  number of bits too large: %d\n",
                    kp->acron, nbits);
-            ++bad;
+            ++bad_count;
             continue;
         }
         if (nbits < 1) {
             printf("  acronym: %s  number of bits too small: %d\n",
                    kp->acron, nbits);
-            ++bad;
+            ++bad_count;
             continue;
         }
+
+        /* now mark up bit map and check for overwrites */
+        if (kp->flags & MF_CLASH_OK)
+            continue;   /* MF_CLASH_OK flag implies clash expected */
         mask = (1 << (sbit + 1)) - 1;
         if ((nbits - 1) < sbit)
             mask &= ~((1 << (sbit + 1 - nbits)) - 1);
@@ -192,17 +199,17 @@ static int check(const struct sdparm_mode_page_item * mpi,
                 printf("  0x%x,0x%x: clash at start_byte: %d, bit: %d "
                        "[latest acron: %s, this pdt]\n", prev_mp, prev_msp,
                        sbyte, sbit, acron);
-                ++bad;
+                ++bad_count;
            } else if (2 == res) {
                 printf("  0x%x,0x%x: clash at start_byte: %d, bit: %d "
                        "[latest acron: %s, another pdt]\n", prev_mp,
                        prev_msp, sbyte, sbit, acron);
-                ++bad;
+                ++bad_count;
             } else {
                 printf("  0x%x,0x%x: clash, bad data at start_byte: %d, "
                        "bit: %d [latest acron: %s]\n", prev_mp,
                        prev_msp, sbyte, sbit, acron);
-                ++bad;
+                ++bad_count;
             }
         }
         set_cl(sbyte, kp->pdt, mask);
@@ -212,7 +219,7 @@ static int check(const struct sdparm_mode_page_item * mpi,
                 printf("  0x%x,0x%x: check nbits: %d, start_byte: %d, bit: "
                        "%d [acron: %s]\n", prev_mp, prev_msp, kp->num_bits,
                        sbyte, sbit, acron);
-                ++bad;
+                ++bad_count;
             }
             do {
                 ++sbyte;
@@ -229,24 +236,24 @@ static int check(const struct sdparm_mode_page_item * mpi,
                         printf("   0x%x,0x%x: clash at start_byte: %d, "
                                "bit: %d [latest acron: %s, this pdt]\n",
                                prev_mp, prev_msp, sbyte, sbit, acron);
-                        ++bad;
+                        ++bad_count;
                     } else if (2 == res) {
                         printf("   0x%x,0x%x: clash at start_byte: %d, "
                                "bit: %d [latest acron: %s, another pdt]\n",
                                prev_mp, prev_msp, sbyte, sbit, acron);
-                        ++bad;
+                        ++bad_count;
                     } else {
                         printf("   0x%x,0x%x: clash, bad at start_byte: "
                                "%d, bit: %d [latest acron: %s]\n",
                                prev_mp, prev_msp, sbyte, sbit, acron);
-                        ++bad;
+                        ++bad_count;
                     }
                 }
                 set_cl(sbyte, kp->pdt, mask);
             } while (nbits > 0);
         }
     }
-    return bad;
+    return bad_count;
 }
 
 static const char * get_vendor_name(int vendor_id)
@@ -262,10 +269,11 @@ static const char * get_vendor_name(int vendor_id)
 
 int main(int argc, char ** argv)
 {
-    int k, bad;
+    int k, bad_count;
     const struct sdparm_transport_pair * tp;
     const struct sdparm_vendor_pair * vp;
     const char * ccp;
+    char b[128];
 
     if (argc) {
         ;       /* suppress unused warning */
@@ -276,20 +284,22 @@ int main(int argc, char ** argv)
     printf("    Check integrity of mode page item tables in sdparm\n");
     printf("    ==================================================\n\n");
     printf("Generic (i.e. non-transport specific) mode page items:\n");
-    bad = check(sdparm_mitem_arr, NULL);
-    if (bad)
-        printf("%d problems\n", bad);
+    bad_count = check(sdparm_mitem_arr, NULL);
+    if (bad_count)
+        printf("%d problem%s\n", bad_count, (1 == bad_count) ? "" : "s");
     else
-        printf("pass\n");
+        printf("Pass\n");
     tp = sdparm_transport_mp;
     for (k = 0; k < 16; ++k, ++tp) {
         if (tp->mitem) {
-            printf("%s mode page items:\n", sdparm_transport_id[k].name);
-            bad = check(tp->mitem, NULL);
-            if (bad)
-                printf("%d problems\n", bad);
+            printf("%s mode page items:\n",
+                   sg_get_trans_proto_str(k, sizeof(b), b));
+            bad_count = check(tp->mitem, NULL);
+            if (bad_count)
+                printf("%d problem%s\n", bad_count,
+                       (1 == bad_count) ? "" : "s");
             else
-                printf("pass\n");
+                printf("Pass\n");
         }
     }
     vp = sdparm_vendor_mp;
@@ -300,18 +310,19 @@ int main(int argc, char ** argv)
                 printf("%s mode page items:\n", ccp);
             else
                 printf("0x%x mode page items:\n", k);
-            bad = check(vp->mitem, NULL);
-            if (bad)
-                printf("%d problems\n", bad);
+            bad_count = check(vp->mitem, NULL);
+            if (bad_count)
+                printf("%d problem%s\n", bad_count,
+                       (1 == bad_count) ? "" : "s");
             else
-                printf("pass\n");
+                printf("Pass\n");
         }
     }
     printf("Cross check Generic with SAS mode page items:\n");
-    bad = check(sdparm_mitem_arr, sdparm_transport_mp[6].mitem);
-    if (bad)
-        printf("%d problems\n", bad);
+    bad_count = check(sdparm_mitem_arr, sdparm_transport_mp[6].mitem);
+    if (bad_count)
+        printf("%d problem%s\n", bad_count, (1 == bad_count) ? "" : "s");
     else
-        printf("pass\n");
+        printf("Pass\n");
     return 0;
 }

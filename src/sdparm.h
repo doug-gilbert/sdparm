@@ -51,7 +51,8 @@ extern "C" {
 #define MMCMS_MP 0x2a
 #define ALL_MPAGES 0x3f
 
-/* Mode subpage numbers */
+/* Mode subpage numbers (when SPF bit is set in bit 6, byte 0 of response) */
+#define NO_MSP 0                /* SPF is clear (0) in this case */
 #define MSP_SPC_CE 1            /* control extension */
 #define MSP_SPI_MC 1
 #define MSP_SPI_STC 2
@@ -60,6 +61,7 @@ extern "C" {
 #define MSP_SAS_PCD 1
 #define MSP_SAS_SPC 2
 #define MSP_SAS_E_PHY 3
+#define MSP_SAS_OOB_M_C 4       /* OOB Management Control */
 #define MSP_BACK_CTL 1
 #define MSP_SAT_PATA 0xf1       /* SAT PATA Control */
 #define MSP_SAT_POWER 0xf1      /* SAT ATA Power condition */
@@ -139,6 +141,7 @@ extern "C" {
 #define VENDOR_HITACHI 0x1
 #define VENDOR_MAXTOR 0x2
 #define VENDOR_FUJITSU 0x3
+#define VENDOR_NONE 0x4
 #define VENDOR_LTO5 0x5
 #define VENDOR_LTO6 0x6
 
@@ -146,6 +149,13 @@ extern "C" {
 #define MF_COMMON 0x1   /* output in summary mode */
 #define MF_HEX 0x2
 #define MF_CLASH_OK 0x4 /* know this overlaps safely with generic */
+#define MF_TWOS_COMP 0x8   /* integer is two's complement */
+#define MF_DESC_ID_B0 0x10       /* mpage descriptor ID, bit 0 */
+#define MF_DESC_ID_B1 0x20
+#define MF_DESC_ID_B2 0x40
+#define MF_DESC_ID_B3 0x80
+#define MF_DESC_ID_MASK 0xf0
+#define MF_DESC_ID_SHIFT 4
 
 /* enumerations for commands */
 #define CMD_READY 1
@@ -165,11 +175,11 @@ extern "C" {
 struct sdparm_opt_coll {
     bool do_all;
     bool dbd;
-    bool defaults;
+    bool defaults;      /* set mode page to its default values */
     bool dummy;
     bool flexible;
     bool inquiry;
-    bool mode_6;
+    bool mode_6;        /* false (default) for Mode Sense or Select(10) */
     bool num_desc;      /* report number of descriptors */
     bool do_raw;        /* -R (usually '-r' but already used) */
     bool read_only;
@@ -188,7 +198,32 @@ struct sdparm_opt_coll {
 /* Instances and arrays of the following templates are mainly found in the
  * sdparm_data.c file. */
 
-/* Template for mode pages that use descriptor format */
+/* Template for mode pages that use descriptor format; forms in use:
+ *                         Fixed descriptor Length
+ *    desc_len            >0                   >0
+ *    num_descs_off      >=0                  >=0
+ *    num_descs_inc      >=0                   -1
+ *    desc_len_off        -1                   -1
+ *    have_desc_id       false                false
+ *    Notes            number of descs    length of descs
+ *                     in mpage           in mpage
+ *    Example            pcd (SAS/SPL)        lbp (SBC)
+ *
+ *
+ *                      Variable descriptor Length
+ *    desc_len            -1                   -1
+ *    num_descs_off      >=0                   -1
+ *    num_descs_inc      >=0                    0
+ *    desc_len_off       >=0                  >-0
+ *    have_desc_id       false                true
+ *    Notes         number of descs and   only length of descs
+ *                  and length in mpage   in mpage
+ *    Example            sep (SAS/SPL)        oobm (SAS/SPL)
+ *
+ * The last one (i.e. have_desc_id=true) is the most complex. It can many
+ * descriptors, one or more of one desc_id and one or more of other another
+ * desc_id. And descriptors with different desc_id_s can have different
+ * lengths and different fields (items).                    */
 struct sdparm_mode_descriptor_t {
     int num_descs_off;    /* byte offset of start of num_descriptors */
     int num_descs_bytes;  /* number of bytes in num_descriptors field */
@@ -201,10 +236,12 @@ struct sdparm_mode_descriptor_t {
     int desc_len_bytes;   /* ... after start of descriptor */
     /* Hence: <desc_len> = deref(base + d_len_off, d_len_bytes) + */
     /*                     d_len_off + d_len_bytes */
+    bool have_desc_id;    /* descriptor has 4 bit ID, byte 0, bits 3 to 0 */
     const char * name;
 };
 
-/* Template for each mode page */
+/* Template for each mode page, array populated in sdparm_data.c for generic
+ * and transport mpages. Vendor mode pages found in sdparm_data_vendor.c . */
 struct sdparm_mode_page_t {
     int page;
     int subpage;
@@ -217,14 +254,7 @@ struct sdparm_mode_page_t {
                     /* non-NULL when mpage has descriptor format */
 };
 
-/* Template for each transport */
-struct sdparm_transport_id_t {
-    int proto_num;
-    const char * acron;
-    const char * name;
-};
-
-/* Template for each VPD page */
+/* Template for each VPD page, array populated in sdparm_data.c */
 struct sdparm_vpd_page_t {
     int vpd_num;
     int subvalue;
@@ -234,18 +264,21 @@ struct sdparm_vpd_page_t {
     const char * name;
 };
 
-/* Template for each mode/VPD page vendor */
+/* Template for each mode/VPD page vendor, array populated in
+ * sdparm_data_vendor.c */
 struct sdparm_vendor_name_t {
     int vendor_id;
     const char * acron;
     const char * name;
 };
 
-/* Template for each mode page field (item) */
+/* Template for each mode page field (item), arrays for generic and each
+ * transport populated in sdparm_data.c . Arrays for vendors populated
+ * in sdparm_data_vendor.c */
 struct sdparm_mode_page_item {
     const char * acron;
-    int page_num;
-    int subpage_num;
+    int pg_num;
+    int subpg_num;
     int pdt;         /* peripheral device type or -1 (default) if not */
                      /* applicable */
     int start_byte;
@@ -256,23 +289,37 @@ struct sdparm_mode_page_item {
     const char * extra;
 };
 
-/* Template for a mode page field (item) and corresponding value */
+/* Command line arguments to --clear, --get= and --set= are parsed into
+ * one or more instances of this structure. On the command line each
+ * has the form: <mitem>[.<d_num>][=<val>]
+ * struct sdparm_mode_page_settings contains an array of these. */
 struct sdparm_mode_page_it_val {
-    struct sdparm_mode_page_item mpi;
-    int64_t val;
-    int64_t orig_val;
-    int descriptor_num;
+    struct sdparm_mode_page_item mpi;   /* holds <mitem> in above form */
+    int64_t val;        /* holds <val> in above form. Defaults to 1 for
+                         * for --set=, and to 0 for --clear= and --get= .
+                         * The <val> for --get= is for output format. */
+    int64_t orig_val;   /* what Mode sense indicates is currently in that
+                         * <mitem>[.<d_num>] . If same, nothing to do */
+    int descriptor_num; /* holds <d_num> in the above form. Defaults to 0
+                         * which indicates the first descriptor. 1 corresponds
+                         * to second descriptor, etc. */
 };
 
-/* Template for multiple mode page field,value pairs for a given mode page */
+/* Instance holds the argument to --clear=, --get= or --set= plus the
+ * mode page number and sub-page number. That argument could be empty, a
+ * single <mitem>[.<d_num>][=<val>] instance or a comma separated list of
+ * them. */
 struct sdparm_mode_page_settings {
-    int page_num;
-    int subpage_num;
+    int pg_num;
+    int subpg_num;
     struct sdparm_mode_page_it_val it_vals[MAX_MP_IT_VAL];
-    int num_it_vals;
+    int num_it_vals;    /* number of active elements in it_vals[] */
 };
 
-/* Template for a transport's mode pages and fields */
+/* Template for a transport's mode pages and fields. Array of these in
+ * sdparm_data.c . Index of array corresponds to SCSI transport protocol id
+ * (which is a number from 0 to 15). Undefined or unsupported entries
+ * contain NULL, NULL. */
 struct sdparm_transport_pair {
     struct sdparm_mode_page_t * mpage;          /* array of transport specific
                                                    mode pages */
@@ -280,13 +327,15 @@ struct sdparm_transport_pair {
                                                    mode page fields (items) */
 };
 
-/* Template for a vendor's mode pages and fields */
+/* Template for a vendor's mode pages and fields. Array of these found in
+ * sdparm_data_vendor.c . */
 struct sdparm_vendor_pair {
     struct sdparm_mode_page_t * mpage;
     struct sdparm_mode_page_item * mitem;
 };
 
-/* Template for a simple SCSI command supported by sdparm */
+/* Template for a simple SCSI command supported by sdparm. Array of them
+ * found in sdparm_data.c */
 struct sdparm_command_t {
     int cmd_num;
     const char * name;
@@ -302,7 +351,8 @@ struct sdparm_val_desc_t {
 
 extern struct sdparm_mode_page_t sdparm_gen_mode_pg[];
 extern struct sdparm_vpd_page_t sdparm_vpd_pg[];
-extern struct sdparm_transport_id_t sdparm_transport_id[];
+extern struct sdparm_val_desc_t sdparm_transport_id[];
+extern struct sdparm_val_desc_t sdparm_add_transport_acron[];
 extern struct sdparm_transport_pair sdparm_transport_mp[];
 extern struct sdparm_vendor_name_t sdparm_vendor_id[];
 extern struct sdparm_vendor_pair sdparm_vendor_mp[];
@@ -316,20 +366,20 @@ extern const char * sdparm_network_service_type_arr[];
 extern const char * sdparm_mode_page_policy_arr[];
 
 
-int sdp_get_mp_len(unsigned char * mp);
-const struct sdparm_mode_page_t * sdp_get_mode_detail(int page_num,
+int sdp_mpage_len(const unsigned char * mp);    /* page, not MS response */
+const struct sdparm_mode_page_t * sdp_get_mpage(int page_num,
                 int subpage_num, int pdt, int transp_proto, int vendor_num);
-const struct sdparm_mode_page_t * sdp_get_mpage_name(int page_num,
+const struct sdparm_mode_page_t * sdp_get_mp_with_str(int page_num,
                 int subpage_num, int pdt, int transp_proto, int vendor_num,
-                bool plus_acron, bool hex, char * bp, int max_b_len);
+                bool plus_acron, bool hex, int max_b_len, char * bp);
 const struct sdparm_mode_page_t * sdp_find_mp_by_acron(const char * ap,
                 int transp_proto, int vendor_num);
 const struct sdparm_vpd_page_t * sdp_get_vpd_detail(int page_num,
                 int subvalue, int pdt);
 const struct sdparm_vpd_page_t * sdp_find_vpd_by_acron(const char * ap);
-const char * sdp_get_transport_name(int proto_num);
-const struct sdparm_transport_id_t * sdp_find_transport_by_acron(
-                const char * ap);
+char * sdp_get_transport_name(int proto_num, int b_len, char * b);
+/* sdp_find_transport_id_by_acron() returns -1 for not found */
+int sdp_find_transport_id_by_acron(const char * ap);
 const char * sdp_get_vendor_name(int vendor_num);
 const struct sdparm_vendor_name_t * sdp_find_vendor_by_acron(const char * ap);
 const struct sdparm_vendor_pair * sdp_get_vendor_pair(int vendor_num);
@@ -339,13 +389,15 @@ uint64_t sdp_get_big_endian(const unsigned char * from, int start_bit,
                            int num_bits);
 void sdp_set_big_endian(uint64_t val, unsigned char * to, int start_bit,
                         int num_bits);
-uint64_t sdp_mp_get_value(const struct sdparm_mode_page_item *mpi,
-                          const unsigned char * mp);
-uint64_t sdp_mp_get_value_check(const struct sdparm_mode_page_item *mpi,
-                                const unsigned char * mp, bool * all_set);
-void sdp_mp_set_value(uint64_t val, const struct sdparm_mode_page_item *mpi,
-                      unsigned char * mp);
+uint64_t sdp_mitem_get_value(const struct sdparm_mode_page_item *mpi,
+                             const unsigned char * mp);
+uint64_t sdp_mitem_get_value_check(const struct sdparm_mode_page_item *mpi,
+                                   const unsigned char * mp, bool * all_setp);
+void sdp_print_signed_decimal(uint64_t u, int num_bits, bool leading_zeros);
+void sdp_mitem_set_value(uint64_t val, const struct sdparm_mode_page_item *mpi,
+                         unsigned char * mp);
 char * sdp_get_ansi_version_str(int version, int buff_len, char * buff);
+int sdp_get_desc_id(int flags);
 int sdp_strcase_eq(const char * s1p, const char * s2p);
 int sdp_strcase_eq_upto(const char * s1p, const char * s2p, int n);
 
