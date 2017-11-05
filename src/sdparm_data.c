@@ -287,9 +287,11 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
      "identification, target port only"},
     {VPD_DEVICE_ID, VPD_DI_SEL_TARGET, -1, "di_target", "Device "
      "identification, target device only"},
-    {VPD_EXT_INQ, 0, -1, "ei", "Extended inquiry data"},
     {VPD_DTDE_ADDRESS, 0, 1, "dtde",
      "Data transfer device element address (SSC)"},
+    {VPD_EXT_INQ, 0, -1, "ei", "Extended inquiry data"},
+    {VPD_ES_DEV_CHARS, 0, PDT_SES, "esdc",
+     "Enclosure services device characteristics"},
     {VPD_IMP_OP_DEF, 0, -1, "iod",
      "Implemented operating definition (obs)"},
     {VPD_LB_PROTECTION, 0, PDT_TAPE, "lbpro", "Logical block protection "
