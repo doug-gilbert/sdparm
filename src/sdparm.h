@@ -112,6 +112,7 @@ extern "C" {
 #define VPD_BLOCK_DEV_CHARS 0xb1        /* SBC-3 */
 #define VPD_MAN_ASS_SN 0xb1             /* SSC-3, ADC-2 */
 #define VPD_SECURITY_TOKEN 0xb1         /* OSD */
+#define VPD_ES_DEV_CHARS 0xb1           /* SES-4 */
 #define VPD_TA_SUPPORTED 0xb2           /* SSC-3 */
 #define VPD_LB_PROVISIONING 0xb2        /* SBC-3 */
 #define VPD_REFERRALS 0xb3              /* SBC-3 */
