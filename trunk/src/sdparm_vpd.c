@@ -1381,7 +1381,7 @@ decode_block_dev_chars_vpd(unsigned char * buff, int len)
     unsigned int u, k;
 
     if (len < 64) {
-        pr2serr("Block device capabilities VPD page length too short=%d\n",
+        pr2serr("Block device characteristics VPD page length too short=%d\n",
                 len);
         return SG_LIB_CAT_MALFORMED;
     }
@@ -1462,6 +1462,27 @@ decode_tape_man_ass_sn_vpd(unsigned char * buff, int len)
     }
     printf("  Manufacturer-assigned serial number: %.*s\n",
                    len - 4, buff + 4);
+    return 0;
+}
+
+/* VPD_ES_DEV_CHARS  0xb1 */
+static int
+decode_es_dev_chars_vpd(unsigned char * buff, int len)
+{
+    if (len < 8) {
+        pr2serr("Enclosure services device characteristics VPD page length "
+                "too short=%d\n", len);
+        return SG_LIB_CAT_MALFORMED;
+    }
+    printf("  SESDNLD=%d\n", !! (0x2 & buff[4]));
+    printf("  SPCDNLD=%d\n", !! (0x1 & buff[4]));
+    printf("  DMAS=%d\n", !! (0x80 & buff[6]));
+    printf("  DMSAS=%d\n", !! (0x40 & buff[6]));
+    printf("  DMOAS=%d\n", !! (0x20 & buff[6]));
+    printf("  DMOSAS=%d\n", !! (0x10 & buff[6]));
+    printf("  DMOSASDS=%d\n", !! (0x8 & buff[6]));
+    printf("  DMOSDS=%d\n", !! (0x4 & buff[6]));
+    printf("  ADMS=%d\n", !! (0x1 & buff[6]));
     return 0;
 }
 
@@ -1843,6 +1864,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     bool adc = false;
     bool sbc = false;
     bool ssc = false;
+    bool ses = false;
     int res, len, k, verb, dev_pdt, pdt, sz, hex_format;
     int resid = 0;
     unsigned char * up;
@@ -2324,11 +2346,15 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             break;
         case PDT_OSD:
             vpd_name = "Security token (OSD)";
-            /* osd = 1; */
+            /* osd = true; */
             break;
         case PDT_ADC:
             vpd_name = "Manufactured assigned serial number (ADC)";
             adc = true;
+            break;
+        case PDT_SES:
+            vpd_name = "Enclosure services device characteristics (SES-4)";
+            ses = true;
             break;
         default:
             vpd_name = "unexpected pdt for B1h";
@@ -2352,6 +2378,8 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             res = decode_tape_man_ass_sn_vpd(b, len + 4);
         else if (sbc)
             res = decode_block_dev_chars_vpd(b, len + 4);
+        else if (ses)
+            res = decode_es_dev_chars_vpd(b, len + 4);
         else
             dStrHex((const char *)b, len + 4, 0);
         if (res)
