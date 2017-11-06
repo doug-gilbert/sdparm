@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.12 [20171104] [svn: r299]
+ChangeLog for sdparm-1.11 [20171105] [svn: r300]
   - add Out of band management control mpage (spl5r01)
   - accept additional tansport acronyms (e.g. ib for srp)
   - power condition mpage: rename fields IDLE->IDLE_A;

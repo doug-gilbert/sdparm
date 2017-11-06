@@ -1,26 +1,26 @@
 Introduction
 ------------
 sdparm is a utility for listing and potentially changing SCSI disk
-parameters. More generally it can be used on any device that uses
-a SCSI command set. Apart form SCSI disks, examples of devices that
-use SCSI command sets are ATAPI CD/DVD drives, SCSI and ATAPI tape
-drives and SCSI enclosures.
+parameters. More generally it can be used on any device that uses a SCSI
+command set. Apart form SCSI disks, examples of devices that use SCSI command
+sets are ATAPI CD/DVD drives, SCSI and ATAPI tape drives and SCSI enclosures.
 
-This utility was originally written for Linux. It has been ported
-to FreeBSD, Solaris, Tru64, and Windows.
+This utility was originally written for Linux. It has been ported to FreeBSD,
+Solaris, Tru64, and Windows.
 
 Relationship to sg3_utils
 -------------------------
-This package shares code with sg3_utils (version 1.33). With the subversion
-revision control system this is done by having sdparm's "include/" and "lib/"
-subdirectories pointing to the correspondingly named directories in the
-sg3_utils package using the "svn:externals" property. These two "external"
-directories include more files than sdparm uses. The excess files include
-"lib/Makefile.am" and "lib/Makefile.in". The "Makefile.am" in sdparm's "src/"
-directory does the main part of the build. When the tarball is generated for
-this utility, various files are "exported" out of the subversion repository
-and "svn:externals" redirection is no longer visible (but the unused files
-are visible).
+Starting with sdparm version 1.02 this package shares code with sg3_utils
+(start with sg3_utils version 1.25). With the subversion revision control
+system this is done by having sdparm's "include/" and "lib/" subdirectories
+pointing to the correspondingly named directories in the sg3_utils package
+using the "svn:externals" property. These two "external" directories include
+more files than sdparm uses. The excess files include "lib/Makefile.am" and
+"lib/Makefile.in". The "Makefile.am" in sdparm's "src/" directory does the
+main part of the build. When the tarball is generated for this utility,
+various files are "exported" out of the subversion repository and
+"svn:externals" redirection is no longer visible (but the unused files are
+visible).
 
 The sdparm executable may or may not be built depending on the libsgutils
 (shared) library. Currently the ./configure rules are looking for a library
@@ -44,7 +44,7 @@ There is a web page about this utility at http://sg.danny.cz/sg/sdparm.html .
 
 Build infrastructure
 --------------------
-This packages uses the automake and autoconf tools. The generating files
+This package uses the automake and autoconf tools. The generating files
 (scripts) are configure.ac, Makefile.am, src/Makefile.am and autogen.sh .
 The autogen.sh script only needs to be executed if one of the other generating
 files in the above list is changed.
@@ -246,7 +246,7 @@ SCSI0:0,0,0   claimed=1 pdt=0h  FUJITSU   MHY2160BH         0000
 SCSI1:0,0,0   claimed=1 pdt=5h  MATSHITA  DVD/CDRW UJDA775  CB03
 
 And finally here is a more interesting example showing disks with no
-Windows (2000) volumes, a tape drive and a wierd unclaimed SCSI
+Windows (2000) volumes, a tape drive and a weird unclaimed SCSI
 pseudo device with BCC (Bridge Controller Commands) peripheral device
 type.
  $ sdparm -www
@@ -267,4 +267,4 @@ SCSI5:0,112,0 claimed=0 pdt=10h         LSI       PSEUDO DEVICE     2.34
 
 
 Douglas Gilbert
-24th February 2016
+5th November 2017
