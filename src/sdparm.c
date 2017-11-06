@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20171104 [svn: r299]";
+static const char * version_str = "1.11 20171105 [svn: r300]";
 
 
 #define MAX_DEV_NAMES 256
@@ -1859,7 +1859,7 @@ change_mode_page(int sg_fd, int pdt,
     }
 
     if ((! (mdpg[off] & 0x80)) && op->save) {
-        pr2serr("%s: mode page indicates it is not savable but\n"
+        pr2serr("%s: mode page indicates it is not saveable but\n"
                 "    '--save' option given (try without it)\n", __func__);
         return SG_LIB_CAT_MALFORMED;
     }
