@@ -6,10 +6,11 @@ bin_PROGRAMS = sdparm
 ## CC = clang
 ## CC = clang++
 
-# -std=<s> can be c99, c11, gnu11, etc. Default is gnu89 (gnu90 is the same)
-AM_CFLAGS = -iquote $(top_srcdir)/include -Wall -W @os_cflags@
-# AM_CFLAGS = -iquote $(top_srcdir)/include -Wall -W @os_cflags@ -pedantic -std=c11
-# AM_CFLAGS = -iquote $(top_srcdir)/include -Wall -W @os_cflags@ -pedantic -std=c++14
+# -std=<s> can be c99, c11, gnu11, etc. Default is gnu11
+AM_CPPFLAGS = -iquote ${top_srcdir}/include
+AM_CFLAGS = -Wall -W 
+# AM_CFLAGS = -Wall -W -pedantic -std=c11
+# AM_CFLAGS = -Wall -W -pedantic -std=c++14
 
 sdparm_SOURCES =	sdparm.c	\
 			sdparm.h	\
@@ -43,12 +44,12 @@ sglib_SOURCES =		../lib/sg_lib.c \
 
 if HAVE_SGUTILS
 INCLUDES = -I/scsi
-sdparm_LDADD = @GETOPT_O_FILES@ @os_libs@ @SGUTILS_LIBS@
+sdparm_LDADD = @GETOPT_O_FILES@ @SGUTILS_LIBS@
 sdparm_DEPENDENCIES = @GETOPT_O_FILES@
 else
 INCLUDES = -I$(top_srcdir)/include
 sdparm_SOURCES += $(sglib_SOURCES)
-sdparm_LDADD = @os_deps@ @GETOPT_O_FILES@ @os_libs@ @SGUTILS_LIBS@
+sdparm_LDADD = @os_deps@ @GETOPT_O_FILES@ @SGUTILS_LIBS@
 sdparm_DEPENDENCIES = @os_deps@ @GETOPT_O_FILES@
 endif
 
