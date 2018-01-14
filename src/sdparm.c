@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20171105 [svn: r300]";
+static const char * version_str = "1.11 20171209 [svn: r301]";
 
 
 #define MAX_DEV_NAMES 256
@@ -130,15 +130,15 @@ static const char * ms_s = "MODE SENSE";
 static void
 usage(int do_help)
 {
-    if (1 != do_help)
-        goto secondary_help;
-    pr2serr("Usage: sdparm [--all] [--dbd] [--flexible] [--get=STR] [--hex] "
+    if (do_help < 2) {
+        pr2serr(
+            "Usage: sdparm [--all] [--dbd] [--flexible] [--get=STR] [--hex] "
             "[--long]\n"
             "              [--num-desc] [--page=PG[,SPG]] [--quiet] "
             "[--readonly]\n"
             "              [--six] [--transport=TN] [--vendor=VN] "
             "[--verbose]\n"
-            "              DEVICE [DEVICE...]\n"
+            "              DEVICE [DEVICE...]\n\n"
             "       sdparm [--clear=STR] [--defaults] [--dummy] "
             "[--flexible]\n"
             "              [--page=PG[,SPG]] [--quiet] [--readonly] "
@@ -146,6 +146,49 @@ usage(int do_help)
             "              [--six] [--transport=TN] [--vendor=VN] "
             "[--verbose]\n"
             "              DEVICE [DEVICE...]\n\n"
+              );
+        if (do_help < 1) {
+            pr2serr(
+                "       sdparm --command=CMD [--hex] [--long] [--readonly] "
+                "[--verbose]\n"
+                "              DEVICE [DEVICE...]\n\n"
+                "       sdparm --inquiry [--all] [--flexible] [--hex] "
+                "[--num-desc]\n"
+                "              [--page=PG[,SPG]] [--quiet] [--read‐only] "
+                "[--transport=TN]\n"
+                "              [--vendor=VN] [--verbose] DEVICE "
+                "[DEVICE...]\n\n"
+                "       sdparm --enumerate [--all] [--inquiry] [--long] "
+                "[--page=PG[,SPG]]\n"
+                "              [--transport=TN] [--vendor=VN]\n\n"
+                "       sdparm --inhex=FN [--all] [--flexible] [--hex] "
+                "[--inquiry] [--long]\n"
+                "              [--pdt=DT]  [--raw]  [--six] [--transport=TN] "
+                "[--vendor=VN]\n"
+                "              [--verbose]\n\n"
+                "Or the corresponding short option usage: \n"
+                "  sdparm [-a] [-B] [-f] [-g STR] [-H] [-l] [-n] "
+                "[-p PG[,SPG]] [-q] [-r]\n"
+                "         [-6] [-t TN] [-M VN] [-v] DEVICE [DEVICE...]\n"
+                "\n"
+                "  sdparm [-c STR] [-D] [-d] [-f] [-p PG[,SPG]] [-q] [-S] "
+                "[-s STR] [-6] [-t TN]\n"
+                "         [-M VN] [-v] DEVICE [DEVICE...]\n"
+                "\n"
+                "  sdparm -c CMD [-H] [-l] [-r] [-v] DEVICE [DEVICE...]\n"
+                "\n"
+                "  sdparm -i [-a] [-f] [-H] [-n] [-p PG[,SPG]] [-q] [-r] "
+                "[-t TN] [-M VN] [-v]\n"
+                "         DEVICE [DEVICE...]\n"
+                "\n"
+                "  sdparm -e [-a] [-i] [-l] [-p PG[,SPG]] [-t TN] [-M VN]\n"
+                "\n"
+                "  sdparm -I FN [-a] [-f] [-H] [-i] [-l] [-P PDT] [-R] [-6] [-t TN] [-M VN] [-v]\n"
+                   );
+            pr2serr("\nFor help use '-h' one or more times\n");
+            return;
+        }
+        pr2serr(
             "  where mode page read (1st usage) and change (2nd usage) "
             "options are:\n"
             "    --all | -a            list all known fields for given "
@@ -191,9 +234,8 @@ usage(int do_help)
             "decoding response data supplied in a\nfile or stdin (rather "
             "than from a DEVICE).\n"
            );
-    return;
-secondary_help:
-    pr2serr("Further usages of the sdparm utility:\n"
+    } else {
+        pr2serr("Further usages of the sdparm utility:\n"
             "       sdparm --command=CMD [-hex] [--long] [--readonly] "
             "[--verbose]\n"
             "              DEVICE [DEVICE...]\n"
@@ -201,7 +243,7 @@ secondary_help:
             "              [--page=PG[,SPG]] [--quiet] [--readonly] "
             "[--transport=TN]\n"
             "              [--vendor=VN] [--verbose] DEVICE [DEVICE...]\n");
-    pr2serr("       sdparm --enumerate [--all] [--inquiry] [--long] "
+        pr2serr("       sdparm --enumerate [--all] [--inquiry] [--long] "
             "[--page=PG[,SPG]]\n"
             "              [--transport=TN] [--vendor=VN]\n"
             "       sdparm --inhex=FN [--all] [--flexible] [--hex] "
@@ -239,6 +281,7 @@ secondary_help:
             "'--wscan' form is for listing Windows\ndevices and is only "
             "available on Windows machines.\n"
            );
+    }
 }
 
 /* Read ASCII hex bytes or binary from fname (a file named '-' taken as
@@ -2488,9 +2531,12 @@ main(int argc, char * argv[])
             get_str = optarg;
             break;
         case 'h':
-        case '?':
             ++do_help;
             break;
+        case '?':
+            pr2serr("\n");
+            usage((do_help > 0) ? do_help : 0);
+            return SG_LIB_SYNTAX_ERROR;
         case 'H':
             ++op->do_hex;
             break;
@@ -2537,7 +2583,7 @@ main(int argc, char * argv[])
         case 'p':
             if (page_str) {
                 pr2serr("only one '--page=' option permitted\n");
-                usage(1);
+                usage((do_help > 0) ? do_help : 0);
                 return SG_LIB_SYNTAX_ERROR;
             } else
                 page_str = optarg;
@@ -2602,7 +2648,7 @@ main(int argc, char * argv[])
 #endif
         default:
             pr2serr("unrecognised option code 0x%x ??\n", c);
-            usage(1);
+            usage((do_help > 0) ? do_help : 0);
             return SG_LIB_SYNTAX_ERROR;
         }
     }
@@ -2613,12 +2659,12 @@ main(int argc, char * argv[])
         } else {
             for (; optind < argc; ++optind)
                 pr2serr("Unexpected extra argument: %s\n", argv[optind]);
-            usage(1);
+            usage((do_help > 0) ? do_help : 0);
             return SG_LIB_SYNTAX_ERROR;
         }
     }
 
-    if (do_help) {
+    if (do_help > 0) {
         usage(do_help);
         return 0;
     }
@@ -2942,7 +2988,10 @@ main(int argc, char * argv[])
 
     if (0 == num_devices) {
         pr2serr("one or more device names required\n");
-        usage(1);
+        if (! op->do_quiet) {
+            pr2serr("\n");
+            usage((do_help > 0) ? do_help : 0);
+        }
         return SG_LIB_SYNTAX_ERROR;
     }
 
@@ -3139,3 +3188,5 @@ map_if_lk24(int sg_fd, const char * device_name, bool rw, int verbose)
 }
 
 #endif  /* SG_LIB_LINUX */
+
+

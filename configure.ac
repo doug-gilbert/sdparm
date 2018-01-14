@@ -8,6 +8,7 @@ AC_PROG_CC
 # AC_PROG_CXX
 AC_PROG_INSTALL
 
+
 # check for headers
 AC_HEADER_STDC
 AC_CHECK_HEADERS([linux/types.h linux/bsg.h linux/kdev_t.h], [], [],
@@ -19,6 +20,10 @@ AC_CHECK_HEADERS([linux/types.h linux/bsg.h linux/kdev_t.h], [], [],
 AC_CHECK_FUNCS(getopt_long,
 	       GETOPT_O_FILES='',
 	       GETOPT_O_FILES='getopt_long.o')
+AC_CHECK_FUNCS(posix_fadvise)
+AC_CHECK_FUNCS(posix_memalign)
+AC_CHECK_FUNCS(sysconf)
+AC_CHECK_FUNCS(lseek64)
 AC_SUBST(GETOPT_O_FILES)
 
 AC_CANONICAL_HOST
@@ -27,12 +32,12 @@ AC_DEFINE_UNQUOTED(SG_LIB_BUILD_HOST, "${host}", [sdparm Build Host])
 
 case "${host}" in
         *-*-linux-gnu*)
-                AC_SUBST([os_deps], ['sg_pt_linux.o'])
+                AC_SUBST([os_deps], ['sg_pt_linux.o sg_pt_linux_nvme.o'])
 		AC_DEFINE_UNQUOTED(SG_LIB_LINUX, 1, [sdparm on linux])
 		AC_SUBST([os_cflags], [''])
                 AC_SUBST([os_libs], ['']) ;;
         *-*-linux*)
-                AC_SUBST([os_deps], ['sg_pt_linux.o'])
+                AC_SUBST([os_deps], ['sg_pt_linux.o sg_pt_linux_nvme.o'])
 		AC_DEFINE_UNQUOTED(SG_LIB_LINUX, 1, [sdparm on linux])
 		AC_SUBST([os_cflags], [''])
                 AC_SUBST([os_libs], ['']) ;;
@@ -65,7 +70,7 @@ case "${host}" in
 		AC_SUBST([os_cflags], [''])
                 AC_SUBST([os_libs], ['']) ;;
         *)
-                AC_SUBST([os_deps], ['sg_pt_linux.o'])
+                AC_SUBST([os_deps], ['sg_pt_linux.o sg_pt_linux_nvme.o'])
 		AC_DEFINE_UNQUOTED(SG_LIB_LINUX, 1, [assume sdparm on linux])
 		AC_SUBST([os_cflags], [''])
                 AC_SUBST([os_libs], ['']) ;;
@@ -98,3 +103,5 @@ AC_ARG_ENABLE([scsistrings],
 
 # AC_PROG_LIBTOOL
 AC_OUTPUT(Makefile src/Makefile doc/Makefile scripts/Makefile)
+
+

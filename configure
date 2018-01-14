@@ -3745,6 +3745,7 @@ fi
 # AC_PROG_CXX
 
 
+
 # check for headers
 
 ac_ext=c
@@ -4158,6 +4159,50 @@ else
 fi
 done
 
+for ac_func in posix_fadvise
+do :
+  ac_fn_c_check_func "$LINENO" "posix_fadvise" "ac_cv_func_posix_fadvise"
+if test "x$ac_cv_func_posix_fadvise" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_POSIX_FADVISE 1
+_ACEOF
+
+fi
+done
+
+for ac_func in posix_memalign
+do :
+  ac_fn_c_check_func "$LINENO" "posix_memalign" "ac_cv_func_posix_memalign"
+if test "x$ac_cv_func_posix_memalign" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_POSIX_MEMALIGN 1
+_ACEOF
+
+fi
+done
+
+for ac_func in sysconf
+do :
+  ac_fn_c_check_func "$LINENO" "sysconf" "ac_cv_func_sysconf"
+if test "x$ac_cv_func_sysconf" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_SYSCONF 1
+_ACEOF
+
+fi
+done
+
+for ac_func in lseek64
+do :
+  ac_fn_c_check_func "$LINENO" "lseek64" "ac_cv_func_lseek64"
+if test "x$ac_cv_func_lseek64" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LSEEK64 1
+_ACEOF
+
+fi
+done
+
 
 
 # Make sure we can run config.sub.
@@ -4240,7 +4285,7 @@ _ACEOF
 
 case "${host}" in
         *-*-linux-gnu*)
-                os_deps='sg_pt_linux.o'
+                os_deps='sg_pt_linux.o sg_pt_linux_nvme.o'
 
 
 cat >>confdefs.h <<_ACEOF
@@ -4252,7 +4297,7 @@ _ACEOF
                 os_libs=''
  ;;
         *-*-linux*)
-                os_deps='sg_pt_linux.o'
+                os_deps='sg_pt_linux.o sg_pt_linux_nvme.o'
 
 
 cat >>confdefs.h <<_ACEOF
@@ -4339,7 +4384,7 @@ _ACEOF
                 os_libs=''
  ;;
         *)
-                os_deps='sg_pt_linux.o'
+                os_deps='sg_pt_linux.o sg_pt_linux_nvme.o'
 
 
 cat >>confdefs.h <<_ACEOF
@@ -5972,4 +6017,6 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unrecognized options: $ac_unrecognized_opts" >&5
 $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
+
+
 

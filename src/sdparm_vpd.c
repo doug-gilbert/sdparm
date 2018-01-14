@@ -205,7 +205,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
             break;
         case 9: /* Protocol specific port identifier */
             break;
-        case 0xa: /* UUID identifier */
+        case 0xa: /* UUID identifier [spc5r08] RFC 4122 */
             if ((1 != c_set) || (18 != i_len) || (1 != ((ip[0] >> 4) & 0xf)))
                 break;
             for (m = 0; m < 16; ++m) {
@@ -2628,3 +2628,5 @@ dumb_inq:
     pr2serr("malformed VPD response, VPD pages probably not supported\n");
     return SG_LIB_CAT_MALFORMED;
 }
+
+

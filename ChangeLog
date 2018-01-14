@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.11 [20171105] [svn: r300]
+ChangeLog for sdparm-1.11 [20171209] [svn: r301]
   - add Out of band management control mpage (spl5r01)
   - accept additional tansport acronyms (e.g. ib for srp)
   - power condition mpage: rename fields IDLE->IDLE_A;
@@ -19,7 +19,7 @@ ChangeLog for sdparm-1.11 [20171105] [svn: r300]
       to extended inquiry vpd page (spc5r17)
   - command=capacity with --long force read capacity(16)
     with full reporting of response
-  - point svn:externals to rev 730 of sg3_utils
+  - point svn:externals to rev 736 of sg3_utils
   - convert many two valued 'int's to bool
   - shellcheck corrections on scripts
   - upgrade automake to version 1.15 (U16.04)
@@ -355,3 +355,5 @@ ChangeLog for sdparm-0.91 [20050506]
 
 ChangeLog for sdparm-0.90 [20050418]
   - initial version
+
+

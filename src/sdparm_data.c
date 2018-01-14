@@ -1758,11 +1758,13 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"EN_PA", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 27, 1, 1, 0,
         "Enable partial phy power condition", NULL},
     {"HMS", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 27, 0, 1, 0,
-        "Hardware muxing supported", NULL},
+        "Hardware muxing supported", NULL},     /* obsolete spl5r01 */
 
     /* SPL-5 Out of band management control mode page [0x19,0x4] sas/spl */
+    /* SFF-8609 related: Management Interface for drive thermal conditions */
     {"OOB_RE", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 4, 7, 1, 0,
-        "Out of band reporting enabled", NULL},
+        "Out of band reporting enabled", "MSelect 1->0: send stopping "
+        "transmission packet\t0->1: send protocol revision code packet"},
     {"OOB_PRV", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 6, 7, 16, MF_HEX,
         "Out of band protocol revision code",
         "example: SFF-8609 revison 1.2 is code 0x102"},
@@ -1909,3 +1911,5 @@ struct sdparm_val_desc_t sdparm_profile_arr[] = {
         {0xffff, "Non-conforming profile"},
         {-1, NULL},
 };
+
+

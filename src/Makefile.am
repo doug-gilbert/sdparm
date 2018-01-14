@@ -38,6 +38,7 @@ sglib_SOURCES =		../lib/sg_lib.c \
 			../lib/sg_cmds_mmc.c	\
 			../include/sg_cmds_mmc.h	\
 			../include/sg_pt.h	\
+			../include/sg_pt_nvme.h	\
 			../lib/sg_pt_common.c
 
 if HAVE_SGUTILS
@@ -52,6 +53,8 @@ sdparm_DEPENDENCIES = @os_deps@ @GETOPT_O_FILES@
 endif
 
 EXTRA_sdparm_SOURCES =	../lib/sg_pt_linux.c	\
+			../lib/sg_pt_linux_nvme.c	\
+			../include/sg_pt_linux.h	\
 			../include/sg_linux_inc.h	\
 			../lib/sg_pt_freebsd.c	\
 			../lib/sg_pt_osf1.c	\
@@ -60,3 +63,5 @@ EXTRA_sdparm_SOURCES =	../lib/sg_pt_linux.c	\
 			../include/sg_pt_win32.h	\
 			getopt_long.c	\
 			port_getopt.h
+
+
