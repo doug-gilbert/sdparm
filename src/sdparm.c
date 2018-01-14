@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20171209 [svn: r301]";
+static const char * version_str = "1.11 20171231 [svn: r302]";
 
 
 #define MAX_DEV_NAMES 256
@@ -183,7 +183,8 @@ usage(int do_help)
                 "\n"
                 "  sdparm -e [-a] [-i] [-l] [-p PG[,SPG]] [-t TN] [-M VN]\n"
                 "\n"
-                "  sdparm -I FN [-a] [-f] [-H] [-i] [-l] [-P PDT] [-R] [-6] [-t TN] [-M VN] [-v]\n"
+                "  sdparm -I FN [-a] [-f] [-H] [-i] [-l] [-P PDT] [-R] [-6] "
+                "[-t TN] [-M VN] [-v]\n"
                    );
             pr2serr("\nFor help use '-h' one or more times\n");
             return;
@@ -939,7 +940,7 @@ print_mitem_desc_after1(void ** pc_arr, int rep_len,
     if (have_desc_id) {
         if (desc_len1 <= 0) {
             pr2serr("%s: desc_id logic fails for acron: %s\n", __func__,
-                    mpi->acron ? mpi->acron : "??");
+                    fdesc_mpi->acron ? fdesc_mpi->acron : "??");
             return;
         }
         len = desc_len1;
