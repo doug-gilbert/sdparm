@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007-2017 Douglas Gilbert.
+ * Copyright (c) 2007-2018 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,11 @@
  */
 
 #include <stdlib.h>
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "sg_lib.h"
 #include "sdparm.h"
 
@@ -374,3 +379,5 @@ struct sdparm_vendor_pair sdparm_vendor_mp[] = {
 
 int sdparm_vendor_mp_len =
         sizeof(sdparm_vendor_mp) / sizeof(sdparm_vendor_mp[0]);
+
+

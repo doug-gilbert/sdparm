@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2017 Douglas Gilbert.
+ * Copyright (c) 2006-2018 Douglas Gilbert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -516,6 +516,9 @@ enum_pds(void)
             CloseHandle(fh);
         } else {
             err = GetLastError();
+            if ((0 == k) && (ERROR_ACCESS_DENIED == err))
+                pr2serr("Access denied on %s, may need Administrator\n",
+                        adapter_name);
             if (ERROR_SHARING_VIOLATION == err)
                 pr2serr("%s: in use by other process (sharing violation "
                         "[34])\n", adapter_name);
@@ -718,3 +721,5 @@ sg_do_wscan(char letter, int do_scan, int verb)
     }
     return ret;
 }
+
+

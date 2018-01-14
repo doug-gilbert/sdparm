@@ -3,11 +3,17 @@
 /* Define to 1 if you have the `getopt_long' function. */
 #undef HAVE_GETOPT_LONG
 
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
 /* Define to 1 if you have the <linux/bsg.h> header file. */
 #undef HAVE_LINUX_BSG_H
 
 /* Define to 1 if you have the <linux/kdev_t.h> header file. */
 #undef HAVE_LINUX_KDEV_T_H
+
+/* Define to 1 if you have the <linux/nvme_ioctl.h> header file. */
+#undef HAVE_LINUX_NVME_IOCTL_H
 
 /* Define to 1 if you have the <linux/types.h> header file. */
 #undef HAVE_LINUX_TYPES_H
@@ -15,17 +21,47 @@
 /* Define to 1 if you have the `lseek64' function. */
 #undef HAVE_LSEEK64
 
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
+/* Found NVMe */
+#undef HAVE_NVME
+
 /* Define to 1 if you have the `posix_fadvise' function. */
 #undef HAVE_POSIX_FADVISE
 
 /* Define to 1 if you have the `posix_memalign' function. */
 #undef HAVE_POSIX_MEMALIGN
 
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
 /* Define to 1 if you have the `sysconf' function. */
 #undef HAVE_SYSCONF
 
-/* ignore linux bsg */
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* option ignored */
 #undef IGNORE_LINUX_BSG
+
+/* compile out NVMe support */
+#undef IGNORE_NVME
 
 /* Name of package */
 #undef PACKAGE
@@ -48,13 +84,16 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* sdparm on android */
+#undef SG_LIB_ANDROID
+
 /* sdparm Build Host */
 #undef SG_LIB_BUILD_HOST
 
 /* sdparm on FreeBSD */
 #undef SG_LIB_FREEBSD
 
-/* assume sdparm on linux */
+/* sdparm on linux */
 #undef SG_LIB_LINUX
 
 /* also MinGW environment */
@@ -77,8 +116,5 @@
 
 /* Version number of package */
 #undef VERSION
-
-/* allow large buffers, aligned? */
-#undef WIN32_SPT_DIRECT
 
 
