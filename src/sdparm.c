@@ -1,40 +1,40 @@
 /*
- * Copyright (c) 2005-2018 Douglas Gilbert.
+ * Copyright (c) 2005-2018, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. The name of the author may not be used to endorse or promote products
- *    derived from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /*
  * sdparm is a utility program for getting and setting parameters on devices
  * that use one of the SCSI command sets. In some cases commands can be sent
- * to the device (e.g. eject removable media).
+ * to the device (e.g. eject removable media). The parameters are usually
+ * arranged into pages. The pages are know as 'mode pages' (for parameters
+ * that may be altered) and 'Vital Product Data (VPD) pages (for parameters
+ * that seldom, if ever, change). Each page contains parameters that are
+ * logically similar (e.g. the Caching mode page contains both the Write
+ * Cache Enable (WCE) and Read Cache Disable (RCD) parameters).
  *
- * Note that some devices, such as CD/DVD drives, use a SCSI command set
- * (i.e. MMC-4 and SPC-3) but are not normally categorized as "SCSI" since
- * most use the packet interface over the ATA transport (ATAPI).
+ *
  */
 
 #include <unistd.h>
@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20180113 [svn: r303]";
+static const char * version_str = "1.11 20180209 [svn: r304]";
 
 
 #define MAX_DEV_NAMES 256
@@ -1230,18 +1230,18 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                         pg_len = sizeof(cur_mp);
                     }
                     printf("    Current:\n");
-                    dStrHex((const char *)cur_mp, pg_len, 1);
+                    hex2stdout(cur_mp, pg_len, 1);
                     if (smask & 2) {
                         printf("    Changeable:\n");
-                        dStrHex((const char *)cha_mp, pg_len, 1);
+                        hex2stdout(cha_mp, pg_len, 1);
                     }
                     if (smask & 4) {
                         printf("    Default:\n");
-                        dStrHex((const char *)def_mp, pg_len, 1);
+                        hex2stdout(def_mp, pg_len, 1);
                     }
                     if (smask & 8) {
                         printf("    Saved:\n");
-                        dStrHex((const char *)sav_mp, pg_len, 1);
+                        hex2stdout(sav_mp, pg_len, 1);
                     }
                 }
             } else {    /* no (smask & 1), problem */
@@ -1910,7 +1910,7 @@ change_mode_page(int sg_fd, int pdt,
     mdpg[off] &= 0x7f;   /* mask out PS bit, reserved in mode select */
     if (op->dummy) {
         pr2serr("Mode data that would have been written:\n");
-        dStrHexErr((const char *)mdpg, md_len, 1);
+        hex2stderr(mdpg, md_len, 1);
         return 0;
     }
     if (mode6)
@@ -2003,7 +2003,7 @@ set_def_mode_page(int sg_fd, int pn, int spn,
     mdp[off] &= 0x7f;   /* mask out PS bit, reserved in mode select */
     if (op->dummy) {
         pr2serr("Mode data that would have been written:\n");
-        dStrHexErr((const char *)mdp, md_len, 1);
+        hex2stderr(mdp, md_len, 1);
         ret = 0;
         goto err_out;
     }
@@ -2978,7 +2978,7 @@ main(int argc, char * argv[])
         if (op->verbose > 2)
             pr2serr("Read %d bytes from user input\n", inhex_len);
         if (op->verbose > 3)
-            dStrHexErr((const char *)inhex_buff, inhex_len, 0);
+            hex2stderr(inhex_buff, inhex_len, 0);
         op->do_raw = false;
         if (op->inquiry)
             return sdp_process_vpd_page(0, pn, ((spn < 0) ? 0: spn), op,
