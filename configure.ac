@@ -29,7 +29,7 @@ AC_CANONICAL_HOST
 AC_DEFINE_UNQUOTED(SG_LIB_BUILD_HOST, "${host}", [sdparm Build Host])
 
 check_for_linux_nvme_headers() {
-	AC_CHECK_HEADERS([linux/nvme_ioctl.h], [AC_DEFINE(HAVE_NVME, 1, [Found NVMe])], [], [])
+	AC_CHECK_HEADERS([linux/nvme_ioctl.h], [AC_DEFINE_UNQUOTED(HAVE_NVME, 1, [Found NVMe])], [], [])
 	AC_CHECK_HEADERS([linux/types.h linux/bsg.h linux/kdev_t.h], [], [],
 			[[#ifdef HAVE_LINUX_TYPES_H
 			# include <linux/types.h>
@@ -46,7 +46,7 @@ case "${host}" in
         *-*-freebsd*|*-*-kfreebsd*-gnu*)
 		AC_SUBST([os_deps], ['sg_pt_freebsd.o'])
                 AC_DEFINE_UNQUOTED(SG_LIB_FREEBSD, 1, [sdparm on FreeBSD])
-		AC_DEFINE(HAVE_NVME, 1, [Found NVMe])
+		AC_DEFINE_UNQUOTED(HAVE_NVME, 1, [Found NVMe])
 		LIBS="$LIBS -lcam";;
         *-*-solaris*)
 		AC_SUBST([os_deps], ['sg_pt_solaris.o'])
@@ -57,11 +57,13 @@ case "${host}" in
         *-*-cygwin*)
 		AC_SUBST([os_deps], ['sg_pt_win32.o'])
                 AC_DEFINE_UNQUOTED(SG_LIB_WIN32, 1, [sdparm on Win32])
+		AC_DEFINE_UNQUOTED(HAVE_NVME, 1, [Found NVMe])
 		CFLAGS="$CFLAGS -Wno-char-subscripts";;
 	*-*-mingw*)
 		AC_SUBST([os_deps], ['sg_pt_win32.o'])
                 AC_DEFINE_UNQUOTED(SG_LIB_WIN32, 1, [sdparm on Win32])
 		AC_DEFINE_UNQUOTED(SG_LIB_MINGW, 1, [also MinGW environment])
+		AC_DEFINE_UNQUOTED(HAVE_NVME, 1, [Found NVMe])
 		CFLAGS="$CFLAGS -D__USE_MINGW_ANSI_STDIO";;
         *-*-linux-gnu* | *-*-linux* | *)
 		AC_SUBST([os_deps], ['sg_pt_linux.o sg_pt_linux_nvme.o'])

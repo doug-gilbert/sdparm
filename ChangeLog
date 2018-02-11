@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.11 [20180209] [svn: r304]
+ChangeLog for sdparm-1.11 [20180211] [svn: r305]
   - add Out of band management control mpage (spl5r01)
   - accept additional tansport acronyms (e.g. ib for srp)
   - power condition mpage: rename fields IDLE->IDLE_A;
@@ -20,7 +20,7 @@ ChangeLog for sdparm-1.11 [20180209] [svn: r304]
   - command=capacity with --long force read capacity(16)
     with full reporting of response
   - --wscan option: expand bus type to include NVMe
-  - point svn:externals to rev 751 of sg3_utils
+  - point svn:externals to rev 752 of sg3_utils
   - convert many two valued 'int's to bool
   - shellcheck corrections on scripts
   - upgrade automake to version 1.15 (U16.04)

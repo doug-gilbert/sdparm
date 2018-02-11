@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20180209 [svn: r304]";
+static const char * version_str = "1.11 20180211 [svn: r305]";
 
 
 #define MAX_DEV_NAMES 256
@@ -2446,7 +2446,7 @@ int
 main(int argc, char * argv[])
 {
 #ifdef SG_LIB_WIN32
-    bool do_wscan = false;
+    int do_wscan = 0;
 #endif
     bool protect = false;
     bool rw = false;      /* true: requires RDWR, false: perhaps RDONLY ok */
@@ -2644,7 +2644,7 @@ main(int argc, char * argv[])
             return 0;
 #ifdef SG_LIB_WIN32
         case 'w':
-            do_wscan = true;
+            ++do_wscan;
             break;
 #endif
         default:
