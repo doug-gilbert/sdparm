@@ -24,7 +24,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /* Version 1.12 20180119  */
+ /* Version 1.13 20180219  */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -40,16 +40,17 @@
  * data in the sdparm_data.c tables.
  *
  * Build with a line like:
- *      gcc -Wall -o chk_sdparm_data sdparm_data.o sdparm_data_vendor.o
- *                       chk_sdparm_data.c
+ *      gcc -I ../include -Wall -o chk_sdparm_data sdparm_data.o
+ *               sg_lib.o sg_lib_data.o sdparm_data_vendor.o
+ *               chk_sdparm_data.c
  *
  */
 
 #define MAX_MP_LEN 1024
 #define MAX_PDT  0x1f
 
-static unsigned char cl_pdt_arr[MAX_PDT + 1][MAX_MP_LEN];
-static unsigned char cl_common_arr[MAX_MP_LEN];
+static uint8_t cl_pdt_arr[MAX_PDT + 1][MAX_MP_LEN];
+static uint8_t cl_common_arr[MAX_MP_LEN];
 
 static void clear_cl()
 {
@@ -59,7 +60,7 @@ static void clear_cl()
 
 /* result: 0 -> good, 1 -> clash at given pdt, 2 -> clash
  *         other than given pdt, -1 -> bad input */
-static int check_cl(int off, int pdt, unsigned char mask)
+static int check_cl(int off, int pdt, uint8_t mask)
 {
     int k;
 
@@ -83,7 +84,7 @@ static int check_cl(int off, int pdt, unsigned char mask)
     return -1;
 }
 
-static void set_cl(int off, int pdt, unsigned char mask)
+static void set_cl(int off, int pdt, uint8_t mask)
 {
     if (off < MAX_MP_LEN) {
         if (pdt < 0)
@@ -101,7 +102,7 @@ static int check(const struct sdparm_mode_page_item * mpi,
     bool k_clash_ok;
     int res, prev_mp, prev_msp, prev_pdt, sbyte, sbit, nbits;
     int bad_count = 0;
-    unsigned char mask;
+    uint8_t mask;
     const struct sdparm_mode_page_item * kp = mpi;
     const struct sdparm_mode_page_item * jp = mpi;
     const char * acron;
@@ -118,25 +119,25 @@ static int check(const struct sdparm_mode_page_item * mpi,
         }
         k_clash_ok = !! (kp->flags & MF_CLASH_OK);
         acron = kp->acron ? kp->acron : "?";
-        if ((prev_mp != kp->page_num) || (prev_msp != kp->subpage_num)) {
-            if (prev_mp > kp->page_num) {
-                printf("  mode page 0x%x,0x%x out of order\n", kp->page_num,
-                        kp->subpage_num);
+        if ((prev_mp != kp->pg_num) || (prev_msp != kp->subpg_num)) {
+            if (prev_mp > kp->pg_num) {
+                printf("  mode page 0x%x,0x%x out of order\n", kp->pg_num,
+                        kp->subpg_num);
                 ++bad_count;
             }
-            if ((prev_mp == kp->page_num) && (prev_msp > kp->subpage_num)) {
+            if ((prev_mp == kp->pg_num) && (prev_msp > kp->subpg_num)) {
                 printf("  mode subpage 0x%x,0x%x out of order, previous msp "
-                       "was 0x%x\n", kp->page_num, kp->subpage_num, prev_msp);
+                       "was 0x%x\n", kp->pg_num, kp->subpg_num, prev_msp);
                 ++bad_count;
             }
-            prev_mp = kp->page_num;
-            prev_msp = kp->subpage_num;
+            prev_mp = kp->pg_num;
+            prev_msp = kp->subpg_num;
             prev_pdt = kp->pdt;
             clear_cl();
         } else if ((prev_pdt >= 0) && (prev_pdt != kp->pdt)) {
             if (prev_pdt > kp->pdt) {
                 printf("  mode page 0x%x,0x%x pdt out of order, pdt was "
-                       "%d, now %d\n", kp->page_num, kp->subpage_num,
+                       "%d, now %d\n", kp->pg_num, kp->subpg_num,
                        prev_pdt, kp->pdt);
                 ++bad_count;
             }

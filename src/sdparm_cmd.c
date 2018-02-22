@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
@@ -60,7 +61,7 @@ do_cmd_read_capacity(int sg_fd, bool do_long, int verbose)
     unsigned int last_blk_addr, block_size;
     uint64_t llast_blk_addr;
     double sz_mib;
-    unsigned char resp_buff[RCAP16_REPLY_LEN];
+    uint8_t resp_buff[RCAP16_REPLY_LEN];
 
     do16 = do_long;
     if (! do16) {
@@ -126,7 +127,7 @@ do_cmd_sense(int sg_fd, bool hex, bool do_quiet, int verbose)
 {
     bool something;
     int res, resp_len, sk, asc, ascq, progress, pr, rem;
-    unsigned char buff[32];
+    uint8_t buff[32];
     char b[128];
 
     memset(buff, 0, sizeof(buff));
@@ -195,7 +196,7 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * op)
     unsigned int rw_time = 1000;
 
     if (cmd_arg >= 0) {
-        unsigned char perf_desc[28];
+        uint8_t perf_desc[28];
 #if 0
         int kbps;
 
@@ -228,7 +229,7 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * op)
         }
     } else {
         const int max_num_desc = 16;
-        unsigned char buff[8 + (16 * 16)];
+        uint8_t buff[8 + (16 * 16)];
         unsigned int lba;
 
         /* performance (type=0), tolerance 10% nominal, read speed */
@@ -280,7 +281,7 @@ get_profile_str(int profile_num, char * buff)
 }
 
 static void
-decode_get_config_feature(int feature, unsigned char * bp, int len)
+decode_get_config_feature(int feature, uint8_t * bp, int len)
 {
     int k, profile;
     char buff[128];
@@ -303,10 +304,10 @@ decode_get_config_feature(int feature, unsigned char * bp, int len)
 
 
 static void
-decode_get_config(unsigned char * resp, int max_resp_len, int len)
+decode_get_config(uint8_t * resp, int max_resp_len, int len)
 {
     int k, extra, feature;
-    unsigned char * bp;
+    uint8_t * bp;
 
     if (max_resp_len < len) {
         printf("get_config: response to long for buffer, resp_len=%d>>>\n",
@@ -336,7 +337,7 @@ static int
 do_cmd_profile(int sg_fd, const struct sdparm_opt_coll * op)
 {
     int res, len;
-    unsigned char resp[MAX_CONFIG_RESPLEN];
+    uint8_t resp[MAX_CONFIG_RESPLEN];
 
     /* performance (type=0), tolerance 10% nominal, read speed */
     res = sg_ll_get_config(sg_fd, 0x0 /* rt */, 0 /* starting_lba */,
