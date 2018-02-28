@@ -76,93 +76,8 @@
 #define IOCTL_STORAGE_QUERY_PROPERTY \
     CTL_CODE(IOCTL_STORAGE_BASE, 0x0500, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
-
-#ifndef _DEVIOCTL_
-typedef enum _STORAGE_BUS_TYPE {
-    BusTypeUnknown      = 0x00,
-    BusTypeScsi         = 0x01,
-    BusTypeAtapi        = 0x02,
-    BusTypeAta          = 0x03,
-    BusType1394         = 0x04,
-    BusTypeSsa          = 0x05,
-    BusTypeFibre        = 0x06,
-    BusTypeUsb          = 0x07,
-    BusTypeRAID         = 0x08,
-    BusTypeiScsi        = 0x09,
-    BusTypeSas          = 0x0A,
-    BusTypeSata         = 0x0B,
-    BusTypeSd           = 0x0C,
-    BusTypeMmc          = 0x0D,
-    BusTypeVirtual             = 0xE,
-    BusTypeFileBackedVirtual   = 0xF,
-#ifndef BusTypeSpaces
-    BusTypeSpaces       = 0x10,
-#endif
-#ifndef BusTypeNvme
-    BusTypeNvme         = 0x11,
-#endif
-#ifndef BusTypeSCM
-    BusTypeSCM          = 0x12,
-#endif
-#ifndef BusTypeUfs
-    BusTypeUfs          = 0x13,
-#endif
-    BusTypeMax,
-    BusTypeMaxReserved  = 0x7F
-} STORAGE_BUS_TYPE, *PSTORAGE_BUS_TYPE;
-
-typedef struct _STORAGE_DEVICE_DESCRIPTOR {
-    ULONG Version;
-    ULONG Size;
-    UCHAR DeviceType;
-    UCHAR DeviceTypeModifier;
-    BOOLEAN RemovableMedia;
-    BOOLEAN CommandQueueing;
-    ULONG VendorIdOffset;       /* 0 if not available */
-    ULONG ProductIdOffset;      /* 0 if not available */
-    ULONG ProductRevisionOffset;/* 0 if not available */
-    ULONG SerialNumberOffset;   /* -1 if not available ?? */
-    STORAGE_BUS_TYPE BusType;
-    ULONG RawPropertiesLength;
-    UCHAR RawDeviceProperties[1];
-} STORAGE_DEVICE_DESCRIPTOR, *PSTORAGE_DEVICE_DESCRIPTOR;
-#endif
-
-typedef struct _STORAGE_DEVICE_UNIQUE_IDENTIFIER {
-    ULONG  Version;
-    ULONG  Size;
-    ULONG  StorageDeviceIdOffset;
-    ULONG  StorageDeviceOffset;
-    ULONG  DriveLayoutSignatureOffset;
-} STORAGE_DEVICE_UNIQUE_IDENTIFIER, *PSTORAGE_DEVICE_UNIQUE_IDENTIFIER;
-
 // Use CompareStorageDuids(PSTORAGE_DEVICE_UNIQUE_IDENTIFIER duid1, duid2)
 // to test for equality
-
-#ifndef _DEVIOCTL_
-typedef enum _STORAGE_QUERY_TYPE {
-    PropertyStandardQuery = 0,
-    PropertyExistsQuery,
-    PropertyMaskQuery,
-    PropertyQueryMaxDefined
-} STORAGE_QUERY_TYPE, *PSTORAGE_QUERY_TYPE;
-
-typedef enum _STORAGE_PROPERTY_ID {
-    StorageDeviceProperty = 0,
-    StorageAdapterProperty,
-    StorageDeviceIdProperty,
-    StorageDeviceUniqueIdProperty,
-    StorageDeviceWriteCacheProperty,
-    StorageMiniportProperty,
-    StorageAccessAlignmentProperty
-} STORAGE_PROPERTY_ID, *PSTORAGE_PROPERTY_ID;
-
-typedef struct _STORAGE_PROPERTY_QUERY {
-    STORAGE_PROPERTY_ID PropertyId;
-    STORAGE_QUERY_TYPE QueryType;
-    UCHAR AdditionalParameters[1];
-} STORAGE_PROPERTY_QUERY, *PSTORAGE_PROPERTY_QUERY;
-#endif
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -720,12 +635,13 @@ do_wscan(char letter, int show_bt, int scsi_scan)
                     printf("%s", sp->qp_descriptor.raw + j);
                 printf("\n");
                 if (verbose > 2)
-                    hex2stderr(sp->qp_descriptor.raw, 144, 0);
+                    hex2stderr((uint8_t *)sp->qp_descriptor.raw, 144, 0);
             } else
                 printf("\n");
             if ((verbose > 3) && sp->qp_uid_valid) {
                 printf("  UID valid, in hex:\n");
-                hex2stderr(sp->qp_uid.raw, sizeof(sp->qp_uid.raw), 1);
+                hex2stderr((uint8_t *)sp->qp_uid.raw, sizeof(sp->qp_uid.raw),
+                           1);
             }
         }
     }
@@ -743,12 +659,14 @@ int
 sg_do_wscan(char letter, int do_scan, int verb)
 {
     int ret, show_bt, scsi_scan;
+    const uint32_t pg_sz = sg_get_page_size();
 
     verbose = verb;
     show_bt = (do_scan > 1);
     scsi_scan = (do_scan > 2) ? (do_scan - 2) : 0;
-    storage_arr = smp_memalign(sizeof(struct storage_elem) * MAX_SCSI_ELEMS,
-                               pg_sz, &free_storage_arr, verb > 3);
+    storage_arr = (struct storage_elem *)sg_memalign(
+                             sizeof(struct storage_elem) * MAX_SCSI_ELEMS,
+                             pg_sz, &free_storage_arr, verb > 3);
     if (storage_arr) {
         ret = do_wscan(letter, show_bt, scsi_scan);
         free(free_storage_arr);
