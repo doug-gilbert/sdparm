@@ -1,30 +1,27 @@
 /*
- * Copyright (c) 2005-2018 Douglas Gilbert.
+ * Copyright (c) 2005-2018, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. The name of the author may not be used to endorse or promote products
- *    derived from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <stdio.h>
@@ -101,7 +98,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
             if (1 != c_set) {
                 pr2serr("      << unexpected code set %d for NAA=%d >>\n",
                         c_set, naa);
-                dStrHexErr((const char *)ip, i_len, 0);
+                hex2stderr(ip, i_len, 0);
                 break;
             }
             switch (naa) {
@@ -109,7 +106,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                 if (8 != i_len) {
                     pr2serr("      << unexpected NAA 2 identifier length: "
                             "0x%x >>\n", i_len);
-                    dStrHexErr((const char *)ip, i_len, 0);
+                    hex2stderr(ip, i_len, 0);
                     break;
                 }
                 printf("0x");
@@ -121,7 +118,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                 if (8 != i_len) {
                     pr2serr("      << unexpected NAA 3 identifier "
                             "length: 0x%x >>\n", i_len);
-                    dStrHexErr((const char *)ip, i_len, 0);
+                    hex2stderr(ip, i_len, 0);
                     break;
                 }
                 printf("0x");
@@ -133,7 +130,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                 if (8 != i_len) {
                     pr2serr("      << unexpected NAA 5 identifier "
                             "length: 0x%x >>\n", i_len);
-                    dStrHexErr((const char *)ip, i_len, 0);
+                    hex2stderr(ip, i_len, 0);
                     break;
                 }
                 if ((! is_sas) || (1 != assoc)) {
@@ -161,7 +158,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
                 if (16 != i_len) {
                     pr2serr("      << unexpected NAA 6 identifier length: "
                             "0x%x >>\n", i_len);
-                    dStrHexErr((const char *)ip, i_len, 0);
+                    hex2stderr(ip, i_len, 0);
                     break;
                 }
                 printf("0x");
@@ -172,7 +169,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
             default:
                 pr2serr("      << expected NAA nibble of 2, 3, 5 or 6, got "
                         "%d >>\n", naa);
-                dStrHexErr((const char *)ip, i_len, 0);
+                hex2stderr(ip, i_len, 0);
                 break;
             }
             break;
@@ -198,7 +195,7 @@ decode_dev_ids_quiet(unsigned char * buff, int len, int m_assoc,
         case 8: /* SCSI name string */
             if (c_set < 2) {    /* accept ASCII as subset of UTF-8 */
                 pr2serr("      << expected UTF-8 code_set >>\n");
-                dStrHexErr((const char *)ip, i_len, 0);
+                hex2stderr(ip, i_len, 0);
                 break;
             }
             /* does %s print out UTF-8 ok??
@@ -357,7 +354,7 @@ decode_dev_const_vpd(unsigned char * buff, int len)
         }
         if (cd_len > 0) {
             printf("   Constituent specific descriptor list (in hex):\n");
-            dStrHex((const char *)(bp + 36), cd_len, 1);
+            hex2stdout(bp + 36, cd_len, 1);
         }
     }
     return 0;
@@ -590,9 +587,9 @@ decode_3party_copy_vpd(unsigned char * buff, int len, int do_hex, int pdt,
         if (0 == desc_len)
             continue;
         if (2 == do_hex)
-            dStrHex((const char *)bp + 4, desc_len, 1);
+            hex2stdout(bp + 4, desc_len, 1);
         else if (do_hex > 2)
-            dStrHex((const char *)bp, bump, 1);
+            hex2stdout(bp, bump, 1);
         else {
             int csll;
 
@@ -748,7 +745,7 @@ decode_3party_copy_vpd(unsigned char * buff, int len, int do_hex, int pdt,
                 break;
             default:
                 pr2serr("Unexpected type=%d\n", desc_type);
-                dStrHexErr((const char *)bp, bump, 1);
+                hex2stderr(bp, bump, 1);
                 break;
             }
         }
@@ -789,7 +786,7 @@ decode_proto_lu_vpd(unsigned char * buff, int len)
                 break;
             default:
                 pr2serr("Unexpected proto=%d\n", proto);
-                dStrHexErr((const char *)bp, bump, 1);
+                hex2stderr(bp, bump, 1);
                 break;
             }
         }
@@ -835,7 +832,7 @@ decode_proto_port_vpd(unsigned char * buff, int len)
                 break;
             default:
                 pr2serr("Unexpected proto=%d\n", proto);
-                dStrHexErr((const char *)bp, bump, 1);
+                hex2stderr(bp, bump, 1);
                 break;
             }
         }
@@ -1084,7 +1081,7 @@ decode_ata_info_vpd(unsigned char * buff, int len, int do_long, int do_hex)
     ata_transp = (0x34 == buff[36]) ? "SATA" : "PATA";
     if (do_long) {
         printf("  Device signature [%s] (in hex):\n", ata_transp);
-        dStrHex((const char *)buff + 36, 20, 1);
+        hex2stdout(buff + 36, 20, 1);
     } else
         printf("  Device signature indicates %s transport\n", ata_transp);
     cc = buff[56];      /* 0xec for IDENTIFY DEVICE and 0xa1 for IDENTIFY
@@ -1121,7 +1118,7 @@ decode_ata_info_vpd(unsigned char * buff, int len, int do_long, int do_hex)
     if (len < 572)
         return SG_LIB_CAT_MALFORMED;
     if (do_hex)
-        dStrHex((const char *)(buff + 60), 512, 0);
+        hex2stdout(buff + 60, 512, 0);
     else if (do_long)
         dWordHex((const unsigned short *)(buff + 60), 256, 0, is_be);
     return 0;
@@ -1823,7 +1820,7 @@ decode_std_inq(int sg_fd, const struct sdparm_opt_coll * op)
     len = b[4] + 5;
     len = (len <= sz) ? len : sz;
     if (op->do_hex) {
-        dStrHex((const char *)b, len, 0);
+        hex2stdout(b, len, 0);
         return 0;
     }
     printf("  PQual=%d  Device_type=%d  RMB=%d  LU_CONG=%d  version=0x%02x ",
@@ -1927,7 +1924,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         len = sg_get_unaligned_be16(b + 2);       /* spc4r25 */
         printf("Supported VPD pages VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         if (len > 0) {
@@ -1963,7 +1960,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("ATA information VPD page:\n");
         if (op->do_hex && (2 != op->do_hex)) {
-            dStrHex((const char *)b, len + 4, 0);
+            hex2stdout(b, len + 4, 0);
             return 0;
         }
         res = decode_ata_info_vpd(b, len + 4, op->do_long, op->do_hex);
@@ -1983,7 +1980,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else if (! op->do_quiet)
             printf("Device identification VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = 0;
@@ -2014,7 +2011,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else if (! op->do_quiet)
             printf("Extended inquiry data VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = decode_ext_inq_vpd(b, len + 4, op->do_long, protect);
@@ -2035,7 +2032,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("Management network addresses VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = decode_man_net_vpd(b, len + 4);
@@ -2055,7 +2052,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("mode page policy VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = decode_mode_policy_vpd(b, len + 4);
@@ -2075,7 +2072,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else if (! op->do_quiet)
             printf("Power condition VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = decode_power_condition(b, len + 4);
@@ -2095,7 +2092,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else if (! op->do_quiet)
             printf("Device constituents VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = decode_dev_const_vpd(b, len + 4);
@@ -2115,7 +2112,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("Power consumption VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = decode_power_consumption_vpd(b, len + 4);
@@ -2137,7 +2134,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("Protocol-specific logical unit information VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = decode_proto_lu_vpd(b, len + 4);
@@ -2159,7 +2156,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("Protocol-specific port information VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = decode_proto_port_vpd(b, len + 4);
@@ -2179,7 +2176,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("SCSI Feature sets:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = decode_feature_sets_vpd(b, len + 4, op);
@@ -2199,7 +2196,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("SCSI Ports VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = decode_scsi_ports_vpd(b, len + 4, op);
@@ -2220,7 +2217,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("Software interface identification VPD page:\n");
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         up = b + 4;
@@ -2246,7 +2243,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("Unit serial number VPD page:\n");
         if (op->do_hex)
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
         else if (len > 0) {
             if (len + 4 < (int)sizeof(b))
                 b[len + 4] = '\0';
@@ -2288,7 +2285,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("Third party copy VPD page:\n");
         if (1 == op->do_hex) {
-            dStrHex((const char *)b, len + 4, 0);
+            hex2stdout(b, len + 4, 0);
             return 0;
         }
         decode_3party_copy_vpd(b, len + 4, op->do_hex, pdt, op->verbose);
@@ -2323,7 +2320,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("%s VPD page:\n", vpd_name);
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = 0;
@@ -2332,7 +2329,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else if (sbc)
             res = decode_block_limits_vpd(b, len + 4);
         else
-            dStrHex((const char *)b, len + 4, 0);
+            hex2stdout(b, len + 4, 0);
         if (res)
             return res;
         break;
@@ -2374,7 +2371,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("%s VPD page:\n", vpd_name);
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = 0;
@@ -2385,7 +2382,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else if (ses)
             res = decode_es_dev_chars_vpd(b, len + 4);
         else
-            dStrHex((const char *)b, len + 4, 0);
+            hex2stdout(b, len + 4, 0);
         if (res)
             return res;
         break;
@@ -2412,7 +2409,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("%s VPD page:\n", vpd_name);
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = 0;
@@ -2421,7 +2418,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else if (sbc)       /* added in sbc3r20 */
             res = decode_block_lb_prov_vpd(b, len + 4, op);
         else
-            dStrHex((const char *)b, len + 4, 0);
+            hex2stdout(b, len + 4, 0);
         if (res)
             return res;
         break;
@@ -2447,7 +2444,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("%s VPD page:\n", vpd_name);
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = 0;
@@ -2464,7 +2461,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         } else if (sbc)       /* added in sbc3r22 */
             res = decode_referrals_vpd(b, len + 4);
         else
-            dStrHex((const char *)b, len + 4, 0);
+            hex2stdout(b, len + 4, 0);
         if (res)
             return res;
         break;
@@ -2490,7 +2487,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("%s VPD page:\n", vpd_name);
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = 0;
@@ -2505,7 +2502,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         } else if (sbc)       /* added in sbc4r01 */
             res = decode_sup_block_lens_vpd(b, len + 4);
         else
-            dStrHex((const char *)b, len + 4, 0);
+            hex2stdout(b, len + 4, 0);
         if (res)
             return res;
         break;
@@ -2531,7 +2528,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("%s VPD page:\n", vpd_name);
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = 0;
@@ -2540,7 +2537,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else if (ssc)       /* added in ssc5r02a */
             res = decode_lb_protection_vpd(b, len + 4);
         else
-            dStrHex((const char *)b, len + 4, 0);
+            hex2stdout(b, len + 4, 0);
         if (res)
             return res;
         break;
@@ -2562,14 +2559,14 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("%s VPD page:\n", vpd_name);
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = 0;
         if (sbc)       /* added in zbc-r01c */
             res = decode_zbdc_vpd(b, len + 4);
         else
-            dStrHex((const char *)b, len + 4, 0);
+            hex2stdout(b, len + 4, 0);
         if (res)
             return res;
         break;
@@ -2591,14 +2588,14 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         else
             printf("%s VPD page:\n", vpd_name);
         if (op->do_hex) {
-            dStrHex((const char *)b, len + 4, hex_format);
+            hex2stdout(b, len + 4, hex_format);
             return 0;
         }
         res = 0;
         if (sbc)       /* added in sbc4r07 */
             res = decode_block_limits_ext_vpd(b, len + 4);
         else
-            dStrHex((const char *)b, len + 4, 0);
+            hex2stdout(b, len + 4, 0);
         if (res)
             return res;
         break;
@@ -2621,9 +2618,9 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             len = sizeof(b);
         }
         if (op->do_hex)
-            dStrHex((const char *)b, len, hex_format);
+            hex2stdout(b, len, hex_format);
         else
-            dStrHexErr((const char *)b, len, 0);
+            hex2stderr(b, len, 0);
         break;
     }
     return 0;

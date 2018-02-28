@@ -1,30 +1,27 @@
 /*
- * Copyright (c) 2006-2018 Douglas Gilbert.
+ * Copyright (c) 2005-2018, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. The name of the author may not be used to endorse or promote products
- *    derived from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <stdio.h>
@@ -98,6 +95,18 @@ typedef enum _STORAGE_BUS_TYPE {
     BusTypeMmc          = 0x0D,
     BusTypeVirtual             = 0xE,
     BusTypeFileBackedVirtual   = 0xF,
+#ifndef BusTypeSpaces
+    BusTypeSpaces       = 0x10,
+#endif
+#ifndef BusTypeNvme
+    BusTypeNvme         = 0x11,
+#endif
+#ifndef BusTypeSCM
+    BusTypeSCM          = 0x12,
+#endif
+#ifndef BusTypeUfs
+    BusTypeUfs          = 0x13,
+#endif
     BusTypeMax,
     BusTypeMaxReserved  = 0x7F
 } STORAGE_BUS_TYPE, *PSTORAGE_BUS_TYPE;
@@ -179,6 +188,7 @@ struct storage_elem {
 
 
 static struct storage_elem * storage_arr;
+static uint8_t * free_storage_arr;
 static int next_unused_elem = 0;
 static int verbose = 0;
 
@@ -252,8 +262,34 @@ get_bus_type(int bt)
         return "Virt ";
     case BusTypeFileBackedVirtual:
         return "FBVir";
-    case BusTypeMax:
-        return "Max  ";
+#ifdef BusTypeSpaces
+    case BusTypeSpaces:
+#else
+    case 0x10:
+#endif
+        return "Spaces";
+#ifdef BusTypeNvme
+    case BusTypeNvme:
+#else
+    case 0x11:
+#endif
+        return "NVMe ";
+#ifdef BusTypeSCM
+    case BusTypeSCM:
+#else
+    case 0x12:
+#endif
+        return "SCM  ";
+#ifdef BusTypeUfs
+    case BusTypeUfs:
+#else
+    case 0x13:
+#endif
+        return "Ufs ";
+    case 0x14:
+        return "Max ";
+    case 0x7f:
+        return "Max Reserved";
     default:
         return "_unkn";
     }
@@ -684,12 +720,12 @@ do_wscan(char letter, int show_bt, int scsi_scan)
                     printf("%s", sp->qp_descriptor.raw + j);
                 printf("\n");
                 if (verbose > 2)
-                    dStrHexErr(sp->qp_descriptor.raw, 144, 0);
+                    hex2stderr(sp->qp_descriptor.raw, 144, 0);
             } else
                 printf("\n");
             if ((verbose > 3) && sp->qp_uid_valid) {
                 printf("  UID valid, in hex:\n");
-                dStrHexErr(sp->qp_uid.raw, sizeof(sp->qp_uid.raw), 1);
+                hex2stderr(sp->qp_uid.raw, sizeof(sp->qp_uid.raw), 1);
             }
         }
     }
@@ -711,10 +747,11 @@ sg_do_wscan(char letter, int do_scan, int verb)
     verbose = verb;
     show_bt = (do_scan > 1);
     scsi_scan = (do_scan > 2) ? (do_scan - 2) : 0;
-    storage_arr = calloc(sizeof(struct storage_elem) * MAX_SCSI_ELEMS, 1);
+    storage_arr = smp_memalign(sizeof(struct storage_elem) * MAX_SCSI_ELEMS,
+                               pg_sz, &free_storage_arr, verb > 3);
     if (storage_arr) {
         ret = do_wscan(letter, show_bt, scsi_scan);
-        free(storage_arr);
+        free(free_storage_arr);
     } else {
         pr2serr("Failed to allocate storage_arr on heap\n");
         ret = SG_LIB_SYNTAX_ERROR;

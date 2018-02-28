@@ -61,7 +61,8 @@ case "${host}" in
 	*-*-mingw*)
 		AC_SUBST([os_deps], ['sg_pt_win32.o'])
                 AC_DEFINE_UNQUOTED(SG_LIB_WIN32, 1, [sdparm on Win32])
-		AC_DEFINE_UNQUOTED(SG_LIB_MINGW, 1, [also MinGW environment]);;
+		AC_DEFINE_UNQUOTED(SG_LIB_MINGW, 1, [also MinGW environment])
+		CFLAGS="$CFLAGS -D__USE_MINGW_ANSI_STDIO";;
         *-*-linux-gnu* | *-*-linux* | *)
 		AC_SUBST([os_deps], ['sg_pt_linux.o sg_pt_linux_nvme.o'])
                 AC_DEFINE_UNQUOTED(SG_LIB_LINUX, 1, [sdparm on linux])
