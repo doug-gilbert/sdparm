@@ -374,7 +374,6 @@ struct sdparm_vendor_pair sdparm_vendor_mp[] = {
     {sdparm_v_lto6_mode_pg, sdparm_mitem_v_lto6_arr},
 };
 
-int sdparm_vendor_mp_len =
-        sizeof(sdparm_vendor_mp) / sizeof(sdparm_vendor_mp[0]);
+const int sdparm_vendor_mp_len = SG_ARRAY_SIZE(sdparm_vendor_mp);
 
 

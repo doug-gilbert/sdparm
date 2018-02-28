@@ -7,8 +7,8 @@
  * to the device (e.g. eject removable media).
  */
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -357,7 +357,7 @@ extern struct sdparm_val_desc_t sdparm_add_transport_acron[];
 extern struct sdparm_transport_pair sdparm_transport_mp[];
 extern struct sdparm_vendor_name_t sdparm_vendor_id[];
 extern struct sdparm_vendor_pair sdparm_vendor_mp[];
-extern int sdparm_vendor_mp_len;
+extern const int sdparm_vendor_mp_len;
 extern struct sdparm_mode_page_item sdparm_mitem_arr[];
 extern struct sdparm_command_t sdparm_command_arr[];
 extern struct sdparm_val_desc_t sdparm_profile_arr[];
@@ -367,7 +367,7 @@ extern const char * sdparm_network_service_type_arr[];
 extern const char * sdparm_mode_page_policy_arr[];
 
 
-int sdp_mpage_len(const unsigned char * mp);    /* page, not MS response */
+int sdp_mpage_len(const uint8_t * mp);    /* page, not MS response */
 const struct sdparm_mode_page_t * sdp_get_mpage(int page_num,
                 int subpage_num, int pdt, int transp_proto, int vendor_num);
 const struct sdparm_mode_page_t * sdp_get_mp_with_str(int page_num,
@@ -386,17 +386,17 @@ const struct sdparm_vendor_name_t * sdp_find_vendor_by_acron(const char * ap);
 const struct sdparm_vendor_pair * sdp_get_vendor_pair(int vendor_num);
 const struct sdparm_mode_page_item * sdp_find_mitem_by_acron(const char * ap,
                 int * from, int transp_proto, int vendor_num);
-uint64_t sdp_get_big_endian(const unsigned char * from, int start_bit,
+uint64_t sdp_get_big_endian(const uint8_t * from, int start_bit,
                            int num_bits);
-void sdp_set_big_endian(uint64_t val, unsigned char * to, int start_bit,
+void sdp_set_big_endian(uint64_t val, uint8_t * to, int start_bit,
                         int num_bits);
 uint64_t sdp_mitem_get_value(const struct sdparm_mode_page_item *mpi,
-                             const unsigned char * mp);
+                             const uint8_t * mp);
 uint64_t sdp_mitem_get_value_check(const struct sdparm_mode_page_item *mpi,
-                                   const unsigned char * mp, bool * all_setp);
+                                   const uint8_t * mp, bool * all_setp);
 void sdp_print_signed_decimal(uint64_t u, int num_bits, bool leading_zeros);
 void sdp_mitem_set_value(uint64_t val, const struct sdparm_mode_page_item *mpi,
-                         unsigned char * mp);
+                         uint8_t * mp);
 char * sdp_get_ansi_version_str(int version, int buff_len, char * buff);
 int sdp_get_desc_id(int flags);
 int sdp_strcase_eq(const char * s1p, const char * s2p);
@@ -407,9 +407,9 @@ int sdp_strcase_eq_upto(const char * s1p, const char * s2p, int n);
  */
 
 int sdp_process_vpd_page(int sg_fd, int pn, int spn,
-                         const struct sdparm_opt_coll * opts, int req_pdt,
-                         bool protect, const unsigned char * ihbp,
-                         int ihb_len);
+                         const struct sdparm_opt_coll * op, int req_pdt,
+                         bool protect, const uint8_t * ihbp, int ihb_len,
+                         uint8_t * alt_buf, int off);
 
 /*
  * Declarations for functions found in sdparm_cmd.c
@@ -436,3 +436,5 @@ int sg_do_wscan(char letter, int do_scan, int verbose);
 #endif
 
 #endif
+
+

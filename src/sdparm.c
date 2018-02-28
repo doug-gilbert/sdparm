@@ -80,13 +80,13 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20180211 [svn: r305]";
+static const char * version_str = "1.11 20180222 [svn: r306]";
 
 
 #define MAX_DEV_NAMES 256
 #define INHEX_BUFF_SZ 4096
 
-static unsigned char inhex_buff[INHEX_BUFF_SZ];
+static uint8_t inhex_buff[INHEX_BUFF_SZ];
 
 
 static struct option long_options[] = {
@@ -293,7 +293,7 @@ usage(int do_help)
  * false if error. */
 static bool
 f2hex_arr(const char * fname, bool as_binary, bool no_space,
-          unsigned char * mp_arr, int * mp_arr_len, int max_arr_len)
+          uint8_t * mp_arr, int * mp_arr_len, int max_arr_len)
 {
     bool split_line, has_stdin;
     int fn_len, in_len, k, j, m, fd;
@@ -718,10 +718,10 @@ list_mp_settings(const struct sdparm_mode_page_settings * mps, bool get)
 static void
 print_mitem(const char * pre, int smask,
             const struct sdparm_mode_page_item *mpi,
-            const unsigned char * cur_mp,
-            const unsigned char * cha_mp,
-            const unsigned char * def_mp,
-            const unsigned char * sav_mp,
+            const uint8_t * cur_mp,
+            const uint8_t * cha_mp,
+            const uint8_t * def_mp,
+            const uint8_t * sav_mp,
             bool force_decimal,
             const struct sdparm_opt_coll * op)
 {
@@ -790,10 +790,10 @@ print_mitem_pc_arr(const char * pre, int smask,
                    void ** pc_arr, bool force_decimal,
                    const struct sdparm_opt_coll * op)
 {
-    const unsigned char * cur_mp = (const unsigned char *)pc_arr[0];
-    const unsigned char * cha_mp = (const unsigned char *)pc_arr[1];
-    const unsigned char * def_mp = (const unsigned char *)pc_arr[2];
-    const unsigned char * sav_mp = (const unsigned char *)pc_arr[3];
+    const uint8_t * cur_mp = (const uint8_t *)pc_arr[0];
+    const uint8_t * cha_mp = (const uint8_t *)pc_arr[1];
+    const uint8_t * def_mp = (const uint8_t *)pc_arr[2];
+    const uint8_t * sav_mp = (const uint8_t *)pc_arr[3];
 
     print_mitem(pre, smask, mpi, cur_mp, cha_mp, def_mp, sav_mp,
                 force_decimal, op);
@@ -801,7 +801,7 @@ print_mitem_pc_arr(const char * pre, int smask,
 
 static int
 ll_mode_sense(int fd, const struct sdparm_opt_coll * op, int pn, int spn,
-              unsigned char * resp, int mx_resp_len, int * residp, int verb)
+              uint8_t * resp, int mx_resp_len, int * residp, int verb)
 {
     if (op->mode_6) {
         if (residp)
@@ -843,7 +843,7 @@ report_error(int res, bool mode6)
 
 /* Make some noise if the mode page response seems badly formed */
 static void
-check_mode_page(unsigned char * cur_mp, int pn, int rep_len,
+check_mode_page(uint8_t * cur_mp, int pn, int rep_len,
                 const struct sdparm_opt_coll * op)
 {
     int const pn_in_page = cur_mp[0] & 0x3f;
@@ -890,11 +890,11 @@ print_mitem_desc_after1(void ** pc_arr, int rep_len,
     int num = 0;
     const struct sdparm_mode_descriptor_t * mdp = mpp->mp_desc;
     const struct sdparm_mode_page_item * mpi;
-    const unsigned char * cur_mp = (const unsigned char *)pc_arr[0];
-    const unsigned char * cha_mp = (const unsigned char *)pc_arr[1];
-    const unsigned char * def_mp = (const unsigned char *)pc_arr[2];
-    const unsigned char * sav_mp = (const unsigned char *)pc_arr[3];
-    const unsigned char * bp;
+    const uint8_t * cur_mp = (const uint8_t *)pc_arr[0];
+    const uint8_t * cha_mp = (const uint8_t *)pc_arr[1];
+    const uint8_t * def_mp = (const uint8_t *)pc_arr[2];
+    const uint8_t * sav_mp = (const uint8_t *)pc_arr[3];
+    const uint8_t * bp;
     struct sdparm_mode_page_item ampi;
     uint64_t u;
     char b[32];
@@ -1000,7 +1000,7 @@ print_direct_access_info(int sg_fd, const struct sdparm_opt_coll * op,
                          int verb)
 {
     int res, v, resid;
-    unsigned char cur_mp[DEF_MODE_RESP_LEN];
+    uint8_t cur_mp[DEF_MODE_RESP_LEN];
 
     memset(cur_mp, 0, sizeof(cur_mp));
     res = ll_mode_sense(sg_fd, op, ALL_MPAGES, 0, cur_mp, 8, &resid, verb);
@@ -1018,7 +1018,7 @@ print_direct_access_info(int sg_fd, const struct sdparm_opt_coll * op,
 }
 
 static void
-report_number_of_descriptors(unsigned char * cur_mp,
+report_number_of_descriptors(uint8_t * cur_mp,
                              const struct sdparm_mode_descriptor_t * mdp,
                              const struct sdparm_opt_coll * op)
 {
@@ -1039,7 +1039,7 @@ report_number_of_descriptors(unsigned char * cur_mp,
         int pg_len = sdp_mpage_len(cur_mp);
         int d_len = mdp->desc_len_off + mdp->desc_len_bytes;
         int off = mdp->first_desc_off;
-        const unsigned char * bp = cur_mp + mdp->desc_len_off;
+        const uint8_t * bp = cur_mp + mdp->desc_len_off;
 
         if (pg_len < 4)
             return;
@@ -1069,18 +1069,19 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
 {
     bool single_pg, fetch_pg, desc_part, warned, have_desc_id;
     bool mode6 = op->mode_6;
-    int res, pg_len, verb, smask, rep_len, orig_pn, desc0_off;
+    int res, pg_len, verb, smask, rep_len, orig_pn;
     int desc_id, desc_len;
+    int desc0_off = 0;
     const struct sdparm_mode_page_item * mpi;
     const struct sdparm_mode_page_item * last_mpi;
     const struct sdparm_mode_page_item * fdesc_mpi = NULL;
     const struct sdparm_mode_page_t * mpp = NULL;
     const struct sdparm_mode_descriptor_t * mdp;
     void * pc_arr[4];
-    unsigned char cur_mp[DEF_MODE_RESP_LEN];
-    unsigned char cha_mp[DEF_MODE_RESP_LEN];
-    unsigned char def_mp[DEF_MODE_RESP_LEN];
-    unsigned char sav_mp[DEF_MODE_RESP_LEN];
+    uint8_t cur_mp[DEF_MODE_RESP_LEN];
+    uint8_t cha_mp[DEF_MODE_RESP_LEN];
+    uint8_t def_mp[DEF_MODE_RESP_LEN];
+    uint8_t sav_mp[DEF_MODE_RESP_LEN];
     char b[128];
 
     b[0] = '\0';
@@ -1536,13 +1537,13 @@ check_desc_convert_mpi(int desc_num, const struct sdparm_mode_page_t * mpp,
 /* returns true when ok, else false */
 static bool
 desc_adjust_start_byte(int desc_num, const struct sdparm_mode_page_t * mpp,
-                       const unsigned char * cur_mp, int rep_len,
+                       const uint8_t * cur_mp, int rep_len,
                        struct sdparm_mode_page_item * mpi,
                        const struct sdparm_opt_coll * op)
 {
     const struct sdparm_mode_descriptor_t * mdp;
     uint64_t u;
-    const unsigned char * bp;
+    const uint8_t * bp;
     int d_off, sb_off, j;
 
     mdp = mpp->mp_desc;
@@ -1608,10 +1609,10 @@ print_mitems(int sg_fd, const struct sdparm_mode_page_settings * mps,
     const struct sdparm_mode_page_item * mpi;
     struct sdparm_mode_page_item ampi;
     const struct sdparm_mode_page_t * mpp = NULL;
-    unsigned char cur_mp[DEF_MODE_RESP_LEN];
-    unsigned char cha_mp[DEF_MODE_RESP_LEN];
-    unsigned char def_mp[DEF_MODE_RESP_LEN];
-    unsigned char sav_mp[DEF_MODE_RESP_LEN];
+    uint8_t cur_mp[DEF_MODE_RESP_LEN];
+    uint8_t cha_mp[DEF_MODE_RESP_LEN];
+    uint8_t def_mp[DEF_MODE_RESP_LEN];
+    uint8_t sav_mp[DEF_MODE_RESP_LEN];
     const struct sdparm_mode_page_it_val * ivp;
     char b[128];
     char b_tmp[32];
@@ -1782,7 +1783,7 @@ change_mode_page(int sg_fd, int pdt,
     char b[128];
     char b_tmp[32];
     char ebuff[EBUFF_SZ];
-    unsigned char mdpg[MAX_MODE_DATA_LEN];
+    uint8_t mdpg[MAX_MODE_DATA_LEN];
     struct sdparm_mode_page_item ampi;
 
     if (pdt >= 0) {
@@ -1930,19 +1931,19 @@ change_mode_page(int sg_fd, int pdt,
  * -1 -> other failure */
 static int
 set_def_mode_page(int sg_fd, int pn, int spn,
-                  const unsigned char * mode_pg, int mode_pg_len,
+                  const uint8_t * mode_pg, int mode_pg_len,
                   const struct sdparm_opt_coll * op)
 {
     bool mode6 = op->mode_6;
     int len, off, md_len;
     int resid = 0;
     int ret = -1;
-    unsigned char * mdp;
+    uint8_t * mdp;
     char ebuff[EBUFF_SZ];
     char buff[128];
 
     len = mode_pg_len + MODE_DATA_OVERHEAD;
-    mdp = (unsigned char *)malloc(len);
+    mdp = (uint8_t *)malloc(len);
     if (NULL ==mdp) {
         pr2serr("%s: malloc failed, out of memory\n", __func__);
         return SG_LIB_FILE_ERROR;
@@ -2032,8 +2033,8 @@ set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
     bool mode6 = op->mode_6;
     int smask, res, len, rep_len;
     const char * cdbLenS = mode6 ? "6" : "10";
-    unsigned char cur_mp[DEF_MODE_RESP_LEN];
-    unsigned char def_mp[DEF_MODE_RESP_LEN];
+    uint8_t cur_mp[DEF_MODE_RESP_LEN];
+    uint8_t def_mp[DEF_MODE_RESP_LEN];
     char buff[128];
     void * pc_arr[4];
 
@@ -2981,8 +2982,9 @@ main(int argc, char * argv[])
             hex2stderr(inhex_buff, inhex_len, 0);
         op->do_raw = false;
         if (op->inquiry)
-            return sdp_process_vpd_page(0, pn, ((spn < 0) ? 0: spn), op,
-                                        pdt, protect, inhex_buff, inhex_len);
+            return sdp_process_vpd_page(-1, pn, ((spn < 0) ? 0: spn), op,
+                                        pdt, protect, inhex_buff, inhex_len,
+                                        NULL, 0);
         else
             return print_mode_page_inhex(inhex_buff, inhex_len, op);
     }
@@ -3015,7 +3017,7 @@ main(int argc, char * argv[])
 
         if (op->inquiry)
             r = sdp_process_vpd_page(sg_fd, pn, ((spn < 0) ? 0: spn), op,
-                                     req_pdt, protect, NULL, 0);
+                                     req_pdt, protect, NULL, 0, NULL, 0);
         else {
             if (cmd_str && scmdp)   /* process command */
                 r = sdp_process_cmd(sg_fd, scmdp, cmd_arg, pdt, op);

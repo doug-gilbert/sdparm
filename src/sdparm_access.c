@@ -100,7 +100,7 @@ sdp_strcase_eq_upto(const char * s1p, const char * s2p, int n)
 /* Returns length of mode page. Assumes mp pointing at start of a mode
  * page (not the start of a MODE SENSE response). */
 int
-sdp_mpage_len(const unsigned char * mp)
+sdp_mpage_len(const uint8_t * mp)
 {
     /* if SPF (byte 0, bit 6) is set then 4 byte header, else 2 byte header */
     return (mp[0] & 0x40) ? (sg_get_unaligned_be16(mp + 2) + 4) : (mp[1] + 2);
@@ -358,7 +358,7 @@ sdp_find_mitem_by_acron(const char * ap, int * from_p, int transp_proto,
  *       sdp_get_big_endian(from_bp, 7, 16)
  *       sg_get_unaligned_be16(from_bp)  */
 uint64_t
-sdp_get_big_endian(const unsigned char * from_bp, int start_bit /* 0 to 7 */,
+sdp_get_big_endian(const uint8_t * from_bp, int start_bit /* 0 to 7 */,
                    int num_bits /* 1 to 64 */)
 {
     uint64_t res;
@@ -380,7 +380,7 @@ sdp_get_big_endian(const unsigned char * from_bp, int start_bit /* 0 to 7 */,
  * a given start_bit offset. Maximum number of num_bits is 64. Preserves
  * residual bits in partially written bytes. start_bit 7 is MSb. */
 void
-sdp_set_big_endian(uint64_t val, unsigned char * to,
+sdp_set_big_endian(uint64_t val, uint8_t * to,
                    int start_bit /* 0 to 7 */, int num_bits /* 1 to 64 */)
 {
     int sbit_o1 = start_bit + 1;
@@ -407,7 +407,7 @@ sdp_set_big_endian(uint64_t val, unsigned char * to,
 
 uint64_t
 sdp_mitem_get_value(const struct sdparm_mode_page_item *mpi,
-                    const unsigned char * mp)
+                    const uint8_t * mp)
 {
     return sdp_get_big_endian(mp + mpi->start_byte, mpi->start_bit,
                               mpi->num_bits);
@@ -422,7 +422,7 @@ sdp_mitem_get_value(const struct sdparm_mode_page_item *mpi,
  * signed quantity use sdp_print_signed_decimal(). */
 uint64_t
 sdp_mitem_get_value_check(const struct sdparm_mode_page_item *mpi,
-                          const unsigned char * mp, bool * all_setp)
+                          const uint8_t * mp, bool * all_setp)
 {
     uint64_t res;
 
@@ -466,7 +466,7 @@ void
 sdp_print_signed_decimal(uint64_t u, int num_bits, bool leading_zeros)
 {
     unsigned int ui;
-    unsigned char uc;
+    uint8_t uc;
 
     switch (num_bits) {
     /* could support other num_bits, as required */
@@ -519,7 +519,7 @@ sdp_print_signed_decimal(uint64_t u, int num_bits, bool leading_zeros)
 /* Place 'val' at an offset to 'mp' as indicated by mpi. */
 void
 sdp_mitem_set_value(uint64_t val, const struct sdparm_mode_page_item * mpi,
-                    unsigned char * mp)
+                    uint8_t * mp)
 {
     sdp_set_big_endian(val, mp + mpi->start_byte, mpi->start_bit,
                        mpi->num_bits);

@@ -9,6 +9,7 @@ bin_PROGRAMS = sdparm
 # -std=<s> can be c99, c11, gnu11, etc. Default is gnu11
 AM_CPPFLAGS = -iquote ${top_srcdir}/include
 AM_CFLAGS = -Wall -W 
+# AM_CFLAGS = -Wall -W -Werror=misleading-indentation
 # AM_CFLAGS = -Wall -W -pedantic -std=c11
 # AM_CFLAGS = -Wall -W -pedantic -std=c++14
 
