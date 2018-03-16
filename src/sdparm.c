@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20180307 [svn: r308]";
+static const char * version_str = "1.11 20180316 [svn: r309]";
 
 
 #define MAX_DEV_NAMES 256
@@ -810,8 +810,8 @@ ll_mode_sense(int fd, const struct sdparm_opt_coll * op, int pn, int spn,
                                  resp, mx_resp_len, true /* noisy */, verb);
     } else
         return sg_ll_mode_sense10_v2(fd, false /* llbaa */, op->dbd, 0, pn,
-                                  spn, resp, mx_resp_len, true /* noisy */,
-                                  0, residp, verb);
+                                     spn, resp, mx_resp_len, 0, residp,
+                                     true /* noisy */, verb);
 }
 
 static int
