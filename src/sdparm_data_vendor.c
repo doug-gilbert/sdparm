@@ -52,6 +52,7 @@ struct sdparm_vendor_name_t sdparm_vendor_id[] = {
     {VENDOR_NONE, "none", "maps back to generic mode pages"},
     {VENDOR_LTO5, "lto5", "LTO-5 tape drive (IBM, HP)"},
     {VENDOR_LTO6, "lto6", "LTO-6 tape drive (IBM, HP)"},
+    {VENDOR_NVME, "nvme", "NVMe, SNTL in library"},
     {0, NULL, NULL},
 };
 
@@ -363,6 +364,24 @@ static struct sdparm_mode_page_item sdparm_mitem_v_lto6_arr[] = {
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
 };
 
+static struct sdparm_mode_page_t sdparm_v_nvme_mode_pg[] = {
+    {UNIT_ATTENTION_MP, 0, 0, 0, "nvme", "Unit attention (NVMe)", NULL},
+    {0, 0, 0, 0, NULL, NULL, NULL},
+};
+
+/* Only used by library's SNTL to override settings implied by NVMSR (byte
+ * 253 of Identify controller response) field, namely the NVMEE and NVMESD
+ * bits within that field */
+static struct sdparm_mode_page_item sdparm_mitem_v_nvme_arr[] = {
+    /* Unit attention page [0x0] NVMe */
+    {"ENC_OV", UNIT_ATTENTION_MP, 0, 0, 2, 7, 8, MF_COMMON,
+        "Enclosure override",
+        "0: no override; 1: SES only; 2: SES+disk\t"
+        "3: pdt=processor SAFTE; 255: disk only"},
+    {"NVME2", UNIT_ATTENTION_MP, 0, 0, 3, 7, 8, 0,
+        "Place holder, NVMe 2", NULL},
+};
+
 /* Indexed by VENDOR_* define */
 struct sdparm_vendor_pair sdparm_vendor_mp[] = {
     {sdparm_v_seagate_mode_pg, sdparm_mitem_v_seagate_arr},
@@ -372,6 +391,7 @@ struct sdparm_vendor_pair sdparm_vendor_mp[] = {
     {sdparm_gen_mode_pg, sdparm_mitem_arr},     /* VENDOR_NONE --> generic */
     {sdparm_v_lto5_mode_pg, sdparm_mitem_v_lto5_arr},
     {sdparm_v_lto6_mode_pg, sdparm_mitem_v_lto6_arr},
+    {sdparm_v_nvme_mode_pg, sdparm_mitem_v_nvme_arr},
 };
 
 const int sdparm_vendor_mp_len = SG_ARRAY_SIZE(sdparm_vendor_mp);

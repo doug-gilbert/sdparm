@@ -145,6 +145,7 @@ extern "C" {
 #define VENDOR_NONE 0x4
 #define VENDOR_LTO5 0x5
 #define VENDOR_LTO6 0x6
+#define VENDOR_NVME 0x7
 
 /* bit flag settings for sdparm_mode_page_item::flags */
 #define MF_COMMON 0x1   /* output in summary mode */
