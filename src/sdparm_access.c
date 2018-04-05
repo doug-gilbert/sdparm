@@ -351,65 +351,11 @@ sdp_find_mitem_by_acron(const char * ap, int * from_p, int transp_proto,
     return mpi;
 }
 
-/* Does similar job to sg_get_unaligned_be*() but this function starts at
- * a given start_bit (i.e. within byte, so 7 is MSbit of byte and 0 is LSbit)
- * offset. Maximum number of num_bits is 64. For example, these two
- * invocations are equivalent (and should yield the same result);
- *       sdp_get_big_endian(from_bp, 7, 16)
- *       sg_get_unaligned_be16(from_bp)  */
-uint64_t
-sdp_get_big_endian(const uint8_t * from_bp, int start_bit /* 0 to 7 */,
-                   int num_bits /* 1 to 64 */)
-{
-    uint64_t res;
-    int sbit_o1 = start_bit + 1;
-
-    res = (*from_bp++ & ((1 << sbit_o1) - 1));
-    num_bits -= sbit_o1;
-    while (num_bits > 0) {
-        res <<= 8;
-        res |= *from_bp++;
-        num_bits -= 8;
-    }
-    if (num_bits < 0)
-        res >>= (-num_bits);
-    return res;
-}
-
-/* Does similar job to sg_put_unaligned_be*() but this function starts at
- * a given start_bit offset. Maximum number of num_bits is 64. Preserves
- * residual bits in partially written bytes. start_bit 7 is MSb. */
-void
-sdp_set_big_endian(uint64_t val, uint8_t * to,
-                   int start_bit /* 0 to 7 */, int num_bits /* 1 to 64 */)
-{
-    int sbit_o1 = start_bit + 1;
-    int mask, num, k, x;
-
-    mask = (8 != sbit_o1) ? ((1 << sbit_o1) - 1) : 0xff;
-    k = start_bit - ((num_bits - 1) % 8);
-    if (0 != k)
-        val <<= ((k > 0) ? k : (8 + k));
-    num = (num_bits + 15 - sbit_o1) / 8;
-    for (k = 0; k < num; ++k) {
-        if ((sbit_o1 - num_bits) > 0)
-            mask &= ~((1 << (sbit_o1 - num_bits)) - 1);
-        if (k < (num - 1))
-            x = (val >> ((num - k - 1) * 8)) & 0xff;
-        else
-            x = val & 0xff;
-        to[k] = (to[k] & ~mask) | (x & mask);
-        mask = 0xff;
-        num_bits -= sbit_o1;
-        sbit_o1 = 8;
-    }
-}
-
 uint64_t
 sdp_mitem_get_value(const struct sdparm_mode_page_item *mpi,
                     const uint8_t * mp)
 {
-    return sdp_get_big_endian(mp + mpi->start_byte, mpi->start_bit,
+    return sg_get_big_endian(mp + mpi->start_byte, mpi->start_bit,
                               mpi->num_bits);
 }
 
@@ -426,7 +372,7 @@ sdp_mitem_get_value_check(const struct sdparm_mode_page_item *mpi,
 {
     uint64_t res;
 
-    res = sdp_get_big_endian(mp + mpi->start_byte, mpi->start_bit,
+    res = sg_get_big_endian(mp + mpi->start_byte, mpi->start_bit,
                              mpi->num_bits);
     if (all_setp) {
         switch (mpi->num_bits) {
@@ -521,8 +467,8 @@ void
 sdp_mitem_set_value(uint64_t val, const struct sdparm_mode_page_item * mpi,
                     uint8_t * mp)
 {
-    sdp_set_big_endian(val, mp + mpi->start_byte, mpi->start_bit,
-                       mpi->num_bits);
+    sg_set_big_endian(val, mp + mpi->start_byte, mpi->start_bit,
+                      mpi->num_bits);
 }
 
 char *

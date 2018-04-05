@@ -1858,17 +1858,15 @@ decode_std_inq(int sg_fd, const struct sdparm_opt_coll * op)
         }
     }
     pqual = (b[0] & 0xe0) >> 5;
+    printf("standard INQUIRY:");
     if (0 == pqual)
-        printf("standard INQUIRY:\n");
+        printf("\n");
     else if (1 == pqual)
-        printf("standard INQUIRY: [qualifier indicates no connected "
-               "LU]\n");
+        printf(" [PQ indicates LU temporarily unavailable]\n");
     else if (3 == pqual)
-        printf("standard INQUIRY: [qualifier indicates not capable "
-               "of supporting LU]\n");
+        printf(" [PQ indicates LU not accessible via this port]\n");
     else
-        printf("standard INQUIRY: [reserved or vendor specific "
-                       "qualifier [%d]]\n", pqual);
+        printf(" [reserved or vendor specific qualifier [%d]]\n", pqual);
     len = b[4] + 5;
     len = (len <= sz) ? len : sz;
     if (op->do_hex) {
