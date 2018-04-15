@@ -1811,6 +1811,34 @@ decode_zbdc_vpd(uint8_t * b, int len)
     return 0;
 }
 
+/* Called from end of 'case VPD_SUPPORTED_VPDS:' in sdp_process_vpd_page().
+ * Must take care not to call that function to decode the VPD_SUPPORTED_VPDS
+ * page again. That will cause an infinite loop!
+ * Called when '--inquiry --all --all' or '-iaa' used on command line. */
+static int
+decode_all_vpds(uint8_t * b, int len, int sg_fd,
+                const struct sdparm_opt_coll * op, int req_pdt,
+                bool protect)
+{
+    int k, ret;
+    uint8_t bb[256];
+
+    if (len > 256)
+        len = 256;
+    memcpy(bb, b, ((len < 256) ? len : 256));
+
+    for (k = 0; k < len; ++k) {
+        if (VPD_SUPPORTED_VPDS == bb[k])
+            continue;   /* this avoids infinite loop */
+        printf("\n");
+        ret = sdp_process_vpd_page(sg_fd, bb[k], 0, op, req_pdt, protect,
+                                   NULL, 0, NULL, 0);
+        if (ret)
+            return ret;
+    }
+    return 0;
+}
+
 /* Assume index is less than 16 */
 const char * sg_ansi_version_arr[] =
 {
@@ -1906,7 +1934,8 @@ decode_std_inq(int sg_fd, const struct sdparm_opt_coll * op)
  * to by sg_fd; then process the response received. If ihbp is non-NULL then
  * sg_fd is ignored and the buffer pointed to by ihbp (with length no greater
  * than ihb_len) is assumed to be the response to a SCSI INQUIRY command.
- * Returns 0 if successful, else error */
+ * Returns 0 if successful, else error. spn changes what is output, currently
+ * it only changes of the output of the Device Identification VPD page. */
 int
 sdp_process_vpd_page(int sg_fd, int pn, int spn,
                      const struct sdparm_opt_coll * op, int req_pdt,
@@ -2017,6 +2046,13 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
                         printf("  %s [%s]\n", vpp->name, vpp->acron);
                 } else
                     printf("  0x%x\n", b[4 + k]);
+            }
+            /* Take care not to decode this VPD page [0x0] again! */
+            if ((op->do_all > 1) && (sg_fd >= 0)) {
+                ret = decode_all_vpds(b + 4, len, sg_fd, op, req_pdt,
+                                      protect);
+                if (ret)
+                    goto fini;
             }
         } else
             printf("  <empty>\n");
