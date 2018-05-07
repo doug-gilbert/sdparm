@@ -1,4 +1,4 @@
-.TH SDPARM "8" "April 2018" "sdparm\-1.11" SDPARM
+.TH SDPARM "8" "May 2018" "sdparm\-1.11" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -830,6 +830,11 @@ mechanism has blocked writes (or possibly all access to the media).
 the \fIDEVICE\fR reports an illegal request with an additional
 sense code of "invalid operation code" which means that it doesn't
 support the requested command.
+.TP
+.B 10
+the \fIDEVICE\fR reports a "copy aborted". This implies another command or
+device problem has stopped a copy operation. The EXTENDED COPY family of
+commands (including WRITE USING TOKEN) may return this sense key.
 .TP
 .B 11
 the \fIDEVICE\fR reports an aborted command. In some cases aborted

@@ -124,6 +124,10 @@ static struct sdparm_mode_page_item sdparm_mitem_v_seagate_arr[] = {
         "Just in time 0, fastest seek type",
         "0: can not use this seek type in seek speed algorithm\t"
         "1: can use this seek type in seek speed algorithm"},
+    {"TTE", UNIT_ATTENTION_MP, 0, 0, 6, 0, 1, 0,
+        "Thermal throttle enable (SSD)",
+        "0: drive activity is not limited, based on temperature\t"
+        "1: drive activity is limited, based on temperature"},
 
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
 };
