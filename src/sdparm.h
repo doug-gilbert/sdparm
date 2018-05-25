@@ -387,10 +387,6 @@ const struct sdparm_vendor_name_t * sdp_find_vendor_by_acron(const char * ap);
 const struct sdparm_vendor_pair * sdp_get_vendor_pair(int vendor_num);
 const struct sdparm_mode_page_item * sdp_find_mitem_by_acron(const char * ap,
                 int * from, int transp_proto, int vendor_num);
-uint64_t sdp_get_big_endian(const uint8_t * from, int start_bit,
-                           int num_bits);
-void sdp_set_big_endian(uint64_t val, uint8_t * to, int start_bit,
-                        int num_bits);
 uint64_t sdp_mitem_get_value(const struct sdparm_mode_page_item *mpi,
                              const uint8_t * mp);
 uint64_t sdp_mitem_get_value_check(const struct sdparm_mode_page_item *mpi,

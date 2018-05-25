@@ -662,8 +662,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"IALUAE", CONTROL_MP, MSP_SPC_CE, -1, 4, 0, 1, 0,
         "Implicit asymmetric logical unit access enabled", NULL},
     {"INIT_PR", CONTROL_MP, MSP_SPC_CE, -1, 5, 3, 4, 0,
-        "Initial command priority", "0: none or vendor\t"
-        "1: highest\t15: lowest"},
+        "Initial command priority", "0: none or vendor; 1: highest; "
+        "15: lowest"},
     {"MSDL", CONTROL_MP, MSP_SPC_CE, -1, 6, 7, 8, 0,  /* spc4r34 */
         "Maximum sense data length", "0: unlimited"},
 
@@ -988,13 +988,13 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     /* The "0: restricted (SAS-2)" became obsolete in spc5r01 */
     {"CCF_IDLE", POWER_MP, 0, -1, 39, 7, 2, 0,     /* changed spc4r35 */
         "check condition if from idle_c",          /* was FIDCPC (spc4r25) */
-        "0: restricted (SAS-2); 1: disabled; 2: enabled\n"},
+        "0: restricted (SAS-2); 1: disabled; 2: enabled"},
     {"CCF_STAND", POWER_MP, 0, -1, 39, 5, 2, 0,    /* changed spc4r35 */
         "check condition if from a standby",         /* was FSBCPC */
-        "0: restricted (SAS-2); 1: disabled; 2: enabled\n"},
+        "0: restricted (SAS-2); 1: disabled; 2: enabled"},
     {"CCF_STOPP", POWER_MP, 0, -1, 39, 3, 2, 0,    /* changed spc4r35 */
         "check condition if from stopped",         /* was FSTCPC */
-        "0: restricted (SAS-2); 1: disabled; 2: enabled\n"},
+        "0: restricted (SAS-2); 1: disabled; 2: enabled"},
 
     /* Power consumption mode page [0x1a,1] added spc4r33 */
     {"ACT_LEV", POWER_MP, MSP_SPC_PS, -1, 6, 1, 2, 0,

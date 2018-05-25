@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20180321 [svn: r310]";
+static const char * version_str = "1.11 20180405 [svn: r311]";
 
 
 #define MAX_DEV_NAMES 256
@@ -904,12 +904,12 @@ print_mitem_desc_after1(void ** pc_arr, int rep_len,
         return;
     if ((mdp->num_descs_inc < 0) && (mdp->desc_len > 0)) {
         k = mdp->first_desc_off - (mdp->num_descs_off + mdp->num_descs_bytes);
-        u = (sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
-                                mdp->num_descs_bytes * 8) - k) /
+        u = (sg_get_big_endian(cur_mp + mdp->num_descs_off, 7,
+                               mdp->num_descs_bytes * 8) - k) /
             mdp->desc_len;
         num = (int)u;
     } else if (mdp->num_descs_bytes > 0) {
-        u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
+        u = sg_get_big_endian(cur_mp + mdp->num_descs_off, 7,
                        mdp->num_descs_bytes * 8) + mdp->num_descs_inc;
         num = (int)u;
     } else {
@@ -921,8 +921,7 @@ print_mitem_desc_after1(void ** pc_arr, int rep_len,
         bp = cur_mp + mdp->desc_len_off;
         while (off + d_len < pg_len) {
             ++num;
-            u = sdp_get_big_endian(bp + off, 7,
-                                   mdp->desc_len_bytes * 8);
+            u = sg_get_big_endian(bp + off, 7, mdp->desc_len_bytes * 8);
             if (u > 1024) {
                 pr2serr(">> mpage descriptor too large=%"
                         PRIu64 ", stop counting "
@@ -948,7 +947,7 @@ print_mitem_desc_after1(void ** pc_arr, int rep_len,
         len = mdp->desc_len;
     else /* if (mdp->num_descs_bytes > 0) */ {
         bp = cur_mp + mdp->first_desc_off + mdp->desc_len_off;
-        u = sdp_get_big_endian(bp, 7, mdp->desc_len_bytes * 8);
+        u = sg_get_big_endian(bp, 7, mdp->desc_len_bytes * 8);
         len = mdp->desc_len_off + mdp->desc_len_bytes + u;
     }
     d_off = mdp->first_desc_off + len;
@@ -987,7 +986,7 @@ print_mitem_desc_after1(void ** pc_arr, int rep_len,
             break;
         if ((mdp->num_descs_bytes > 0) && (! have_desc_id)) {
             bp = cur_mp + d_off + mdp->desc_len_off;
-            u = sdp_get_big_endian(bp, 7, mdp->desc_len_bytes * 8);
+            u = sg_get_big_endian(bp, 7, mdp->desc_len_bytes * 8);
             len = mdp->desc_len_off + mdp->desc_len_bytes + u;
         }
     }
@@ -1026,13 +1025,13 @@ report_number_of_descriptors(uint8_t * cur_mp,
     uint64_t u;
 
     if ((mdp->num_descs_inc < 0) && (mdp->desc_len > 0)) {
-        u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
-                               mdp->num_descs_bytes * 8) /
+        u = sg_get_big_endian(cur_mp + mdp->num_descs_off, 7,
+                              mdp->num_descs_bytes * 8) /
             mdp->desc_len;
         num = (int)u;
     } else if (mdp->num_descs_bytes > 0) {
-        u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
-                               mdp->num_descs_bytes * 8) +
+        u = sg_get_big_endian(cur_mp + mdp->num_descs_off, 7,
+                              mdp->num_descs_bytes * 8) +
             mdp->num_descs_inc;
         num = (int)u;
     } else {    /* no descriptor count, so walk them */
@@ -1045,8 +1044,7 @@ report_number_of_descriptors(uint8_t * cur_mp,
             return;
         while (off + d_len < pg_len) {
             ++num;
-            u = sdp_get_big_endian(bp + off, 7,
-                                   mdp->desc_len_bytes * 8);
+            u = sg_get_big_endian(bp + off, 7, mdp->desc_len_bytes * 8);
             if (u > 1024) {
                 pr2serr(">> mpage descriptor too large=%"
                         PRIu64 ", stop counting "
@@ -1549,10 +1547,10 @@ desc_adjust_start_byte(int desc_num, const struct sdparm_mode_page_t * mpp,
     mdp = mpp->mp_desc;
     if ((mdp->num_descs_off < rep_len) && (mdp->num_descs_off < 64)) {
         if ((mdp->num_descs_inc < 0) && (mdp->desc_len > 0))
-            u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
+            u = sg_get_big_endian(cur_mp + mdp->num_descs_off, 7,
                     mdp->num_descs_bytes * 8) / mdp->desc_len;
         else
-            u = sdp_get_big_endian(cur_mp + mdp->num_descs_off, 7,
+            u = sg_get_big_endian(cur_mp + mdp->num_descs_off, 7,
                     mdp->num_descs_bytes * 8) + mdp->num_descs_inc;
         if ((uint64_t)desc_num < u) {
             if (mdp->desc_len > 0) {
@@ -1579,7 +1577,7 @@ desc_adjust_start_byte(int desc_num, const struct sdparm_mode_page_t * mpp,
                         break;
                     }
                     bp = cur_mp + d_off + mdp->desc_len_off;
-                    u = sdp_get_big_endian(bp, 7, mdp->desc_len_bytes * 8);
+                    u = sg_get_big_endian(bp, 7, mdp->desc_len_bytes * 8);
                     d_off += mdp->desc_len_off +
                              mdp->desc_len_bytes + u;
                     if (d_off >= rep_len) {
