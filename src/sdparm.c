@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20180414 [svn: r312]";
+static const char * version_str = "1.11 20180507 [svn: r313]";
 
 
 #define MAX_DEV_NAMES 256
@@ -1093,10 +1093,10 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
     orig_pn = pn;
     /* choose a mode page item namespace (vendor, transport or generic) */
     if (op->vendor_id >= 0) {
-        const struct sdparm_vendor_pair * vpp;
+        const struct sdparm_vendor_pair * svpp;
 
-        vpp = sdp_get_vendor_pair(op->vendor_id);
-        mpi = (vpp ? vpp->mitem : NULL);
+        svpp = sdp_get_vendor_pair(op->vendor_id);
+        mpi = (svpp ? svpp->mitem : NULL);
     } else if ((op->transport >= 0) && (op->transport < 16))
         mpi = sdparm_transport_mp[op->transport].mitem;
     else        /* generic */
@@ -1811,10 +1811,10 @@ change_mode_page(int sg_fd, int pdt,
             pr2serr("%s byte %s cdb not supported, try again with%s '-6' "
                     "option\n", cdbLenS, ms_s, mode6 ? "out" : "");
         } else {
-            char b[80];
+            char bb[80];
 
-            sg_get_category_sense_str(res, sizeof(b), b, op->verbose);
-            pr2serr("%s command: %s\n", ms_s, b);
+            sg_get_category_sense_str(res, sizeof(bb), bb, op->verbose);
+            pr2serr("%s command: %s\n", ms_s, bb);
         }
         pr2serr("%s: failed fetching page: %s\n", __func__, b);
         return res;
@@ -2333,9 +2333,9 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
             }
             ivp->orig_val = ivp->val;
             if (ivp->mpi.num_bits < 64) {
-                int64_t ll = 1;
+                int64_t ll1 = 1;
 
-                ivp->val &= (ll << ivp->mpi.num_bits) - 1;
+                ivp->val &= (ll1 << ivp->mpi.num_bits) - 1;
             }
         }
         ++mps->num_it_vals;
@@ -2581,11 +2581,11 @@ main(int argc, char * argv[])
                 } else
                     op->vendor_id = vnp->vendor_id;
             } else {
-                const struct sdparm_vendor_pair * vpp;
+                const struct sdparm_vendor_pair * svpp;
 
                 res = sg_get_num_nomult(optarg);
-                vpp = sdp_get_vendor_pair(res);
-                if (NULL == vpp) {
+                svpp = sdp_get_vendor_pair(res);
+                if (NULL == svpp) {
                     pr2serr("Bad vendor value after '-M' (or '--vendor=') "
                             "option\n");
                     printf("Available vendors:\n");
