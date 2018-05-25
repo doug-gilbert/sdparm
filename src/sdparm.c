@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20180507 [svn: r313]";
+static const char * version_str = "1.11 20180511 [svn: r314]";
 
 
 #define MAX_DEV_NAMES 256
@@ -107,6 +107,7 @@ static struct option long_options[] = {
     {"long", no_argument, 0, 'l'},
     {"num-desc", no_argument, 0, 'n'},
     {"num_desc", no_argument, 0, 'n'},
+    {"numdesc", no_argument, 0, 'n'},
     {"page", required_argument, 0, 'p'},
     {"pdt", required_argument, 0, 'P'},
     {"quiet", no_argument, 0, 'q'},
