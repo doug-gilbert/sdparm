@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20180405 [svn: r311]";
+static const char * version_str = "1.11 20180414 [svn: r312]";
 
 
 #define MAX_DEV_NAMES 256
@@ -198,6 +198,8 @@ usage(int do_help)
             "    --dbd | -B            set DBD bit in mode sense cdb\n"
             "    --defaults | -D       set a mode page to its default "
             "values\n"
+            "                          when use twice set all pages to "
+            "their defaults\n"
             "    --dummy | -d          don't write back modified mode page\n"
             "    --flexible | -f       compensate for common errors, "
             "relax some checks\n"
@@ -2080,6 +2082,23 @@ set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
     }
 }
 
+static int
+set_all_page_defaults(int sg_fd, const struct sdparm_opt_coll * op)
+{
+    int ret;
+
+    if (op->mode_6)
+        ret = sg_ll_mode_select6_v2(sg_fd, false /* PF */, true /* RTD */,
+                                    op->save, NULL, 0, true, op->verbose);
+    else
+        ret = sg_ll_mode_select10_v2(sg_fd, false /* PF */, true /* RTD */,
+                                     op->save, NULL, 0, true, op->verbose);
+    if (0 != ret)
+        pr2serr("%s: setting RTD (reset to defaults) bit failed\n",
+                __func__);
+    return ret;
+}
+
 /* Parse 'arg' given to command line --get=, --clear= or set= into 'mps'
  * which contains an array ('mps->it_vals[]') used for output. 'arg' may be
  * a comma separated list of item value=pairs. This function places
@@ -2419,8 +2438,10 @@ process_mode(int sg_fd, const struct sdparm_mode_page_settings * mps, int pn,
                 pr2serr("   may need '--flexible' option to override\n");
         }
     }
-    if (op->defaults)
+    if (1 == op->defaults)
         res = set_mp_defaults(sg_fd, pn, spn, pdt, op);
+    else if (op->defaults > 1)
+        res = set_all_page_defaults(sg_fd, op);
     else if (set_clear) {
         if (mps->num_it_vals < 1) {
             pr2serr("no fields found to set or clear\n");
@@ -2501,7 +2522,7 @@ main(int argc, char * argv[])
             op->mode_6 = true;
             break;
         case 'a':
-            op->do_all = true;
+            ++op->do_all;
             break;
         case 'B':
             op->dbd = true;
@@ -2518,7 +2539,7 @@ main(int argc, char * argv[])
             op->dummy = true;
             break;
         case 'D':
-            op->defaults = true;
+            ++op->defaults;
             rw = true;
             break;
         case 'e':
@@ -2958,8 +2979,9 @@ main(int argc, char * argv[])
         if (op->verbose && (mp_settings.num_it_vals > 0))
             list_mp_settings(&mp_settings, (NULL != get_str));
 
-        if (op->defaults && (pn < 0)) {
-            pr2serr("to set defaults, the '--page=' option must be used\n");
+        if ((1 == op->defaults) && (pn < 0)) {
+            pr2serr("to set a page's defaults, the '--page=' option must be "
+                    "used\n");
             return SG_LIB_SYNTAX_ERROR;
         }
     }

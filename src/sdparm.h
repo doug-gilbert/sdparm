@@ -175,9 +175,7 @@ extern "C" {
 
 /* Mainly command line options */
 struct sdparm_opt_coll {
-    bool do_all;
     bool dbd;
-    bool defaults;      /* set mode page to its default values */
     bool dummy;
     bool flexible;
     bool inquiry;
@@ -186,6 +184,10 @@ struct sdparm_opt_coll {
     bool do_raw;        /* -R (usually '-r' but already used) */
     bool read_only;
     bool save;
+    int defaults;       /* set mode page to its default values, or when set
+			 * twice set RTD bit to set defaults on all pages */
+    int do_all;         /* -iaa outputs all VPD pages found in the Supported
+                         * VPD Pages VPD page (0x0) */
     int do_enum;
     int do_hex;
     int do_long;

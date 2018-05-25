@@ -2,12 +2,15 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.11 [20180405] [svn: r311]
+ChangeLog for sdparm-1.11 [20180414] [svn: r312]
   - add Out of band management control mpage (spl5r01)
   - accept additional tansport acronyms (e.g. ib for srp)
   - power condition mpage: rename fields IDLE->IDLE_A;
     STANDBY->STANDBY_Z; ICT->IACT and SCT->SZCT
+  - --defaults option can be used twice: reverts all
+    pages to their defaults (new in spc5r11, RTD bit)
   - vpd: decode TransportIDs in SCSI port page
+    - --all option used twice lists all VPD pages
     - decode SCSI Feature sets page (spc5r16)
     - decode Enclosure service device characteristics
       page (T10/17-142r1 --> ses4r02 ??)
@@ -21,7 +24,7 @@ ChangeLog for sdparm-1.11 [20180405] [svn: r311]
   - command=capacity with --long force read capacity(16)
     with full reporting of response
   - --wscan option: expand bus type to include NVMe
-  - point svn:externals to rev 767 of sg3_utils
+  - point svn:externals to rev 768 of sg3_utils
   - convert many two valued 'int's to bool
   - shellcheck corrections on scripts
   - upgrade automake to version 1.15 (U16.04)

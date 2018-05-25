@@ -1,4 +1,4 @@
-.TH SDPARM "8" "January 2018" "sdparm\-1.11" SDPARM
+.TH SDPARM "8" "April 2018" "sdparm\-1.11" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -123,6 +123,11 @@ from different pages. When a specific (mode) page number is given with the
 output (irrespective of the setting of this option). For this option's action
 when used with the \fI\-\-enumerate\fR option see the ENUMERATE section below.
 .br
+When used together with the \fI\-\-inquiry\fR option and a \fIDEVICE\fR, the
+Supported VPD Pages VPD page [0x0] is output. When this option is used
+twice (short form: '-iaa') then all VPD pages (listed in the Supported VPD
+Pages VPD page) are output.
+.br
 By default \fI\-\-inhex=FN\fR will only decode the first mode page found in
 \fIFN\fR. With this option, more mode pages will be decoded if present. When
 \fI\-\-transport=TN\fR or \fI\-\-vendor=VN\fR is also given then if a given
@@ -150,6 +155,12 @@ sets the given mode page to its default values. Requires the
 \fI\-\-page=PG[,SPG]\fR option to be given to specify the mode page. To make
 the default mode page values also the saved mode page values, use the
 \fI\-\-save\fR option as well.
+.br
+when this option is used twice, the current values in all modes pages are
+reverted to their defaults. If the \fI\-\-save\fR option is given as well,
+then the current and saved values in all modes pages are reverted to their
+defaults. This feature uses the RTD bit in the MODE SELECT command which
+was added in draft SPC\-5 revision 11.
 .TP
 \fB\-d\fR, \fB\-\-dummy\fR
 when set inhibits changes being placed in the \fIDEVICE\fR's mode page.
