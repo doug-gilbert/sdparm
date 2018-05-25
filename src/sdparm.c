@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20180511 [svn: r314]";
+static const char * version_str = "1.11 20180524 [svn: r315]";
 
 
 #define MAX_DEV_NAMES 256
@@ -292,14 +292,14 @@ usage(int do_help)
  * stdin). If reading ASCII hex then there should be either one entry per
  * line or a comma, space or tab separated list of bytes. If no_space is
  * set then a string of ACSII hex digits is expected, 2 per byte. Everything
- * from and including a '#' on a line is ignored. Returns true if ok, or
- * false if error. */
-static bool
+ * from and including a '#' on a line is ignored. Returns 0 if ok, or
+ * sg3_utils error code. */
+static int
 f2hex_arr(const char * fname, bool as_binary, bool no_space,
           uint8_t * mp_arr, int * mp_arr_len, int max_arr_len)
 {
     bool split_line, has_stdin;
-    int fn_len, in_len, k, j, m, fd;
+    int fn_len, in_len, k, j, m, fd, err;
     unsigned int h;
     const char * lcp;
     FILE * fp;
@@ -309,10 +309,10 @@ f2hex_arr(const char * fname, bool as_binary, bool no_space,
     struct stat a_stat;
 
     if ((NULL == fname) || (NULL == mp_arr) || (NULL == mp_arr_len))
-        return false;
+        return SG_LIB_LOGIC_ERROR;
     fn_len = strlen(fname);
     if (0 == fn_len)
-        return false;
+        return SG_LIB_SYNTAX_ERROR;
     has_stdin = ((1 == fn_len) && ('-' == fname[0]));   /* read from stdin */
     if (as_binary) {
         if (has_stdin)
@@ -322,7 +322,7 @@ f2hex_arr(const char * fname, bool as_binary, bool no_space,
             if (fd < 0) {
                 pr2serr("unable to open binary file %s: %s\n", fname,
                          safe_strerror(errno));
-                return false;
+                return SG_LIB_SYNTAX_ERROR;
             }
         }
         k = read(fd, mp_arr, max_arr_len);
@@ -334,7 +334,7 @@ f2hex_arr(const char * fname, bool as_binary, bool no_space,
                         safe_strerror(errno));
             if (! has_stdin)
                 close(fd);
-            return false;
+            return SG_LIB_SYNTAX_ERROR;
         }
         if ((0 == fstat(fd, &a_stat)) && S_ISFIFO(a_stat.st_mode)) {
             /* pipe; keep reading till error or 0 read */
@@ -347,7 +347,7 @@ f2hex_arr(const char * fname, bool as_binary, bool no_space,
                             safe_strerror(errno));
                     if (! has_stdin)
                         close(fd);
-                    return false;
+                    return SG_LIB_SYNTAX_ERROR;
                 }
                 k += m;
             }
@@ -355,15 +355,17 @@ f2hex_arr(const char * fname, bool as_binary, bool no_space,
         *mp_arr_len = k;
         if (! has_stdin)
             close(fd);
-        return true;
+        return 0;
     } else {    /* So read the file as ASCII hex */
         if (has_stdin)
             fp = stdin;
         else {
             fp = fopen(fname, "r");
             if (NULL == fp) {
-                pr2serr("Unable to open %s for reading\n", fname);
-                return false;
+                err = errno;
+                pr2serr("Unable to open %s for reading: %s\n", fname,
+                        safe_strerror(err));
+                return sg_convert_errno(err);
             }
         }
      }
@@ -474,11 +476,11 @@ f2hex_arr(const char * fname, bool as_binary, bool no_space,
     *mp_arr_len = off;
     if (stdin != fp)
         fclose(fp);
-    return true;
+    return 0;
 bad:
     if (stdin != fp)
         fclose(fp);
-    return false;
+    return SG_LIB_SYNTAX_ERROR;
 }
 
 static void
@@ -1947,7 +1949,7 @@ set_def_mode_page(int sg_fd, int pn, int spn,
     mdp = (uint8_t *)malloc(len);
     if (NULL ==mdp) {
         pr2serr("%s: malloc failed, out of memory\n", __func__);
-        return SG_LIB_FILE_ERROR;
+        return sg_convert_errno(ENOMEM);
     }
     memset(mdp, 0, len);
     ret = ll_mode_sense(sg_fd, op, pn, spn, mdp, 4, &resid, op->verbose);
@@ -2351,6 +2353,7 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
     return true;
 }
 
+/* Returns open file descriptor ( >= 0) or negated sg3_utils error code. */
 static int
 open_and_simple_inquiry(const char * device_name, bool rw, int * pdt,
                         bool * protect, const struct sdparm_opt_coll * op)
@@ -2364,7 +2367,7 @@ open_and_simple_inquiry(const char * device_name, bool rw, int * pdt,
     if (sg_fd < 0) {
         pr2serr("open error: %s [%s]: %s\n", device_name,
                 (rw ? "read/write" : "read only"), safe_strerror(-sg_fd));
-        return -1;
+        return -sg_convert_errno(-sg_fd);
     }
     res = sg_simple_inquiry(sg_fd, &sir, 0, verb);
     if (res) {
@@ -2373,17 +2376,21 @@ open_and_simple_inquiry(const char * device_name, bool rw, int * pdt,
             int sg_sg_fd;
 
             sg_sg_fd = map_if_lk24(sg_fd, device_name, rw, op->verbose);
-            if (sg_sg_fd < 0)
+            if (sg_sg_fd < 0) {
+                res = -SG_LIB_SYNTAX_ERROR;
                 goto err_out;
+            }
             sg_cmds_close_device(sg_fd);
             sg_fd = sg_sg_fd;
             res = sg_simple_inquiry(sg_fd, &sir, 0, verb);
-            if (sg_sg_fd < 0)
+            if (res < 0)
                 goto err_out;
         }
 #endif  /* SG_LIB_LINUX */
         if (res) {
             pr2serr("SCSI INQUIRY command failed on %s\n", device_name);
+            if (res > 0)
+                res = -res;
             goto err_out;
         }
     }
@@ -2405,7 +2412,7 @@ open_and_simple_inquiry(const char * device_name, bool rw, int * pdt,
 
 err_out:
     sg_cmds_close_device(sg_fd);
-    return -1;
+    return res;
 }
 
 /* Process mode page(s) operation. Returns 0 if successful */
@@ -2606,7 +2613,7 @@ main(int argc, char * argv[])
             if (page_str) {
                 pr2serr("only one '--page=' option permitted\n");
                 usage((do_help > 0) ? do_help : 0);
-                return SG_LIB_SYNTAX_ERROR;
+                return SG_LIB_CONTRADICT;
             } else
                 page_str = optarg;
             break;
@@ -2696,7 +2703,7 @@ main(int argc, char * argv[])
 
     if ((!!get_str + !!set_str + !!clear_str) > 1) {
         pr2serr("Can only give one of '--get=', '--set=' and '--clear='\n");
-        return SG_LIB_SYNTAX_ERROR;
+        return SG_LIB_CONTRADICT;
     }
 #ifdef SG_LIB_WIN32
     if (do_wscan)
@@ -2757,7 +2764,7 @@ main(int argc, char * argv[])
                 if (op->inquiry) {
                     pr2serr("matched mode page acronym but given '-i' so "
                             "expecting a VPD page\n");
-                    return SG_LIB_SYNTAX_ERROR;
+                    return SG_LIB_CONTRADICT;
                 }
                 pn = mpp->page;
                 spn = mpp->subpage;
@@ -2800,7 +2807,7 @@ main(int argc, char * argv[])
             pr2serr("'--inquiry' option lists VPD pages so other options "
                     "that are\nconcerned with mode pages are "
                     "inappropriate\n");
-            return SG_LIB_SYNTAX_ERROR;
+            return SG_LIB_CONTRADICT;
         }
         if (pn > 255) {
             pr2serr("VPD page numbers are from 0 to 255\n");
@@ -2815,7 +2822,7 @@ main(int argc, char * argv[])
         if (set_clear || get_str || op->defaults || op->save) {
             pr2serr("'--command=' option is not valid with other "
                     "options that are\nconcerned with mode pages\n");
-            return SG_LIB_SYNTAX_ERROR;
+            return SG_LIB_CONTRADICT;
         }
         if (op->do_enum) {
             printf("Available commands:\n");
@@ -2843,7 +2850,7 @@ main(int argc, char * argv[])
             if (set_clear) {
                 pr2serr("'--get=' can't be used with '--set=' or "
                         "'--clear='\n");
-                return SG_LIB_SYNTAX_ERROR;
+                return SG_LIB_CONTRADICT;
             }
             if (! build_mp_settings(get_str, &mp_settings, op, false, true))
                 return SG_LIB_SYNTAX_ERROR;
@@ -2959,13 +2966,13 @@ main(int argc, char * argv[])
         if (op->num_desc && (pn < 0)) {
             pr2serr("when '--num-desc' is given an explicit mode page is "
                     "required\n");
-            return SG_LIB_SYNTAX_ERROR;
+            return SG_LIB_CONTRADICT;
         }
 
         if (op->defaults && (set_clear || get_str)) {
             pr2serr("'--get=', '--set=' or '--clear=' "
                     "can't be used with '--defaults'\n");
-            return SG_LIB_SYNTAX_ERROR;
+            return SG_LIB_CONTRADICT;
         }
 
         if (set_str) {
@@ -2983,20 +2990,21 @@ main(int argc, char * argv[])
         if ((1 == op->defaults) && (pn < 0)) {
             pr2serr("to set a page's defaults, the '--page=' option must be "
                     "used\n");
-            return SG_LIB_SYNTAX_ERROR;
+            return SG_LIB_CONTRADICT;
         }
     }
 
     if (op->inhex_fn) {
-        int inhex_len;
+        int inhex_len = 0;
 
         if (num_devices > 0) {
             pr2serr("Cannot have both a DEVICE and --inhex= option\n");
-            return SG_LIB_SYNTAX_ERROR;
+            return SG_LIB_CONTRADICT;
         }
-        if (! f2hex_arr(op->inhex_fn, op->do_raw, false, inhex_buff,
-                        &inhex_len, sizeof(inhex_buff)))
-            return SG_LIB_FILE_ERROR;
+        res = f2hex_arr(op->inhex_fn, op->do_raw, false, inhex_buff,
+                        &inhex_len, sizeof(inhex_buff));
+        if (res)
+            return res;
         if (op->verbose > 2)
             pr2serr("Read %d bytes from user input\n", inhex_len);
         if (op->verbose > 3)
@@ -3030,9 +3038,8 @@ main(int argc, char * argv[])
         sg_fd = open_and_simple_inquiry(device_name_arr[k], rw, &pdt,
                                         &protect, op);
         if (sg_fd < 0) {
-            r = SG_LIB_FILE_ERROR;
             if (0 == ret)
-                ret = r;
+                ret = -sg_fd;
             continue;
         }
 
@@ -3051,7 +3058,7 @@ main(int argc, char * argv[])
         if (res < 0) {
             pr2serr("close error: %s\n", safe_strerror(-res));
             if (0 == r)
-                r = SG_LIB_FILE_ERROR;
+                r = -res;
         }
         if (r  && ((0 == ret) || (SG_LIB_FILE_ERROR == ret)))
             ret = r;
