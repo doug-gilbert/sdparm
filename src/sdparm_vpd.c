@@ -1788,6 +1788,7 @@ decode_zbdc_vpd(uint8_t * b, int len)
                 "short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
+    /* URSWRZ: unrestricted read in sequential write required zone */
     printf("  URSWRZ type: %d\n", !!(b[4] & 0x1));
     u = sg_get_unaligned_be32(b + 8);
     printf("  Optimal number of open sequential write preferred zones: ");

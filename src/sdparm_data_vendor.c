@@ -45,7 +45,7 @@
 
 /* Vendor specific mode pages */
 struct sdparm_vendor_name_t sdparm_vendor_id[] = {
-    {VENDOR_SEAGATE, "sea", "Seagate disk"},
+    {VENDOR_SEAGATE, "sea", "Seagate disk"},	/* 0 */
     {VENDOR_HITACHI, "hit", "Hitachi disk"},
     {VENDOR_MAXTOR, "max", "Maxtor disk"},
     {VENDOR_FUJITSU, "fuj", "Fujitsu disk"},
@@ -53,6 +53,7 @@ struct sdparm_vendor_name_t sdparm_vendor_id[] = {
     {VENDOR_LTO5, "lto5", "LTO-5 tape drive (IBM, HP)"},
     {VENDOR_LTO6, "lto6", "LTO-6 tape drive (IBM, HP)"},
     {VENDOR_NVME, "nvme", "NVMe, SNTL in library"},
+    {VENDOR_SG, "sg", "sg3_utils package defined"},	/* 8 */
     {0, NULL, NULL},
 };
 
@@ -396,6 +397,7 @@ struct sdparm_vendor_pair sdparm_vendor_mp[] = {
     {sdparm_v_lto5_mode_pg, sdparm_mitem_v_lto5_arr},
     {sdparm_v_lto6_mode_pg, sdparm_mitem_v_lto6_arr},
     {sdparm_v_nvme_mode_pg, sdparm_mitem_v_nvme_arr},
+    {NULL, NULL},	/* no VENDOR_SG defined mode pages */
 };
 
 const int sdparm_vendor_mp_len = SG_ARRAY_SIZE(sdparm_vendor_mp);

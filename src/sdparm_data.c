@@ -306,6 +306,7 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
      "Manufacturer assigned serial number (ADC)"},
     {VPD_MAN_NET_ADDR, 0, -1, "mna", "Management network addresses"},
     {VPD_MODE_PG_POLICY, 0, -1, "mpp", "Mode page policy"},
+    {SG_NVME_VPD_NICR, 0, -1, "nicr", "NVMe Identify controller response"},
     {VPD_OSD_INFO, 0, PDT_OSD, "oi", "OSD information"},
     {VPD_POWER_CONDITION, 0, -1, "pc", "Power condition"},
     {VPD_POWER_CONSUMPTION, 0, -1, "psm", "Power consumption"},
