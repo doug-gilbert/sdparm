@@ -59,9 +59,10 @@ decode_dev_ids_quiet(uint8_t * buff, int len, int m_assoc,
     const uint8_t * bp;
     const uint8_t * ip;
     uint8_t sas_tport_addr[8];
+    static const int sas_tport_addr_sz = sizeof(sas_tport_addr);
 
     rtp = 0;
-    memset(sas_tport_addr, 0, sizeof(sas_tport_addr));
+    memset(sas_tport_addr, 0, sas_tport_addr_sz);
     off = -1;
     while ((u = sg_vpd_dev_id_iter(buff, len, &off, m_assoc, m_desig_type,
                                    m_code_set)) == 0) {
@@ -151,7 +152,7 @@ decode_dev_ids_quiet(uint8_t * buff, int len, int m_assoc,
                             printf("%02x", (unsigned int)sas_tport_addr[m]);
                         printf("\n");
                     }
-                    memcpy(sas_tport_addr, ip, sizeof(sas_tport_addr));
+                    memcpy(sas_tport_addr, ip, sas_tport_addr_sz);
                 }
                 break;
             case 6:     /* NAA 5: IEEE Registered Extended */
@@ -182,7 +183,7 @@ decode_dev_ids_quiet(uint8_t * buff, int len, int m_assoc,
                 for (m = 0; m < 8; ++m)
                     printf("%02x", (unsigned int)sas_tport_addr[m]);
                 printf(",0x%x\n", rtp);
-                memset(sas_tport_addr, 0, sizeof(sas_tport_addr));
+                memset(sas_tport_addr, 0, sas_tport_addr_sz);
                 rtp = 0;
             }
             break;
@@ -233,15 +234,17 @@ decode_dev_ids_quiet(uint8_t * buff, int len, int m_assoc,
     return 0;
 }
 
+#define SDPARM_DECODE_DESC_SZ 2048
+
 static void
 decode_designation_descriptor(const uint8_t * bp, int i_len,
                               bool print_assoc,
                               const struct sdparm_opt_coll * op)
 {
-    char b[2048];
+    char b[SDPARM_DECODE_DESC_SZ];
 
     sg_get_designation_descriptor_str(NULL, bp, i_len + 4, print_assoc,
-                                      op->do_long, sizeof(b), b);
+                                      op->do_long, SDPARM_DECODE_DESC_SZ, b);
     printf("%s", b);
 }
 
@@ -1867,23 +1870,29 @@ decode_std_inq(int sg_fd, const struct sdparm_opt_coll * op)
 {
     int res, verb, sz, len, pqual;
     int resid = 0;
-    uint8_t b[DEF_INQ_RESP_LEN];
+    int b_sz = DEF_INQ_RESP_LEN;
+    uint8_t * b = NULL;
+    uint8_t * free_b = NULL;
 
     verb = (op->verbose > 0) ? op->verbose - 1 : 0;
-    sz = sizeof(b);
-    memset(b, 0, sizeof(b));
-    sz = op->do_long ? sizeof(b) : 36;
+    b = sg_memalign(b_sz, 0, &free_b, false);
+    if (NULL == b) {
+        pr2serr("%s: unalign to allocate ram\n", __func__);
+        return sg_convert_errno(ENOMEM);
+    }
+    sz = op->do_long ? b_sz : 36;
     res = sg_ll_inquiry_v2(sg_fd, false, 0, b, sz, 0, &resid, false, verb);
     if (res) {
         pr2serr("INQUIRY fetching standar response failed\n");
-        return res;
+        goto fini;
     }
     if (resid > 0) {
         sz -= resid;
         if (sz < 5) {
             pr2serr("%s: after resid (%d) response size is too short (%d)\n",
                     __func__, resid, sz);
-            return SG_LIB_WILD_RESID;
+            res = SG_LIB_WILD_RESID;
+            goto fini;
         }
     }
     pqual = (b[0] & 0xe0) >> 5;
@@ -1928,7 +1937,11 @@ decode_std_inq(int sg_fd, const struct sdparm_opt_coll * op)
     printf("  Vendor_identification: %.8s\n", b + 8);
     printf("  Product_identification: %.16s\n", b + 16);
     printf("  Product_revision_level: %.4s\n", b + 32);
-    return 0;
+    res = 0;
+fini:
+    if (free_b)
+        free(free_b);
+    return res;
 }
 
 /* If ihbp is NULL then need to send SCSI INQUIRY command to device referred
@@ -1955,7 +1968,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     const char * vpd_name;
     uint8_t * b = NULL;
     uint8_t * free_b = NULL;
-    static const int b_sz = 6 * VPD_ATA_INFO_RESP_LEN;
+    int b_sz = 2 * sg_get_page_size();
     char c[80];
 
     verb = (op->verbose > 0) ? op->verbose - 1 : 0;
@@ -2361,10 +2374,10 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (op->do_hex)
             hex2stdout(b, len + 4, hex_format);
         else if (len > 0) {
-            if (len + 4 < (int)sizeof(b))
+            if (len + 4 < b_sz)
                 b[len + 4] = '\0';
             else
-                b[sizeof(b) - 1] = '\0';
+                b[b_sz - 1] = '\0';
             printf("  %s\n", b + 4);
         } else
             printf("  <empty>\n");
@@ -2568,10 +2581,10 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         if (ssc) {
             /* VPD_AUTOMATION_DEV_SN ssc */
             if (len > 0) {
-                if (len + 4 < (int)sizeof(b))
+                if (len + 4 < b_sz)
                     b[len + 4] = '\0';
                 else
-                    b[sizeof(b) - 1] = '\0';
+                    b[b_sz - 1] = '\0';
                 printf("  serial number: %s\n", b + 4);
             } else
                 printf("  serial number: <empty>\n");
@@ -2729,10 +2742,10 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
             printf("%s in hex:\n", c);
         else
             pr2serr("%s in hex:\n", c);
-        if (len > (int)sizeof(b)) {
+        if (len > b_sz) {
             if (op->verbose)
                 pr2serr("page length=%d too long, trim\n", len);
-            len = sizeof(b);
+            len = b_sz;
         }
         if (op->do_hex)
             hex2stdout(b, len, hex_format);

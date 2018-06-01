@@ -1012,7 +1012,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Advanced Power Management (APM) value",
         "0: disable APM feature set; >0: enable"},
 
-    /* Informational exception control mode page [0x1c] spc3 */
+    /* Informational exception control mode page [0x1c] sbc */
     {"PERF", IEC_MP, 0, -1, 2, 7, 1, 0,
         "Performance (impact of ie operations)",
         "0: normal (some delays); 1: abridge ie operations"},
