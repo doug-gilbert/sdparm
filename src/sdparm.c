@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20180603 [svn: r318]";
+static const char * version_str = "1.11 20180630 [svn: r319]";
 
 
 #define MAX_DEV_NAMES 256
@@ -2691,11 +2691,12 @@ main(int argc, char * argv[])
             }
             break;
         case 'v':
+            op->verbose_given = true;
             ++op->verbose;
             break;
         case 'V':
-            pr2serr("version: %s\n", version_str);
-            return 0;
+            op->version_given = true;
+            break;
 #ifdef SG_LIB_WIN32
         case 'w':
             ++do_wscan;
@@ -2717,6 +2718,27 @@ main(int argc, char * argv[])
             usage((do_help > 0) ? do_help : 0);
             return SG_LIB_SYNTAX_ERROR;
         }
+    }
+
+#ifdef DEBUG
+    pr2serr("In DEBUG mode, ");
+    if (op->verbose_given && op->version_given) {
+        pr2serr("but override: '-vV' given, zero verbose and continue\n");
+        op->verbose_given = false;
+        op->version_given = false;
+        op->verbose = 0;
+    } else if (! op->verbose_given) {
+        pr2serr("set '-vv'\n");
+        op->verbose = 2;
+    } else
+        pr2serr("keep verbose=%d\n", op->verbose);
+#else
+    if (op->verbose_given && op->version_given)
+        pr2serr("Not in DEBUG mode, so '-vV' has no special action\n");
+#endif
+    if (op->version_given) {
+        pr2serr("version: %s\n", version_str);
+        return 0;
     }
 
     if (do_help > 0) {

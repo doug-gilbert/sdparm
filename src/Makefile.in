@@ -285,12 +285,16 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+@DEBUG_FALSE@DBG_CFLAGS = 
 
 # for C++/clang testing
+@DEBUG_TRUE@DBG_CFLAGS = -Wextra -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wnull-dereference -Wshadow -Wjump-misses-init
+@DEBUG_FALSE@DBG_CPPFLAGS = 
+@DEBUG_TRUE@DBG_CPPFLAGS = -DDEBUG
 
 # -std=<s> can be c99, c11, gnu11, etc. Default is gnu11
-AM_CPPFLAGS = -iquote ${top_srcdir}/include
-AM_CFLAGS = -Wall -W 
+AM_CPPFLAGS = -iquote ${top_srcdir}/include $(DBG_CPPFLAGS)
+AM_CFLAGS = -Wall -W $(DBG_CFLAGS)
 # AM_CFLAGS = -Wall -W -Wextra -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wnull-dereference -Wshadow -Wjump-misses-init
 # AM_CFLAGS = -Wall -W -Werror=misleading-indentation
 # AM_CFLAGS = -Wall -W -pedantic -std=c11
