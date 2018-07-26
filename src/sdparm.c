@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20180630 [svn: r319]";
+static const char * version_str = "1.11 20180725 [svn: r320]";
 
 
 #define MAX_DEV_NAMES 256
@@ -997,7 +997,7 @@ print_mitem_desc_after1(void ** pc_arr, int rep_len,
                     len = sg_get_unaligned_be16(cur_mp + d_off + 2) + 4;
                 }
             }
-            strncpy(b, mpi->acron, sizeof(b));
+            sg_scnpr(b, sizeof(b), "%s", mpi->acron);
             ampi = *mpi;
             b[sizeof(b) - 8] = '\0';
             n = strlen(b);
@@ -1553,7 +1553,7 @@ check_desc_convert_mpi(int desc_num, const struct sdparm_mode_page_t * mpp,
 
     if (mpp && mpp->mp_desc && ref_mpi->acron && b) {
         *out_mpi = *ref_mpi;
-        strncpy(b, ref_mpi->acron, b_len);
+        sg_scnpr(b, b_len, "%s", ref_mpi->acron);
         b[(b_len > 10) ? (b_len - 8) : 4] = '\0';
         n = strlen(b);
         snprintf(b + n, b_len - n, ".%d", desc_num);
