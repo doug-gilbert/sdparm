@@ -315,7 +315,8 @@ decode_mode_policy_vpd(uint8_t * buff, int len)
             printf(",  subpage code: 0x%x\n", bp[1]);
         else
             printf("\n");
-        printf("    MLUS=%d,  Policy: %s\n", !!(bp[2] & 0x80),
+        printf("    MLUS=%d (multiple LUs (in a target) share),  Policy: "
+               "%s\n", !!(bp[2] & 0x80),
                sdparm_mode_page_policy_arr[bp[2] & 0x3]);
     }
     return 0;
