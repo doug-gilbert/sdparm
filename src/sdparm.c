@@ -80,13 +80,24 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20180531 [svn: r316]";
+static const char * version_str = "1.11 20180531 [svn: r317]";
 
 
 #define MAX_DEV_NAMES 256
 #define INHEX_BUFF_SZ 4096
 
 static uint8_t inhex_buff[INHEX_BUFF_SZ];
+
+static uint8_t * cur_aligned_mp;
+static uint8_t * cha_aligned_mp;
+static uint8_t * def_aligned_mp;
+static uint8_t * sav_aligned_mp;
+static uint8_t * oth_aligned_mp;
+static uint8_t * free_cur_aligned_mp;
+static uint8_t * free_cha_aligned_mp;
+static uint8_t * free_def_aligned_mp;
+static uint8_t * free_sav_aligned_mp;
+static uint8_t * free_oth_aligned_mp;
 
 
 static struct option long_options[] = {
@@ -286,6 +297,21 @@ usage(int do_help)
             "available on Windows machines.\n"
            );
     }
+}
+
+static void
+deallocate_aligned(void)
+{
+    if (free_cur_aligned_mp)
+        free(free_cur_aligned_mp);
+    if (free_cha_aligned_mp)
+        free(free_cha_aligned_mp);
+    if (free_def_aligned_mp)
+        free(free_def_aligned_mp);
+    if (free_sav_aligned_mp)
+        free(free_sav_aligned_mp);
+    if (free_oth_aligned_mp)
+        free(free_oth_aligned_mp);
 }
 
 /* Read ASCII hex bytes or binary from fname (a file named '-' taken as
@@ -1004,9 +1030,9 @@ print_direct_access_info(int sg_fd, const struct sdparm_opt_coll * op,
                          int verb)
 {
     int res, v, resid;
-    uint8_t cur_mp[DEF_MODE_RESP_LEN];
+    uint8_t * cur_mp = oth_aligned_mp;
 
-    memset(cur_mp, 0, sizeof(cur_mp));
+    memset(cur_mp, 0, DEF_MODE_RESP_LEN);
     res = ll_mode_sense(sg_fd, op, ALL_MPAGES, 0, cur_mp, 8, &resid, verb);
     if (0 == res) {
         if (resid < 5) {
@@ -1081,10 +1107,10 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
     const struct sdparm_mode_page_t * mpp = NULL;
     const struct sdparm_mode_descriptor_t * mdp;
     void * pc_arr[4];
-    uint8_t cur_mp[DEF_MODE_RESP_LEN];
-    uint8_t cha_mp[DEF_MODE_RESP_LEN];
-    uint8_t def_mp[DEF_MODE_RESP_LEN];
-    uint8_t sav_mp[DEF_MODE_RESP_LEN];
+    uint8_t * cur_mp = cur_aligned_mp;
+    uint8_t * cha_mp = cha_aligned_mp;
+    uint8_t * def_mp = def_aligned_mp;
+    uint8_t * sav_mp = sav_aligned_mp;
     char b[128];
 
     b[0] = '\0';
@@ -1228,10 +1254,10 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                     printf(":\n");
                 check_mode_page(cur_mp, pn, pg_len, op);
                 if (op->do_hex) {
-                    if (pg_len > (int)sizeof(cur_mp)) {
+                    if (pg_len > DEF_MODE_RESP_LEN) {
                         pr2serr(">> decoded page length too large=%d, trim\n",
                                 pg_len);
-                        pg_len = sizeof(cur_mp);
+                        pg_len = DEF_MODE_RESP_LEN;
                     }
                     printf("    Current:\n");
                     hex2stdout(cur_mp, pg_len, 1);
@@ -1786,7 +1812,7 @@ change_mode_page(int sg_fd, int pdt,
     char b[128];
     char b_tmp[32];
     char ebuff[EBUFF_SZ];
-    uint8_t mdpg[MAX_MODE_DATA_LEN];
+    uint8_t * mdpg = oth_aligned_mp;
     struct sdparm_mode_page_item ampi;
 
     if (pdt >= 0) {
@@ -1807,7 +1833,7 @@ change_mode_page(int sg_fd, int pdt,
     spn = mps->subpg_num;
     mpp = sdp_get_mp_with_str(pn, spn, pdt, op->transport, op->vendor_id,
                               0, false, sizeof(b), b);
-    memset(mdpg, 0, sizeof(mdpg));
+    memset(mdpg, 0, MAX_MODE_DATA_LEN);
     res = ll_mode_sense(sg_fd, op, pn, spn, mdpg, 4, &resid, op->verbose);
     if (0 != res) {
         if (SG_LIB_CAT_INVALID_OP == res) {
@@ -1828,9 +1854,9 @@ change_mode_page(int sg_fd, int pdt,
         return SG_LIB_CAT_MALFORMED;
     }
     md_len = mode6 ? (mdpg[0] + 1) : (sg_get_unaligned_be16(mdpg) + 2);
-    if (md_len > (int)sizeof(mdpg)) {
+    if (md_len > MAX_MODE_DATA_LEN) {
         pr2serr("%s: mode data length=%d exceeds allocation length=%d\n",
-                __func__, md_len, (int)sizeof(mdpg));
+                __func__, md_len, MAX_MODE_DATA_LEN);
         return SG_LIB_CAT_MALFORMED;
     }
     res = ll_mode_sense(sg_fd, op, pn, spn, mdpg, md_len, &resid, op->verbose);
@@ -3027,6 +3053,22 @@ main(int argc, char * argv[])
         return SG_LIB_SYNTAX_ERROR;
     }
 
+    if (NULL ==
+        ((cur_aligned_mp = sg_memalign(0, 0, &free_cur_aligned_mp, false))))
+        goto no_mem_out;
+    if (NULL ==
+        ((cha_aligned_mp = sg_memalign(0, 0, &free_cha_aligned_mp, false))))
+        goto no_mem_out;
+    if (NULL ==
+        ((def_aligned_mp = sg_memalign(0, 0, &free_def_aligned_mp, false))))
+        goto no_mem_out;
+    if (NULL ==
+        ((sav_aligned_mp = sg_memalign(0, 0, &free_sav_aligned_mp, false))))
+        goto no_mem_out;
+    if (NULL ==
+        ((oth_aligned_mp = sg_memalign(0, 0, &free_oth_aligned_mp, false))))
+        goto no_mem_out;
+
     req_pdt = pdt;
     ret = 0;
     for (k = 0; k < num_devices; ++k) {
@@ -3063,7 +3105,12 @@ main(int argc, char * argv[])
         if (r  && ((0 == ret) || (SG_LIB_FILE_ERROR == ret)))
             ret = r;
     }
+    deallocate_aligned();
     return (ret >= 0) ? ret : SG_LIB_CAT_OTHER;
+
+no_mem_out:
+    deallocate_aligned();
+    return sg_convert_errno(ENOMEM);
 }
 
 #ifdef SG_LIB_LINUX

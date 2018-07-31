@@ -53,6 +53,34 @@
 #define RCAP_REPLY_LEN 8
 #define RCAP16_REPLY_LEN 32
 
+static uint8_t * aligned_buff;
+static uint8_t * free_aligned_buff;
+static int aligned_buff_sz;
+
+static uint8_t * allocate_if_needed(void)
+{
+    if (NULL == aligned_buff) {
+        aligned_buff = sg_memalign(0, 0, &free_aligned_buff, false);
+        if (NULL == aligned_buff) {
+            pr2serr("Unable to allocate aligned_buff\n");
+            return NULL;
+        }
+        aligned_buff_sz = sg_get_page_size();
+    }
+    return aligned_buff;
+}
+
+static int
+deallocate_res(int res)
+{
+    if (free_aligned_buff) {
+        free(free_aligned_buff);
+        free_aligned_buff = NULL;
+        aligned_buff = NULL;
+    }
+    return res;
+}
+
 static int
 do_cmd_read_capacity(int sg_fd, bool do_long, int verbose)
 {
@@ -61,7 +89,7 @@ do_cmd_read_capacity(int sg_fd, bool do_long, int verbose)
     unsigned int last_blk_addr, block_size;
     uint64_t llast_blk_addr;
     double sz_mib;
-    uint8_t resp_buff[RCAP16_REPLY_LEN];
+    uint8_t * resp_buff = aligned_buff;
 
     do16 = do_long;
     if (! do16) {
@@ -122,21 +150,22 @@ do_cmd_read_capacity(int sg_fd, bool do_long, int verbose)
     return 0;
 }
 
+#define MAX_REQ_SENSE_SZ 64
+
 static int
 do_cmd_sense(int sg_fd, bool hex, bool do_quiet, int verbose)
 {
     bool something;
     int res, resp_len, sk, asc, ascq, progress, pr, rem;
-    uint8_t buff[32];
+    uint8_t * buff = aligned_buff;
     char b[128];
 
-    memset(buff, 0, sizeof(buff));
     res = sg_ll_request_sense(sg_fd, false /* DESC so fixed format */,
-                              buff, sizeof(buff), true /* noisy */, verbose);
+                              buff, MAX_REQ_SENSE_SZ, true, verbose);
     if (0 == res) {
         resp_len = buff[7] + 8;
-        if (resp_len > (int)sizeof(buff))
-            resp_len = sizeof(buff);
+        if (resp_len > aligned_buff_sz)
+            resp_len = aligned_buff_sz;
         sk = (0xf & buff[2]);
         if (hex) {
             hex2stdout(buff, resp_len, 1);
@@ -186,6 +215,8 @@ do_cmd_sense(int sg_fd, bool hex, bool do_quiet, int verbose)
     return res;
 }
 
+#define PERF_DESC_SZ 28
+
 /* cmd_arg is kBytes/sec if given (i.e. 1000 bytes per second */
 static int
 do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * op)
@@ -196,7 +227,7 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * op)
     unsigned int rw_time = 1000;
 
     if (cmd_arg >= 0) {
-        uint8_t perf_desc[28];
+        uint8_t * perf_desc = aligned_buff;
 #if 0
         int kbps;
 
@@ -207,7 +238,6 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * op)
         res = sg_ll_set_cd_speed(sg_fd, 0 /* rot_control */, kbps,
                                  0 /* drv_write_speed */, true, op->verbose);
 #else
-        memset(perf_desc, 0, sizeof(perf_desc));
         if (0 == cmd_arg)
             perf_desc[0] |= 0x4;  /* set RDD bit: restore drive defaults */
         else {
@@ -219,7 +249,7 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * op)
         }
         /* performance (type=0), tolerance 10% nominal, read speed */
         res = sg_ll_set_streaming(sg_fd, 0x0 /* type */, perf_desc,
-                                  sizeof(perf_desc), true, op->verbose);
+                                  PERF_DESC_SZ, true, op->verbose);
         if (res) {
             if (SG_LIB_CAT_NOT_READY == res)
                 pr2serr("Set Streaming failed, device not ready\n");
@@ -229,15 +259,15 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * op)
         }
     } else {
         const int max_num_desc = 16;
-        uint8_t buff[8 + (16 * 16)];
+        uint8_t * buff = aligned_buff;
+        int buff_sz = 8 + (16 * 16);
         unsigned int lba;
 
         /* performance (type=0), tolerance 10% nominal, read speed */
         res = sg_ll_get_performance(sg_fd, 0x10 /* data_type */,
                                     0 /* starting_lba */,
-                                    max_num_desc,
-                                    0 /* type */, buff, sizeof(buff),
-                                    true, op->verbose);
+                                    max_num_desc, 0 /* type */, buff,
+                                    buff_sz, true, op->verbose);
         if (0 == res) {
             if (op->verbose) {
                 lba = sg_get_unaligned_be32(buff + 8);
@@ -337,14 +367,14 @@ static int
 do_cmd_profile(int sg_fd, const struct sdparm_opt_coll * op)
 {
     int res, len;
-    uint8_t resp[MAX_CONFIG_RESPLEN];
+    uint8_t * resp = aligned_buff;
 
     /* performance (type=0), tolerance 10% nominal, read speed */
     res = sg_ll_get_config(sg_fd, 0x0 /* rt */, 0 /* starting_lba */,
-                           resp, sizeof(resp), true, op->verbose);
+                           resp, MAX_CONFIG_RESPLEN, true, op->verbose);
     if (0 == res) {
         len = sg_get_unaligned_be32(resp + 0);
-        decode_get_config(resp, sizeof(resp), len);
+        decode_get_config(resp, MAX_CONFIG_RESPLEN, len);
     }
     return res;
 }
@@ -357,18 +387,18 @@ sdp_build_cmd(const char * cmd_str, bool * rwp, int * argp)
     const struct sdparm_command_t * scmdp;
     const char * eq_cp;
     const char * cp;
-    char buff[16];
+    char cbuff[16];
 
     eq_cp = strchr(cmd_str, '=');
     if (eq_cp) {
         len = eq_cp - cmd_str;
-        if (len >= (int)sizeof(buff))
+        if (len >= (int)sizeof(cbuff))
             return NULL;
-        strncpy(buff, cmd_str, len);
-        buff[len] = '\0';
+        strncpy(cbuff, cmd_str, len);
+        cbuff[len] = '\0';
         if (1 != sscanf(eq_cp + 1, "%d", &arg))
             return NULL;
-        cp = buff;
+        cp = cbuff;
     } else
         cp = cmd_str;
     if (argp)
@@ -427,6 +457,8 @@ sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp, int cmd_arg,
                 "'--flexible' to override\n");
         return SG_LIB_SYNTAX_ERROR;
     }
+    if (NULL == allocate_if_needed())
+        return sg_convert_errno(ENOMEM);
     switch (scmdp->cmd_num)
     {
     case CMD_CAPACITY:
@@ -483,9 +515,9 @@ sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp, int cmd_arg,
         break;
     default:
         pr2serr("unknown cmd number [%d]\n", scmdp->cmd_num);
-        return SG_LIB_SYNTAX_ERROR;
+        res = SG_LIB_SYNTAX_ERROR;
     }
-    return res;
+    return deallocate_res(res);
 }
 
 
