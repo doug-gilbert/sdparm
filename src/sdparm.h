@@ -135,6 +135,10 @@ extern "C" {
 #define VPD_DI_SEL_TARGET 4
 #define VPD_DI_SEL_AS_IS 32
 
+#ifndef SG_NVME_VPD_NICR
+#define SG_NVME_VPD_NICR 0xde   /* NVME Identify Controller Response */
+#endif
+
 #define DEF_TRANSPORT_PROTOCOL TPROTO_SAS
 
 /* Vendor identifiers */
@@ -146,6 +150,7 @@ extern "C" {
 #define VENDOR_LTO5 0x5
 #define VENDOR_LTO6 0x6
 #define VENDOR_NVME 0x7
+#define VENDOR_SG 0x8
 
 /* bit flag settings for sdparm_mode_page_item::flags */
 #define MF_COMMON 0x1   /* output in summary mode */
