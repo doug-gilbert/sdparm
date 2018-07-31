@@ -1608,7 +1608,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     {"LUPID", PROT_SPEC_LU_MP, 0, -1, 2, 3, 4, MF_COMMON | MF_CLASH_OK,
         "Logical unit's (transport) protocol identifier",
         PROTO_IDENT_STR },
-    {"TLR", PROT_SPEC_LU_MP, 0, -1, 2, 4, 1, 0,
+    {"TLR", PROT_SPEC_LU_MP, 0, -1, 2, 4, 1, MF_COMMON,
         "Transport layer retries", "0: disabled; 1: enabled (on target)"},
 
     /* protocol specific port mode page [0x19] sas/spl */

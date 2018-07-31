@@ -6,9 +6,17 @@ bin_PROGRAMS = sdparm
 ## CC = clang
 ## CC = clang++
 
+if DEBUG
+DBG_CFLAGS = -Wextra -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wnull-dereference -Wshadow -Wjump-misses-init
+DBG_CPPFLAGS = -DDEBUG
+else
+DBG_CFLAGS =
+DBG_CPPFLAGS =
+endif
+
 # -std=<s> can be c99, c11, gnu11, etc. Default is gnu11
-AM_CPPFLAGS = -iquote ${top_srcdir}/include
-AM_CFLAGS = -Wall -W 
+AM_CPPFLAGS = -iquote ${top_srcdir}/include $(DBG_CPPFLAGS)
+AM_CFLAGS = -Wall -W $(DBG_CFLAGS)
 # AM_CFLAGS = -Wall -W -Wextra -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wnull-dereference -Wshadow -Wjump-misses-init
 # AM_CFLAGS = -Wall -W -Werror=misleading-indentation
 # AM_CFLAGS = -Wall -W -pedantic -std=c11

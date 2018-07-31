@@ -189,6 +189,8 @@ struct sdparm_opt_coll {
     bool do_raw;        /* -R (usually '-r' but already used) */
     bool read_only;
     bool save;
+    bool verbose_given;
+    bool version_given;
     int defaults;       /* set mode page to its default values, or when set
 			 * twice set RTD bit to set defaults on all pages */
     int do_all;         /* -iaa outputs all VPD pages found in the Supported
