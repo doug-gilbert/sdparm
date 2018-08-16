@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20180725 [svn: r320]";
+static const char * version_str = "1.11 20180815 [svn: r321]";
 
 
 #define MAX_DEV_NAMES 256
@@ -206,7 +206,8 @@ usage(int do_help)
             "options are:\n"
             "    --all | -a            list all known fields for given "
             "DEVICE\n"
-            "    --clear=STR | -c STR    clear (zero) field value(s)\n"
+            "    --clear=STR | -c STR    clear (zero) field value(s), or "
+            "set to 'val'\n"
             "    --dbd | -B            set DBD bit in mode sense cdb\n"
             "    --defaults | -D       set a mode page to its default "
             "values\n"
@@ -215,7 +216,8 @@ usage(int do_help)
             "    --dummy | -d          don't write back modified mode page\n"
             "    --flexible | -f       compensate for common errors, "
             "relax some checks\n"
-            "    --get=STR | -g STR    get (fetch) field value(s)\n"
+            "    --get=STR | -g STR    get (fetch) field value(s), by "
+            "acronym or pos\n"
             "    --hex | -H            output in hex rather than name/value "
             "pairs\n"
             "    --long | -l           add description to field output\n"
@@ -232,7 +234,8 @@ usage(int do_help)
             "                          on operation). Mainly for ATA disks\n"
             "    --save | -S           place mode changes in saved page as "
             "well\n"
-            "    --set=STR | -s STR    set field value(s)\n"
+            "    --set=STR | -s STR    set field value(s) to 1, or to "
+            "'val'\n"
             "    --six | -6            use 6 byte SCSI mode cdbs (def: 10 "
             "byte)\n"
             "    --transport=TN | -t TN    transport protocol number "

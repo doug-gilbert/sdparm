@@ -1,4 +1,4 @@
-.TH SDPARM "8" "July 2018" "sdparm\-1.11" SDPARM
+.TH SDPARM "8" "August 2018" "sdparm\-1.11" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -125,7 +125,7 @@ when used with the \fI\-\-enumerate\fR option see the ENUMERATE section below.
 .br
 When used together with the \fI\-\-inquiry\fR option and a \fIDEVICE\fR, the
 Supported VPD Pages VPD page [0x0] is output. When this option is used
-twice (short form: '-iaa') then all VPD pages (listed in the Supported VPD
+twice (short form: '\-iaa') then all VPD pages (listed in the Supported VPD
 Pages VPD page) are output.
 .br
 By default \fI\-\-inhex=FN\fR will only decode the first mode page found in
@@ -274,7 +274,7 @@ usage with \fI\-\-enumerate\fR see the ENUMERATE section below.
 This option is only active when the \fI\-\-inhex=FN\fR option is given.
 \fIDT\fR is the peripheral Device Type, a value between 0 and 31 and
 can be found in the response to the INQUIRY command. The default value
-is -1 (which may also be given for \fIDT\fR) and it is interpreted as
+is \-1 (which may also be given for \fIDT\fR) and it is interpreted as
 SPC (i.e. common mode pages) or as a wild card. If available this option
 should be supplied with the \fI\-\-inhex=FN\fR option.
 .TP
@@ -409,7 +409,7 @@ Only those VPD pages defined by t10.org are decoded by this utility. SPC\-4
 sets aside VPD pages codes from 0xc0 to 0xff (inclusive) for vendor
 specific pages some of which are decoded in the sg_vpd utility.
 .PP
-To see all VPD pages supported by a \fIDEVICE\fR use 'sg_vpd --all'.
+To see all VPD pages supported by a \fIDEVICE\fR use 'sg_vpd \-\-all'.
 .PP
 In the linux kernel 2.6 and 3 series any device node that understands a SCSI
 command set (e.g. SCSI disks and CD/DVD drives) may be specified. More
@@ -879,7 +879,7 @@ the PRE\-FETCH command (see SBC\-4) yields this status.
 .B 26
 the \fIDEVICE\fR reports a SCSI status of "busy". SAM\-5 defines this
 status as the logical unit is temporarily unable to process a command.
-It is recommended to re-issue the command.
+It is recommended to re\-issue the command.
 .TP
 .B 27
 the \fIDEVICE\fR reports a SCSI status of "task set full".
