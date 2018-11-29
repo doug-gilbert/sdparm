@@ -1,13 +1,13 @@
-.TH SDPARM "8" "August 2018" "sdparm\-1.11" SDPARM
+.TH SDPARM "8" "November 2018" "sdparm\-1.11" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
 .B sdparm
 [\fI\-\-all\fR] [\fI\-\-dbd\fR] [\fI\-\-flexible\fR] [\fI\-\-get=STR\fR]
 [\fI\-\-hex\fR] [\fI\-\-long\fR] [\fI\-\-num\-desc\fR]
-[\fI\-\-page=PG[,SPG]\fR] [\fI\-\-quiet\fR] [\fI\-\-readonly\fR]
-[\fI\-\-six\fR] [\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
-[\fI\-\-verbose\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
+[\fI\-\-out\-mask=OM\fR] [\fI\-\-page=PG[,SPG]\fR] [\fI\-\-quiet\fR]
+[\fI\-\-readonly\fR] [\fI\-\-six\fR] [\fI\-\-transport=TN\fR]
+[\fI\-\-vendor=VN\fR] [\fI\-\-verbose\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
 .PP
 .B sdparm
 [\fI\-\-clear=STR\fR] [\fI\-\-defaults\fR] [\fI\-\-dummy\fR]
@@ -23,8 +23,8 @@ sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .B sdparm
 \fI\-\-inquiry\fR [\fI\-\-all\fR] [\fI\-\-flexible\fR] [\fI\-\-hex\fR]
 [\fI\-\-num\-desc\fR] [\fI\-\-page=PG[,SPG]\fR] [\fI\-\-quiet\fR]
-[\fI\-\-readonly\fR] [\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
-[\fI\-\-verbose\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
+[\fI\-\-readonly\fR] [\fI\-\-transport=TN\fR] [\fI\-\-verbose\fR]
+\fIDEVICE\fR [\fIDEVICE\fR...]
 .PP
 .B sdparm
 \fI\-\-enumerate\fR [\fI\-\-all\fR] [\fI\-\-inquiry\fR] [\fI\-\-long\fR]
@@ -83,12 +83,11 @@ detected. The exit status is the most recently detected error value
 (excluding error value 5 if other errors have been detected). If all actions
 succeed the exit status is zero.
 .PP
-By default this utility shows mode pages that are common to all
-transport protocols. These are termed as "generic" mode pages.
-If there is no match on a generic mode page name or field then
-those pages specific to the SAS transport are checked.
-Transport protocol specific mode pages are selected with
-the \fI\-\-transport=TN\fR option. See the TRANSPORT section below.
+By default this utility shows mode pages that are common to all transport
+protocols. These are termed as "generic" mode pages. If there is no match on
+a generic mode page name or field then those pages specific to the SAS
+transport are checked.  Transport protocol specific mode pages are selected
+with the \fI\-\-transport=TN\fR option. See the TRANSPORT section below.
 Vendor specific mode pages are selected with the \fI\-\-vendor=VN\fR option.
 See the VENDORS section below.
 .PP
@@ -209,6 +208,9 @@ Information VPD page which usually outputs its IDENTIFY (PACKET) DEVICE
 response in 16 bit hex words; with '\-HH' outputs that response in hex
 bytes; with '\-HHH' outputs the same response in a format suitable
 for 'hdparm \-\-Istdin' to decode.
+.br
+Mode page output with the '\-HHH' option is suitable for a later invocation
+of sdparm with the \fI\-\-inhex=FN\fR option.
 .TP
 \fB\-i\fR, \fB\-\-inquiry\fR
 output a VPD page which is in the response of a SCSI INQUIRY command sent
@@ -253,6 +255,13 @@ response is output.
 \fB\-n\fR, \fB\-\-num\-desc\fR
 for a mode page that can have descriptors, the number of descriptors for the
 given page on the \fIDEVICE\fR is output. Otherwise 0 is output.
+.TP
+\fB\-o\fR, \fB\-\-out\-mask\fR=\fIOM\fR
+\fIOM\fR is a bit mask for mode page selections that will be printed/output.
+The 0x1 value is for the 'current' values, 0x2 is for the 'changeable'
+values, 0x4 is for the 'default' values and 0x8 is for the 'saveable' values.
+The default value is 0xf (i.e. the OR of all four values set). The option is
+useful for limiting the amount of output with the '\-HHH'.
 .TP
 \fB\-p\fR, \fB\-\-page\fR=\fIPG[,SPG]\fR
 supply the page number (\fIPG\fR) and optionally the sub page
@@ -350,6 +359,9 @@ or more) or an abbreviation (e.g. "sea" for Seagate disk vendor specific).
 For tape drives "lto5" and "lto6" are treated as vendors. One way to list
 the available vendor numbers and their associated abbreviations is to give an
 invalid vendor number such as '\-M x'; another way is '\-e \-l'.
+.br
+This option only effects mode page decodes, not VPD pages. For vendor
+specific VPD pages see the sg_vpd utility.
 .TP
 \fB\-v\fR, \fB\-\-verbose\fR
 increase the level of verbosity, (i.e. debug output). In some cases
