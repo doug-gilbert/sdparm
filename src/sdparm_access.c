@@ -107,8 +107,8 @@ sdp_mpage_len(const uint8_t * mp)
 }
 
 const struct sdparm_mode_page_t *
-sdp_get_mpage(int page_num, int subpage_num, int pdt, int transp_proto,
-              int vendor_id)
+sdp_get_mpage_t(int page_num, int subpage_num, int pdt, int transp_proto,
+                int vendor_id)
 {
     const struct sdparm_mode_page_t * mpp;
 
@@ -134,9 +134,9 @@ sdp_get_mpage(int page_num, int subpage_num, int pdt, int transp_proto,
 }
 
 const struct sdparm_mode_page_t *
-sdp_get_mp_with_str(int page_num, int subpage_num, int pdt, int transp_proto,
-                    int vendor_id, bool plus_acron, bool hex, int b_len,
-                    char * bp)
+sdp_get_mpt_with_str(int page_num, int subpage_num, int pdt, int transp_proto,
+                     int vendor_id, bool plus_acron, bool hex, int b_len,
+                     char * bp)
 {
     int len = b_len - 1;
     const struct sdparm_mode_page_t * mpp = NULL;
@@ -146,10 +146,11 @@ sdp_get_mp_with_str(int page_num, int subpage_num, int pdt, int transp_proto,
         return mpp;
     bp[len] = '\0';
     /* first try to match given pdt */
-    mpp = sdp_get_mpage(page_num, subpage_num, pdt, transp_proto, vendor_id);
+    mpp = sdp_get_mpage_t(page_num, subpage_num, pdt, transp_proto,
+                          vendor_id);
     if (NULL == mpp) /* didn't match specific pdt so try -1 (ie. SPC) */
-        mpp = sdp_get_mpage(page_num, subpage_num, -1, transp_proto,
-                            vendor_id);
+        mpp = sdp_get_mpage_t(page_num, subpage_num, -1, transp_proto,
+                              vendor_id);
     if (mpp && mpp->name) {
         cp = mpp->acron;
         if (NULL == cp)
@@ -185,7 +186,7 @@ sdp_get_mp_with_str(int page_num, int subpage_num, int pdt, int transp_proto,
 }
 
 const struct sdparm_mode_page_t *
-sdp_find_mp_by_acron(const char * ap, int transp_proto, int vendor_id)
+sdp_find_mpt_by_acron(const char * ap, int transp_proto, int vendor_id)
 {
     const struct sdparm_mode_page_t * mpp;
 

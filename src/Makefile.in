@@ -288,7 +288,7 @@ top_srcdir = @top_srcdir@
 @DEBUG_FALSE@DBG_CFLAGS = 
 
 # for C++/clang testing
-@DEBUG_TRUE@DBG_CFLAGS = -Wextra -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wnull-dereference -Wshadow -Wjump-misses-init
+@DEBUG_TRUE@DBG_CFLAGS = -Wextra -Wmisleading-indentation -Wduplicated-cond -Wlogical-op -Wnull-dereference -Wshadow -Wjump-misses-init
 @DEBUG_FALSE@DBG_CPPFLAGS = 
 @DEBUG_TRUE@DBG_CPPFLAGS = -DDEBUG
 

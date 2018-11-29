@@ -14,10 +14,13 @@
 extern "C" {
 #endif
 
-#define DEF_MODE_RESP_LEN 252
+#define DEF_MODE_6_RESP_LEN 252
+#define DEF_MODE_RESP_LEN 512
 #define DEF_INQ_RESP_LEN 252
 #define VPD_ATA_INFO_RESP_LEN 572
 #define VPD_XCOPY_RESP_LEN 572
+
+#define MP_DESC_DNC (-1)        /* Do not care indicator */
 
 /* Mode page numbers */
 #define UNIT_ATTENTION_MP 0
@@ -31,6 +34,7 @@ extern "C" {
 #define V_ERR_RECOVERY_MP 7
 #define CACHING_MP 8
 #define CONTROL_MP 0xa
+#define NOTCH_MP 0xc    /* Notch and partition (obsolete in sbc4r14) */
 #define POWER_OLD_MP 0xd
 /* #define CD_DEV_PARAMS 0xd */
 #define ADC_MP 0xe
@@ -39,6 +43,7 @@ extern "C" {
 #define XOR_MP 0x10
 #define MED_PART_MP 0x11
 #define ES_MAN_MP 0x14
+#define EXTENDED_MP 0x15        /* SUBPG > 0, for all device type */
 #define PROT_SPEC_LU_MP 0x18
 #define PROT_SPEC_PORT_MP 0x19
 #define POWER_MP 0x1a
@@ -94,7 +99,7 @@ extern "C" {
 #define VPD_DEVICE_ID 0x83
 #define VPD_SOFTW_INF_ID 0x84
 #define VPD_MAN_NET_ADDR 0x85
-#define VPD_EXT_INQ 0x86
+#define VPD_EXT_INQ 0x86                /* Extended Inquiry */
 #define VPD_MODE_PG_POLICY 0x87
 #define VPD_SCSI_PORTS 0x88
 #define VPD_ATA_INFO 0x89
@@ -112,7 +117,6 @@ extern "C" {
 #define VPD_BLOCK_DEV_CHARS 0xb1        /* SBC-3 */
 #define VPD_MAN_ASS_SN 0xb1             /* SSC-3, ADC-2 */
 #define VPD_SECURITY_TOKEN 0xb1         /* OSD */
-#define VPD_ES_DEV_CHARS 0xb1           /* SES-4 */
 #define VPD_TA_SUPPORTED 0xb2           /* SSC-3 */
 #define VPD_LB_PROVISIONING 0xb2        /* SBC-3 */
 #define VPD_REFERRALS 0xb3              /* SBC-3 */
@@ -141,7 +145,7 @@ extern "C" {
 
 #define DEF_TRANSPORT_PROTOCOL TPROTO_SAS
 
-/* Vendor identifiers */
+/* Vendor identifiers, only for mode pages, not VPD pages */
 #define VENDOR_SEAGATE 0x0
 #define VENDOR_HITACHI 0x1
 #define VENDOR_MAXTOR 0x2
@@ -157,12 +161,20 @@ extern "C" {
 #define MF_HEX 0x2
 #define MF_CLASH_OK 0x4 /* know this overlaps safely with generic */
 #define MF_TWOS_COMP 0x8   /* integer is two's complement */
-#define MF_DESC_ID_B0 0x10       /* mpage descriptor ID, bit 0 */
-#define MF_DESC_ID_B1 0x20
-#define MF_DESC_ID_B2 0x40
-#define MF_DESC_ID_B3 0x80
-#define MF_DESC_ID_MASK 0xf0
-#define MF_DESC_ID_SHIFT 4
+#define MF_ALL_1S 0x10     /* even with MF_HEX output all ones as -1 */
+#define MF_DESC_ID_B0 0x100      /* mpage descriptor ID, bit 0 */
+#define MF_DESC_ID_B1 0x200
+#define MF_DESC_ID_B2 0x400
+#define MF_DESC_ID_B3 0x800
+#define MF_DESC_ID_MASK 0xf00
+#define MF_DESC_ID_SHIFT 8
+
+/* Output (bit) mask values */
+#define MP_OM_CUR 0x1
+#define MP_OM_CHA 0x2
+#define MP_OM_DEF 0x4
+#define MP_OM_SAV 0x8
+#define MP_OM_ALL 0xf
 
 /* enumerations for commands */
 #define CMD_READY 1
@@ -192,12 +204,13 @@ struct sdparm_opt_coll {
     bool verbose_given;
     bool version_given;
     int defaults;       /* set mode page to its default values, or when set
-			 * twice set RTD bit to set defaults on all pages */
+                         * twice set RTD bit to set defaults on all pages */
     int do_all;         /* -iaa outputs all VPD pages found in the Supported
                          * VPD Pages VPD page (0x0) */
     int do_enum;
     int do_hex;
     int do_long;
+    int out_mask;       /* OR-ed MP_OM_* values, default: MP_OM_ALL (0xf) */
     int pdt;
     int do_quiet;
     int transport;      /* -1 means not transport specific (def) */
@@ -211,28 +224,36 @@ struct sdparm_opt_coll {
 
 /* Template for mode pages that use descriptor format; forms in use:
  *                         Fixed descriptor Length
- *    desc_len            >0                   >0
+ *                         =======================
  *    num_descs_off      >=0                  >=0
  *    num_descs_inc      >=0                   -1
+ *    desc_len            >0                   >0
  *    desc_len_off        -1                   -1
  *    have_desc_id       false                false
+ *    ---------------------------------------------------
  *    Notes            number of descs    length of descs
  *                     in mpage           in mpage
- *    Example            pcd (SAS/SPL)        lbp (SBC)
+ *                         ^                    ^
+ *                         |                    |
+ *    Examples:          pcd (SAS/SPL)        lbp, atag (SBC)
  *
  *
  *                      Variable descriptor Length
- *    desc_len            -1                   -1
+ *                      ==========================
  *    num_descs_off      >=0                   -1
  *    num_descs_inc      >=0                    0
- *    desc_len_off       >=0                  >-0
+ *    desc_len            -1                   -1
+ *    desc_len_off       >=0                  >=0
  *    have_desc_id       false                true
+ *    ---------------------------------------------------
  *    Notes         number of descs and   only length of descs
  *                  and length in mpage   in mpage
- *    Example            sep (SAS/SPL)        oobm (SAS/SPL)
+ *                         ^                    ^
+ *                         |                    |
+ *    Examples:          sep (SAS/SPL)        oobm (SAS/SPL)
  *
- * The last one (i.e. have_desc_id=true) is the most complex. It can many
- * descriptors, one or more of one desc_id and one or more of other another
+ * The last one (i.e. have_desc_id=true) is the most complex. It can have
+ * many descriptors, one or more of one desc_id and one or more of another
  * desc_id. And descriptors with different desc_id_s can have different
  * lengths and different fields (items).                    */
 struct sdparm_mode_descriptor_t {
@@ -378,12 +399,12 @@ extern const char * sdparm_mode_page_policy_arr[];
 
 
 int sdp_mpage_len(const uint8_t * mp);    /* page, not MS response */
-const struct sdparm_mode_page_t * sdp_get_mpage(int page_num,
+const struct sdparm_mode_page_t * sdp_get_mpage_t(int page_num,
                 int subpage_num, int pdt, int transp_proto, int vendor_num);
-const struct sdparm_mode_page_t * sdp_get_mp_with_str(int page_num,
+const struct sdparm_mode_page_t * sdp_get_mpt_with_str(int page_num,
                 int subpage_num, int pdt, int transp_proto, int vendor_num,
                 bool plus_acron, bool hex, int max_b_len, char * bp);
-const struct sdparm_mode_page_t * sdp_find_mp_by_acron(const char * ap,
+const struct sdparm_mode_page_t * sdp_find_mpt_by_acron(const char * ap,
                 int transp_proto, int vendor_num);
 const struct sdparm_vpd_page_t * sdp_get_vpd_detail(int page_num,
                 int subvalue, int pdt);

@@ -7,7 +7,7 @@ bin_PROGRAMS = sdparm
 ## CC = clang++
 
 if DEBUG
-DBG_CFLAGS = -Wextra -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wnull-dereference -Wshadow -Wjump-misses-init
+DBG_CFLAGS = -Wextra -Wmisleading-indentation -Wduplicated-cond -Wlogical-op -Wnull-dereference -Wshadow -Wjump-misses-init
 DBG_CPPFLAGS = -DDEBUG
 else
 DBG_CFLAGS =

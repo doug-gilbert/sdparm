@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20180815 [svn: r321]";
+static const char * version_str = "1.11 20181129 [svn: r322]";
 
 
 #define MAX_DEV_NAMES 256
@@ -119,6 +119,8 @@ static struct option long_options[] = {
     {"num-desc", no_argument, 0, 'n'},
     {"num_desc", no_argument, 0, 'n'},
     {"numdesc", no_argument, 0, 'n'},
+    {"out-mask", required_argument, 0, 'o'},
+    {"out_mask", required_argument, 0, 'o'},
     {"page", required_argument, 0, 'p'},
     {"pdt", required_argument, 0, 'P'},
     {"quiet", no_argument, 0, 'q'},
@@ -146,11 +148,11 @@ usage(int do_help)
         pr2serr(
             "Usage: sdparm [--all] [--dbd] [--flexible] [--get=STR] [--hex] "
             "[--long]\n"
-            "              [--num-desc] [--page=PG[,SPG]] [--quiet] "
-            "[--readonly]\n"
-            "              [--six] [--transport=TN] [--vendor=VN] "
-            "[--verbose]\n"
-            "              DEVICE [DEVICE...]\n\n"
+            "              [--num-desc] [--out-mask=OM] [--page=PG[,SPG]] "
+            "[--quiet]\n"
+            "              [--readonly] [--six] [--transport=TN] "
+            "[--vendor=VN]\n"
+            "              [--verbose] DEVICE [DEVICE...]\n\n"
             "       sdparm [--clear=STR] [--defaults] [--dummy] "
             "[--flexible]\n"
             "              [--page=PG[,SPG]] [--quiet] [--readonly] "
@@ -179,9 +181,10 @@ usage(int do_help)
                 "[--vendor=VN]\n"
                 "              [--verbose]\n\n"
                 "Or the corresponding short option usage: \n"
-                "  sdparm [-a] [-B] [-f] [-g STR] [-H] [-l] [-n] "
-                "[-p PG[,SPG]] [-q] [-r]\n"
-                "         [-6] [-t TN] [-M VN] [-v] DEVICE [DEVICE...]\n"
+                "  sdparm [-a] [-B] [-f] [-g STR] [-H] [-l] [-n] [-o OM] "
+                "[-p PG[,SPG]]\n"
+                "         [-q] [-r] [-6] [-t TN] [-M VN] [-v] DEVICE "
+                "[DEVICE...]\n"
                 "\n"
                 "  sdparm [-c STR] [-D] [-d] [-f] [-p PG[,SPG]] [-q] [-S] "
                 "[-s STR] [-6] [-t TN]\n"
@@ -189,9 +192,9 @@ usage(int do_help)
                 "\n"
                 "  sdparm -c CMD [-H] [-l] [-r] [-v] DEVICE [DEVICE...]\n"
                 "\n"
-                "  sdparm -i [-a] [-f] [-H] [-n] [-p PG[,SPG]] [-q] [-r] "
-                "[-t TN] [-M VN] [-v]\n"
-                "         DEVICE [DEVICE...]\n"
+                "  sdparm -i [-a] [-f] [-H] [-n] [-p PG[,SPG]] [-q] "
+                "[-r] [-t TN] [-M VN]\n"
+                "         [-v] DEVICE [DEVICE...]\n"
                 "\n"
                 "  sdparm -e [-a] [-i] [-l] [-p PG[,SPG]] [-t TN] [-M VN]\n"
                 "\n"
@@ -223,6 +226,10 @@ usage(int do_help)
             "    --long | -l           add description to field output\n"
             "    --num-desc | -n       report number of mode page "
             "descriptors\n"
+            "    --out-mask=OM | -o OM    select whether current, "
+            "changeable, default\n"
+            "                             and/or saveable values out, "
+            "(def: all(0xf)\n"
             "    --page=PG[,SPG] | -p PG[,SPG]    page (and optionally "
             "subpage) number\n"
             "                          [or abbrev] to output, change or "
@@ -300,21 +307,6 @@ usage(int do_help)
             "available on Windows machines.\n"
            );
     }
-}
-
-static void
-deallocate_aligned(void)
-{
-    if (free_cur_aligned_mp)
-        free(free_cur_aligned_mp);
-    if (free_cha_aligned_mp)
-        free(free_cha_aligned_mp);
-    if (free_def_aligned_mp)
-        free(free_def_aligned_mp);
-    if (free_sav_aligned_mp)
-        free(free_sav_aligned_mp);
-    if (free_oth_aligned_mp)
-        free(free_oth_aligned_mp);
 }
 
 /* Read ASCII hex bytes or binary from fname (a file named '-' taken as
@@ -667,8 +659,8 @@ enumerate_mitems(int pn, int spn, int pdt,
                 continue;
             if ((pdt >= 0) && (pdt != t_pdt))
                 continue;
-            mpp = sdp_get_mp_with_str(t_pn, t_spn, t_pdt, transp, vendor_id,
-                                      long_o, true, sizeof(d), d);
+            mpp = sdp_get_mpt_with_str(t_pn, t_spn, t_pdt, transp, vendor_id,
+                                       long_o, true, sizeof(d), d);
             if (long_o && (transp < 0) && (vendor_id < 0))
                 printf("%s [%s] mode page:\n", d,
                        sg_get_pdt_str(t_pdt, sizeof(b), b));
@@ -697,8 +689,8 @@ enumerate_mitems(int pn, int spn, int pdt,
         found = true;
     }
     if ((! found) && (pn >= 0)) {
-        sdp_get_mp_with_str(pn, spn, pdt, transp, vendor_id,
-                            long_o, true, sizeof(d), d);
+        sdp_get_mpt_with_str(pn, spn, pdt, transp, vendor_id,
+                             long_o, true, sizeof(d), d);
         pr2serr("%s mode page: no items found\n", d);
     }
     if (found && have_desc && (long_o || (e_num > 1))) {
@@ -747,8 +739,9 @@ list_mp_settings(const struct sdparm_mode_page_settings * mps, bool get)
     }
 }
 
-/* Print prefix and acronymn plus current, changeable [smask & 2], default
- * [smask & 4] and saved [smask & 8] values for an item */
+/* Print prefix and acronymn plus current, changeable [smask & MP_OM_CHA],
+ * default [smask & MP_OM_DEF] and saved [smask & MP_OM_SAV] values for an
+ * item */
 static void
 print_mitem(const char * pre, int smask,
             const struct sdparm_mode_page_item *mpi,
@@ -760,51 +753,77 @@ print_mitem(const char * pre, int smask,
             const struct sdparm_opt_coll * op)
 {
     bool all_set = false;
+    bool prt_pre = false;
     bool sep = false;
     uint64_t u;
     const char * acron;
 
     acron = (mpi->acron ? mpi->acron : "");
-    u = sdp_mitem_get_value_check(mpi, cur_mp, &all_set);
-    printf("%s%-14s", pre, acron);
-    if (force_decimal || (mpi->flags & MF_TWOS_COMP))
-        sdp_print_signed_decimal(u, mpi->num_bits, false);
-    else if (mpi->flags & MF_HEX)
-        printf("0x%" PRIx64 "", u);
-    else if (all_set)
-        printf("-1");
-    else
-        printf("%" PRIu64 "", u);
-    if ((smask & 0xe) && (op->do_quiet < 2)) {
-        printf("  [");
-        if (cha_mp && (smask & 2)) {
+    if (MP_OM_CUR & smask) {
+        u = sdp_mitem_get_value_check(mpi, cur_mp, &all_set);
+        printf("%s%-14s", pre, acron);
+        prt_pre = true;
+        if (force_decimal || (mpi->flags & MF_TWOS_COMP))
+            sdp_print_signed_decimal(u, mpi->num_bits, false);
+        else if (mpi->flags & MF_HEX) {
+            if (mpi->flags & MF_ALL_1S)
+                printf("-1");
+            else
+                printf("0x%" PRIx64 "", u);
+        } else if (all_set)
+            printf("-1");
+        else
+            printf("%" PRIu64 "", u);
+    }
+    if ((smask & (MP_OM_CHA | MP_OM_DEF | MP_OM_SAV)) && (op->do_quiet < 2)) {
+        if (prt_pre)
+            printf("  [");
+        if (cha_mp && (smask & MP_OM_CHA)) {
+            if (! prt_pre) {
+                printf("%s%-14s  [", pre, acron);
+                prt_pre = true;
+            }
             printf("cha: %s",
                    (sdp_mitem_get_value(mpi, cha_mp) ? "y" : "n"));
             sep = true;
         }
-        if (def_mp && (smask & 4)) {
+        if (def_mp && (smask & MP_OM_DEF)) {
+            if (! prt_pre) {
+                printf("%s%-14s  [", pre, acron);
+                prt_pre = true;
+            }
             all_set = false;
             u = sdp_mitem_get_value_check(mpi, def_mp, &all_set);
             printf("%sdef:", (sep ? ", " : " "));
             if (force_decimal || (mpi->flags & MF_TWOS_COMP))
                 sdp_print_signed_decimal(u, mpi->num_bits, false);
-            else if (mpi->flags & MF_HEX)
-                printf(" 0x%" PRIx64 "", u);
-            else if (all_set)
+            else if (mpi->flags & MF_HEX) {
+                if (mpi->flags & MF_ALL_1S)
+                    printf("-1");
+                else
+                    printf("0x%" PRIx64 "", u);
+            } else if (all_set)
                 printf(" -1");
             else
                 printf("%3" PRIu64 "", u);
             sep = true;
         }
-        if (sav_mp && (smask & 8)) {
+        if (sav_mp && (smask & MP_OM_SAV)) {
+            if (! prt_pre) {
+                printf("%s%-14s  [", pre, acron);
+                prt_pre = true;
+            }
             all_set = false;
             u = sdp_mitem_get_value_check(mpi, sav_mp, &all_set);
             printf("%ssav:", (sep ? ", " : " "));
             if (force_decimal || (mpi->flags & MF_TWOS_COMP))
                 sdp_print_signed_decimal(u, mpi->num_bits, false);
-            else if (mpi->flags & MF_HEX)
-                printf(" 0x%" PRIx64 "", u);
-            else if (all_set)
+            else if (mpi->flags & MF_HEX) {
+                if (mpi->flags & MF_ALL_1S)
+                    printf("-1");
+                else
+                    printf("0x%" PRIx64 "", u);
+            } else if (all_set)
                 printf(" -1");
             else
                 printf("%3" PRIu64 "", u);
@@ -966,7 +985,7 @@ print_mitem_desc_after1(void ** pc_arr, int rep_len,
         }
     }
     if (op->verbose > 1)
-        pr2serr("    >>> mode page says it has %d descriptors\n", num);
+        pr2serr("    >>> %d descriptors in mode page\n", num);
 
     if (((num >= 0) && (num < 2)) || (num > 512))
         return;
@@ -1018,7 +1037,8 @@ print_mitem_desc_after1(void ** pc_arr, int rep_len,
         }
         if (broke)
             break;
-        if ((mdp->num_descs_bytes > 0) && (! have_desc_id)) {
+        if ((mdp->desc_len <= 0) && (mdp->num_descs_bytes > 0) &&
+            (! have_desc_id)) {
             bp = cur_mp + d_off + mdp->desc_len_off;
             u = sg_get_big_endian(bp, 7, mdp->desc_len_bytes * 8);
             len = mdp->desc_len_off + mdp->desc_len_bytes + u;
@@ -1032,19 +1052,35 @@ static int
 print_direct_access_info(int sg_fd, const struct sdparm_opt_coll * op,
                          int verb)
 {
-    int res, v, resid;
+    bool for_in_hex = (op->do_hex > 2);
+    int res, v, req_len, resp_len, resid;
     uint8_t * cur_mp = oth_aligned_mp;
 
-    memset(cur_mp, 0, DEF_MODE_RESP_LEN);
-    res = ll_mode_sense(sg_fd, op, ALL_MPAGES, 0, cur_mp, 8, &resid, verb);
+    memset(cur_mp, 0, op->mode_6 ? DEF_MODE_6_RESP_LEN : DEF_MODE_RESP_LEN);
+    req_len = 8 + (10 * 16);    /* allow for 10 'long' block descriptors */
+    res = ll_mode_sense(sg_fd, op, ALL_MPAGES, 0, cur_mp, req_len, &resid,
+                        verb);
     if (0 == res) {
-        if (resid < 5) {
-            v = cur_mp[op->mode_6 ? 2 : 3];
+        bool mode6 = op->mode_6;
+
+        resp_len = req_len - resid;
+        if (resp_len < 4) {
+            if (verb > 0)
+                pr2serr("%s: resid=%d too large, implies truncated "
+                        "response\n", __func__, resid);
+        } else if (for_in_hex) {
+            uint16_t bd_len = mode6 ? cur_mp[3] :
+                                      sg_get_unaligned_be16(cur_mp + 6);
+
+            printf("# Mode parameter header(%d)%s:\n", (mode6 ? 6 : 10),
+                   (bd_len ? " and block descriptor(s)" : ""));
+            hex2stdout(cur_mp, bd_len + (mode6 ? 4 : 8), -1);
+            printf("\n");
+        } else {
+            v = cur_mp[mode6 ? 2 : 3];
             printf("    Direct access device specific parameters: WP=%d  "
                    "DPOFUA=%d\n", !!(v & 0x80), !!(v & 0x10));
-        } else if (verb > 0)
-            pr2serr("%s: resid=%d too large, implies truncated response\n",
-                    __func__, resid);
+        }
     } else if (SG_LIB_CAT_ILLEGAL_REQ != res)
        return report_error(res, op->mode_6);
     return 0;
@@ -1100,8 +1136,9 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                  const struct sdparm_opt_coll * op)
 {
     bool single_pg, fetch_pg, desc_part, warned, have_desc_id;
+    bool for_in_hex = (op->do_hex > 2);
     bool mode6 = op->mode_6;
-    int res, pg_len, verb, smask, rep_len, orig_pn;
+    int res, pg_len, verb, smask, rep_len, req_len, orig_pn;
     int desc_id, desc_len;
     int desc0_off = 0;
     const struct sdparm_mode_page_item * mpi;
@@ -1110,17 +1147,39 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
     const struct sdparm_mode_page_t * mpp = NULL;
     const struct sdparm_mode_descriptor_t * mdp;
     void * pc_arr[4];
-    uint8_t * cur_mp = cur_aligned_mp;
-    uint8_t * cha_mp = cha_aligned_mp;
-    uint8_t * def_mp = def_aligned_mp;
-    uint8_t * sav_mp = sav_aligned_mp;
+    uint8_t * cur_mp;
+    uint8_t * cha_mp;
+    uint8_t * def_mp;
+    uint8_t * sav_mp;
+    uint8_t * first_mp;
     char b[128];
 
+    cur_mp = (MP_OM_CUR & op->out_mask) ? cur_aligned_mp : NULL;
+    cha_mp = (MP_OM_CHA & op->out_mask) ? cha_aligned_mp : NULL;
+    def_mp = (MP_OM_DEF & op->out_mask) ? def_aligned_mp : NULL;
+    sav_mp = (MP_OM_SAV & op->out_mask) ? sav_aligned_mp : NULL;
+    if (cur_mp)
+        first_mp = cur_mp;
+    else if (cha_mp)
+        first_mp = cha_mp;
+    else if (def_mp)
+        first_mp = def_mp;
+    else if (sav_mp)
+        first_mp = sav_mp;
+    else
+        first_mp = NULL;
     b[0] = '\0';
     verb = (op->verbose > 0) ? op->verbose - 1 : 0;
-    if ((0 == pdt) && (op->do_long > 0) && (0 == op->do_quiet)) {
+    if (((0 == pdt) && (op->do_long > 0) && (0 == op->do_quiet)) ||
+        for_in_hex) {
         if (0 != (res = print_direct_access_info(sg_fd, op, verb)))
             return res;
+    }
+    if (NULL == first_mp) {
+        if (for_in_hex)
+            printf("# ");
+        printf("No page control selected by --out_mask=OM\n");
+        return 0;
     }
     orig_pn = pn;
     /* choose a mode page item namespace (vendor, transport or generic) */
@@ -1151,8 +1210,8 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
             if (op->do_hex)
                 mpi = last_mpi;    /* trick to enter main loop once */
             else {
-                sdp_get_mp_with_str(pn, spn, pdt, op->transport, op->vendor_id,
-                                    0, false, sizeof(b), b);
+                sdp_get_mpt_with_str(pn, spn, pdt, op->transport,
+                                     op->vendor_id, 0, false, sizeof(b), b);
                 if ((op->vendor_id < 0) && ((0 == pn) || (0x18 == pn) ||
                                             (0x19 == pn) || (pn >= 0x20)))
                     pr2serr("%s mode page may be transport or vendor "
@@ -1173,6 +1232,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
     have_desc_id = false;
     desc_id = -1;
     desc_len = -1;
+    req_len = mode6 ? DEF_MODE_6_RESP_LEN : DEF_MODE_RESP_LEN;
 
     /* starting at first match, loop over each mode page item in given
      * namespace */
@@ -1190,7 +1250,8 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                 if (fdesc_mpi) {
                     last_mpi = mpi - 1;
                     if ((pn == last_mpi->pg_num) &&
-                        (spn == last_mpi->subpg_num))
+                        (spn == last_mpi->subpg_num) &&
+                        (single_pg || op->do_all))
                         print_mitem_desc_after1(pc_arr, pg_len, mpp,
                                                 fdesc_mpi, last_mpi, op,
                                                 smask, desc_len);
@@ -1205,9 +1266,9 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
         if (fetch_pg) {
             pg_len = 0;
             /* Only fetch mode page when needed (e.g. item page changed) */
-            mpp = sdp_get_mp_with_str(pn, spn, pdt, op->transport,
-                                      op->vendor_id, op->do_long,
-                                      (op->do_hex > 0), sizeof(b), b);
+            mpp = sdp_get_mpt_with_str(pn, spn, pdt, op->transport,
+                                       op->vendor_id, op->do_long,
+                                       (op->do_hex > 0), sizeof(b), b);
             smask = 0;
             warned = false;
             fdesc_mpi = NULL;
@@ -1216,8 +1277,8 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
             pc_arr[2] = def_mp;
             pc_arr[3] = sav_mp;
             res = sg_get_mode_page_controls(sg_fd, mode6, pn, spn, op->dbd,
-                                            op->flexible, DEF_MODE_RESP_LEN,
-                                            &smask, pc_arr, &rep_len, verb);
+                                            op->flexible, req_len, &smask,
+                                            pc_arr, &rep_len, verb);
             if (res && (SG_LIB_CAT_ILLEGAL_REQ != res))
                 return report_error(res, mode6);
             /* check for mode page descriptors */
@@ -1237,12 +1298,15 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                     fdesc_mpi = NULL;
             }
             if (op->num_desc) {  /* report number of descriptors */
-                if (mdp && fdesc_mpi && (1 & smask))
-                    report_number_of_descriptors(cur_mp, mdp, op);
+                if (mdp && fdesc_mpi && (op->out_mask & smask))
+                    report_number_of_descriptors(first_mp, mdp, op);
                 return 0;
             }
-            if (smask & 1) {
-                pg_len = sdp_mpage_len(cur_mp);
+            if ((smask & MP_OM_CUR) || (! (MP_OM_CUR & op->out_mask))) {
+                if (for_in_hex)
+                    printf("# ");
+
+                pg_len = sdp_mpage_len(first_mp);
                 printf("%s ", b);
                 if (op->verbose) {
                     if (spn)
@@ -1252,32 +1316,42 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                 }
                 printf("mode page");
                 if ((op->do_long > 1) || op->verbose)
-                    printf(" [PS=%d]:\n", !!(cur_mp[0] & 0x80));
+                    printf(" [PS=%d]:\n", !!(first_mp[0] & 0x80));
                 else
                     printf(":\n");
-                check_mode_page(cur_mp, pn, pg_len, op);
+                check_mode_page(first_mp, pn, pg_len, op);
                 if (op->do_hex) {
-                    if (pg_len > DEF_MODE_RESP_LEN) {
+                    if (pg_len > req_len) {
                         pr2serr(">> decoded page length too large=%d, trim\n",
                                 pg_len);
-                        pg_len = DEF_MODE_RESP_LEN;
+                        pg_len = req_len;
                     }
-                    printf("    Current:\n");
-                    hex2stdout(cur_mp, pg_len, 1);
-                    if (smask & 2) {
+                    if (smask & MP_OM_CUR) {
+                        if (for_in_hex)
+                            printf("#");
+                        printf("    Current:\n");
+                        hex2stdout(cur_mp, pg_len, for_in_hex ? -1 : 1);
+                    }
+                    if (smask & MP_OM_CHA) {
+                        if (for_in_hex)
+                            printf("#");
                         printf("    Changeable:\n");
-                        hex2stdout(cha_mp, pg_len, 1);
+                        hex2stdout(cha_mp, pg_len, for_in_hex ? -1 : 1);
                     }
-                    if (smask & 4) {
+                    if (smask & MP_OM_DEF) {
+                        if (for_in_hex)
+                            printf("#");
                         printf("    Default:\n");
-                        hex2stdout(def_mp, pg_len, 1);
+                        hex2stdout(def_mp, pg_len, for_in_hex ? -1 : 1);
                     }
-                    if (smask & 8) {
+                    if (smask & MP_OM_SAV) {
+                        if (for_in_hex)
+                            printf("#");
                         printf("    Saved:\n");
-                        hex2stdout(sav_mp, pg_len, 1);
+                        hex2stdout(sav_mp, pg_len, for_in_hex ? -1 : 1);
                     }
                 }
-            } else {    /* no (smask & 1), problem */
+            } else {    /* asked for current values and didn't get them */
                 if (op->verbose || single_pg) {
                     pr2serr(">> %s mode %spage ", b, (spn ? "sub" : ""));
                     if (op->verbose) {
@@ -1315,8 +1389,8 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
             }
             if (have_desc_id && (mpi->start_byte == desc0_off) &&
                 (! (mpi->flags & MF_CLASH_OK))) {
-                desc_id = 0xf & *(cur_mp + mpi->start_byte);
-                desc_len = sg_get_unaligned_be16(cur_mp + desc0_off + 2) + 4;
+                desc_id = 0xf & *(first_mp + mpi->start_byte);
+                desc_len = sg_get_unaligned_be16(first_mp + desc0_off + 2) + 4;
             }
             if (have_desc_id && (desc_id >= 0) &&
                 (mpi->flags & MF_CLASH_OK)) {
@@ -1364,8 +1438,8 @@ print_mode_page_inhex(uint8_t * msense_resp, int msense_resp_len,
         return SG_LIB_CAT_OTHER;
     }
     if (msense_resp_len < resp_len) {
-        pr2serr("given %s response is too short, given %d bytes, expected "
-                "%d\n", ms_s, msense_resp_len, resp_len);
+        pr2serr("given %s(%d) response is too short, given %d bytes, expected "
+                "%d\n", ms_s, (mode6 ? 6 : 10), msense_resp_len, resp_len);
         return SG_LIB_CAT_OTHER;
     }
     if ((0 == op->pdt) && (op->do_long > 0) && (0 == op->do_quiet)) {
@@ -1424,8 +1498,8 @@ now_try_generic:
             mpi = sdparm_mitem_arr;
             goto now_try_generic;
         }
-        sdp_get_mp_with_str(pn, spn, op->pdt, transport, vendor_id, 0, false,
-                            sizeof(b), b);
+        sdp_get_mpt_with_str(pn, spn, op->pdt, transport, vendor_id, 0, false,
+                             sizeof(b), b);
         if ((vendor_id < 0) && ((0 == pn) || (0x18 == pn) || (0x19 == pn) ||
                                 (pn >= 0x20)))
             pr2serr("%s mode page may be transport or vendor specific,\n"
@@ -1441,8 +1515,8 @@ now_try_generic:
     for (warned = false, first_time = true ; mpi->acron; ++mpi) {
         if (first_time) {
             first_time = false;
-            mpp = sdp_get_mp_with_str(pn, spn, op->pdt, transport, vendor_id,
-                                      op->do_long, (op->do_hex > 0),
+            mpp = sdp_get_mpt_with_str(pn, spn, op->pdt, transport, vendor_id,
+                                       op->do_long, (op->do_hex > 0),
                                       sizeof(b), b);
             warned = false;
             fdesc_mpi = NULL;
@@ -1635,21 +1709,37 @@ print_mitems(int sg_fd, const struct sdparm_mode_page_settings * mps,
 {
     bool adapt, warned;
     bool mode6 = op->mode_6;
-    int k, res, verb, smask, pn, spn, rep_len, len, desc_num;
+    int k, verb, smask, pn, spn, rep_len, req_len, len, desc_num;
+    int res = 0;
     uint64_t u;
     int64_t val;
     const struct sdparm_mode_page_item * mpi;
     struct sdparm_mode_page_item ampi;
     const struct sdparm_mode_page_t * mpp = NULL;
-    uint8_t cur_mp[DEF_MODE_RESP_LEN];
-    uint8_t cha_mp[DEF_MODE_RESP_LEN];
-    uint8_t def_mp[DEF_MODE_RESP_LEN];
-    uint8_t sav_mp[DEF_MODE_RESP_LEN];
+    uint8_t * cur_mp;
+    uint8_t * cha_mp;
+    uint8_t * def_mp;
+    uint8_t * sav_mp;
+    uint8_t * free_cur_mp = NULL;
+    uint8_t * free_cha_mp = NULL;
+    uint8_t * free_def_mp = NULL;
+    uint8_t * free_sav_mp = NULL;
     const struct sdparm_mode_page_it_val * ivp;
     char b[128];
     char b_tmp[32];
     void * pc_arr[4];
 
+    req_len = mode6 ? DEF_MODE_6_RESP_LEN : DEF_MODE_RESP_LEN;
+    cur_mp = sg_memalign(req_len, 0, &free_cur_mp, false);
+    cha_mp = sg_memalign(req_len, 0, &free_cha_mp, false);
+    def_mp = sg_memalign(req_len, 0, &free_def_mp, false);
+    sav_mp = sg_memalign(req_len, 0, &free_sav_mp, false);
+    if ((NULL == cur_mp) || (NULL == cha_mp) || (NULL == def_mp) ||
+        (NULL == sav_mp)) {
+        pr2serr("%s: unable to allocate heap\n", __func__);
+        res = sg_convert_errno(ENOMEM);
+        goto out;
+    }
     warned = false;
     verb = (op->verbose > 0) ? op->verbose - 1 : 0;
     for (k = 0, pn = 0, spn = 0; k < mps->num_it_vals; ++k) {
@@ -1657,18 +1747,19 @@ print_mitems(int sg_fd, const struct sdparm_mode_page_settings * mps,
         val = ivp->val;
         desc_num = ivp->descriptor_num;
         mpi = &ivp->mpi;
-        mpp = sdp_get_mp_with_str(mpi->pg_num, mpi->subpg_num, mpi->pdt,
-                                  op->transport, op->vendor_id, op->do_long,
-                                  (op->do_hex > 0), sizeof(b), b);
+        mpp = sdp_get_mpt_with_str(mpi->pg_num, mpi->subpg_num, mpi->pdt,
+                                   op->transport, op->vendor_id, op->do_long,
+                                   (op->do_hex > 0), sizeof(b), b);
         if (desc_num > 0) {
             if (check_desc_convert_mpi(desc_num, mpp, mpi, &ampi,
                                        sizeof(b_tmp), b_tmp)) {
                 adapt = true;
                 mpi = &ampi;
             } else {
-               pr2serr("can't decode descriptors for %s in %s mode page\n",
-                       (mpi->acron ? mpi->acron : ""), b);
-               return SG_LIB_SYNTAX_ERROR;
+                pr2serr("can't decode descriptors for %s in %s mode page\n",
+                        (mpi->acron ? mpi->acron : ""), b);
+                res = SG_LIB_SYNTAX_ERROR;
+                goto out;
             }
         } else
             adapt = false;
@@ -1697,13 +1788,16 @@ print_mitems(int sg_fd, const struct sdparm_mode_page_settings * mps,
                 else
                     pr2serr("bad value given to 0x%x:%d:%d\n",
                             mpi->start_byte, mpi->start_bit, mpi->num_bits);
-                return SG_LIB_SYNTAX_ERROR;
+                res = SG_LIB_SYNTAX_ERROR;
+                goto out;
             }
             res = sg_get_mode_page_controls(sg_fd, mode6, pn, spn, op->dbd,
-                                            op->flexible, DEF_MODE_RESP_LEN,
-                                            &smask, pc_arr, &rep_len, verb);
-            if (res && (SG_LIB_CAT_ILLEGAL_REQ != res))
-                return report_error(res, mode6);
+                                            op->flexible, req_len, &smask,
+                                            pc_arr, &rep_len, verb);
+            if (res && (SG_LIB_CAT_ILLEGAL_REQ != res)) {
+                res = report_error(res, mode6);
+                goto out;
+            }
             if ((0 == smask) && res) {
                 if (mpi->acron)
                     pr2serr("%s ", mpi->acron);
@@ -1716,7 +1810,7 @@ print_mitems(int sg_fd, const struct sdparm_mode_page_settings * mps,
                     pr2serr("error %sin ",
                             (verb ? "" : "(try adding '-vv') "));
                 pr2serr("%s mode page\n", b);
-                return res;
+                goto out;
             }
             if (smask & 1)
                 check_mode_page(cur_mp, pn, rep_len, op);
@@ -1726,7 +1820,8 @@ print_mitems(int sg_fd, const struct sdparm_mode_page_settings * mps,
                                          &ampi, op)) {
                 pr2serr(">> failed to find field acronym: %s in current "
                         "page\n", mpi->acron);
-                return SG_LIB_CAT_OTHER;
+                res = SG_LIB_CAT_OTHER;
+                goto out;
             }
         }
         if ((pdt >= 0) && (! warned) && mpi->acron &&
@@ -1750,22 +1845,22 @@ print_mitems(int sg_fd, const struct sdparm_mode_page_settings * mps,
         }
         if (0 == val) { /* current, changed, default and saved; in hex */
             if (op->do_hex) {
-                if (smask & 1) {
+                if (smask & MP_OM_CUR) {
                     u = sdp_mitem_get_value(mpi, cur_mp);
                     printf("0x%02" PRIx64 " ", u);
                 } else
                     printf("-    ");
-                if (smask & 2) {
+                if (smask & MP_OM_CHA) {
                     u = sdp_mitem_get_value(mpi, cha_mp);
                     printf("0x%02" PRIx64 " ", u);
                 } else
                     printf("-    ");
-                if (smask & 4) {
+                if (smask & MP_OM_DEF) {
                     u = sdp_mitem_get_value(mpi, def_mp);
                     printf("0x%02" PRIx64 " ", u);
                 } else
                     printf("-    ");
-                if (smask & 8) {
+                if (smask & MP_OM_SAV) {
                     u = sdp_mitem_get_value(mpi, sav_mp);
                     printf("0x%02" PRIx64 " ", u);
                 } else
@@ -1775,7 +1870,7 @@ print_mitems(int sg_fd, const struct sdparm_mode_page_settings * mps,
                 print_mitem_pc_arr("", smask, mpi, pc_arr, false, op);
         } else if (1 == val) {  /* just current in hex */
             if (op->do_hex) {
-                if (smask & 1) {
+                if (smask & MP_OM_CUR) {
                     u = sdp_mitem_get_value(mpi, cur_mp);
                     printf("0x%02" PRIx64 " ", u);
                 } else
@@ -1785,7 +1880,7 @@ print_mitems(int sg_fd, const struct sdparm_mode_page_settings * mps,
                 print_mitem_pc_arr("", smask & 1, mpi, pc_arr, false, op);
         } else if (2 == val) {  /* just current in signed decimal */
             if (op->do_hex) {
-                if (smask & 1) {
+                if (smask & MP_OM_CUR) {
                     u = sdp_mitem_get_value(mpi, cur_mp);
                     sdp_print_signed_decimal(u, mpi->num_bits, true);
                 } else
@@ -1795,7 +1890,16 @@ print_mitems(int sg_fd, const struct sdparm_mode_page_settings * mps,
                 print_mitem_pc_arr("", smask & 1, mpi, pc_arr, true, op);
         }
     }
-    return 0;
+out:
+    if (free_cur_mp)
+        free(free_cur_mp);
+    if (free_cha_mp)
+        free(free_cha_mp);
+    if (free_def_mp)
+        free(free_def_mp);
+    if (free_sav_mp)
+        free(free_sav_mp);
+    return res;
 }
 
 /* Return of 0 -> success, most errors indicated by various SG_LIB_CAT_*
@@ -1808,6 +1912,7 @@ change_mode_page(int sg_fd, int pdt,
     bool mode6 = op->mode_6;
     int k, off, md_len, len, res, desc_num, pn, spn;
     int resid = 0;
+    int vb = op->verbose;
     const struct sdparm_mode_page_t * mpp = NULL;
     const struct sdparm_mode_page_it_val * ivp;
     const struct sdparm_mode_page_item * mpi;
@@ -1834,10 +1939,10 @@ change_mode_page(int sg_fd, int pdt,
     }
     pn = mps->pg_num;
     spn = mps->subpg_num;
-    mpp = sdp_get_mp_with_str(pn, spn, pdt, op->transport, op->vendor_id,
-                              0, false, sizeof(b), b);
+    mpp = sdp_get_mpt_with_str(pn, spn, pdt, op->transport, op->vendor_id,
+                               0, false, sizeof(b), b);
     memset(mdpg, 0, MAX_MODE_DATA_LEN);
-    res = ll_mode_sense(sg_fd, op, pn, spn, mdpg, 4, &resid, op->verbose);
+    res = ll_mode_sense(sg_fd, op, pn, spn, mdpg, 4, &resid, vb);
     if (0 != res) {
         if (SG_LIB_CAT_INVALID_OP == res) {
             pr2serr("%s byte %s cdb not supported, try again with%s '-6' "
@@ -1845,7 +1950,7 @@ change_mode_page(int sg_fd, int pdt,
         } else {
             char bb[80];
 
-            sg_get_category_sense_str(res, sizeof(bb), bb, op->verbose);
+            sg_get_category_sense_str(res, sizeof(bb), bb, vb);
             pr2serr("%s command: %s\n", ms_s, bb);
         }
         pr2serr("%s: failed fetching page: %s\n", __func__, b);
@@ -1862,7 +1967,7 @@ change_mode_page(int sg_fd, int pdt,
                 __func__, md_len, MAX_MODE_DATA_LEN);
         return SG_LIB_CAT_MALFORMED;
     }
-    res = ll_mode_sense(sg_fd, op, pn, spn, mdpg, md_len, &resid, op->verbose);
+    res = ll_mode_sense(sg_fd, op, pn, spn, mdpg, md_len, &resid, vb);
     if (0 != res) {
         pr2serr("%s: failed fetching page: %s\n", __func__, b);
         return res;
@@ -1948,10 +2053,10 @@ change_mode_page(int sg_fd, int pdt,
     }
     if (mode6)
         res = sg_ll_mode_select6(sg_fd, true /* PF */, op->save, mdpg, md_len,
-                                 true, op->verbose);
+                                 true, vb);
     else
-        res = sg_ll_mode_select10(sg_fd, true, op->save, mdpg, md_len, true,
-                                  op->verbose);
+        res = sg_ll_mode_select10_v2(sg_fd, true /* PF */, false /* RTD */,
+                                     op->save, mdpg, md_len, true, vb);
     if (0 != res) {
         pr2serr("%s: failed setting page: %s\n", __func__, b);
         return res;
@@ -1972,7 +2077,7 @@ set_def_mode_page(int sg_fd, int pn, int spn,
     int ret = -1;
     uint8_t * mdp;
     char ebuff[EBUFF_SZ];
-    char buff[128];
+    char b[128];
 
     len = mode_pg_len + MODE_DATA_OVERHEAD;
     mdp = (uint8_t *)malloc(len);
@@ -1983,9 +2088,9 @@ set_def_mode_page(int sg_fd, int pn, int spn,
     memset(mdp, 0, len);
     ret = ll_mode_sense(sg_fd, op, pn, spn, mdp, 4, &resid, op->verbose);
     if (0 != ret) {
-        sdp_get_mp_with_str(pn, spn, -1, op->transport, op->vendor_id, 0,
-                            false, sizeof(buff), buff);
-        pr2serr("%s: failed fetching page: %s\n", __func__, buff);
+        sdp_get_mpt_with_str(pn, spn, -1, op->transport, op->vendor_id, 0,
+                             false, sizeof(b), b);
+        pr2serr("%s: failed fetching page: %s\n", __func__, b);
         goto err_out;
     }
     if (resid > 0) {
@@ -2003,9 +2108,9 @@ set_def_mode_page(int sg_fd, int pn, int spn,
     }
     ret = ll_mode_sense(sg_fd, op, pn, spn, mdp, md_len, &resid, op->verbose);
     if (0 != ret) {
-        sdp_get_mp_with_str(pn, spn, -1, op->transport, op->vendor_id,
-                            0, false, sizeof(buff), buff);
-        pr2serr("%s: failed fetching page: %s\n", __func__, buff);
+        sdp_get_mpt_with_str(pn, spn, -1, op->transport, op->vendor_id,
+                             0, false, sizeof(b), b);
+        pr2serr("%s: failed fetching page: %s\n", __func__, b);
         goto err_out;
     }
     if (resid > 0) {
@@ -2044,12 +2149,12 @@ set_def_mode_page(int sg_fd, int pn, int spn,
         ret = sg_ll_mode_select6(sg_fd, true /* PF */, op->save, mdp, md_len,
                                  true, op->verbose);
     else
-        ret = sg_ll_mode_select10(sg_fd, true, op->save, mdp, md_len, true,
-                                  op->verbose);
+        ret = sg_ll_mode_select10_v2(sg_fd, true, false /* RTD */, op->save,
+                                     mdp, md_len, true, op->verbose);
     if (0 != ret) {
-        sdp_get_mp_with_str(pn, spn, -1, op->transport, op->vendor_id,
-                            0, false, sizeof(buff), buff);
-        pr2serr("%s: failed setting page: %s\n", __func__, buff);
+        sdp_get_mpt_with_str(pn, spn, -1, op->transport, op->vendor_id,
+                             0, false, sizeof(b), b);
+        pr2serr("%s: failed setting page: %s\n", __func__, b);
         goto err_out;
     }
 
@@ -2063,55 +2168,75 @@ set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
                 const struct sdparm_opt_coll * op)
 {
     bool mode6 = op->mode_6;
-    int smask, res, len, rep_len;
+    int smask, req_len, len, rep_len;
+    int res = 0;
     const char * cdbLenS = mode6 ? "6" : "10";
-    uint8_t cur_mp[DEF_MODE_RESP_LEN];
-    uint8_t def_mp[DEF_MODE_RESP_LEN];
-    char buff[128];
+    uint8_t * cur_mp;
+    uint8_t * def_mp;
+    uint8_t * free_cur_mp = NULL;
+    uint8_t * free_def_mp = NULL;
+    char b[128];
     void * pc_arr[4];
 
+    req_len = mode6 ? DEF_MODE_6_RESP_LEN : DEF_MODE_RESP_LEN;
+    cur_mp = sg_memalign(req_len, 0, &free_cur_mp, false);
+    def_mp = sg_memalign(req_len, 0, &free_def_mp, false);
+    if ((NULL == cur_mp) || (NULL == def_mp)) {
+        pr2serr("%s: unable to allocate heap\n", __func__);
+        res = sg_convert_errno(ENOMEM);
+        goto out;
+    }
     smask = 0;
     pc_arr[0] = cur_mp;
     pc_arr[1] = NULL;
     pc_arr[2] = def_mp;
     pc_arr[3] = NULL;
     res = sg_get_mode_page_controls(sg_fd, op->mode_6, pn, spn, op->dbd,
-                 op->flexible, DEF_MODE_RESP_LEN, &smask, pc_arr,
-                 &rep_len, op->verbose);
+                                    op->flexible, req_len, &smask, pc_arr,
+                                    &rep_len, op->verbose);
     if (SG_LIB_CAT_INVALID_OP == res) {
         pr2serr("%s byte %s cdb not supported, try again with%s '-6' "
                 "option\n", cdbLenS, ms_s, mode6 ? "out" : "");
-        return res;
+        goto out;
     } else if (SG_LIB_CAT_NOT_READY == res) {
         pr2serr("%s(%s) failed, device not ready\n", ms_s, cdbLenS);
-        return res;
+        goto out;
     } else if (SG_LIB_CAT_ABORTED_COMMAND == res) {
         pr2serr("%s(%s) failed, aborted command\n", ms_s, cdbLenS);
-        return res;
+        goto out;
     }
     if (op->verbose && (! op->flexible) && (rep_len > 0xa00)) {
-        sdp_get_mp_with_str(pn, spn, pdt, op->transport, op->vendor_id,
-                            0, false, sizeof(buff), buff);
+        sdp_get_mpt_with_str(pn, spn, pdt, op->transport, op->vendor_id,
+                             0, false, sizeof(b), b);
         pr2serr("%s mode page length=%d too long, perhaps try '--flexible'\n",
-                buff, rep_len);
+                b, rep_len);
     }
-    if ((smask & 1)) {
+    if ((smask & MP_OM_CUR)) {
         len = sdp_mpage_len(cur_mp);
-        if ((smask & 4)) {
-            return set_def_mode_page(sg_fd, pn, spn, def_mp, len, op);
+        if ((smask & MP_OM_SAV)) {
+            res = set_def_mode_page(sg_fd, pn, spn, def_mp, len, op);
+            goto out;
         }
         else {
-            sdp_get_mp_with_str(pn, spn, pdt, op->transport, op->vendor_id,
-                                0, false, sizeof(buff), buff);
-            pr2serr(">> %s mode page (default) not supported\n", buff);
-            return SG_LIB_CAT_ILLEGAL_REQ;
+            sdp_get_mpt_with_str(pn, spn, pdt, op->transport, op->vendor_id,
+                                 0, false, sizeof(b), b);
+            pr2serr(">> %s mode page (default) not supported\n", b);
+            res = SG_LIB_CAT_ILLEGAL_REQ;
+            goto out;
         }
     } else {
-        sdp_get_mp_with_str(pn, spn, pdt, op->transport, op->vendor_id,
-                            0, false, sizeof(buff), buff);
-        pr2serr(">> %s mode page not supported\n", buff);
-        return SG_LIB_CAT_ILLEGAL_REQ;
+        sdp_get_mpt_with_str(pn, spn, pdt, op->transport, op->vendor_id,
+                             0, false, sizeof(b), b);
+        pr2serr(">> %s mode page not supported\n", b);
+        res = SG_LIB_CAT_ILLEGAL_REQ;
+        goto out;
     }
+out:
+    if (free_cur_mp)
+        free(free_cur_mp);
+    if (free_def_mp)
+        free(free_def_mp);
+    return res;
 }
 
 static int
@@ -2145,7 +2270,7 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
     int len, b_sz, num, from, colon;
     unsigned int u;
     int64_t ll;
-    char buff[64];
+    char b[64];
     char acron[64];
     char vb[64];
     const char * cp;
@@ -2155,10 +2280,10 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
     const struct sdparm_mode_page_item * mpi;
     const struct sdparm_mode_page_item * prev_mpi;
 
-    b_sz = sizeof(buff) - 1;
+    b_sz = sizeof(b) - 1;
     cp = arg;
     while (mps->num_it_vals < MAX_MP_IT_VAL) {
-        memset(buff, 0, sizeof(buff));
+        memset(b, 0, sizeof(b));
         ivp = &mps->it_vals[mps->num_it_vals];
         if ('\0' == *cp)
             break;
@@ -2169,29 +2294,29 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
                 ++cp;
                 continue;
             }
-            strncpy(buff, cp, (len < b_sz ? len : b_sz));
+            strncpy(b, cp, (len < b_sz ? len : b_sz));
         } else
-            strncpy(buff, cp, b_sz);
-        colon = strchr(buff, ':') ? 1 : 0;
-        if ((isalpha(buff[0]) && (! colon)) ||
-            (isdigit(buff[0]) && ('_' == buff[1]))) { /* expect acronym */
-            ecp = strchr(buff, '=');
+            strncpy(b, cp, b_sz);
+        colon = strchr(b, ':') ? 1 : 0;
+        if ((isalpha(b[0]) && (! colon)) ||
+            (isdigit(b[0]) && ('_' == b[1]))) { /* expect acronym */
+            ecp = strchr(b, '=');
             if (ecp) {
-                strncpy(acron, buff, ecp - buff);
-                acron[ecp - buff] = '\0';
+                strncpy(acron, b, ecp - b);
+                acron[ecp - b] = '\0';
                 strcpy(vb, ecp + 1);
                 if (0 == strcmp("-1", vb))
                     ivp->val = -1;
                 else {
                     ivp->val = sg_get_llnum_nomult(vb);
                     if (-1 == ivp->val) {
-                        pr2serr("unable to decode: %s value\n", buff);
+                        pr2serr("unable to decode: %s value\n", b);
                         pr2serr("    expected: <acronym>[=<val>]\n");
                         return false;
                     }
                 }
             } else {
-                strcpy(acron, buff);
+                strcpy(acron, b);
                 ivp->val = ((clear || get) ? 0 : -1);
             }
             if ((ecp = strchr(acron, '.'))) {
@@ -2201,7 +2326,7 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
                 strcpy(vb, ecp + 1);
                 ivp->descriptor_num = sg_get_llnum_nomult(vb);
                 if (ivp->descriptor_num < 0) {
-                    pr2serr("unable to decode: %s descriptor number\n", buff);
+                    pr2serr("unable to decode: %s descriptor number\n", b);
                     pr2serr("    expected: <acronym_name>"
                             "[.<desc_num>][=<val>]\n");
                     return false;
@@ -2304,26 +2429,26 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
             ivp->mpi = *mpi;    /* struct assignment */
         } else {    /* expect "start_byte:start_bit:num_bits[=<val>]" */
             /* start_byte may be in hex ('0x' prefix or 'h' suffix) */
-            if ((0 == strncmp("0x", buff, 2)) ||
-                (0 == strncmp("0X", buff, 2))) {
-                num = sscanf(buff + 2, "%x:%d:%d=%62s", &u,
+            if ((0 == strncmp("0x", b, 2)) ||
+                (0 == strncmp("0X", b, 2))) {
+                num = sscanf(b + 2, "%x:%d:%d=%62s", &u,
                              &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
                 ivp->mpi.start_byte = u;
             } else {
-                if (strstr(buff, "h:")) {
-                    num = sscanf(buff, "%xh:%d:%d=%62s", &u,
+                if (strstr(b, "h:")) {
+                    num = sscanf(b, "%xh:%d:%d=%62s", &u,
                                  &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
                     ivp->mpi.start_byte = u;
-                } else if (strstr(buff, "H:")) {
-                    num = sscanf(buff, "%xH:%d:%d=%62s", &u,
+                } else if (strstr(b, "H:")) {
+                    num = sscanf(b, "%xH:%d:%d=%62s", &u,
                                  &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
                     ivp->mpi.start_byte = u;
                 } else
-                    num = sscanf(buff, "%d:%d:%d=%62s", &ivp->mpi.start_byte,
+                    num = sscanf(b, "%d:%d:%d=%62s", &ivp->mpi.start_byte,
                                  &ivp->mpi.start_bit, &ivp->mpi.num_bits, vb);
             }
             if (num < 3) {
-                pr2serr("unable to decode: %s\n", buff);
+                pr2serr("unable to decode: %s\n", b);
                 pr2serr("    expected: start_byte:start_bit:num_bits[=<val>]"
                         "\n");
                 return false;
@@ -2464,9 +2589,9 @@ process_mode(int sg_fd, const struct sdparm_mode_page_settings * mps, int pn,
         return SG_LIB_SYNTAX_ERROR;
     }
     if ((pn > 0) && (pdt >= 0)) {
-        mpp = sdp_get_mpage(pn, spn, pdt, op->transport, op->vendor_id);
+        mpp = sdp_get_mpage_t(pn, spn, pdt, op->transport, op->vendor_id);
         if (NULL == mpp)
-            mpp = sdp_get_mpage(pn, spn, -1, op->transport, op->vendor_id);
+            mpp = sdp_get_mpage_t(pn, spn, -1, op->transport, op->vendor_id);
         if (mpp && mpp->name && (mpp->pdt >= 0) && (pdt != mpp->pdt)) {
             pr2serr(">> Warning: %s mode page associated with\n", mpp->name);
             pr2serr("   peripheral device type 0x%x but device pdt is 0x%x\n",
@@ -2535,9 +2660,10 @@ main(int argc, char * argv[])
 
     op = &opts;
     memset(op, 0, sizeof(opts));
+    op->out_mask = MP_OM_ALL;   /* 0xf */
+    op->pdt = -1;
     op->transport = -1;
     op->vendor_id = -1;
-    op->pdt = -1;
     memset(device_name_arr, 0, sizeof(device_name_arr));
     memset(&mp_settings, 0, sizeof(mp_settings));
     pdt = -1;
@@ -2545,10 +2671,10 @@ main(int argc, char * argv[])
         int option_index = 0;
 
 #ifdef SG_LIB_WIN32
-        c = getopt_long(argc, argv, "6aBc:C:dDefg:hHiI:lM:np:P:qrRs:St:vVw",
+        c = getopt_long(argc, argv, "6aBc:C:dDefg:hHiI:lM:no:p:P:qrRs:St:vVw",
                         long_options, &option_index);
 #else
-        c = getopt_long(argc, argv, "6aBc:C:dDefg:hHiI:lM:np:P:qrRs:St:vV",
+        c = getopt_long(argc, argv, "6aBc:C:dDefg:hHiI:lM:no:p:P:qrRs:St:vV",
                         long_options, &option_index);
 #endif
         if (c == -1)
@@ -2634,6 +2760,14 @@ main(int argc, char * argv[])
             break;
         case 'n':
             op->num_desc = true;
+            break;
+        case 'o':
+            res = sg_get_num_nomult(optarg);
+            if ((res < 0) || (res > 15)) {
+                pr2serr("Bad out-mask value, expect 0 to 15 (or 0xf)\n");
+                return SG_LIB_SYNTAX_ERROR;
+            }
+            op->out_mask = res;
             break;
         case 'q':
             ++op->do_quiet;
@@ -2767,8 +2901,8 @@ main(int argc, char * argv[])
             pn = VPD_NOT_STD_INQ;
         } else if (isalpha(page_str[0])) {
             while ( 1 ) {      /* dummy loop, just using break */
-                mpp = sdp_find_mp_by_acron(page_str, op->transport,
-                                           op->vendor_id);
+                mpp = sdp_find_mpt_by_acron(page_str, op->transport,
+                                            op->vendor_id);
                 if (mpp)
                     break;
                 vpp = sdp_find_vpd_by_acron(page_str);
@@ -2777,8 +2911,8 @@ main(int argc, char * argv[])
                 orig_transport = op->transport;
                 if ((op->vendor_id < 0) && (op->transport < 0)) {
                     op->transport = DEF_TRANSPORT_PROTOCOL;
-                    mpp = sdp_find_mp_by_acron(page_str, op->transport,
-                                               op->vendor_id);
+                    mpp = sdp_find_mpt_by_acron(page_str, op->transport,
+                                                op->vendor_id);
                     if (mpp)
                         break;
                 }
@@ -3078,21 +3212,18 @@ main(int argc, char * argv[])
         return SG_LIB_SYNTAX_ERROR;
     }
 
-    if (NULL ==
-        ((cur_aligned_mp = sg_memalign(0, 0, &free_cur_aligned_mp, false))))
+    /* Page sized heap allocations aligned to a page */
+    cur_aligned_mp = sg_memalign(0, 0, &free_cur_aligned_mp, false);
+    cha_aligned_mp = sg_memalign(0, 0, &free_cha_aligned_mp, false);
+    def_aligned_mp = sg_memalign(0, 0, &free_def_aligned_mp, false);
+    sav_aligned_mp = sg_memalign(0, 0, &free_sav_aligned_mp, false);
+    oth_aligned_mp = sg_memalign(0, 0, &free_oth_aligned_mp, false);
+    if ((NULL == cur_aligned_mp) || (NULL == cha_aligned_mp) ||
+        (NULL == def_aligned_mp) || (NULL == sav_aligned_mp) ||
+        (NULL == oth_aligned_mp)) {
+        ret = sg_convert_errno(ENOMEM);
         goto no_mem_out;
-    if (NULL ==
-        ((cha_aligned_mp = sg_memalign(0, 0, &free_cha_aligned_mp, false))))
-        goto no_mem_out;
-    if (NULL ==
-        ((def_aligned_mp = sg_memalign(0, 0, &free_def_aligned_mp, false))))
-        goto no_mem_out;
-    if (NULL ==
-        ((sav_aligned_mp = sg_memalign(0, 0, &free_sav_aligned_mp, false))))
-        goto no_mem_out;
-    if (NULL ==
-        ((oth_aligned_mp = sg_memalign(0, 0, &free_oth_aligned_mp, false))))
-        goto no_mem_out;
+    }
 
     req_pdt = pdt;
     ret = 0;
@@ -3130,12 +3261,18 @@ main(int argc, char * argv[])
         if (r  && ((0 == ret) || (SG_LIB_FILE_ERROR == ret)))
             ret = r;
     }
-    deallocate_aligned();
-    return (ret >= 0) ? ret : SG_LIB_CAT_OTHER;
-
 no_mem_out:
-    deallocate_aligned();
-    return sg_convert_errno(ENOMEM);
+    if (free_cur_aligned_mp)
+        free(free_cur_aligned_mp);
+    if (free_cha_aligned_mp)
+        free(free_cha_aligned_mp);
+    if (free_def_aligned_mp)
+        free(free_def_aligned_mp);
+    if (free_sav_aligned_mp)
+        free(free_sav_aligned_mp);
+    if (free_oth_aligned_mp)
+        free(free_oth_aligned_mp);
+    return (ret >= 0) ? ret : SG_LIB_CAT_OTHER;
 }
 
 #ifdef SG_LIB_LINUX
