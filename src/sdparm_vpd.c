@@ -1346,7 +1346,7 @@ decode_block_limits_vpd(uint8_t * buff, int len)
     }
     if (len > 43) {     /* added in sbc3r26 */
         ull = sg_get_unaligned_be64(buff + 36);
-        printf("  Maximum write same length: \n");
+        printf("  Maximum write same length: ");
         if (0 == ull)
             printf("0 blocks [not reported]\n");
         else
@@ -2007,20 +2007,24 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
                 pn = VPD_DEVICE_ID;  /* default to device id page */
         }
         sz = (VPD_ATA_INFO == pn) ? VPD_ATA_INFO_RESP_LEN : DEF_INQ_RESP_LEN;
+try_larger:
         ret = sg_ll_inquiry_v2(sg_fd, true, pn, b, sz, 0, &resid, false,
                                verb);
         if (ret) {
-            pr2serr("INQUIRY fetching VPD page=0x%x failed\n", pn);
+            if (! op->examine)
+                pr2serr("INQUIRY fetching VPD page=0x%x failed\n", pn);
             goto fini;
         }
-        if (resid > 0) {
-            sz -= resid;
-            if (resid < 4) {
-                pr2serr("%s: resid=%d implies response too short (%d)\n",
-                        __func__, resid, sz);
-                ret = SG_LIB_WILD_RESID;
-                goto fini;
+        len = ((sz - resid) >= 4) ? (sg_get_unaligned_be16(b + 2) + 4) : 0;
+        if (len > sz) {
+            if (sz < VPD_LARGE_RESP_LEN) {
+                sz = VPD_LARGE_RESP_LEN;
+                    goto try_larger;
             }
+            pr2serr("%s: resid=%d implies response too short (%d)\n",
+                    __func__, resid, len);
+            ret = SG_LIB_WILD_RESID;
+            goto fini;
         }
     }
     dev_pdt = b[0] & 0x1f;
@@ -2390,7 +2394,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
                 goto fini;
             }
             if (resid) {
-                sz -= resid;
+                sz += resid;
                 if (resid < 4) {
                     pr2serr("%s: resid=%d implies response too short (%d)\n",
                             __func__, resid, sz);

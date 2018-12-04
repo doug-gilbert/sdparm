@@ -1,10 +1,10 @@
-.TH SDPARM "8" "November 2018" "sdparm\-1.11" SDPARM
+.TH SDPARM "8" "December 2018" "sdparm\-1.11" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
 .B sdparm
-[\fI\-\-all\fR] [\fI\-\-dbd\fR] [\fI\-\-flexible\fR] [\fI\-\-get=STR\fR]
-[\fI\-\-hex\fR] [\fI\-\-long\fR] [\fI\-\-num\-desc\fR]
+[\fI\-\-all\fR] [\fI\-\-dbd\fR] [\fI\-\-examine\fR] [\fI\-\-flexible\fR]
+[\fI\-\-get=STR\fR] [\fI\-\-hex\fR] [\fI\-\-long\fR] [\fI\-\-num\-desc\fR]
 [\fI\-\-out\-mask=OM\fR] [\fI\-\-page=PG[,SPG]\fR] [\fI\-\-quiet\fR]
 [\fI\-\-readonly\fR] [\fI\-\-six\fR] [\fI\-\-transport=TN\fR]
 [\fI\-\-vendor=VN\fR] [\fI\-\-verbose\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
@@ -21,10 +21,10 @@ sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 [\fI\-\-verbose\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
 .PP
 .B sdparm
-\fI\-\-inquiry\fR [\fI\-\-all\fR] [\fI\-\-flexible\fR] [\fI\-\-hex\fR]
-[\fI\-\-num\-desc\fR] [\fI\-\-page=PG[,SPG]\fR] [\fI\-\-quiet\fR]
-[\fI\-\-readonly\fR] [\fI\-\-transport=TN\fR] [\fI\-\-verbose\fR]
-\fIDEVICE\fR [\fIDEVICE\fR...]
+\fI\-\-inquiry\fR [\fI\-\-all\fR] [\fI\-\-examine\fR] [\fI\-\-flexible\fR]
+[\fI\-\-hex\fR] [\fI\-\-num\-desc\fR] [\fI\-\-page=PG[,SPG]\fR]
+[\fI\-\-quiet\fR] [\fI\-\-readonly\fR] [\fI\-\-transport=TN\fR]
+[\fI\-\-verbose\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
 .PP
 .B sdparm
 \fI\-\-enumerate\fR [\fI\-\-all\fR] [\fI\-\-inquiry\fR] [\fI\-\-long\fR]
@@ -174,6 +174,23 @@ the \fI\-\-all\fR, \fI\-\-inquiry\fR, \fI\-\-long\fR, \fI\-\-page=PG[,SPG]\fR,
 \fI\-\-transport=TN\fR and \fI\-\-vendor=VN\fR. If \fI\-\-enumerate\fR is
 given without other options then the known (generic) mode pages are listed.
 See the ENUMERATE section below.
+.TP
+\fB\-E\fR, \fB\-\-examine\fR
+for mode pages only those with known field names are probed when the
+\fI\-\-all\fR option is given. For VPD pages only those pages listed in
+"Supported VPD pages page" are decoded. In both cases some pages may be
+missed. With this option (i.e. \fI\-\-examine\fR) all mode and VPD pages can
+be probed.
+.br
+For mode pages, this option will probe all mode pages from page number 0x0 to
+0x3e. To probe mode subpages give a mode page number with \fI\-\-page=PG\fR
+and then all subpages (from 0x0 to 0xfe) are probed.
+.br
+For VPD pages, use this option with \fI\-\-inquiry\fR. This will cause all VPD
+pages from 0x0 to 0xbf to be probed by default. A sequence of VPD pages can
+be probed with \fI\-\-page=PG[,SPG]\fR in which case VPD pages from PG (lower
+number) to SPG (high number) inclusive are probed. Vendor specific VPD pages
+run from 0xc0 to 0xff and can be probed by setting SPG from 0xc0 to 0xff.
 .TP
 \fB\-f\fR, \fB\-\-flexible\fR
 Some devices, bridges and/or drivers attempt crude transformations between

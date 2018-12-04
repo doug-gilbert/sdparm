@@ -131,6 +131,7 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
         "Extended device capabilities (SMC)", NULL},
     {ES_MAN_MP, 0, PDT_SES, 0, "esm", "Enclosure services management (SES)",
         NULL},
+    {FLEX_DISK_MP, 0, PDT_DISK, 0, "fd", "Flexible disk (SBC)", NULL},
     {FORMAT_MP, 0, PDT_DISK, 0, "fo", "Format (SBC)", NULL},
     {IEC_MP, 0, -1, 0, "ie", "Informational exceptions control", NULL},
     {CONTROL_MP, MSP_SBC_IO_ADVI, 0, 0, "ioad", "IO advice hints grouping",
@@ -438,6 +439,20 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     /* Mount Rainier reWritable mode page [0x3] mmc4  */
     {"LBAS", MRW_MP, 0, PDT_MMC, 3, 0, 1, 0,
         "LBA space", NULL},
+
+    /* Flexible disk mode page [0x5] sbc (obsolete by sbc2r11) */
+    {"XRATE", FLEX_DISK_MP, 0, PDT_DISK, 2, 7, 16, 0,
+        "Transfer rate", NULL},
+    {"NUM_HD", FLEX_DISK_MP, 0, PDT_DISK, 4, 7, 8, 0,
+        "Number of heads", NULL},
+    {"SECT_TR", FLEX_DISK_MP, 0, PDT_DISK, 5, 7, 8, 0,
+        "Sectors per track", NULL},
+    {"BYTE_SECT", FLEX_DISK_MP, 0, PDT_DISK, 6, 7, 16, 0,
+        "Bytes per sector", NULL},
+    {"NUM_CYL", FLEX_DISK_MP, 0, PDT_DISK, 8, 7, 16, 0,
+        "Number of cylinders", NULL},
+    /* Surely the rest (starting with 'write precompensation') are no
+     * longer used. Some USB mass storage devices (flash) use this mpage. */
 
     /* Notch and partition mode page [0xc] sbc2 (obsolete in sbc2r14) */
     {"ND", NOTCH_MP, 0, PDT_DISK, 2, 7, 1, 0,
