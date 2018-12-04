@@ -19,6 +19,7 @@ extern "C" {
 #define DEF_INQ_RESP_LEN 252
 #define VPD_ATA_INFO_RESP_LEN 572
 #define VPD_XCOPY_RESP_LEN 572
+#define VPD_LARGE_RESP_LEN 1020
 
 #define MP_DESC_DNC (-1)        /* Do not care indicator */
 
@@ -29,6 +30,7 @@ extern "C" {
 #define FORMAT_MP 3
 #define MRW_MP 3
 #define RIGID_DISK_MP 4
+#define FLEX_DISK_MP 5
 #define WRITE_PARAM_MP 5
 #define RBC_DEV_PARAM_MP 6
 #define V_ERR_RECOVERY_MP 7
@@ -194,6 +196,7 @@ extern "C" {
 struct sdparm_opt_coll {
     bool dbd;
     bool dummy;
+    bool examine;
     bool flexible;
     bool inquiry;
     bool mode_6;        /* false (default) for Mode Sense or Select(10) */

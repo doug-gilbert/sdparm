@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20181129 [svn: r322]";
+static const char * version_str = "1.11 20181203 [svn: r323]";
 
 
 #define MAX_DEV_NAMES 256
@@ -109,6 +109,7 @@ static struct option long_options[] = {
     {"defaults", no_argument, 0, 'D'},
     {"dummy", no_argument, 0, 'd'},
     {"enumerate", no_argument, 0, 'e'},
+    {"examine", no_argument, 0, 'E'},
     {"flexible", no_argument, 0, 'f'},
     {"get", required_argument, 0, 'g'},
     {"help", no_argument, 0, 'h'},
@@ -140,17 +141,20 @@ static struct option long_options[] = {
 
 static const char * ms_s = "MODE SENSE";
 
+static int print_mode_pages(int sg_fd, int pn, int spn, int pdt,
+                            const struct sdparm_opt_coll * op);
+
 
 static void
 usage(int do_help)
 {
     if (do_help < 2) {
         pr2serr(
-            "Usage: sdparm [--all] [--dbd] [--flexible] [--get=STR] [--hex] "
-            "[--long]\n"
-            "              [--num-desc] [--out-mask=OM] [--page=PG[,SPG]] "
-            "[--quiet]\n"
-            "              [--readonly] [--six] [--transport=TN] "
+            "Usage: sdparm [--all] [--dbd] [--examine] [--flexible] "
+            "[--get=STR] [--hex]\n"
+            "              [--long] [--num-desc] [--out-mask=OM] "
+            "[--page=PG[,SPG]]\n"
+            "              [--quiet] [--readonly] [--six] [--transport=TN] "
             "[--vendor=VN]\n"
             "              [--verbose] DEVICE [DEVICE...]\n\n"
             "       sdparm [--clear=STR] [--defaults] [--dummy] "
@@ -166,12 +170,12 @@ usage(int do_help)
                 "       sdparm --command=CMD [--hex] [--long] [--readonly] "
                 "[--verbose]\n"
                 "              DEVICE [DEVICE...]\n\n"
-                "       sdparm --inquiry [--all] [--flexible] [--hex] "
-                "[--num-desc]\n"
-                "              [--page=PG[,SPG]] [--quiet] [--read‐only] "
-                "[--transport=TN]\n"
-                "              [--vendor=VN] [--verbose] DEVICE "
-                "[DEVICE...]\n\n"
+                "       sdparm --inquiry [--all] [--examine] [--flexible] "
+	        "[--hex]\n"
+                "              [--num-desc] [--page=PG[,SPG]] [--quiet] "
+	        "[--read‐only]\n"
+                "              [--transport=TN] [--vendor=VN] [--verbose]\n"
+	        "              DEVICE [DEVICE...]\n\n"
                 "       sdparm --enumerate [--all] [--inquiry] [--long] "
                 "[--page=PG[,SPG]]\n"
                 "              [--transport=TN] [--vendor=VN]\n\n"
@@ -181,8 +185,8 @@ usage(int do_help)
                 "[--vendor=VN]\n"
                 "              [--verbose]\n\n"
                 "Or the corresponding short option usage: \n"
-                "  sdparm [-a] [-B] [-f] [-g STR] [-H] [-l] [-n] [-o OM] "
-                "[-p PG[,SPG]]\n"
+                "  sdparm [-a] [-B] [-E] [-f] [-g STR] [-H] [-l] [-n] "
+                "[-o OM] [-p PG[,SPG]]\n"
                 "         [-q] [-r] [-6] [-t TN] [-M VN] [-v] DEVICE "
                 "[DEVICE...]\n"
                 "\n"
@@ -192,9 +196,9 @@ usage(int do_help)
                 "\n"
                 "  sdparm -c CMD [-H] [-l] [-r] [-v] DEVICE [DEVICE...]\n"
                 "\n"
-                "  sdparm -i [-a] [-f] [-H] [-n] [-p PG[,SPG]] [-q] "
-                "[-r] [-t TN] [-M VN]\n"
-                "         [-v] DEVICE [DEVICE...]\n"
+                "  sdparm -i [-a] [-E] [-f] [-H] [-n] [-p PG[,SPG]] [-q] "
+                "[-r] [-t TN]\n"
+	        "         [-M VN] [-v] DEVICE [DEVICE...]\n"
                 "\n"
                 "  sdparm -e [-a] [-i] [-l] [-p PG[,SPG]] [-t TN] [-M VN]\n"
                 "\n"
@@ -207,8 +211,8 @@ usage(int do_help)
         pr2serr(
             "  where mode page read (1st usage) and change (2nd usage) "
             "options are:\n"
-            "    --all | -a            list all known fields for given "
-            "DEVICE\n"
+            "    --all | -a            list all known pages and fields for "
+            "given DEVICE\n"
             "    --clear=STR | -c STR    clear (zero) field value(s), or "
             "set to 'val'\n"
             "    --dbd | -B            set DBD bit in mode sense cdb\n"
@@ -217,6 +221,10 @@ usage(int do_help)
             "                          when use twice set all pages to "
             "their defaults\n"
             "    --dummy | -d          don't write back modified mode page\n"
+            "    --examine | -E        cycle through mode or vpd page "
+            "numbers (default\n"
+            "                          with '-a': only check pages with "
+            "known fields)\n"
             "    --flexible | -f       compensate for common errors, "
             "relax some checks\n"
             "    --get=STR | -g STR    get (fetch) field value(s), by "
@@ -711,6 +719,56 @@ enumerate_mitems(int pn, int spn, int pdt,
     }
 }
 
+#define SDP_HIGHEST_MPAGE_NUM 0x3e
+#define SDP_HIGHEST_MSUBPAGE_NUM 0xfe
+
+static int
+examine_mode_page(int sg_fd, int pn, const struct sdparm_opt_coll * op,
+                  int req_pdt)
+{
+    bool first = true;
+    bool not_subpages = (pn < 0);
+    int k, n, epn, espn, res;
+
+    if (pn > SDP_HIGHEST_MPAGE_NUM) {
+        pr2serr("No mode page numbers higher than 0x%x are allowed\n",
+                SDP_HIGHEST_MPAGE_NUM);
+        return SG_LIB_SYNTAX_ERROR;
+    }
+    n = not_subpages ? SDP_HIGHEST_MPAGE_NUM : SDP_HIGHEST_MSUBPAGE_NUM;
+    for (k = 0, res = 0; k <= n; ++k) {
+        epn = not_subpages ? k : pn;
+        espn = not_subpages ? 0 : k;
+        if (first)
+            first = false;
+        else if (0 == res)
+            printf("\n");
+        res = print_mode_pages(sg_fd, epn, espn, req_pdt, op);
+    }
+    return 0;
+}
+
+#define SDP_MAX_T10_VPD_NUM 0xbf
+
+static int
+examine_vpd_page(int sg_fd, int pn, int spn,
+                 const struct sdparm_opt_coll * op, int req_pdt, bool protect)
+{
+    bool first = true;
+    int k, n, res;
+
+    n = (spn < 0) ? SDP_MAX_T10_VPD_NUM : spn;
+    for (k = (pn < 0) ? 0 : pn, res = 0; k <= n; ++k) {
+        if (first)
+            first = false;
+        else if (0 == res)
+            printf("\n");
+        res = sdp_process_vpd_page(sg_fd, k, 0, op, req_pdt, protect, NULL,
+                                   0, NULL, 0);
+    }
+    return 0;
+}
+
 static void
 list_mp_settings(const struct sdparm_mode_page_settings * mps, bool get)
 {
@@ -1130,6 +1188,25 @@ report_number_of_descriptors(uint8_t * cur_mp,
         printf("%d\n", num);
 }
 
+static int
+print_mode_page_hex(int sg_fd, int pn, int spn,
+                    const struct sdparm_opt_coll * op)
+{
+    int res, len, resid, vb;
+    uint8_t * mdpg = oth_aligned_mp;
+
+    vb = (op->verbose > 2) ? op->verbose - 2 : 0;
+    len = (op->mode_6) ? DEF_MODE_6_RESP_LEN : MAX_MODE_DATA_LEN;
+    res = ll_mode_sense(sg_fd, op, pn, spn, mdpg, len, &resid, vb);
+    if (res)
+        return res;
+    printf("Mode page [0x%x,0x%x] current values in hex:\n", pn, spn);
+    len -= resid;
+    if (len > 0)
+        hex2stdout(mdpg, len, ((op->do_long > 0) ? 0 : -1));
+    return res;
+}
+
 /* Print one or more mode pages. Returns 0 if ok else IO error number.  */
 static int
 print_mode_pages(int sg_fd, int pn, int spn, int pdt,
@@ -1169,6 +1246,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
     else
         first_mp = NULL;
     b[0] = '\0';
+    res = 0;
     verb = (op->verbose > 0) ? op->verbose - 1 : 0;
     if (((0 == pdt) && (op->do_long > 0) && (0 == op->do_quiet)) ||
         for_in_hex) {
@@ -1209,6 +1287,8 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
         if (NULL == mpi->acron) {       /* page has no known fields */
             if (op->do_hex)
                 mpi = last_mpi;    /* trick to enter main loop once */
+            else if (op->examine)
+                return print_mode_page_hex(sg_fd, pn, spn, op);
             else {
                 sdp_get_mpt_with_str(pn, spn, pdt, op->transport,
                                      op->vendor_id, 0, false, sizeof(b), b);
@@ -1352,7 +1432,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                     }
                 }
             } else {    /* asked for current values and didn't get them */
-                if (op->verbose || single_pg) {
+                if (op->verbose || (single_pg && (! op->examine))) {
                     pr2serr(">> %s mode %spage ", b, (spn ? "sub" : ""));
                     if (op->verbose) {
                         if (spn)
@@ -1400,13 +1480,13 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
             print_mitem_pc_arr("  ", smask, mpi, pc_arr, false, op);
         }
     }   /* end of mode page item loop */
-    if (mpi && (NULL == mpi->acron) && fdesc_mpi) {
+    if ((0 == res) && mpi && (NULL == mpi->acron) && fdesc_mpi) {
         --mpi;
         if ((pn == mpi->pg_num) && (spn == mpi->subpg_num))
             print_mitem_desc_after1(pc_arr, pg_len, mpp, fdesc_mpi, mpi,
                                     op, smask, desc_len);
     }
-    return 0;
+    return res;
 }
 
 /* Print a mode page provided as argument. Returns 0 if ok else error
@@ -2571,9 +2651,9 @@ err_out:
 
 /* Process mode page(s) operation. Returns 0 if successful */
 static int
-process_mode(int sg_fd, const struct sdparm_mode_page_settings * mps, int pn,
-             int spn, bool set_clear, bool get,
-             const struct sdparm_opt_coll * op, int pdt)
+process_mode_page(int sg_fd, const struct sdparm_mode_page_settings * mps,
+                  int pn, int spn, bool set_clear, bool get,
+                  const struct sdparm_opt_coll * op, int pdt)
 {
     int res;
     const struct sdparm_mode_page_t * mpp;
@@ -2671,10 +2751,11 @@ main(int argc, char * argv[])
         int option_index = 0;
 
 #ifdef SG_LIB_WIN32
-        c = getopt_long(argc, argv, "6aBc:C:dDefg:hHiI:lM:no:p:P:qrRs:St:vVw",
+        c = getopt_long(argc, argv,
+                       "6aBc:C:dDEefg:hHiI:lM:no:p:P:qrRs:St:vVw",
                         long_options, &option_index);
 #else
-        c = getopt_long(argc, argv, "6aBc:C:dDefg:hHiI:lM:no:p:P:qrRs:St:vV",
+        c = getopt_long(argc, argv, "6aBc:C:dDeEfg:hHiI:lM:no:p:P:qrRs:St:vV",
                         long_options, &option_index);
 #endif
         if (c == -1)
@@ -2707,6 +2788,9 @@ main(int argc, char * argv[])
             break;
         case 'e':
             ++op->do_enum;
+            break;
+        case 'E':
+            op->examine = true;
             break;
         case 'f':
             op->flexible = true;
@@ -3004,7 +3088,7 @@ main(int argc, char * argv[])
             return 0;
         }
     } else if (cmd_str) {
-        if (set_clear || get_str || op->defaults || op->save) {
+        if (set_clear || get_str || op->defaults || op->save || op->examine) {
             pr2serr("'--command=' option is not valid with other "
                     "options that are\nconcerned with mode pages\n");
             return SG_LIB_CONTRADICT;
@@ -3241,15 +3325,24 @@ main(int argc, char * argv[])
             continue;
         }
 
-        if (op->inquiry)
-            r = sdp_process_vpd_page(sg_fd, pn, ((spn < 0) ? 0: spn), op,
-                                     req_pdt, protect, NULL, 0, NULL, 0);
-        else {
+        if (op->inquiry) {
+            if (op->examine)
+                r = examine_vpd_page(sg_fd, pn, spn, op, req_pdt, protect);
+            else
+                r = sdp_process_vpd_page(sg_fd, pn, ((spn < 0) ? 0: spn), op,
+                                         req_pdt, protect, NULL, 0, NULL, 0);
+        } else {
             if (cmd_str && scmdp)   /* process command */
                 r = sdp_process_cmd(sg_fd, scmdp, cmd_arg, pdt, op);
-            else                    /* mode page */
-                r = process_mode(sg_fd, &mp_settings, pn, spn, set_clear,
-                                 (NULL != get_str), op, pdt);
+            else {                  /* mode page */
+                if (op->examine)
+                    r = examine_mode_page(sg_fd, pn, op, req_pdt);
+
+                else
+                    r = process_mode_page(sg_fd, &mp_settings, pn, spn,
+                                          set_clear, (NULL != get_str), op,
+                                          pdt);
+            }
         }
 
         res = sg_cmds_close_device(sg_fd);
