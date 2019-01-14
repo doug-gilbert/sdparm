@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.11 [20181203] [svn: r323]
+ChangeLog for sdparm-1.11 [20190114] [svn: r324]
   - add --out_mask=OM option for mode page control
     bitmask (current, changeable, default and/or saveable)
   - add --examine option to iterate over mode+vpd pages
@@ -16,7 +16,8 @@ ChangeLog for sdparm-1.11 [20181203] [svn: r323]
     - --all option used twice lists all VPD pages
     - decode SCSI Feature sets page (spc5r16)
     - extended inquiry data, sync with spc5r09 + sbc4r11
-    - 3 party copy page improvements
+    - 3 party copy page improvements including
+      Copy group identifier
     - block limits and block limit extension VPD pages:
       add extra info about corner cases
     - add maximum inquiry|mode_page change logs fields
@@ -27,7 +28,7 @@ ChangeLog for sdparm-1.11 [20181203] [svn: r323]
   - --wscan option: expand bus type to include NVMe
   - mode page output with -HHH suitable for --inhex=
   - add flexible geometery page (obsolete) sbc2r00
-  - point svn:externals to rev 792 of sg3_utils
+  - point svn:externals to rev 806 of sg3_utils
   - convert many two valued 'int's to bool
   - shellcheck corrections on scripts
   - upgrade automake to version 1.15 (U16.04)
