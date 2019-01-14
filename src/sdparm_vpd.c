@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2018, Douglas Gilbert
+ * Copyright (c) 2005-2019, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -616,17 +616,18 @@ static void
 decode_3party_copy_vpd(uint8_t * buff, int len, int do_hex, int pdt,
                        int verbose)
 {
-    int j, k, m, bump, desc_type, desc_len, sa_len;
+    int j, k, m, bump, desc_type, desc_len, sa_len, blen;
     unsigned int u;
     const uint8_t * bp;
     const char * cp;
     uint64_t ull;
-    char b[80];
+    char b[120];
 
     if (len < 4) {
         pr2serr("Third-party Copy VPD page length too short=%d\n", len);
         return;
     }
+    blen = sizeof(b);
     len -= 4;
     bp = buff + 4;
     for (k = 0; k < len; k += bump, bp += bump) {
@@ -699,11 +700,11 @@ decode_3party_copy_vpd(uint8_t * buff, int len, int do_hex, int pdt,
                     sa_len = bp[6 + j];
                     for (m = 0; (m < sa_len) && ((j + m) < csll); ++m) {
                         sg_get_opcode_sa_name(bp[5 + j], bp[7 + j + m],
-                                              pdt, sizeof(b), b);
+                                              pdt, blen, b);
                         printf("  %s\n", b);
                     }
                     if (0 == sa_len) {
-                        sg_get_opcode_name(bp[5 + j], pdt, sizeof(b), b);
+                        sg_get_opcode_name(bp[5 + j], pdt, blen, b);
                         printf("  %s\n",  b);
                     } else if (m < sa_len)
                         pr2serr("Supported service actions list length (%d) "
@@ -742,6 +743,13 @@ decode_3party_copy_vpd(uint8_t * buff, int len, int do_hex, int pdt,
                     else
                         printf("  0x%04x\n", u);
                 }
+                break;
+            case 0x000D:
+                printf(" Copy group identifier:\n");
+                u = bp[4];
+                sg_t10_uuid_desig2str(bp + 5, u, 1 /* c_set */, false,
+                                      false, NULL, blen, b);
+                printf("%s", b);
                 break;
             case 0x0106:
                 printf(" ROD token features:\n");
@@ -1063,7 +1071,7 @@ decode_ext_inq_vpd(uint8_t * b, int len, int do_long, bool protect)
         printf("  POA_SUP=%d\n", !!(b[12] & 0x80));     /* spc4r32 */
         printf("  HRA_SUP=%d\n", !!(b[12] & 0x40));     /* spc4r32 */
         printf("  VSA_SUP=%d\n", !!(b[12] & 0x20));     /* spc4r32 */
-        printf("  DMS_VALID=%d\n", !!(b[12] & 0x10));   /* 17-142r5 */
+        printf("  DMS_VALID=%d\n", !!(b[12] & 0x10));   /* spc5r20 */
         printf("  Maximum supported sense data length=%d\n",
                b[13]); /* spc4r34 */
         printf("  IBS=%d\n", !!(b[14] & 0x80));     /* spc5r09 */
@@ -1075,13 +1083,13 @@ decode_ext_inq_vpd(uint8_t * b, int len, int do_long, bool protect)
                sg_get_unaligned_be16(b + 15));      /* spc5r17 */
         printf("  Maximum mode page change logs=%u\n",
                sg_get_unaligned_be16(b + 17));      /* spc5r17 */
-        printf("  DM_MD_4=%d\n", !!(b[19] & 0x80)); /* 17-142r5 */
-        printf("  DM_MD_5=%d\n", !!(b[19] & 0x40)); /* 17-142r5 */
-        printf("  DM_MD_6=%d\n", !!(b[19] & 0x20)); /* 17-142r5 */
-        printf("  DM_MD_7=%d\n", !!(b[19] & 0x10)); /* 17-142r5 */
-        printf("  DM_MD_D=%d\n", !!(b[19] & 0x8));  /* 17-142r5 */
-        printf("  DM_MD_E=%d\n", !!(b[19] & 0x4));  /* 17-142r5 */
-        printf("  DM_MD_F=%d\n", !!(b[19] & 0x2));  /* 17-142r5 */
+        printf("  DM_MD_4=%d\n", !!(b[19] & 0x80)); /* spc5r20 */
+        printf("  DM_MD_5=%d\n", !!(b[19] & 0x40)); /* spc5r20 */
+        printf("  DM_MD_6=%d\n", !!(b[19] & 0x20)); /* spc5r20 */
+        printf("  DM_MD_7=%d\n", !!(b[19] & 0x10)); /* spc5r20 */
+        printf("  DM_MD_D=%d\n", !!(b[19] & 0x8));  /* spc5r20 */
+        printf("  DM_MD_E=%d\n", !!(b[19] & 0x4));  /* spc5r20 */
+        printf("  DM_MD_F=%d\n", !!(b[19] & 0x2));  /* spc5r20 */
     } else {
         printf("  ACTIVATE_MICROCODE=%d SPT=%d GRD_CHK=%d APP_CHK=%d "
                "REF_CHK=%d\n", ((b[4] >> 6) & 0x3), ((b[4] >> 3) & 0x7),
@@ -1105,7 +1113,7 @@ decode_ext_inq_vpd(uint8_t * b, int len, int do_long, bool protect)
                sg_get_unaligned_be16(b + 10));
         printf("  POA_SUP=%d HRA_SUP=%d VSA_SUP=%d DMS_VALID=%d\n",
                !!(b[12] & 0x80), !!(b[12] & 0x40), !!(b[12] & 0x20),
-               !!(b[12] & 0x10));                   /* spc4r32 + 17-142r5 */
+               !!(b[12] & 0x10));                   /* spc5r20 */
         printf("  Maximum supported sense data length=%d\n",
                b[13]); /* spc4r34 */
         printf("  IBS=%d IAS=%d SAC=%d NRD1=%d NRD0=%d\n", !!(b[14] & 0x80),
@@ -1117,7 +1125,7 @@ decode_ext_inq_vpd(uint8_t * b, int len, int do_long, bool protect)
                sg_get_unaligned_be16(b + 17));     /* spc5r17 */
         printf("  DM_MD_4=%d DM_MD_5=%d DM_MD_6=%d DM_MD_7=%d\n",
                !!(b[19] & 0x80), !!(b[19] & 0x40), !!(b[19] & 0x20),
-               !!(b[19] & 0x10));                     /* 17-142r5 */
+               !!(b[19] & 0x10));                     /* spc5r20 */
         printf("  DM_MD_D=%d DM_MD_E=%d DM_MD_F=%d\n",
                !!(b[19] & 0x8), !!(b[19] & 0x4), !!(b[19] & 0x2));
     }
