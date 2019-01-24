@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20190118 [svn: r325]";
+static const char * version_str = "1.11 20190119 [svn: r326]";
 
 
 #define MAX_DEV_NAMES 256
@@ -171,11 +171,11 @@ usage(int do_help)
                 "[--verbose]\n"
                 "              DEVICE [DEVICE...]\n\n"
                 "       sdparm --inquiry [--all] [--examine] [--flexible] "
-	        "[--hex]\n"
+                "[--hex]\n"
                 "              [--num-desc] [--page=PG[,SPG]] [--quiet] "
-	        "[--read‐only]\n"
+                "[--read‐only]\n"
                 "              [--transport=TN] [--vendor=VN] [--verbose]\n"
-	        "              DEVICE [DEVICE...]\n\n"
+                "              DEVICE [DEVICE...]\n\n"
                 "       sdparm --enumerate [--all] [--inquiry] [--long] "
                 "[--page=PG[,SPG]]\n"
                 "              [--transport=TN] [--vendor=VN]\n\n"
@@ -198,7 +198,7 @@ usage(int do_help)
                 "\n"
                 "  sdparm -i [-a] [-E] [-f] [-H] [-n] [-p PG[,SPG]] [-q] "
                 "[-r] [-t TN]\n"
-	        "         [-M VN] [-v] DEVICE [DEVICE...]\n"
+                "         [-M VN] [-v] DEVICE [DEVICE...]\n"
                 "\n"
                 "  sdparm -e [-a] [-i] [-l] [-p PG[,SPG]] [-t TN] [-M VN]\n"
                 "\n"
@@ -929,6 +929,7 @@ static int
 report_error(int res, bool mode6)
 {
     const char * cdbLenS = mode6 ? "6" : "10";
+    char b[96];
 
     switch (res) {
     case SG_LIB_CAT_INVALID_OP:
@@ -945,8 +946,11 @@ report_error(int res, bool mode6)
     case SG_LIB_CAT_ABORTED_COMMAND:
         pr2serr("%s(%s), aborted command\n", ms_s, cdbLenS);
         break;
+    case 0:
+        break;
     default:
-        pr2serr("%s(%s), res=%d\n", ms_s, cdbLenS, res);
+        if (sg_exit2str(res, false, sizeof(b), b))
+            pr2serr("%s(%s): %s\n", ms_s, cdbLenS, b);
         break;
     }
     return res;
