@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20190119 [svn: r326]";
+static const char * version_str = "1.11 20190124 [svn: r327]";
 
 
 #define MAX_DEV_NAMES 256
@@ -1058,13 +1058,12 @@ print_mitem_desc_after1(void ** pc_arr, int rep_len,
             return;
         }
         len = desc_len1;
-    } else if ((mdp->num_descs_inc < 0) && (mdp->desc_len > 0))
-        len = mdp->desc_len;
-    else /* if (mdp->num_descs_bytes > 0) */ {
+    } else if (mdp->desc_len <= 0) {
         bp = cur_mp + mdp->first_desc_off + mdp->desc_len_off;
         u = sg_get_big_endian(bp, 7, mdp->desc_len_bytes * 8);
         len = mdp->desc_len_off + mdp->desc_len_bytes + u;
-    }
+    } else
+        len = mdp->desc_len;
     d_off = mdp->first_desc_off + len;
     for (k = 1; k < num; ++k, d_off += len) {
         if (op->verbose > 3)
