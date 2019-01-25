@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.11 [20190124] [svn: r326]
+ChangeLog for sdparm-1.11 [20190124] [svn: r327]
   - add --out_mask=OM option for mode page control
     bitmask (current, changeable, default and/or saveable)
   - add --examine option to iterate over mode+vpd pages
