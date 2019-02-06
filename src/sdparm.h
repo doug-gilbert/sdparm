@@ -164,6 +164,7 @@ extern "C" {
 #define MF_CLASH_OK 0x4 /* know this overlaps safely with generic */
 #define MF_TWOS_COMP 0x8   /* integer is two's complement */
 #define MF_ALL_1S 0x10     /* even with MF_HEX output all ones as -1 */
+#define MF_SAVE_PGS 0x20   /* advise/require --save option */
 #define MF_DESC_ID_B0 0x100      /* mpage descriptor ID, bit 0 */
 #define MF_DESC_ID_B1 0x200
 #define MF_DESC_ID_B2 0x400

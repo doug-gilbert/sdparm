@@ -2,13 +2,13 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.11 [20190124] [svn: r327]
+ChangeLog for sdparm-1.11 [20190206] [svn: r328]
   - add --out_mask=OM option for mode page control
     bitmask (current, changeable, default and/or saveable)
   - add --examine option to iterate over mode+vpd pages
   - add Out of band management control mpage (spl5r01)
   - expand SAS configure port mode page [0x19,0x2] with
-    configure port mode fields (18-117r3)
+    configure port mode fields (spl5r07)
   - accept additional tansport acronyms (e.g. ib for srp)
   - power condition mpage: rename fields IDLE->IDLE_A;
     STANDBY->STANDBY_Z; ICT->IACT and SCT->SZCT
@@ -30,7 +30,7 @@ ChangeLog for sdparm-1.11 [20190124] [svn: r327]
   - --wscan option: expand bus type to include NVMe
   - mode page output with -HHH suitable for --inhex=
   - add flexible geometery page (obsolete) sbc2r00
-  - point svn:externals to rev 808 of sg3_utils
+  - point svn:externals to rev 810 of sg3_utils
   - convert many two valued 'int's to bool
   - shellcheck corrections on scripts
   - upgrade automake to version 1.15 (U16.04)
