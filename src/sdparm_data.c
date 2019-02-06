@@ -1761,7 +1761,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Power grant timeout(sec)", NULL},
     {"4PHYS", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 10, 2, 1, 0,
         "4 phy wide port(s) when set", "If more than 4 phys, group adjacent "
-        "(by phy id) phys"},     /* 18-0117r3 */
+        "(by phy id) phys"},     /* spl5r07 */
     {"2PHYS", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 10, 1, 1, 0,
         "2 phy wide port(s) when set", "If more than 2 phys, group adjacent "
         "(by phy id) phys"},
@@ -1770,7 +1770,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "address"},
     {"PMCDT", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 11, 7, 8, 0,
         "port mode change delay time (unit: seconds)", "Minimum time device "
-        "remains offline after change"},    /* end of 18-0117r3 addition */
+        "remains offline after change"},    /* end of spl5r07 addition */
 
     /* SAS-2 Enhanced phy mode page [0x19,0x3] sas/spl */
     {"PPID_3", PROT_SPEC_PORT_MP, MSP_SAS_E_PHY, -1, 5, 3, 4, 0,
