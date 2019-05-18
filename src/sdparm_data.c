@@ -111,6 +111,10 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
         &spc_cdl_desc},
     {CONTROL_MP, MSP_SPC_CDLB, -1, 0, "cdlb", "Command duration limit B",
         &spc_cdl_desc},
+    {CONTROL_MP, MSP_SPC_CDT2A, -1, 0, "cdt2a", "Command duration limit T2A",
+        NULL /* spc6r? */ },
+    {CONTROL_MP, MSP_SPC_CDT2B, -1, 0, "cdt2b", "Command duration limit T2B",
+        NULL /* spc6r? */ },
     {MMCMS_MP, 0, PDT_MMC, 1, "cms", "CD/DVD (MM) capabilities and "
         "mechanical status (MMC)", NULL},        /* read only */
     {CONTROL_MP, 0, -1, 0, "co", "Control", NULL},
@@ -1761,7 +1765,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Power grant timeout(sec)", NULL},
     {"4PHYS", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 10, 2, 1, 0,
         "4 phy wide port(s) when set", "If more than 4 phys, group adjacent "
-        "(by phy id) phys"},     /* spl5r07 */
+        "(by phy id) phys"},     /* start of spl5r07 addition */
     {"2PHYS", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 10, 1, 1, 0,
         "2 phy wide port(s) when set", "If more than 2 phys, group adjacent "
         "(by phy id) phys"},
