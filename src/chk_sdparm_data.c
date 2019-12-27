@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2018, Douglas Gilbert
+ * Copyright (c) 2005-2019, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,7 +24,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /* Version 1.13 20180219  */
+ /* Version 1.14 20191217  */
 
 #include <stdlib.h>
 #include <stdio.h>

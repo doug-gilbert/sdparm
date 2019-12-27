@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.11 20190704 [svn: r331]";
+static const char * version_str = "1.11 20191227 [svn: r332]";
 
 
 #define MAX_DEV_NAMES 256
