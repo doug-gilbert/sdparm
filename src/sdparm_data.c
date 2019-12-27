@@ -204,7 +204,7 @@ struct sdparm_val_desc_t sdparm_add_transport_acron[] = {
     {-1, NULL},
 };
 
-static struct sdparm_mode_page_t sdparm_fcp_mode_pg[] = {    /* FCP-3 */
+static struct sdparm_mode_page_t sdparm_fcp_mode_pg[] = {    /* FCP-3,5 */
     {DISCONNECT_MP, 0, -1, 0, "dr", "Disconnect-reconnect (FCP)", NULL},
     {PROT_SPEC_LU_MP, 0, -1, 0, "luc", "lu: control (FCP)", NULL},
     {PROT_SPEC_PORT_MP, 0, -1, 0, "pc", "port: control (FCP)", NULL},
@@ -920,6 +920,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Permanent write protection", NULL},
 
     /* Device configuration extension mode subpage: dce [0x10,1 ] ssc3 */
+    {"PE_UN", DEV_CONF_MP, MSP_DEV_CONF_EXT, PDT_TAPE, 4, 7, 4, 0,
+        "PEWS units", "Units: 0: MB, 1: GB, 2: TB"},
     {"TARPF", DEV_CONF_MP, MSP_DEV_CONF_EXT, PDT_TAPE, 4, 3, 1, 0,
         "TapeAlert respect parameter fields", NULL},
     {"TASER", DEV_CONF_MP, MSP_DEV_CONF_EXT, PDT_TAPE, 4, 2, 1, 0,
@@ -935,7 +937,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Short erase mode",
         "0: as per SSC-2; 1: erase has no effect; 2: record EOD indication"},
     {"PEWS", DEV_CONF_MP, MSP_DEV_CONF_EXT, PDT_TAPE, 6, 7, 16, 0,
-        "Programmable early warning size [MB]", NULL},
+        "Programmable early warning size",
+        "size units depend on PE_UN field; 0: MB, 1: GB, 2: TB"},
     {"VCELBRE", DEV_CONF_MP, MSP_DEV_CONF_EXT, PDT_TAPE, 8, 0, 1, 0,
         "Volume containing encrypted logical blocks requires encryption",
         NULL},
@@ -1403,58 +1406,60 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
 /* << Transport protocol specific mode page items follow >> */
 
 static struct sdparm_mode_page_item sdparm_mitem_fcp_arr[] = {
-    /* disconnect-reconnect mode page [0x2] fcp3 */
-    {"BFR", DISCONNECT_MP, 0, -1, 2, 7, 8, 0,
+    /* disconnect-reconnect mode page [0x2] fcp3-5 */
+    {"BFR", DISCONNECT_MP, 0, -1, 2, 7, 8, 0,   /* obs fcp-5 */
         "Buffer full ratio", NULL},
-    {"BER", DISCONNECT_MP, 0, -1, 3, 7, 8, 0,
+    {"BER", DISCONNECT_MP, 0, -1, 3, 7, 8, 0,   /* obs fcp-5 */
         "Buffer empty ratio", NULL},
-    {"BIL", DISCONNECT_MP, 0, -1, 4, 7, 16, MF_COMMON,
+    {"BIL", DISCONNECT_MP, 0, -1, 4, 7, 16, MF_COMMON,  /* obs fcp-5 */
         "Bus inactivity limit (transmission words)", NULL},
-    {"DTL", DISCONNECT_MP, 0, -1, 6, 7, 16, MF_COMMON,
+    {"DTL", DISCONNECT_MP, 0, -1, 6, 7, 16, MF_COMMON,  /* obs fcp-5 */
         "Disconnect time limit (128 transmission words)", NULL},
-    {"CTL", DISCONNECT_MP, 0, -1, 8, 7, 16, MF_COMMON,
+    {"CTL", DISCONNECT_MP, 0, -1, 8, 7, 16, MF_COMMON,  /* obs fcp-5 */
         "Connect time limit (128 transmission words)", NULL},
     {"MBS", DISCONNECT_MP, 0, -1, 10, 7, 16, MF_COMMON | MF_CLASH_OK,
         "Maximum burst size (512 bytes)", NULL},
     {"EMDP", DISCONNECT_MP, 0, -1, 12, 7, 1, MF_CLASH_OK,
         "Enable modify data pointers", NULL},
-    {"FAA", DISCONNECT_MP, 0, -1, 12, 6, 1, 0,
+    {"FAA", DISCONNECT_MP, 0, -1, 12, 6, 1, 0,  /* obs fcp-5 */
         "Fairness access A [FCP_DATA]", NULL},
-    {"FAB", DISCONNECT_MP, 0, -1, 12, 5, 1, 0,
+    {"FAB", DISCONNECT_MP, 0, -1, 12, 5, 1, 0,  /* obs fcp-5 */
         "Fairness access B [FCP_XFER]", NULL},
-    {"FAC", DISCONNECT_MP, 0, -1, 12, 4, 1, 0,
+    {"FAC", DISCONNECT_MP, 0, -1, 12, 4, 1, 0,  /* obs fcp-5 */
         "Fairness access C [FCP_RSP]", NULL},
     {"FBS", DISCONNECT_MP, 0, -1, 14, 7, 16, MF_CLASH_OK,
-        "First burst size (512 bytes)", NULL},
+        "First burst size (512 bytes)", "0: no limit"},
 
-    /* protocol specific logical unit mode page [0x18] fcp3 */
+    /* protocol specific logical unit mode page [0x18] fcp3-5 */
     {"LUPID", PROT_SPEC_LU_MP, 0, -1, 2, 3, 4, MF_COMMON | MF_CLASH_OK,
         "Logical unit's (transport) protocol identifier",
         PROTO_IDENT_STR },
     {"EPDC", PROT_SPEC_LU_MP, 0, -1, 3, 0, 1, MF_COMMON,
         "Enable precise delivery checking", NULL},
 
-    /* protocol specific port control page [0x19] fcp3 */
+    /* protocol specific port control page [0x19] fcp3-5 */
     {"PPID", PROT_SPEC_PORT_MP, 0, -1, 2, 3, 4, MF_COMMON | MF_CLASH_OK,
         "Port's (transport) protocol identifier",
         PROTO_IDENT_STR },
-    {"DTFD", PROT_SPEC_PORT_MP, 0, -1, 3, 7, 1, MF_COMMON,
+    {"DTFD", PROT_SPEC_PORT_MP, 0, -1, 3, 7, 1, MF_COMMON,  /* obs fcp-5 */
         "Disable target fabric discovery", NULL},
-    {"PLPB", PROT_SPEC_PORT_MP, 0, -1, 3, 6, 1, MF_COMMON,
+    {"PLPB", PROT_SPEC_PORT_MP, 0, -1, 3, 6, 1, MF_COMMON,  /* obs fcp-5 */
         "Prevent loop port bypass", NULL},
-    {"DDIS", PROT_SPEC_PORT_MP, 0, -1, 3, 5, 1, 0,
+    {"DDIS", PROT_SPEC_PORT_MP, 0, -1, 3, 5, 1, 0,      /* obs fcp-5 */
         "Disable discovery", NULL},
-    {"DLM", PROT_SPEC_PORT_MP, 0, -1, 3, 4, 1, 0,
+    {"DLM", PROT_SPEC_PORT_MP, 0, -1, 3, 4, 1, 0,       /* obs fcp-5 */
         "Disable loop master", NULL},
-    {"RHA", PROT_SPEC_PORT_MP, 0, -1, 3, 3, 1, 0,
+    {"RHA", PROT_SPEC_PORT_MP, 0, -1, 3, 3, 1, 0,       /* obs fcp-5 */
         "Require hard address", NULL},
-    {"ALWI", PROT_SPEC_PORT_MP, 0, -1, 3, 2, 1, 0,
+    {"ALWI", PROT_SPEC_PORT_MP, 0, -1, 3, 2, 1, 0,      /* obs fcp-5 */
         "Allow login without loop initialization", NULL},
-    {"DTIPE", PROT_SPEC_PORT_MP, 0, -1, 3, 1, 1, 0,
+    {"DTIPE", PROT_SPEC_PORT_MP, 0, -1, 3, 1, 1, 0,     /* obs fcp-5 */
         "Disable target initialized port enable", NULL},
-    {"DTOLI", PROT_SPEC_PORT_MP, 0, -1, 3, 0, 1, 0,
+    {"DTOLI", PROT_SPEC_PORT_MP, 0, -1, 3, 0, 1, 0,     /* obs fcp-5 */
         "Disable target originated loop initialization", NULL},
-    {"RRTVU", PROT_SPEC_PORT_MP, 0, -1, 6, 2, 3, 0,
+    {"RRTVU", PROT_SPEC_PORT_MP, 0, -1, 6, 2, 3, MF_CLASH_OK,
+        "Resource recovery timeout value unit", NULL},
+    {"RR_TOV", PROT_SPEC_PORT_MP, 0, -1, 6, 2, 3, MF_CLASH_OK,
         "Resource recovery timeout value unit", NULL},
     {"SIRRTV", PROT_SPEC_PORT_MP, 0, -1, 7, 7, 8, 0,
         "Sequence initiative resource recovery timeout value", NULL},
