@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2018, Douglas Gilbert
+ * Copyright (c) 2005-2020, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -126,7 +126,7 @@ sdp_get_mpage_t(int page_num, int subpage_num, int pdt, int transp_proto,
 
     for ( ; mpp->acron; ++mpp) {
         if ((page_num == mpp->page) && (subpage_num == mpp->subpage)) {
-            if ((pdt < 0) || (mpp->pdt < 0) || (mpp->pdt == pdt))
+            if ((pdt < 0) || (mpp->pdt_s < 0) || pdt_s_eq(mpp->pdt_s, pdt))
                 return mpp;
         }
     }
@@ -220,7 +220,7 @@ sdp_get_vpd_detail(int page_num, int subvalue, int pdt)
     for (vpp = sdparm_vpd_pg; vpp->acron; ++vpp) {
         if ((page_num == vpp->vpd_num) &&
             (sv || (subvalue == vpp->subvalue)) &&
-            (ty || (pdt == vpp->pdt)))
+            (ty || (pdt == vpp->pdt_s)))
             return vpp;
     }
     if (! ty)

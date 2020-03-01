@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2019, Douglas Gilbert
+ * Copyright (c) 2005-2020, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -100,13 +100,13 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
     {ADC_MP, MSP_ADC_TD_SN, PDT_ADC, 0, "adts",
         "Target device serial number (ADC)", NULL},
     {POWER_MP, MSP_SAT_POWER, -1, 0, "apo", "SAT ATA Power condition", NULL},
-    {CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 0, "atag", "Application tag "
+    {CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK_ZBC, 0, "atag", "Application tag "
         "(SBC)", &sbc_atag_desc},
-    {IEC_MP, MSP_BACK_CTL, PDT_DISK, 0, "bc", "Background control (SBC)",
+    {IEC_MP, MSP_BACK_CTL, PDT_DISK_ZBC, 0, "bc", "Background control (SBC)",
         NULL},
     {CONTROL_MP, MSP_SBC_BACK_OP, PDT_DISK, 0, "bop",
         "Background operation control (SBC)", NULL},
-    {CACHING_MP, 0, PDT_DISK, 0, "ca", "Caching (SBC)", NULL},
+    {CACHING_MP, 0, PDT_DISK_ZBC, 0, "ca", "Caching (SBC)", NULL},
     {CONTROL_MP, MSP_SPC_CDLA, -1, 0, "cdla", "Command duration limit A",
         &spc_cdl_desc},
     {CONTROL_MP, MSP_SPC_CDLB, -1, 0, "cdlb", "Command duration limit B",
@@ -162,11 +162,13 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
     {TRANS_GEO_PAR_MP, 0, PDT_MCHANGER, 0, "tgp", "Transport geometry "
         "parameters (SMC)", &smc_tg_desc},
     {TIMEOUT_PROT_MP, 0, PDT_MMC, 0, "tp", "Timeout and protect (MMC)", NULL},
-    {V_ERR_RECOVERY_MP, 0, PDT_DISK, 0, "ve", "Verify error recovery (SBC)",
-        NULL},
+    {V_ERR_RECOVERY_MP, 0, PDT_DISK_ZBC, 0, "ve",
+        "Verify error recovery (SBC)", NULL},
     {WRITE_PARAM_MP, 0, PDT_MMC, 0, "wp", "Write parameters (MMC)", NULL},
     {XOR_MP, 0, PDT_DISK, 0, "xo", "XOR control (SBC)", NULL},
         /* XOR control mode page made obsolete in sbc3r32 */
+    {CONTROL_MP, MSP_ZB_D_CTL, PDT_DISK_ZBC, 0, "zbdct",
+	"Zoned block device control (ZBC)", NULL},
     {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
@@ -298,6 +300,7 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_DTDE_ADDRESS, 0, 1, "dtde",
      "Data transfer device element address (SSC)"},
     {VPD_EXT_INQ, 0, -1, "ei", "Extended inquiry data"},
+    {VPD_FORMAT_PRESETS, 0, 0, "fp", "Format presets"},
     {VPD_IMP_OP_DEF, 0, -1, "iod",
      "Implemented operating definition (obs)"},
     {VPD_LB_PROTECTION, 0, PDT_TAPE, "lbpro", "Logical block protection "
@@ -330,7 +333,7 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_SUPPORTED_VPDS, 0, -1, "sv", "Supported VPD pages"},
     {VPD_TA_SUPPORTED, 0, PDT_TAPE, "tas", "TapeAlert supported flags (SSC)"},
     {VPD_3PARTY_COPY, 0, -1, "tpc", "Third party copy (SPC + SBC)"},
-    {VPD_ZBC_DEV_CHARS, 0, -1, "zbdc", "Zoned block device characteristics "
+    {VPD_ZBC_DEV_CHARS, 0, -1, "zbdch", "Zoned block device characteristics "
      "(SBC + ZBC)"},
     {0, 0, 0, NULL, NULL},
 };
@@ -532,81 +535,81 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Lock disable", NULL},
 
     /* Verify error recovery mode page [0x7] sbc2 */
-    {"V_EER", V_ERR_RECOVERY_MP, 0, PDT_DISK, 2, 3, 1, 0,
+    {"V_EER", V_ERR_RECOVERY_MP, 0, PDT_DISK_ZBC, 2, 3, 1, 0,
         "Enable early recovery (obsolete) ", NULL}, /* in sbc4r02 */
-    {"V_PER", V_ERR_RECOVERY_MP, 0, PDT_DISK, 2, 2, 1, 0,
+    {"V_PER", V_ERR_RECOVERY_MP, 0, PDT_DISK_ZBC, 2, 2, 1, 0,
         "Post error", NULL},
-    {"V_DTE", V_ERR_RECOVERY_MP, 0, PDT_DISK, 2, 1, 1, 0,
+    {"V_DTE", V_ERR_RECOVERY_MP, 0, PDT_DISK_ZBC, 2, 1, 1, 0,
         "Data terminate on error", NULL},
-    {"V_DCR", V_ERR_RECOVERY_MP, 0, PDT_DISK, 2, 0, 1, 0,
+    {"V_DCR", V_ERR_RECOVERY_MP, 0, PDT_DISK_ZBC, 2, 0, 1, 0,
         "Disable correction (obsolete)", NULL},    /* in sbc4r02 */
-    {"V_RC", V_ERR_RECOVERY_MP, 0, PDT_DISK, 3, 7, 8, 0,
+    {"V_RC", V_ERR_RECOVERY_MP, 0, PDT_DISK_ZBC, 3, 7, 8, 0,
         "Verify retry count", NULL},
-    {"V_COR_S", V_ERR_RECOVERY_MP, 0, PDT_DISK, 4, 7, 8, 0,
+    {"V_COR_S", V_ERR_RECOVERY_MP, 0, PDT_DISK_ZBC, 4, 7, 8, 0,
         "Verify correction span (obsolete)", NULL},
-    {"V_RTL", V_ERR_RECOVERY_MP, 0, PDT_DISK, 10, 7, 16, 0,
+    {"V_RTL", V_ERR_RECOVERY_MP, 0, PDT_DISK_ZBC, 10, 7, 16, 0,
         "Verify recovery time limit (ms)", NULL},
 
     /* Caching mode page [0x8] sbc2 */
-    {"IC", CACHING_MP, 0, PDT_DISK, 2, 7, 1, 0,
+    {"IC", CACHING_MP, 0, PDT_DISK_ZBC, 2, 7, 1, 0,
         "Initiator control",
         "0: disk uses own adaptive caching algorithm\t"
         "1: disk caching algorithm controlled by NCS or CCS"},
-    {"ABPF", CACHING_MP, 0, PDT_DISK, 2, 6, 1, 0,
+    {"ABPF", CACHING_MP, 0, PDT_DISK_ZBC, 2, 6, 1, 0,
         "Abort pre-fetch", NULL},
-    {"CAP", CACHING_MP, 0, PDT_DISK, 2, 5, 1, 0,
+    {"CAP", CACHING_MP, 0, PDT_DISK_ZBC, 2, 5, 1, 0,
         "Caching analysis permitted", NULL},
-    {"DISC", CACHING_MP, 0, PDT_DISK, 2, 4, 1, 0,
+    {"DISC", CACHING_MP, 0, PDT_DISK_ZBC, 2, 4, 1, 0,
         "Discontinuity",
         "0: pre-fetch truncated or wrapped at time discontinuity\t"
         "1: pre-fetch continues across time discontinuity"},
-    {"SIZE", CACHING_MP, 0, PDT_DISK, 2, 3, 1, 0,
+    {"SIZE", CACHING_MP, 0, PDT_DISK_ZBC, 2, 3, 1, 0,
         "Size enable",
         "0: number of cache segments (NCS) controls cache segmentation\t"
         "1: the cache segment size (CCS) controls cache segmentation"},
-    {"WCE", CACHING_MP, 0, PDT_DISK, 2, 2, 1, MF_COMMON,
+    {"WCE", CACHING_MP, 0, PDT_DISK_ZBC, 2, 2, 1, MF_COMMON,
         "Write cache enable", NULL},
-    {"MF", CACHING_MP, 0, PDT_DISK, 2, 1, 1, 0,
+    {"MF", CACHING_MP, 0, PDT_DISK_ZBC, 2, 1, 1, 0,
         "Multiplication factor",
         "0: MIPF and MAPF specify blocks\t"
         "1: multiply MIPF and MAPF by blocks in read command"},
-    {"RCD", CACHING_MP, 0, PDT_DISK, 2, 0, 1, MF_COMMON,
+    {"RCD", CACHING_MP, 0, PDT_DISK_ZBC, 2, 0, 1, MF_COMMON,
         "Read cache disable", NULL},
-    {"DRRP", CACHING_MP, 0, PDT_DISK, 3, 7, 4, 0,
+    {"DRRP", CACHING_MP, 0, PDT_DISK_ZBC, 3, 7, 4, 0,
         "Demand read retention priority",
         "0: treat requested and other data equally\t"
         "1: replace requested data before other data\t"
         "15: replace other data before requested data"},
-    {"WRP", CACHING_MP, 0, PDT_DISK, 3, 3, 4, 0,
+    {"WRP", CACHING_MP, 0, PDT_DISK_ZBC, 3, 3, 4, 0,
         "Write retention priority",
         "0: treat requested and other data equally\t"
         "1: replace requested data before other data\t"
         "15: replace other data before requested data"},
-    {"DPTL", CACHING_MP, 0, PDT_DISK, 4, 7, 16, 0,
+    {"DPTL", CACHING_MP, 0, PDT_DISK_ZBC, 4, 7, 16, 0,
         "Disable pre-fetch transfer length", NULL},
-    {"MIPF", CACHING_MP, 0, PDT_DISK, 6, 7, 16, 0,
+    {"MIPF", CACHING_MP, 0, PDT_DISK_ZBC, 6, 7, 16, 0,
         "Minimum pre-fetch", NULL},
-    {"MAPF", CACHING_MP, 0, PDT_DISK, 8, 7, 16, 0,
+    {"MAPF", CACHING_MP, 0, PDT_DISK_ZBC, 8, 7, 16, 0,
         "Maximum pre-fetch", NULL},
-    {"MAPFC", CACHING_MP, 0, PDT_DISK, 10, 7, 16, 0,
+    {"MAPFC", CACHING_MP, 0, PDT_DISK_ZBC, 10, 7, 16, 0,
         "Maximum pre-fetch ceiling", NULL},
-    {"FSW", CACHING_MP, 0, PDT_DISK, 12, 7, 1, 0,
+    {"FSW", CACHING_MP, 0, PDT_DISK_ZBC, 12, 7, 1, 0,
         "Force sequential write", NULL},
-    {"LBCSS", CACHING_MP, 0, PDT_DISK, 12, 6, 1, 0,
+    {"LBCSS", CACHING_MP, 0, PDT_DISK_ZBC, 12, 6, 1, 0,
         "Logical block cache segment size",
         "0: CSS unit is bytes; 1: CSS unit is blocks"},
-    {"DRA", CACHING_MP, 0, PDT_DISK, 12, 5, 1, 0,
+    {"DRA", CACHING_MP, 0, PDT_DISK_ZBC, 12, 5, 1, 0,
         "Disable read ahead", NULL},
-    {"SYNC_PROG", CACHING_MP, 0, PDT_DISK, 12, 2, 2, 0, /* sbc3r33 */
+    {"SYNC_PROG", CACHING_MP, 0, PDT_DISK_ZBC, 12, 2, 2, 0, /* sbc3r33 */
         "Synchronous cache progress indication",
         "0: no pollable sense data during sync\t"
         "1: allow pollable sense data, allow all commands during sync\t"
         "2: allow pollable sense data, allow some commands during sync"},
-    {"NV_DIS", CACHING_MP, 0, PDT_DISK, 12, 0, 1, 0,
+    {"NV_DIS", CACHING_MP, 0, PDT_DISK_ZBC, 12, 0, 1, 0,
         "Non-volatile cache disable", NULL},
-    {"NCS", CACHING_MP, 0, PDT_DISK, 13, 7, 8, 0,
+    {"NCS", CACHING_MP, 0, PDT_DISK_ZBC, 13, 7, 8, 0,
         "Number of cache segments", NULL},
-    {"CSS", CACHING_MP, 0, PDT_DISK, 14, 7, 16, 0,
+    {"CSS", CACHING_MP, 0, PDT_DISK_ZBC, 14, 7, 16, 0,
         "Cache segment size", NULL},
 
     /* Control mode page [0xa] spc3 */
@@ -689,13 +692,13 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     /* Application tag mode subpage: atag [0xa,0x2] sbc3r25 */
     /* descriptor starts here, <start_byte> is relative to start of mode
      * page (i.e. 16 more than shown in t10's descriptor format table) */
-    {"AT_LAST", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 16, 7, 1, 0,
+    {"AT_LAST", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK_ZBC, 16, 7, 1, 0,
         "Last", NULL},
-    {"AT_LBAT", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 22, 7, 16, MF_HEX,
+    {"AT_LBAT", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK_ZBC, 22, 7, 16, MF_HEX,
         "Logical block application tag", NULL},
-    {"AT_LBA", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 24, 7, 64, MF_HEX,
+    {"AT_LBA", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK_ZBC, 24, 7, 64, MF_HEX,
         "Logical block address", "start LBA for this application tag"},
-    {"AT_COUNT", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK, 32, 7, 64,
+    {"AT_COUNT", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK_ZBC, 32, 7, 64,
      MF_HEX | MF_ALL_1S, "Logical block count", NULL},
 
     /* Command duration limit A mode subpage: cdla [0xa,0x3] spc5 */
@@ -767,6 +770,19 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "operations:\t"
         "0: suspended during IO\t"
         "1: continue during IO"},
+
+    /* Zoned Block device Control mode subpage: zbcc [0xa,0x9] zbc2r04a */
+    /* Probably only applies to host-managed ZBC (pdt=0x14) but set pdt=-1
+     * in these entries in case it could apply to host-aware (pdt=0x0) */
+    {"URSWRZ_M", CONTROL_MP, MSP_ZB_D_CTL, PDT_DISK_ZBC, 4, 0, 1, 0,
+        "Unrestricted read in sequential write required management",
+        "0: not configure to support reading unwritten blocks\t"
+        "1: configure to support reading unwritten blocks"},
+    {"U_UA_CTL", CONTROL_MP, MSP_ZB_D_CTL, PDT_DISK_ZBC, 5, 0, 1, 0,
+        "Unrestricted read in sequential write required zone unit "
+        "attention control",
+        "0: issue 'Mode parameters changed' UA when URSWRZ changed\t"
+        "1: issue 'Inquiry data has changed' UA when URSWRZ changed"},
 
     /* Control data protection mode subpage: cdp [0xa,0xf0] ssc4 */
     {"LBPM", CONTROL_MP, MSP_SSC_CDP, PDT_TAPE, 4, 7, 8, 0,
@@ -1077,21 +1093,21 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Report count (or Test flag number [SSC-3])", NULL},
 
     /* Background control mode subpage: bc [0x1c,0x1] sbc3 */
-    {"S_L_FULL", IEC_MP, MSP_BACK_CTL, PDT_DISK, 4, 2, 1, 0,
+    {"S_L_FULL", IEC_MP, MSP_BACK_CTL, PDT_DISK_ZBC, 4, 2, 1, 0,
         "Suspend on log full", NULL},
-    {"LOWIR", IEC_MP, MSP_BACK_CTL, PDT_DISK, 4, 1, 1, 0,
+    {"LOWIR", IEC_MP, MSP_BACK_CTL, PDT_DISK_ZBC, 4, 1, 1, 0,
         "Log only when intervention required", NULL},
-    {"EN_BMS", IEC_MP, MSP_BACK_CTL, PDT_DISK, 4, 0, 1, 0,
+    {"EN_BMS", IEC_MP, MSP_BACK_CTL, PDT_DISK_ZBC, 4, 0, 1, 0,
         "Enable background medium scan", NULL},
-    {"EN_PS", IEC_MP, MSP_BACK_CTL, PDT_DISK, 5, 0, 1, 0,
+    {"EN_PS", IEC_MP, MSP_BACK_CTL, PDT_DISK_ZBC, 5, 0, 1, 0,
         "Enable pre-scan", NULL},
-    {"BMS_I", IEC_MP, MSP_BACK_CTL, PDT_DISK, 6, 7, 16, 0,
+    {"BMS_I", IEC_MP, MSP_BACK_CTL, PDT_DISK_ZBC, 6, 7, 16, 0,
         "Background medium scan interval time (hour)", NULL},
-    {"BPS_TL", IEC_MP, MSP_BACK_CTL, PDT_DISK, 8, 7, 16, 0,
+    {"BPS_TL", IEC_MP, MSP_BACK_CTL, PDT_DISK_ZBC, 8, 7, 16, 0,
         "Background pre-scan time limit (hour)", "0: no limit"},
-    {"MIN_IDLE", IEC_MP, MSP_BACK_CTL, PDT_DISK, 10, 7, 16, 0,
+    {"MIN_IDLE", IEC_MP, MSP_BACK_CTL, PDT_DISK_ZBC, 10, 7, 16, 0,
         "Minumum idle time before background scan (ms)", NULL},
-    {"MAX_SUSP", IEC_MP, MSP_BACK_CTL, PDT_DISK, 12, 7, 16, 0,
+    {"MAX_SUSP", IEC_MP, MSP_BACK_CTL, PDT_DISK_ZBC, 12, 7, 16, 0,
         "Maximum time to suspend background scan (ms)", NULL},
 
     /* Logical block provisioning mode subpage: lbp [0x1c,0x2] sbc3 */
