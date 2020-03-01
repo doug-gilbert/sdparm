@@ -2,7 +2,9 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.11 [20191227] [svn: r332]
+ChangeLog for sdparm-1.11 [20200301] [svn: r333]
+  - Allow ZBC mode pages to use existing SBC mpages
+    as permitted by zbc2r04 chapter 6.4.1 table 70
   - add --out_mask=OM option for mode page control
     bitmask (current, changeable, default and/or saveable)
   - add --examine option to iterate over mode+vpd pages
@@ -14,6 +16,7 @@ ChangeLog for sdparm-1.11 [20191227] [svn: r332]
     STANDBY->STANDBY_Z; ICT->IACT and SCT->SZCT
   - device configuration extension mpage: expand PEWS
     field with added PE_UN (PEWS units) field (ssc5r05)
+  - add Zoned block device control mpage (zbc2r04a)
   - --defaults option can be used twice: reverts all
     pages to their defaults (new in spc5r11, RTD bit)
   - vpd: decode TransportIDs in SCSI port page
@@ -32,7 +35,7 @@ ChangeLog for sdparm-1.11 [20191227] [svn: r332]
   - --wscan option: expand bus type to include NVMe
   - mode page output with -HHH suitable for --inhex=
   - add flexible geometery page (obsolete) sbc2r00
-  - point svn:externals to rev 837 of sg3_utils
+  - point svn:externals to rev 843 of sg3_utils
   - convert many two valued 'int's to bool
   - shellcheck corrections on scripts
   - upgrade automake to version 1.15 (U16.04)

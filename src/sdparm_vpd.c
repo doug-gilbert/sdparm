@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2019, Douglas Gilbert
+ * Copyright (c) 2005-2020, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -253,7 +253,7 @@ decode_designation_descriptor(const uint8_t * bp, int i_len,
    designator type and/or code set. */
 static int
 decode_dev_ids(const char * print_if_found, int num_leading, uint8_t * buff,
-	       int len, int m_assoc, int m_desig_type, int m_code_set,
+               int len, int m_assoc, int m_desig_type, int m_code_set,
                const struct sdparm_opt_coll * op)
 {
     bool printed;
@@ -285,14 +285,14 @@ decode_dev_ids(const char * print_if_found, int num_leading, uint8_t * buff,
         assoc = ((bp[1] >> 4) & 0x3);
         if (print_if_found && (! printed)) {
             printed = true;
-	    if (strlen(print_if_found) > 0)
+            if (strlen(print_if_found) > 0)
                 printf("  %s:\n", print_if_found);
         }
         if (NULL == print_if_found)
             printf("  %s%s:\n", sp, sg_get_desig_assoc_str(assoc));
-	sg_get_designation_descriptor_str(sp, bp, i_len + 4, false,
+        sg_get_designation_descriptor_str(sp, bp, i_len + 4, false,
                                           op->do_long, sizeof(b), b);
-	printf("%s", b);
+        printf("%s", b);
     }
     if (-2 == u) {
         pr2serr("VPD page error: short designator around offset %d\n", off);
@@ -1011,9 +1011,9 @@ decode_scsi_ports_vpd(uint8_t * buff, int len,
             return SG_LIB_CAT_MALFORMED;
         }
         if (tpd_len > 0) {
-	    printf("    Target port descriptor(s):\n");
+            printf("    Target port descriptor(s):\n");
             res = decode_dev_ids("", 2, bp + bump + 4, tpd_len,
-			         VPD_ASSOC_TPORT, -1, -1, op);
+                                 VPD_ASSOC_TPORT, -1, -1, op);
             if (res)
                 return res;
         }
@@ -1826,6 +1826,22 @@ decode_zbdc_vpd(uint8_t * b, int len)
                 "short=%d\n", len);
         return SG_LIB_CAT_MALFORMED;
     }
+    printf("  Zoned block device extension: ");
+    switch ((b[4] >> 4) & 0xf) {
+    case 0:
+        printf("not reported\n");
+        break;
+    case 1:
+        printf("host aware zone block device model\n");
+        break;
+    case 2:
+        printf("Domains and realms zone block device model\n");
+        break;
+    default:
+        printf("Unknown [0x%x]\n", (b[4] >> 4) & 0xf);
+        break;
+    }
+    printf("  AAORB: %d\n", !!(b[4] & 0x2));
     /* URSWRZ: unrestricted read in sequential write required zone */
     printf("  URSWRZ type: %d\n", !!(b[4] & 0x1));
     u = sg_get_unaligned_be32(b + 8);
@@ -2153,7 +2169,7 @@ try_larger:
         ret = 0;
         if ((0 == spn) || (VPD_DI_SEL_LU & spn))
             ret = decode_dev_ids(sg_get_desig_assoc_str(VPD_ASSOC_LU), 0,
-				 b + 4, len, VPD_ASSOC_LU, -1, -1, op);
+                                 b + 4, len, VPD_ASSOC_LU, -1, -1, op);
         if ((0 == spn) || (VPD_DI_SEL_TPORT & spn))
             ret = decode_dev_ids(sg_get_desig_assoc_str(VPD_ASSOC_TPORT), 0,
                                  b + 4, len, VPD_ASSOC_TPORT, -1, -1, op);
