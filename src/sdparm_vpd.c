@@ -1934,7 +1934,7 @@ decode_std_inq(int sg_fd, const struct sdparm_opt_coll * op)
     sz = op->do_long ? b_sz : 36;
     res = sg_ll_inquiry_v2(sg_fd, false, 0, b, sz, 0, &resid, false, verb);
     if (res) {
-        pr2serr("INQUIRY fetching standar response failed\n");
+        pr2serr("INQUIRY fetching standard response failed\n");
         goto fini;
     }
     if (resid > 0) {

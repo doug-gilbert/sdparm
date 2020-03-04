@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.11 [20200301] [svn: r333]
+ChangeLog for sdparm-1.11 [20200303] [svn: r334]
   - Allow ZBC mode pages to use existing SBC mpages
     as permitted by zbc2r04 chapter 6.4.1 table 70
   - add --out_mask=OM option for mode page control
@@ -35,7 +35,7 @@ ChangeLog for sdparm-1.11 [20200301] [svn: r333]
   - --wscan option: expand bus type to include NVMe
   - mode page output with -HHH suitable for --inhex=
   - add flexible geometery page (obsolete) sbc2r00
-  - point svn:externals to rev 843 of sg3_utils
+  - point svn:externals to rev 843 of sg3_utils [v 1.45]
   - convert many two valued 'int's to bool
   - shellcheck corrections on scripts
   - upgrade automake to version 1.15 (U16.04)
