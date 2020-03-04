@@ -487,7 +487,7 @@ pdt_s_eq(int l_pdt_s, int r_pdt_s)
 }
 
 /*
- * Declarations for functions that are port dependant
+ * Declarations for functions that are port dependent
  */
 
 #ifdef SG_LIB_WIN32

@@ -282,7 +282,7 @@ query_dev_uid(HANDLE hdevice, union STORAGE_DEVICE_UID_DATA * data)
 }
 
 /* Updates storage_arr based on sep. Returns 1 if update occurred, 0 if
- * no update occured. */
+ * no update occurred. */
 static int
 check_devices(const struct storage_elem * sep)
 {
