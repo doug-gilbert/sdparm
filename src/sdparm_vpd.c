@@ -1485,10 +1485,18 @@ static const char * product_type_arr[] =
     "Universal Flash Storage Card (UFS)",
 };
 
+static const char * zoned_strs[] = {
+    "",
+    "  [host-aware]",
+    "  [host-managed]",
+    "",
+};
+
 /* VPD_BLOCK_DEV_CHARS  0xb1 */
 static int
 decode_block_dev_chars_vpd(uint8_t * buff, int len)
 {
+    int zoned;
     unsigned int u, k;
 
     if (len < 64) {
@@ -1541,7 +1549,8 @@ decode_block_dev_chars_vpd(uint8_t * buff, int len)
         printf(": reserved\n");
         break;
     }
-    printf("  ZONED=%d\n", (buff[8] >> 4) & 0x3);       /* sbc4r04 */
+    zoned = (buff[8] >> 4) & 0x3;       /* added sbc4r04 */
+    printf("  ZONED=%d%s\n", zoned, zoned_strs[zoned]);
     printf("  BOCS=%d\n", !!(buff[8] & 0x4));
     printf("  FUAB=%d\n", !!(buff[8] & 0x2));
     printf("  VBULS=%d\n", !!(buff[8] & 0x1));
