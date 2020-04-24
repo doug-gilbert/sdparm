@@ -2,9 +2,10 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.12 [20200413] [svn: r336]
+ChangeLog for sdparm-1.12 [20200423] [svn: r337]
+  - block device char vpd page: add zoned strings
   - sg_lib: allows access to cache mpage's WCE for nvme
-  - point svn:externals to rev 848 of sg3_utils
+  - point svn:externals to rev 849 of sg3_utils
 
 ChangeLog for sdparm-1.11 [20200303] [svn: r334]
   - Allow ZBC mode pages to use existing SBC mpages
