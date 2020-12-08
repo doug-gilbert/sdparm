@@ -268,5 +268,3 @@ elif test -n "$list"; then
   fi
   $AR -NOLOGO -LIST "$archive" || exit $?
 fi
-
-

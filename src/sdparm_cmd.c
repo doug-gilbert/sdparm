@@ -519,5 +519,3 @@ sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp, int cmd_arg,
     }
     return deallocate_res(res);
 }
-
-

@@ -676,5 +676,3 @@ sg_do_wscan(char letter, int do_scan, int verb)
     }
     return ret;
 }
-
-

@@ -2,7 +2,7 @@ sdparm (1.12-0.1) unstable; urgency=low
 
   * see ChangeLog
 
- -- Douglas Gilbert <dgilbert@interlog.com>  Mon, 13 Jul 2020 21:00:00 -0400
+ -- Douglas Gilbert <dgilbert@interlog.com>  Mon, 07 Dec 2020 21:00:00 -0500
 
 sdparm (1.11-0.1) unstable; urgency=low
 
@@ -167,6 +167,4 @@ sdparm (0.93-1) unstable; urgency=low
   * Initial Release.
 
  -- Tomas Fasth <tomfa@debian.org>  Wed,  8 Jun 2005 23:48:13 +0000
-
-
 

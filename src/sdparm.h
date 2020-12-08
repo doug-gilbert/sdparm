@@ -133,6 +133,7 @@ extern "C" {
 #define VPD_ZBC_DEV_CHARS 0xb6          /* zbc-r01b */
 #define VPD_BLOCK_LIMITS_EXT 0xb7       /* sbc4r08 */
 #define VPD_FORMAT_PRESETS 0xb8         /* sbc4r18 */
+#define VPD_CON_POS_RANGE 0xb9          /* 20-089r2 */
 #define VPD_NOT_STD_INQ -2      /* request for standard inquiry */
 
 #define VPD_ASSOC_LU 0
@@ -501,5 +502,3 @@ int sg_do_wscan(char letter, int do_scan, int verbose);
 #endif
 
 #endif
-
-

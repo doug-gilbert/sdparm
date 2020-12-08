@@ -168,7 +168,7 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
     {XOR_MP, 0, PDT_DISK, 0, "xo", "XOR control (SBC)", NULL},
         /* XOR control mode page made obsolete in sbc3r32 */
     {CONTROL_MP, MSP_ZB_D_CTL, PDT_DISK_ZBC, 0, "zbdct",
-	"Zoned block device control (ZBC)", NULL},
+        "Zoned block device control (ZBC)", NULL},
     {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
@@ -287,6 +287,7 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_BLOCK_LIMITS_EXT, 0, PDT_DISK, "ble",
      "Block limits extension (SBC)"},
     {VPD_CFA_PROFILE_INFO, 0, -1, "cfa", "CFA profile information"},
+    {VPD_CON_POS_RANGE, 0, 0, "cpr", "Concurrent positioning ranges (SBC)"},
     {VPD_DEVICE_CONSTITUENTS, 0, -1, "dc", "Device constituents"},
     {VPD_DEVICE_ID, 0, -1, "di", "Device identification"},
     {VPD_DEVICE_ID, VPD_DI_SEL_AS_IS, -1, "di_asis", "Like 'di' "
@@ -300,7 +301,7 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_DTDE_ADDRESS, 0, 1, "dtde",
      "Data transfer device element address (SSC)"},
     {VPD_EXT_INQ, 0, -1, "ei", "Extended inquiry data"},
-    {VPD_FORMAT_PRESETS, 0, 0, "fp", "Format presets"},
+    {VPD_FORMAT_PRESETS, 0, 0, "fp", "Format presets (SBC)"},
     {VPD_IMP_OP_DEF, 0, -1, "iod",
      "Implemented operating definition (obs)"},
     {VPD_LB_PROTECTION, 0, PDT_TAPE, "lbpro", "Logical block protection "
@@ -1982,5 +1983,3 @@ struct sdparm_val_desc_t sdparm_profile_arr[] = {
         {0xffff, "Non-conforming profile"},
         {-1, NULL},
 };
-
-

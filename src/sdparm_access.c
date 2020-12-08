@@ -486,5 +486,3 @@ sdp_get_desc_id(int flags)
 {
     return (MF_DESC_ID_MASK & flags) >> MF_DESC_ID_SHIFT;
 }
-
-
