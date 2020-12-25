@@ -99,6 +99,7 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
         NULL},
     {ADC_MP, MSP_ADC_TD_SN, PDT_ADC, 0, "adts",
         "Target device serial number (ADC)", NULL},
+    {CONTROL_MP, MSP_SAT_AFC, -1, 0, "afc", "SAT ATA Feature control", NULL},
     {POWER_MP, MSP_SAT_POWER, -1, 0, "apo", "SAT ATA Power condition", NULL},
     {CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK_ZBC, 0, "atag", "Application tag "
         "(SBC)", &sbc_atag_desc},
@@ -824,6 +825,14 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Ultra DMA bit 1", NULL},
     {"UDMA0", CONTROL_MP, MSP_SAT_PATA, -1, 5, 0, 1, 0,
         "Ultra DMA bit 0", NULL},
+
+    /* SAT: ATA feature control mode subpage: afc [0xa,0xf2] 20-085r2 */
+    /* treat as spc since could be disk or ATAPI */
+    {"CDL_CTRL", CONTROL_MP, MSP_SAT_AFC, -1, 4, 1, 2, 0,
+        "Command duration limits control",
+        "0: ATA 0->cdl_action, no CDL mpages supported\t"
+        "1: ATA 0->cdl_action, CDL A mpage supported, maybe CDL B\t"
+        "2: ATA 1->cdl_action, CDL T2A mpage supported, maybe CDL T2B"},
 
     /* Notch and partition mode page [0xc] sbc2 (obsolete in sbc2r14) */
     {"ND", NOTCH_MP, 0, PDT_DISK, 2, 7, 1, 0,

@@ -70,8 +70,9 @@ extern "C" {
 #define MSP_SAS_E_PHY 3
 #define MSP_SAS_OOB_M_C 4       /* OOB Management Control */
 #define MSP_BACK_CTL 1
-#define MSP_SAT_PATA 0xf1       /* SAT PATA Control */
-#define MSP_SAT_POWER 0xf1      /* SAT ATA Power condition */
+#define MSP_SAT_AFC 0xf2        /* SAT ATA Feature Control [a,f2] */
+#define MSP_SAT_PATA 0xf1       /* SAT PATA Control [a,f1] */
+#define MSP_SAT_POWER 0xf1      /* SAT ATA Power condition [1a,f1] */
 #define MSP_DEV_CONF_EXT 1      /* device conf extension (ssc) */
 #define MSP_EXT_DEV_CAP 0x41    /* extended device capabilities (smc) */
 #define MSP_ADC_TGT_DEV 0x1

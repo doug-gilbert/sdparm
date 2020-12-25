@@ -74,3 +74,6 @@ EXTRA_sdparm_SOURCES =	../lib/sg_pt_linux.c	\
 			../include/sg_pt_win32.h	\
 			getopt_long.c	\
 			port_getopt.h
+
+distclean-local:
+	rm -rf .deps
