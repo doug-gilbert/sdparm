@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for sdparm-1.12 [20201224] [svn: r342]
+ChangeLog for pre-release sdparm-1.12 [20210104] [svn: r343]
   - add SAT ATA Feature control mpage (20-085r2)
   - block device char vpd page: add zoned strings
   - vpd: add Format presets and Concurrent positioning
@@ -10,7 +10,7 @@ ChangeLog for sdparm-1.12 [20201224] [svn: r342]
   - vpd: standard inquiry: add hot_pluggable field
   - sg_lib: allows access to cache mpage's WCE for nvme
   - start using autoconf 2.70
-  - point svn:externals to rev 871 of sg3_utils
+  - point svn:externals to rev 872 of sg3_utils
 
 ChangeLog for sdparm-1.11 [20200303] [svn: r334]
   - Allow ZBC mode pages to use existing SBC mpages
