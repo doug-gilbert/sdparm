@@ -826,7 +826,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"UDMA0", CONTROL_MP, MSP_SAT_PATA, -1, 5, 0, 1, 0,
         "Ultra DMA bit 0", NULL},
 
-    /* SAT: ATA feature control mode subpage: afc [0xa,0xf2] 20-085r2 */
+    /* SAT: ATA feature control mode subpage: afc [0xa,0xf2] 20-085r4 */
     /* treat as spc since could be disk or ATAPI */
     {"CDL_CTRL", CONTROL_MP, MSP_SAT_AFC, -1, 4, 1, 2, 0,
         "Command duration limits control",
