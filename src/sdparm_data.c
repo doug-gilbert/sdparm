@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2020, Douglas Gilbert
+ * Copyright (c) 2005-2021, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -112,10 +112,10 @@ struct sdparm_mode_page_t sdparm_gen_mode_pg[] = {
         &spc_cdl_desc},
     {CONTROL_MP, MSP_SPC_CDLB, -1, 0, "cdlb", "Command duration limit B",
         &spc_cdl_desc},
-    {CONTROL_MP, MSP_SPC_CDT2A, -1, 0, "cdt2a", "Command duration limit T2A",
-        NULL /* spc6r? */ },
-    {CONTROL_MP, MSP_SPC_CDT2B, -1, 0, "cdt2b", "Command duration limit T2B",
-        NULL /* spc6r? */ },
+    {CONTROL_MP, MSP_SPC_CDLT2A, -1, 0, "cdt2a", "Command duration limit T2A",
+        NULL /* spc6r01 */ },
+    {CONTROL_MP, MSP_SPC_CDLT2B, -1, 0, "cdt2b", "Command duration limit T2B",
+        NULL /* spc6r01 */ },
     {MMCMS_MP, 0, PDT_MMC, 1, "cms", "CD/DVD (MM) capabilities and "
         "mechanical status (MMC)", NULL},        /* read only */
     {CONTROL_MP, 0, -1, 0, "co", "Control", NULL},
@@ -690,6 +690,11 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "15: lowest"},
     {"MSDL", CONTROL_MP, MSP_SPC_CE, -1, 6, 7, 8, 0,  /* spc4r34 */
         "Maximum sense data length", "0: unlimited"},
+    {"NSQCC", CONTROL_MP, MSP_SPC_CE, -1, 7, 7, 8, 0, /* spc6r05 */
+        "Non-sequestered command count", NULL},
+    {"SQCO", CONTROL_MP, MSP_SPC_CE, -1, 8, 7, 8, 0,  /* spc6r05 */
+        "Sequestered command order",
+        "0: oldest\t1: best IOPS\t2: IOPS and other sources"},
 
     /* Application tag mode subpage: atag [0xa,0x2] sbc3r25 */
     /* descriptor starts here, <start_byte> is relative to start of mode
@@ -772,6 +777,79 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "operations:\t"
         "0: suspended during IO\t"
         "1: continue during IO"},
+
+    /* Command duration limit T2A mode subpage: cdt2a [0xa,0x7] spc6 */
+    {"PVCDG", CONTROL_MP, MSP_SPC_CDLT2A, -1, 7, 7, 4, 0,
+        "Perf versus command duration guidelines",
+        "Maximium percentage increase in average command completion times:\t"
+        "0: 0%\t1: 0.5%\t...\t6: 3%\t7: 4%\t8: 5%\t9: 8%\t10: 10%"
+        "11: 15%\t12: 20%"},
+    /* descriptor starts here, <start_byte> is relative to start of mode
+     * page (i.e. 8 more than shown in t10's descriptor format table) */
+    {"T2CDLU", CONTROL_MP, MSP_SPC_CDLT2A, -1, 8, 3, 4, MF_CLASH_OK,
+        "T2 command duration limit units", "0: none\t6: 500 nanoseconds\t"
+        "8: 1 microsecond\t10: 10 milliseconds\t14: 500 milliseconds"},
+    {"MXINATI", CONTROL_MP, MSP_SPC_CDLT2A, -1, 10, 7, 16, MF_CLASH_OK,
+        "Max inactive time", NULL},
+    {"MXACTTI", CONTROL_MP, MSP_SPC_CDLT2A, -1, 12, 7, 16, MF_CLASH_OK,
+        "Max active time", NULL},
+    {"MXINATP", CONTROL_MP, MSP_SPC_CDLT2A, -1, 14, 7, 4, MF_CLASH_OK,
+        "Max inactive time policy", "0: asap\t"
+        "13: good, completed, data currently unavailable\t"
+        "15: terminate, aborted command, command timeout before processing"},
+    {"MXACTTP", CONTROL_MP, MSP_SPC_CDLT2A, -1, 14, 3, 4, MF_CLASH_OK,
+        "Max active time policy", "0: asap\t"
+        "13: good, completed, data currently unavailable\t"
+        "14: as per 15, may report largest LBA processed"
+        "15: terminate, aborted command, command timeout before processing"},
+    {"CDGUID", CONTROL_MP, MSP_SPC_CDLT2A, -1, 18, 7, 16, MF_CLASH_OK,
+        "Command duration guideline",
+        "0: ignore\t>0: preferred command duration"},
+    {"CDGUPOL", CONTROL_MP, MSP_SPC_CDLT2A, -1, 22, 7, 16, MF_CLASH_OK,
+        "Command duration guideline policy", "0: asap\t"
+        "1: next highest CDL descriptor\t"
+        "2: continue as if no CDL\t"
+        "13: good, completed, data currently unavailable\t"
+        "15: terminate, aborted command, command timeout before processing"},
+    {"BYP_SEQ", CONTROL_MP, MSP_SPC_CDLT2A, -1, 23, 0, 1, MF_CLASH_OK,
+        "Bypass sequestration", NULL},
+
+    /* Command duration limit T2B mode subpage: cdt2b [0xa,0x8] spc6 */
+    {"PVLC", CONTROL_MP, MSP_SPC_CDLT2B, -1, 7, 3, 4, 0,
+        "Perf versus latency control",
+        "This field is not defined in SPC6r05??\t"
+        "Maximium percentage increase in average command completion times:\t"
+        "0: 0%\t1: 0.5%\t...\t6: 3%\t7: 4%\t8: 5%\t9: 8%\t10: 10%"
+        "11: 15%\t12: 20%"},
+    /* descriptor starts here, <start_byte> is relative to start of mode
+     * page (i.e. 8 more than shown in t10's descriptor format table) */
+    {"T2CDLU", CONTROL_MP, MSP_SPC_CDLT2B, -1, 8, 3, 4, MF_CLASH_OK,
+        "T2 command duration limit units", "0: none\t6: 500 nanoseconds\t"
+        "8: 1 microsecond\t10: 10 milliseconds\t14: 500 milliseconds"},
+    {"MXINATI", CONTROL_MP, MSP_SPC_CDLT2B, -1, 10, 7, 16, MF_CLASH_OK,
+        "Max inactive time", NULL},
+    {"MXACTTI", CONTROL_MP, MSP_SPC_CDLT2B, -1, 12, 7, 16, MF_CLASH_OK,
+        "Max active time", NULL},
+    {"MXINATP", CONTROL_MP, MSP_SPC_CDLT2B, -1, 14, 7, 4, MF_CLASH_OK,
+        "Max inactive time policy", "0: asap\t"
+        "13: good, completed, data currently unavailable\t"
+        "15: terminate, aborted command, command timeout before processing"},
+    {"MXACTTP", CONTROL_MP, MSP_SPC_CDLT2B, -1, 14, 3, 4, MF_CLASH_OK,
+        "Max active time policy", "0: asap\t"
+        "13: good, completed, data currently unavailable\t"
+        "14: as per 15, may report largest LBA processed"
+        "15: terminate, aborted command, command timeout before processing"},
+    {"CDGUID", CONTROL_MP, MSP_SPC_CDLT2B, -1, 18, 7, 16, MF_CLASH_OK,
+        "Command duration guideline",
+        "0: ignore\t>0: preferred command duration"},
+    {"CDGUPOL", CONTROL_MP, MSP_SPC_CDLT2B, -1, 22, 7, 16, MF_CLASH_OK,
+        "Command duration guideline policy", "0: asap\t"
+        "1: next highest CDL descriptor\t"
+        "2: continue as if no CDL\t"
+        "13: good, completed, data currently unavailable\t"
+        "15: terminate, aborted command, command timeout before processing"},
+    {"BYP_SEQ", CONTROL_MP, MSP_SPC_CDLT2B, -1, 23, 0, 1, MF_CLASH_OK,
+        "Bypass sequestration", NULL},
 
     /* Zoned Block device Control mode subpage: zbcc [0xa,0x9] zbc2r04a */
     /* Probably only applies to host-managed ZBC (pdt=0x14) but set pdt=-1
@@ -1636,6 +1714,7 @@ static struct sdparm_mode_page_item sdparm_mitem_spi_arr[] = {
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
 };
 
+/* SRP == SCSI RDMA protocol */
 static struct sdparm_mode_page_item sdparm_mitem_srp_arr[] = {
     /* disconnect-reconnect mode page [0x2] srp */
     {"MBS", DISCONNECT_MP, 0, -1, 10, 7, 16, MF_COMMON | MF_CLASH_OK,
@@ -1648,15 +1727,16 @@ static struct sdparm_mode_page_item sdparm_mitem_srp_arr[] = {
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
 };
 
+/* SAS == Serial Attached SCSI */
 static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
     /* disconnect-reconnect mode page [0x2] sas/spl */
     /* spl3r6 dropped the "time" from the name of BITL, keep acronym */
     {"BITL", DISCONNECT_MP, 0, -1, 4, 7, 16, MF_COMMON,
-        "Bus inactivity (time) limit (100us)",
+        "Bus inactivity (time) limit (100us or see BILUNIT)",
         "0: no bus inactivity time limit\t"
         "1-65535: limit in units of 100 us"},
     {"MCTL", DISCONNECT_MP, 0, -1, 8, 7, 16, MF_COMMON,
-        "Connect time limit (100us)",
+        "Connect time limit (100us or see CTLUNIT)",
         "0: no maximum connection time limit\t"
         "1-65535: limit in units of 100 us"},
     {"MBS", DISCONNECT_MP, 0, -1, 10, 7, 16, MF_COMMON | MF_CLASH_OK,
@@ -1665,7 +1745,15 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "1-65535: limit in units of 512 bytes\t"
         "Ignored by persistent connections"},
         /* obsoleted spl3r2, re-instated spl3r3 */
-    {"FBS", DISCONNECT_MP, 0, -1, 14, 7, 16, MF_CLASH_OK,
+    {"CTLUNIT", DISCONNECT_MP, 0, -1, 13, 3, 2, MF_CLASH_OK,
+        "Connect time limit unit",
+        "0: 100 microsecond unit\t"
+        "1: 1 microsecond unit\t"},
+    {"BILUNIT", DISCONNECT_MP, 0, -1, 13, 1, 2, MF_CLASH_OK,    /* 21-021r3 */
+        "Bus inactivity (time) limit unit",
+        "0: 100 microsecond unit\t"
+        "1: 1 microsecond unit\t"},
+    {"FBS", DISCONNECT_MP, 0, -1, 14, 7, 16, MF_CLASH_OK,       /* 21-021r3 */
         "First burst size (512 bytes)",
         "0: no first burst size (no data-out before xfer_ready)\t"
         "1-65535: maximum first burst size in units of 512 bytes"},

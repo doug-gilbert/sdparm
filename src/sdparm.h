@@ -85,8 +85,8 @@ extern "C" {
 #define MSP_SPC_PS 0x1          /* power consumption */
 #define MSP_SPC_CDLA 0x3
 #define MSP_SPC_CDLB 0x4
-#define MSP_SPC_CDT2A 0x7       /* spc6r ? */
-#define MSP_SPC_CDT2B 0x8       /* spc6r ? */
+#define MSP_SPC_CDLT2A 0x7      /* spc6r01 */
+#define MSP_SPC_CDLT2B 0x8      /* spc6r01 */
 #define MSP_SBC_IO_ADVI 0x5
 #define MSP_SBC_BACK_OP 0x6
 #define MSP_ZB_D_CTL 0xf	/* zbc2r04a */
