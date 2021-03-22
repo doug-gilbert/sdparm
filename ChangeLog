@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for pre-release sdparm-1.12 [20210320] [svn: r345]
+ChangeLog for pre-release sdparm-1.12 [20210321] [svn: r345]
   - add Command duration limits T2A and T2B mpages
   - add Sequestered command fields in Control extension mpage
   - SAS/SPL disconnect-reconnect mpage: BILUNIT and CTLUNIT
@@ -15,7 +15,7 @@ ChangeLog for pre-release sdparm-1.12 [20210320] [svn: r345]
   - vpd: standard inquiry: add hot_pluggable field
   - sg_lib: allows access to cache mpage's WCE for nvme
   - start using autoconf 2.70
-  - point svn:externals to rev 879 of sg3_utils
+  - point svn:externals to rev 880 of sg3_utils
 
 ChangeLog for sdparm-1.11 [20200303] [svn: r334]
   - Allow ZBC mode pages to use existing SBC mpages
