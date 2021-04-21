@@ -248,6 +248,8 @@ static struct sdparm_mode_descriptor_t sas_e_phy_desc = {  /* desc SAS/SPL */
     7, 1, 0, 8, -1, 2, 2, false, "Enhanced phy"
 };
 
+/* This one has a strange format, no number of descriptors and each
+ * descriptor can have a variable size. */
 static struct sdparm_mode_descriptor_t sas_oob_m_c_desc = { /* desc SAS/SPL */
     -1, -1, 0, 8, -1, 2, 2, true, "Attribute control"
 };
@@ -498,7 +500,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
         "Multi session",
         "0: next session not allowed (no BO pointer)\t"
         "1: next session not allowed\t"
-        "3: next seesion allowed (indicated by BO pointer)"},
+        "3: next session allowed (indicated by BO pointer)"},
     {"FP", WRITE_PARAM_MP, 0, PDT_MMC, 3, 5, 1, 0,
         "Fixed packet type", NULL},
     {"COPY", WRITE_PARAM_MP, 0, PDT_MMC, 3, 4, 1, 0,
@@ -1945,6 +1947,12 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "Temperature attribute, temperature reporting enabled", NULL},
     {"TA_RI", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 13, 7, 8, MF_CLASH_OK,
         "Temperature attribute, reporting interval (seconds)", NULL},
+    {"TA_MRI", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 14, 7, 8, MF_CLASH_OK,
+        "Temperature attribute, minimum reporting interval (seconds)", NULL},
+    {"TA_C_UP", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 15, 7, 4, MF_CLASH_OK,
+        "Temperature attribute, change up (Celsius)", NULL},
+    {"TA_C_DO", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 15, 3, 4, MF_CLASH_OK,
+        "Temperature attribute, change down (Celsius)", NULL},
     {"TA_TM", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 16, 1, 2, MF_CLASH_OK,
         "Temperature attribute, test mode",
         "0: test mode disabled, transfer actual temperature\t"

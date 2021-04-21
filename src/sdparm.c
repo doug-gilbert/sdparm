@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.12 20210321 [svn: r345]";
+static const char * version_str = "1.12 20210421 [svn: r347]";
 
 
 #define MAX_DEV_NAMES 256
@@ -509,6 +509,8 @@ enumerate_mitems(int pn, int spn, int pdt,
         pr2serr("%s mode page: no items found\n", d);
     }
     if (found && have_desc && (long_o || (e_num > 1))) {
+        if ((-1 == mdp->num_descs_off) && (-1 == mdp->num_descs_bytes))
+            return;     /* Nothing to warn about in this case */
         if (mdp->name)
             printf("  <<%s mode descriptor>>\n", mdp->name);
         else
