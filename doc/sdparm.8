@@ -1,4 +1,4 @@
-.TH SDPARM "8" "April 2021" "sdparm\-1.12" SDPARM
+.TH SDPARM "8" "May 2021" "sdparm\-1.13" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -229,15 +229,6 @@ for 'hdparm \-\-Istdin' to decode.
 Mode page output with the '\-HHH' option is suitable for a later invocation
 of sdparm with the \fI\-\-inhex=FN\fR option.
 .TP
-\fB\-i\fR, \fB\-\-inquiry\fR
-output a VPD page which is in the response of a SCSI INQUIRY command sent
-to \fIDEVICE\fR. In the absence of this option the default action
-is to output mode pages. If the \fI\-\-inquiry\fR option is given without
-the \fI\-\-page=PG[,SPG]\fR option then the device identification VPD
-page (0x83) is decoded and output. If this option and the \fI\-\-all\fR
-option are given then the supported VPD pages page (0x0) is decoded and
-output.
-.TP
 \fB\-I\fR, \fB\-\-inhex\fR=\fIFN\fR
 \fIFN\fR is expected to be a file name (or '\-' for stdin) which contains
 ASCII hexadecimal (or binary) representing the response to MODE SENSE(10).
@@ -257,6 +248,18 @@ The hexadecimal in \fIFN\fR should be arranged as 1 or 2 digits representing
 a byte each of which is whitespace or comma separated. Anything from and
 including a hash mark to the end of line is ignored. If the \fI\-\-raw\fR
 option is given then \fIFN\fR is treated as binary.
+.TP
+\fB\-i\fR, \fB\-\-inquiry\fR
+output a VPD page which is in the response of a SCSI INQUIRY command sent
+to \fIDEVICE\fR. In the absence of this option the default action
+is to output mode pages. If the \fI\-\-inquiry\fR option is given without
+the \fI\-\-page=PG[,SPG]\fR option then the device identification VPD
+page (0x83) is decoded and output. If this option and the \fI\-\-all\fR
+option are given then the supported VPD pages page (0x0) is decoded and
+output.
+.br
+\fI\-\-page=sinq\fR or \fI\-\-page=\-1\fR given with this option will
+output the standard INQUIRY response instead of a VPD page.
 .TP
 \fB\-l\fR, \fB\-\-long\fR
 output extra information. In the case of mode page fields a description (with
