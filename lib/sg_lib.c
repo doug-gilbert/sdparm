@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999-2020 Douglas Gilbert.
+ * Copyright (c) 1999-2021 Douglas Gilbert.
  * All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the BSD_LICENSE file.
@@ -21,7 +21,7 @@
  *    and a GPL notice.
  *
  *    Much of the data in this file is derived from SCSI draft standards
- *    found at http://www.t10.org with the "SCSI Primary Commands-4" (SPC-4)
+ *    found at https://www.t10.org with the "SCSI Primary Commands-4" (SPC-4)
  *    being the central point of reference.
  *
  *    Contributions:
@@ -260,6 +260,19 @@ static const struct sg_lib_simple_value_name_t sstatus_str_arr[] = {
     {0x40, "Task Aborted"},
     {0xffff, NULL},
 };
+
+bool
+sg_scsi_status_is_good(int sstatus)
+{
+    sstatus &= 0xfe;
+    switch (sstatus) {
+    case SAM_STAT_GOOD:
+    case SAM_STAT_CONDITION_MET:
+        return true;
+    default:
+        return false;
+    }
+}
 
 void
 sg_get_scsi_status_str(int scsi_status, int buff_len, char * buff)
