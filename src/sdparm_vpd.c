@@ -1485,7 +1485,10 @@ static const char * product_type_arr[] =
     "Universal Flash Storage Card (UFS)",
 };
 
-static const char * zoned_strs[] = {
+/* ZONED field here replaced by ZONED BLOCK DEVICE EXTENSION field in the
+ * Zoned Block Device Characteristics VPD page. The new field includes
+ * Zone Domains and Realms (see ZBC-2) */
+static const char * bdc_zoned_strs[] = {
     "",
     "  [host-aware]",
     "  [host-managed]",
@@ -1549,13 +1552,15 @@ decode_block_dev_chars_vpd(uint8_t * buff, int len)
         printf(": reserved\n");
         break;
     }
-    zoned = (buff[8] >> 4) & 0x3;       /* added sbc4r04 */
-    printf("  ZONED=%d%s\n", zoned, zoned_strs[zoned]);
+    printf("  MACT=%d\n", !!(buff[8] & 0x40));    /* added sbc5r01 */
+    zoned = (buff[8] >> 4) & 0x3;   /* added sbc4r04, obsolete sbc5r01 */
+    printf("  ZONED=%d%s\n", zoned, bdc_zoned_strs[zoned]);
+    printf("  RBWZ=%d\n", !!(buff[8] & 0x8));       /* sbc4r12 */
     printf("  BOCS=%d\n", !!(buff[8] & 0x4));
     printf("  FUAB=%d\n", !!(buff[8] & 0x2));
     printf("  VBULS=%d\n", !!(buff[8] & 0x1));
     printf("  DEPOPULATION_TIME=%u (seconds)\n",
-           sg_get_unaligned_be32(buff + 12));           /* added sbc4r14 */
+           sg_get_unaligned_be32(buff + 12));       /* added sbc4r14 */
     return 0;
 }
 
@@ -1824,6 +1829,31 @@ decode_lb_protection_vpd(uint8_t * buff, int len)
     return 0;
 }
 
+static char *
+fp_schema_t_s(uint8_t sch_type, int blen, char * b)
+{
+    if ((NULL == b) || (blen < 1))
+        return NULL;
+    switch (sch_type) {
+    case 1:
+        snprintf(b, blen, "no zones defined [1]");
+        break;
+    case 2:
+        snprintf(b, blen, "host-aware zoned device model [2]");
+        break;
+    case 3:
+        snprintf(b, blen, "host-managed zoned device model [3]");
+        break;
+    case 4:
+        snprintf(b, blen, "zone domains and realms zoned device model [4]");
+        break;
+    default:
+        snprintf(b, blen, "unknown [%u]", sch_type);
+        break;
+    }
+    return b;
+}
+
 /* VPD_FORMAT_PRESETS  0xb8 (added sbc4r18) */
 static int
 decode_format_presets_vpd(uint8_t * buff, int len)
@@ -1831,13 +1861,15 @@ decode_format_presets_vpd(uint8_t * buff, int len)
     int k;
     unsigned int sch_type;
     uint8_t * bp;
+    char b[128];
 
     len -= 4;
     bp = buff + 4;
     for (k = 0; k < len; k += 64, bp += 64) {
         printf("  Preset identifier: 0x%x\n", sg_get_unaligned_be32(bp));
         sch_type = bp[4];
-        printf("    schema type: %u\n", sch_type);
+        printf("    schema type: %s\n", fp_schema_t_s(sch_type, sizeof(b),
+                                                      b));
         printf("    logical blocks per physical block exponent type: %u\n",
                0xf & bp[7]);
         printf("    logical block length: %u\n",
@@ -1851,6 +1883,8 @@ decode_format_presets_vpd(uint8_t * buff, int len)
             printf("    Defines zones for host aware device:\n");
         else if (3 == sch_type)
             printf("    Defines zones for host managed device:\n");
+        else if (4 == sch_type)
+            printf("    Defines zones for zone domains and realms device:\n");
         if ((2 == sch_type) || (3 == sch_type)) {
             unsigned int u = bp[40 + 0];
 
@@ -1861,12 +1895,29 @@ decode_format_presets_vpd(uint8_t * buff, int len)
                    "%u.%u %%\n", u / 10, u % 10);
             printf("        logical blocks per zone: %u\n",
                    sg_get_unaligned_be32(bp + 40 + 12));
+        } else if (4 == sch_type) {
+            uint8_t u;
+
+            u = bp[40 + 0];
+            printf("        zone type for zone domain 0: %s\n",
+                   sg_get_zone_type_str((u >> 4) & 0xf, sizeof(b), b));
+            printf("        zone type for zone domain 1: %s\n",
+                   sg_get_zone_type_str(u & 0xf, sizeof(b), b));
+            u = bp[40 + 1];
+            printf("        zone type for zone domain 2: %s\n",
+                   sg_get_zone_type_str((u >> 4) & 0xf, sizeof(b), b));
+            printf("        zone type for zone domain 3: %s\n",
+                   sg_get_zone_type_str(u & 0xf, sizeof(b), b));
+            printf("        logical blocks per zone: %u\n",
+                   sg_get_unaligned_be32(bp + 40 + 12));
+            printf("        designed zone maximum address: 0x%" PRIx64 "\n",
+                   sg_get_unaligned_be64(bp + 40 + 16));
         }
     }
     return 0;
 }
 
-/* VPD_CON_POS_RANGE  0xb9 (added 20-089r2) */
+/* VPD_CON_POS_RANGE  0xb9 (added sbc5r01) */
 static int
 decode_con_pos_range_vpd(uint8_t * buff, int len)
 {
