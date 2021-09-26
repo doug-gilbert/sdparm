@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-/* sg_pt_linux version 1.52 20210423 */
+/* sg_pt_linux version 1.54 20210923 */
 
 
 #include <stdio.h>
@@ -71,8 +71,11 @@ static const char * linux_host_bytes[] = {
     "DID_NEXUS_FAILURE (reservation conflict)",
     "DID_ALLOC_FAILURE",
     "DID_MEDIUM_ERROR",
+    "DID_TRANSPORT_MARGINAL",   /*0x14 */
 };
 
+/* These where made obsolete around lk 5.12.0 . Only DRIVER_SENSE [0x8] is
+ * defined in scsi/sg.h for backward comaptibility */
 static const char * linux_driver_bytes[] = {
     "DRIVER_OK", "DRIVER_BUSY", "DRIVER_SOFT", "DRIVER_MEDIA",
     "DRIVER_ERROR", "DRIVER_INVALID", "DRIVER_TIMEOUT", "DRIVER_HARD",
@@ -385,12 +388,13 @@ static bool ev_dsense = false;
 struct sg_pt_base *
 construct_scsi_pt_obj_with_fd(int dev_fd, int verbose)
 {
-    int err;
     struct sg_pt_linux_scsi * ptp;
 
     ptp = (struct sg_pt_linux_scsi *)
           calloc(1, sizeof(struct sg_pt_linux_scsi));
     if (ptp) {
+        int err;
+
 #if (HAVE_NVME && (! IGNORE_NVME))
         sntl_init_dev_stat(&ptp->dev_stat);
         if (! checked_ev_dsense) {
@@ -435,8 +439,8 @@ destruct_scsi_pt_obj(struct sg_pt_base * vp)
             ptp->free_nvme_id_ctlp = NULL;
             ptp->nvme_id_ctlp = NULL;
         }
-        if (ptp)
-            free(ptp);
+        if (vp)
+            free(vp);
     }
 }
 
@@ -444,13 +448,14 @@ destruct_scsi_pt_obj(struct sg_pt_base * vp)
 void
 clear_scsi_pt_obj(struct sg_pt_base * vp)
 {
-    bool is_sg, is_bsg, is_nvme;
-    int fd;
-    uint32_t nvme_nsid;
-    struct sg_sntl_dev_state_t dev_stat;
     struct sg_pt_linux_scsi * ptp = &vp->impl;
 
     if (ptp) {
+        bool is_sg, is_bsg, is_nvme;
+        int fd;
+        uint32_t nvme_nsid;
+        struct sg_sntl_dev_state_t dev_stat;
+
         fd = ptp->dev_fd;
         is_sg = ptp->is_sg;
         is_bsg = ptp->is_bsg;
@@ -951,16 +956,13 @@ get_scsi_pt_transport_err_str(const struct sg_pt_base * vp, int max_b_len,
         return b;
     }
     cp += n;
-    driv = ds & SG_LIB_DRIVER_MASK;
-    if (driv < (int)SG_ARRAY_SIZE(linux_driver_bytes))
-        driv_cp = linux_driver_bytes[driv];
-#if 0
-    sugg = (ds & SG_LIB_SUGGEST_MASK) >> 4;
-    if (sugg < SG_ARRAY_SIZE(linux_driver_suggests)
-        sugg_cp = linux_driver_suggests[sugg];
-#endif
-    n = snprintf(cp, m, "Driver_status=0x%02x [%s]\n", ds, driv_cp);
-    m -= n;
+    if (ds) {
+        driv = ds & SG_LIB_DRIVER_MASK;
+        if (driv < (int)SG_ARRAY_SIZE(linux_driver_bytes))
+            driv_cp = linux_driver_bytes[driv];
+        n = snprintf(cp, m, "Driver_status=0x%02x [%s]\n", ds, driv_cp);
+        m -= n;
+    }
     if (m < 1)
         b[max_b_len - 1] = '\0';
     return b;
@@ -1119,7 +1121,6 @@ do_scsi_pt_v4(struct sg_pt_linux_scsi * ptp, int fd, int time_secs,
 int
 do_scsi_pt(struct sg_pt_base * vp, int fd, int time_secs, int verbose)
 {
-    int err;
     struct sg_pt_linux_scsi * ptp = &vp->impl;
     bool have_checked_for_type = (ptp->dev_fd >= 0);
 
@@ -1147,7 +1148,8 @@ do_scsi_pt(struct sg_pt_base * vp, int fd, int time_secs, int verbose)
     } else
         fd = ptp->dev_fd;
     if (! have_checked_for_type) {
-        err = set_pt_file_handle(vp, ptp->dev_fd, verbose);
+        int err = set_pt_file_handle(vp, ptp->dev_fd, verbose);
+
         if (err)
             return -ptp->os_err;
     }

@@ -56,8 +56,8 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Sat May 01 2021 - dgilbert at interlog dot com
-- track recent spc6 and sbc4 drafts
+* Sat Sep 25 2021 - dgilbert at interlog dot com
+- track recent spc6 and sbc5 drafts
   * sdparm-1.13
 * Wed Apr 21 2021 - dgilbert at interlog dot com
 - track recent spc6 and sbc4 drafts

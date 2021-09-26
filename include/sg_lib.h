@@ -189,9 +189,11 @@ struct sg_scsi_sense_hdr {
     uint8_t additional_length;  /* zero for fixed format sense data */
 };
 
-/* Returns true when status is SAM_STAT_GOOD or SAM_STAT_CONDITION_MET,
- * returns false otherwise. Ignores bit 0. */
+/* The '_is_good()' returns true when status is SAM_STAT_GOOD or
+ * SAM_STAT_CONDITION_MET, returns false otherwise. Ignores bit 0. The
+ * '_is_bad() variant is the logical inverse. */
 bool sg_scsi_status_is_good(int sstatus);
+bool sg_scsi_status_is_bad(int sstatus);
 
 /* Maps the salient data from a sense buffer which is in either fixed or
  * descriptor format into a structure mimicking a descriptor format
@@ -322,6 +324,11 @@ const char * sg_get_desig_code_set_str(int val);
 /* Returns a designator's association string given 'val' (0 to 3 inclusive),
  * otherwise returns NULL. */
 const char * sg_get_desig_assoc_str(int val);
+
+/* Yield string associated with zone type (see ZBC and ZBC-2) [e.g. REPORT
+ * ZONES command response]. Returns 'buff' unless buff_len < 1 in which
+ * NULL is returned. */
+char * sg_get_zone_type_str(uint8_t zt, int buff_len, char * buff);
 
 /* Yield SCSI Feature Set (sfs) string. When 'peri_type' is < -1 (or > 31)
  * returns pointer to string (same as 'buff') associated with 'sfs_code'.
@@ -465,6 +472,7 @@ bool sg_exit2str(int exit_status, bool longer, int b_len, char * b);
 #define SG_LIB_CAT_MISCOMPARE 14 /* sense key, probably verify
                                   *       [sk,asc,ascq: 0xe,*,*] */
 #define SG_LIB_FILE_ERROR 15    /* device or other file problem */
+/* for 17 and 18, see below */
 #define SG_LIB_CAT_NO_SENSE 20  /* sense data with key of "no sense"
                                  *       [sk,asc,ascq: 0x0,*,*] */
 #define SG_LIB_CAT_RECOVERED 21 /* Successful command after recovered err
@@ -483,8 +491,10 @@ bool sg_exit2str(int exit_status, bool longer, int b_len, char * b);
 #define SG_LIB_CAT_TASK_ABORTED 29 /* SCSI status, this command aborted by? */
 #define SG_LIB_CONTRADICT 31    /* error involving two or more cl options */
 #define SG_LIB_LOGIC_ERROR 32   /* unexpected situation in code */
+/* for 33 see SG_LIB_CAT_TIMEOUT below */
 #define SG_LIB_WINDOWS_ERR 34   /* Windows error number don't fit in 7 bits so
                                  * map to a single value for exit statuses */
+#define SG_LIB_TRANSPORT_ERROR 35	/* driver or interconnect */
 #define SG_LIB_OK_FALSE 36      /* no error, reporting false (cf. no error,
                                  * reporting true is SG_LIB_OK_TRUE(0) ) */
 #define SG_LIB_CAT_PROTECTION 40 /* subset of aborted command (for PI, DIF)

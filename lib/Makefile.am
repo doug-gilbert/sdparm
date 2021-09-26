@@ -8,10 +8,14 @@ libsgutils2_la_SOURCES = \
 	sg_pt_common.c
 
 if OS_LINUX
+if PT_DUMMY
+libsgutils2_la_SOURCES += sg_pt_dummy.c
+else
 libsgutils2_la_SOURCES += \
 	sg_pt_linux.c \
 	sg_io_linux.c \
 	sg_pt_linux_nvme.c
+endif
 endif
 
 if OS_WIN32_MINGW
@@ -23,7 +27,11 @@ libsgutils2_la_SOURCES += sg_pt_win32.c
 endif
 
 if OS_FREEBSD
+if PT_DUMMY
+libsgutils2_la_SOURCES += sg_pt_dummy.c
+else
 libsgutils2_la_SOURCES += sg_pt_freebsd.c
+endif
 endif
 
 if OS_SOLARIS
@@ -32,6 +40,26 @@ endif
 
 if OS_OSF
 libsgutils2_la_SOURCES += sg_pt_osf1.c
+endif
+
+if OS_HAIKU
+if PT_DUMMY
+libsgutils2_la_SOURCES += sg_pt_dummy.c
+else
+libsgutils2_la_SOURCES += sg_pt_haiku.c
+endif
+endif
+
+if OS_NETBSD
+libsgutils2_la_SOURCES += sg_pt_dummy.c
+endif
+
+if OS_OPENBSD
+libsgutils2_la_SOURCES += sg_pt_dummy.c
+endif
+
+if OS_OTHER
+libsgutils2_la_SOURCES += sg_pt_dummy.c
 endif
 
 if DEBUG
@@ -56,6 +84,7 @@ endif
 # -Wall is no longer all warnings. Add -W (since renamed to -Wextra) for more
 AM_CPPFLAGS = -iquote ${top_srcdir}/include -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 $(DBG_CPPFLAGS)
 AM_CFLAGS = -Wall -W $(DBG_CFLAGS)
+# AM_CFLAGS = -Wall -W $(DBG_CFLAGS) -fanalyzer
 # AM_CFLAGS = -Wall -W -Wextra -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wnull-dereference -Wshadow -Wjump-misses-init
 # AM_CFLAGS = -Wall -W -pedantic -std=c11
 # AM_CFLAGS = -Wall -W -pedantic -std=c11 --analyze

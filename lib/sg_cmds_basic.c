@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999-2020 Douglas Gilbert.
+ * Copyright (c) 1999-2021 Douglas Gilbert.
  * All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the BSD_LICENSE file.
@@ -42,7 +42,7 @@
 #endif
 
 
-static const char * const version_str = "1.97 20200722";
+static const char * const version_str = "1.99 20210830";
 
 
 #define SENSE_BUFF_LEN 64       /* Arbitrary, could be larger */
@@ -113,7 +113,6 @@ sg_cmds_process_helper(const char * leadin, int req_din_x, int act_din_x,
     int scat;
     bool n = false;
     bool check_data_in = false;
-    char b[512];
 
     scat = sg_err_category_sense(sbp, slen);
     switch (scat) {
@@ -145,6 +144,8 @@ sg_cmds_process_helper(const char * leadin, int req_din_x, int act_din_x,
         break;
     }
     if (verbose || n) {
+        char b[512];
+
         if (leadin && (strlen(leadin) > 0))
             pr2ws("%s:\n", leadin);
         sg_get_sense_str(NULL, sbp, slen, (verbose > 1),
@@ -192,7 +193,7 @@ sg_cmds_process_resp(struct sg_pt_base * ptvp, const char * leadin,
                      int pt_res, bool noisy, int verbose, int * o_sense_cat)
 {
     bool favour_sense;
-    int cat, slen, resp_code, sstat, req_din_x, req_dout_x;
+    int cat, slen, sstat, req_din_x, req_dout_x;
     int act_din_x, act_dout_x;
     const uint8_t * sbp;
     char b[1024];
@@ -244,7 +245,8 @@ sg_cmds_process_resp(struct sg_pt_base * ptvp, const char * leadin,
     switch ((cat = get_scsi_pt_result_category(ptvp))) {
     case SCSI_PT_RESULT_GOOD:
         if (sbp && (slen > 7)) {
-            resp_code = sbp[0] & 0x7f;
+            int resp_code = sbp[0] & 0x7f;
+
             /* SBC referrals can have status=GOOD and sense_key=COMPLETED */
             if (resp_code >= 0x70) {
                 if (resp_code < 0x72) {
@@ -399,7 +401,7 @@ sg_ll_inquiry_com(struct sg_pt_base * ptvp, int sg_fd, bool cmddt, bool evpd,
               sg_get_command_str(inq_cdb, INQUIRY_CMDLEN, false, sizeof(b),
                                  b));
     }
-    if (resp && (mx_resp_len > 0)) {
+    if (mx_resp_len > 0) {
         up = (uint8_t *)resp;
         up[0] = 0x7f;   /* defensive prefill */
         if (mx_resp_len > 4)
@@ -432,9 +434,12 @@ sg_ll_inquiry_com(struct sg_pt_base * ptvp, int sg_fd, bool cmddt, bool evpd,
     resid = get_scsi_pt_resid(ptvp);
     if (residp)
         *residp = resid;
-    if (-1 == ret)
-        ret = sg_convert_errno(get_scsi_pt_os_err(ptvp));
-    else if (-2 == ret) {
+    if (-1 == ret) {
+        if (get_scsi_pt_transport_err(ptvp))
+            ret = SG_LIB_TRANSPORT_ERROR;
+        else
+            ret = sg_convert_errno(get_scsi_pt_os_err(ptvp));
+    } else if (-2 == ret) {
         switch (sense_cat) {
         case SG_LIB_CAT_RECOVERED:
         case SG_LIB_CAT_NO_SENSE:
@@ -622,7 +627,7 @@ sg_ll_test_unit_ready_com(struct sg_pt_base * ptvp, int sg_fd, int pack_id,
     bool local_cdb = true;
     int res, ret, sense_cat;
     uint8_t tur_cdb[TUR_CMDLEN] = {TUR_CMD, 0, 0, 0, 0, 0};
-    uint8_t sense_b[SENSE_BUFF_LEN];
+    uint8_t sense_b[SENSE_BUFF_LEN] = {0};
 
     if (verbose) {
         char b[128];
@@ -651,9 +656,12 @@ sg_ll_test_unit_ready_com(struct sg_pt_base * ptvp, int sg_fd, int pack_id,
     set_scsi_pt_packet_id(ptvp, pack_id);
     res = do_scsi_pt(ptvp, -1, DEF_PT_TIMEOUT, verbose);
     ret = sg_cmds_process_resp(ptvp, tur_s, res, noisy, verbose, &sense_cat);
-    if (-1 == ret)
-        ret = sg_convert_errno(get_scsi_pt_os_err(ptvp));
-    else if (-2 == ret) {
+    if (-1 == ret) {
+        if (get_scsi_pt_transport_err(ptvp))
+            ret = SG_LIB_TRANSPORT_ERROR;
+        else
+            ret = sg_convert_errno(get_scsi_pt_os_err(ptvp));
+    } else if (-2 == ret) {
         if (progress) {
             int slen = get_scsi_pt_sense_len(ptvp);
 
@@ -748,7 +756,7 @@ sg_ll_request_sense_com(struct sg_pt_base * ptvp, int sg_fd, bool desc,
     }
     if (ptvp) {
         ptvp_given = true;
-        if (get_scsi_pt_sense_buf(ptvp))
+        if (get_scsi_pt_cdb_buf(ptvp))
             local_cdb = false;
         else
             set_scsi_pt_cdb(ptvp, rs_cdb, sizeof(rs_cdb));
@@ -766,9 +774,12 @@ sg_ll_request_sense_com(struct sg_pt_base * ptvp, int sg_fd, bool desc,
     set_scsi_pt_data_in(ptvp, (uint8_t *)resp, mx_resp_len);
     res = do_scsi_pt(ptvp, -1, DEF_PT_TIMEOUT, verbose);
     ret = sg_cmds_process_resp(ptvp, rq_s, res, noisy, verbose, &sense_cat);
-    if (-1 == ret)
-        ret = sg_convert_errno(get_scsi_pt_os_err(ptvp));
-    else if (-2 == ret) {
+    if (-1 == ret) {
+        if (get_scsi_pt_transport_err(ptvp))
+            ret = SG_LIB_TRANSPORT_ERROR;
+        else
+            ret = sg_convert_errno(get_scsi_pt_os_err(ptvp));
+    } else if (-2 == ret) {
         switch (sense_cat) {
         case SG_LIB_CAT_RECOVERED:
         case SG_LIB_CAT_NO_SENSE:
@@ -858,9 +869,12 @@ sg_ll_report_luns_com(struct sg_pt_base * ptvp, int sg_fd, int select_report,
     res = do_scsi_pt(ptvp, sg_fd, DEF_PT_TIMEOUT, verbose);
     ret = sg_cmds_process_resp(ptvp, report_luns_s, res, noisy, verbose,
                                &sense_cat);
-    if (-1 == ret)
-        ret = sg_convert_errno(get_scsi_pt_os_err(ptvp));
-    else if (-2 == ret) {
+    if (-1 == ret) {
+        if (get_scsi_pt_transport_err(ptvp))
+            ret = SG_LIB_TRANSPORT_ERROR;
+        else
+            ret = sg_convert_errno(get_scsi_pt_os_err(ptvp));
+    } else if (-2 == ret) {
         switch (sense_cat) {
         case SG_LIB_CAT_RECOVERED:
         case SG_LIB_CAT_NO_SENSE:
