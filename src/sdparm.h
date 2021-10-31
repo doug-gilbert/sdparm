@@ -49,6 +49,7 @@ extern "C" {
 #define PROT_SPEC_LU_MP 0x18
 #define PROT_SPEC_PORT_MP 0x19
 #define POWER_MP 0x1a
+#define LUN_MAPPING_MP 0x1b	/* SCC-2 (SCSI Controller Commands) */
 #define IEC_MP 0x1c
 #define MED_CONF_MP 0x1d
 #define TIMEOUT_PROT_MP 0x1d

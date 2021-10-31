@@ -2,10 +2,12 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for pre-release sdparm-1.13 [20210925] [svn: r355]
+ChangeLog for pre-release sdparm-1.13 [20211030] [svn: r356]
+  - control extension mpage: add pwromact, hrdrmact, ssumact
+    and fmtmact fields
   - format presets vpd: expand for schema type 4
   - block device characteristics vpd: add MACT field
-  - point svn:externals to sg3_utils revision 914
+  - point svn:externals to sg3_utils revision 917
 
 ChangeLog for released sdparm-1.12 [20210421] [svn: r347]
   - add Command duration limits T2A and T2B mpages
