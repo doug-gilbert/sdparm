@@ -1991,6 +1991,23 @@ decode_zbdc_vpd(uint8_t * b, int len)
         printf("no limit\n");
     else
         printf("%" PRIu32 "\n", u);
+    printf("  Zone alignment method: ");  /* zbc2r11,zbc2r12 */
+    switch (b[23] & 0xf) {
+    case 0:
+        printf("not reported [0]\n");
+        break;
+    case 1:
+        printf("use constant zone lengths\n");
+        break;
+    case 0x8:
+        printf("zone length given by REPORT ZONES\n");
+        break;
+    default:
+        printf("Unknown [0x%x]\n", (b[23] & 0xf));
+        break;
+    }
+    printf("  Zone starting LBA granularity: 0x%" PRIx64 "\n",
+           sg_get_unaligned_be64(b + 24));
     return 0;
 }
 
