@@ -1,4 +1,4 @@
-.TH SDPARM "8" "September 2021" "sdparm\-1.13" SDPARM
+.TH SDPARM "8" "January 2022" "sdparm\-1.13" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 .SH SYNOPSIS
@@ -926,10 +926,30 @@ the \fIDEVICE\fR reports a SCSI status of "task aborted". SAM\-5 says:
 management function on another I_T nexus and the Control mode page TAS bit
 is set to one".
 .TP
+.B 31
+error involving two or more command line options. They may be contradicting,
+select an unsupported mode, or a required option (given the context) is
+missing.
+.TP
+.B 32
+there is a logic error in the utility. It corresponds to code comments
+like "shouldn't/can't get here". Perhaps the author should be informed.
+.TP
 .B 33
 the command sent to \fIDEVICE\fR has timed out. This occurs in Linux
 only; in other ports a command timeout will appear as a transport (or OS)
 error.
+.TP
+.B 34
+this is a Windows only exit status and indicates that the Windows error
+number (32 bits) cannot meaningfully be mapped to an equivalent Unix error
+number returned as the exit status (7 bits).
+.TP
+.B 35
+a transport error has occurred. This will either be in the driver (e.g. HBA
+driver) or in the interconnect between the host (initiator) and the
+device (target).  For example in SAS an expander can run out of paths and
+thus be unable to return the user data from a READ command.
 .TP
 .B 40
 the command sent to \fIDEVICE\fR has received an "aborted command" sense
@@ -995,7 +1015,7 @@ Written by Douglas Gilbert.
 .SH "REPORTING BUGS"
 Report bugs to <dgilbert at interlog dot com>.
 .SH COPYRIGHT
-Copyright \(co 2005\-2021 Douglas Gilbert
+Copyright \(co 2005\-2022 Douglas Gilbert
 .br
 This software is distributed under a FreeBSD license. There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021, Douglas Gilbert
+ * Copyright (c) 2005-2022, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.13 20210925 [svn: r355]";
+static const char * version_str = "1.13 20220109 [svn: r358]";
 
 
 #define MAX_DEV_NAMES 256

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021, Douglas Gilbert
+ * Copyright (c) 2005-2022, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1957,13 +1957,16 @@ decode_zbdc_vpd(uint8_t * b, int len)
     printf("  Zoned block device extension: ");
     switch ((b[4] >> 4) & 0xf) {
     case 0:
-        printf("not reported\n");
+        if (PDT_ZBC == (0x1f & b[0]))
+            printf("host managed zoned block device [0, pdt=0x14]\n");
+        else
+            printf("not reported [0]\n");
         break;
     case 1:
-        printf("host aware zone block device model\n");
+        printf("host aware zone block device model [1]\n");
         break;
     case 2:
-        printf("Domains and realms zone block device model\n");
+        printf("Domains and realms zone block device model [2]\n");
         break;
     default:
         printf("Unknown [0x%x]\n", (b[4] >> 4) & 0xf);
@@ -1991,6 +1994,23 @@ decode_zbdc_vpd(uint8_t * b, int len)
         printf("no limit\n");
     else
         printf("%" PRIu32 "\n", u);
+    printf("  Zone alignment method: ");  /* zbc2r11,zbc2r12 */
+    switch (b[23] & 0xf) {
+    case 0:
+        printf("not reported [0]\n");
+        break;
+    case 1:
+        printf("use constant zone lengths\n");
+        break;
+    case 0x8:
+        printf("zone length given by REPORT ZONES\n");
+        break;
+    default:
+        printf("Unknown [0x%x]\n", (b[23] & 0xf));
+        break;
+    }
+    printf("  Zone starting LBA granularity: 0x%" PRIx64 "\n",
+           sg_get_unaligned_be64(b + 24));
     return 0;
 }
 
