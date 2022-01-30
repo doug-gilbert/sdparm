@@ -200,6 +200,11 @@ error saying the response is malformed). With this option, the length
 of the response is checked, and if it looks wrong, various corrections
 are attempted. This option will also allow mode pages that don't belong
 to the current device's peripheral type to be listed.
+.br
+In some cases (e.g. Application tag mpage's LAST field) stop\-if\-set logic
+may be triggered that will stop further descriptors from that mpage being
+output. This option can be used to override that causing all descriptors to
+be output.
 .TP
 \fB\-g\fR, \fB\-\-get\fR=\fISTR\fR
 In its simplest form \fISTR\fR contains a field acronym_name or a field
