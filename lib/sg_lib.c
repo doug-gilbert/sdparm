@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999-2021 Douglas Gilbert.
+ * Copyright (c) 1999-2022 Douglas Gilbert.
  * All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the BSD_LICENSE file.
@@ -149,12 +149,12 @@ get_value_name(const struct sg_lib_value_name_t * arr, int value,
         peri_type = 0;
     for (; vp->name; ++vp) {
         if (value == vp->value) {
-            if (peri_type == vp->peri_dev_type)
+            if (sg_pdt_s_eq(peri_type, vp->peri_dev_type))
                 return vp;
             holdp = vp;
             while ((vp + 1)->name && (value == (vp + 1)->value)) {
                 ++vp;
-                if (peri_type == vp->peri_dev_type)
+                if (sg_pdt_s_eq(peri_type, vp->peri_dev_type))
                     return vp;
             }
             return holdp;
@@ -586,17 +586,44 @@ sg_get_sense_progress_fld(const uint8_t * sbp, int sb_len,
 char *
 sg_get_pdt_str(int pdt, int buff_len, char * buff)
 {
-    if ((pdt < 0) || (pdt > 31))
+    if ((pdt < 0) || (pdt > PDT_MAX))
         sg_scnpr(buff, buff_len, "bad pdt");
     else
         sg_scnpr(buff, buff_len, "%s", sg_lib_pdt_strs[pdt]);
     return buff;
 }
 
+/* Returns true if left argument is "equal" to the right argument. l_pdt_s
+ * is a compound PDT (SCSI Peripheral Device Type) or a negative number
+ * which represents a wildcard (i.e. match anything). r_pdt_s has a similar
+ * form. PDT values are 5 bits long (0 to 31) and a compound pdt_s is
+ * formed by shifting the second (upper) PDT by eight bits to the left and
+ * OR-ing it with the first PDT. The pdt_s values must be defined so
+ * PDT_DISK (0) is _not_ the upper value in a compound pdt_s. */
+bool
+sg_pdt_s_eq(int l_pdt_s, int r_pdt_s)
+{
+    bool upper_l = !!(l_pdt_s & PDT_UPPER_MASK);
+    bool upper_r = !!(r_pdt_s & PDT_UPPER_MASK);
+
+    if ((l_pdt_s < 0) || (r_pdt_s < 0))
+        return true;
+    if (!upper_l && !upper_r)
+        return l_pdt_s == r_pdt_s;
+    else if (upper_l && upper_r)
+        return (((PDT_UPPER_MASK & l_pdt_s) == (PDT_UPPER_MASK & r_pdt_s)) ||
+                ((PDT_LOWER_MASK & l_pdt_s) == (PDT_LOWER_MASK & r_pdt_s)));
+    else if (upper_l)
+        return (((PDT_LOWER_MASK & l_pdt_s) == r_pdt_s) ||
+                ((PDT_UPPER_MASK & l_pdt_s) >> 8) == r_pdt_s);
+    return (((PDT_LOWER_MASK & r_pdt_s) == l_pdt_s) ||
+            ((PDT_UPPER_MASK & r_pdt_s) >> 8) == l_pdt_s);
+}
+
 int
 sg_lib_pdt_decay(int pdt)
 {
-    if ((pdt < 0) || (pdt > 31))
+    if ((pdt < 0) || (pdt > PDT_MAX))
         return 0;
     return sg_lib_pdt_decay_arr[pdt];
 }
@@ -2302,33 +2329,34 @@ sg_get_command_name(const uint8_t * cdbp, int peri_type, int buff_len,
 
 struct op_code2sa_t {
     int op_code;
-    int pdt_match;      /* -1->all; 0->disk,ZBC,RCB, 1->tape+adc+smc */
+    int pdt_s;
     struct sg_lib_value_name_t * arr;
     const char * prefix;
 };
 
 static struct op_code2sa_t op_code2sa_arr[] = {
-    {SG_VARIABLE_LENGTH_CMD, -1, sg_lib_variable_length_arr, NULL},
-    {SG_MAINTENANCE_IN, -1, sg_lib_maint_in_arr, NULL},
-    {SG_MAINTENANCE_OUT, -1, sg_lib_maint_out_arr, NULL},
-    {SG_SERVICE_ACTION_IN_12, -1, sg_lib_serv_in12_arr, NULL},
-    {SG_SERVICE_ACTION_OUT_12, -1, sg_lib_serv_out12_arr, NULL},
-    {SG_SERVICE_ACTION_IN_16, -1, sg_lib_serv_in16_arr, NULL},
-    {SG_SERVICE_ACTION_OUT_16, -1, sg_lib_serv_out16_arr, NULL},
-    {SG_SERVICE_ACTION_BIDI, -1, sg_lib_serv_bidi_arr, NULL},
-    {SG_PERSISTENT_RESERVE_IN, -1, sg_lib_pr_in_arr, "Persistent reserve in"},
-    {SG_PERSISTENT_RESERVE_OUT, -1, sg_lib_pr_out_arr,
+    {SG_VARIABLE_LENGTH_CMD, PDT_ALL, sg_lib_variable_length_arr, NULL},
+    {SG_MAINTENANCE_IN, PDT_ALL, sg_lib_maint_in_arr, NULL},
+    {SG_MAINTENANCE_OUT, PDT_ALL, sg_lib_maint_out_arr, NULL},
+    {SG_SERVICE_ACTION_IN_12, PDT_ALL, sg_lib_serv_in12_arr, NULL},
+    {SG_SERVICE_ACTION_OUT_12, PDT_ALL, sg_lib_serv_out12_arr, NULL},
+    {SG_SERVICE_ACTION_IN_16, PDT_ALL, sg_lib_serv_in16_arr, NULL},
+    {SG_SERVICE_ACTION_OUT_16, PDT_ALL, sg_lib_serv_out16_arr, NULL},
+    {SG_SERVICE_ACTION_BIDI, PDT_ALL, sg_lib_serv_bidi_arr, NULL},
+    {SG_PERSISTENT_RESERVE_IN, PDT_ALL, sg_lib_pr_in_arr,
+     "Persistent reserve in"},
+    {SG_PERSISTENT_RESERVE_OUT, PDT_ALL, sg_lib_pr_out_arr,
      "Persistent reserve out"},
-    {SG_3PARTY_COPY_OUT, -1, sg_lib_xcopy_sa_arr, NULL},
-    {SG_3PARTY_COPY_IN, -1, sg_lib_rec_copy_sa_arr, NULL},
-    {SG_READ_BUFFER, -1, sg_lib_read_buff_arr, "Read buffer(10)"},
-    {SG_READ_BUFFER_16, -1, sg_lib_read_buff_arr, "Read buffer(16)"},
-    {SG_READ_ATTRIBUTE, -1, sg_lib_read_attr_arr, "Read attribute"},
-    {SG_READ_POSITION, 1, sg_lib_read_pos_arr, "Read position"},
-    {SG_SANITIZE, 0, sg_lib_sanitize_sa_arr, "Sanitize"},
-    {SG_WRITE_BUFFER, -1, sg_lib_write_buff_arr, "Write buffer"},
-    {SG_ZONING_IN, 0, sg_lib_zoning_in_arr, NULL},
-    {SG_ZONING_OUT, 0, sg_lib_zoning_out_arr, NULL},
+    {SG_3PARTY_COPY_OUT, PDT_ALL, sg_lib_xcopy_sa_arr, NULL},
+    {SG_3PARTY_COPY_IN, PDT_ALL, sg_lib_rec_copy_sa_arr, NULL},
+    {SG_READ_BUFFER, PDT_ALL, sg_lib_read_buff_arr, "Read buffer(10)"},
+    {SG_READ_BUFFER_16, PDT_ALL, sg_lib_read_buff_arr, "Read buffer(16)"},
+    {SG_READ_ATTRIBUTE, PDT_ALL, sg_lib_read_attr_arr, "Read attribute"},
+    {SG_READ_POSITION, PDT_TAPE, sg_lib_read_pos_arr, "Read position"},
+    {SG_SANITIZE, PDT_DISK_ZBC, sg_lib_sanitize_sa_arr, "Sanitize"},
+    {SG_WRITE_BUFFER, PDT_ALL, sg_lib_write_buff_arr, "Write buffer"},
+    {SG_ZONING_IN, PDT_DISK_ZBC, sg_lib_zoning_in_arr, NULL},
+    {SG_ZONING_OUT, PDT_DISK_ZBC, sg_lib_zoning_out_arr, NULL},
     {0xffff, -1, NULL, NULL},
 };
 
@@ -2353,7 +2381,7 @@ sg_get_opcode_sa_name(uint8_t cmd_byte0, int service_action,
     d_pdt = sg_lib_pdt_decay(peri_type);
     for (osp = op_code2sa_arr; osp->arr; ++osp) {
         if ((int)cmd_byte0 == osp->op_code) {
-            if ((osp->pdt_match < 0) || (d_pdt == osp->pdt_match)) {
+            if (sg_pdt_s_eq(osp->pdt_s, d_pdt)) {
                 vnp = get_value_name(osp->arr, service_action, peri_type);
                 if (vnp) {
                     if (osp->prefix)
@@ -2535,11 +2563,11 @@ sg_get_sfs_str(uint16_t sfs_code, int peri_type, int buff_len, char * buff,
             *foundp = false;
         return NULL;
     }
-    my_pdt = ((peri_type < -1) || (peri_type > 0x1f)) ? -2 : peri_type;
+    my_pdt = ((peri_type < -1) || (peri_type > PDT_MAX)) ? -2 : peri_type;
     vnp = get_value_name(sg_lib_scsi_feature_sets, sfs_code, my_pdt);
     if (vnp && (-2 != my_pdt)) {
-        if (peri_type != vnp->peri_dev_type)
-            vnp = NULL;         /* shouldn't really happen */
+        if (! sg_pdt_s_eq(my_pdt, vnp->peri_dev_type))
+            vnp = NULL;      /* shouldn't really happen */
     }
     if (foundp)
         *foundp = vnp ? true : false;
@@ -3556,16 +3584,15 @@ sg_f2hex_arr(const char * fname, bool as_binary, bool no_space,
         k = read(fd, mp_arr, max_arr_len);
         if (k <= 0) {
             if (0 == k) {
-                ret = SG_LIB_SYNTAX_ERROR;
+                ret = SG_LIB_FILE_ERROR;
                 pr2ws("read 0 bytes from binary file %s\n", fname);
             } else {
                 ret = sg_convert_errno(errno);
                 pr2ws("read from binary file %s: %s\n", fname,
                         safe_strerror(errno));
             }
-            goto bin_fini;
-        }
-        if ((0 == fstat(fd, &a_stat)) && S_ISFIFO(a_stat.st_mode)) {
+        } else if ((k < max_arr_len) && (0 == fstat(fd, &a_stat)) &&
+                   S_ISFIFO(a_stat.st_mode)) {
             /* pipe; keep reading till error or 0 read */
             while (k < max_arr_len) {
                 m = read(fd, mp_arr + k, max_arr_len - k);
@@ -3576,13 +3603,13 @@ sg_f2hex_arr(const char * fname, bool as_binary, bool no_space,
                     pr2ws("read from binary pipe %s: %s\n", fname,
                             safe_strerror(err));
                     ret = sg_convert_errno(err);
-                    goto bin_fini;
+                    break;
                 }
                 k += m;
             }
         }
-        *mp_arr_len = k;
-bin_fini:
+        if (k >= 0)
+            *mp_arr_len = k;
         if ((fd >= 0) && (! has_stdin))
             close(fd);
         return ret;
@@ -3623,9 +3650,17 @@ bin_fini:
             if (isxdigit(line[0])) {
                 carry_over[1] = line[0];
                 carry_over[2] = '\0';
-                if (1 == sscanf(carry_over, "%4x", &h))
-                    mp_arr[off - 1] = h;       /* back up and overwrite */
-                else {
+                if (1 == sscanf(carry_over, "%4x", &h)) {
+                    if (off > 0) {
+                        if (off > max_arr_len) {
+                            pr2ws("%s: array length exceeded\n", __func__);
+                            ret = SG_LIB_LBA_OUT_OF_RANGE;
+                            *mp_arr_len = max_arr_len;
+                            goto fini;
+                        } else
+                            mp_arr[off - 1] = h; /* back up and overwrite */
+                    }
+                } else {
                     pr2ws("%s: carry_over error ['%s'] around line %d\n",
                             __func__, carry_over, j + 1);
                     ret = SG_LIB_SYNTAX_ERROR;
@@ -3667,8 +3702,8 @@ bin_fini:
                     *mp_arr_len = max_arr_len;
                     ret = SG_LIB_LBA_OUT_OF_RANGE;
                     goto fini;
-                }
-                mp_arr[off + k] = h;
+                } else
+                    mp_arr[off + k] = h;
             }
             if (isxdigit(*lcp) && (! isxdigit(*(lcp + 1))))
                 carry_over[0] = *lcp;
@@ -3692,8 +3727,8 @@ bin_fini:
                         ret = SG_LIB_LBA_OUT_OF_RANGE;
                         *mp_arr_len = max_arr_len;
                         goto fini;
-                    }
-                    mp_arr[off + k] = h;
+                    } else
+                        mp_arr[off + k] = h;
                     lcp = strpbrk(lcp, " ,\t");
                     if (NULL == lcp)
                         break;
@@ -3766,7 +3801,11 @@ uint32_t
 sg_get_page_size(void)
 {
 #if defined(HAVE_SYSCONF) && defined(_SC_PAGESIZE)
-    return (uint32_t)sysconf(_SC_PAGESIZE); /* POSIX.1 (was getpagesize()) */
+    {
+        long res = sysconf(_SC_PAGESIZE);   /* POSIX.1 (was getpagesize()) */
+
+        return (res <= 0) ? 4096 : res;
+    }
 #elif defined(SG_LIB_WIN32)
     static bool got_page_size = false;
     static uint32_t win_page_size;

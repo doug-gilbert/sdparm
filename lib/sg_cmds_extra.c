@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999-2021 Douglas Gilbert.
+ * Copyright (c) 1999-2022 Douglas Gilbert.
  * All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the BSD_LICENSE file.
@@ -1718,7 +1718,7 @@ sg_ll_verify16(int sg_fd, int vrprotect, bool dpo, int bytchk, uint64_t llba,
         v_cdb[1] |= 0x10;
     sg_put_unaligned_be64(llba, v_cdb + 2);
     sg_put_unaligned_be32((uint32_t)veri_len, v_cdb + 10);
-    v_cdb[14] = group_num & 0x1f;
+    v_cdb[14] = group_num & GRPNUM_MASK;
     if (vb > 1) {
         char b[128];
 
@@ -1807,6 +1807,7 @@ sg_ll_ata_pt(int sg_fd, const uint8_t * cdbp, int cdb_len,
     int k, res, slen, duration;
     int ret = -1;
     uint8_t apt_cdb[ATA_PT_32_CMDLEN];
+    uint8_t incoming_apt_cdb[ATA_PT_32_CMDLEN];
     uint8_t sense_b[SENSE_BUFF_LEN] = {0};
     uint8_t * sp;
     const uint8_t * bp;
@@ -1815,18 +1816,25 @@ sg_ll_ata_pt(int sg_fd, const uint8_t * cdbp, int cdb_len,
     char b[256];
 
     memset(apt_cdb, 0, sizeof(apt_cdb));
+    memset(incoming_apt_cdb, 0, sizeof(incoming_apt_cdb));
+    if (NULL == cdbp) {
+        if (vb)
+            pr2ws("NULL cdb pointer\n");
+        return -1;
+    }
+    memcpy(incoming_apt_cdb, cdbp, cdb_len);
     b[0] = '\0';
     switch (cdb_len) {
     case 12:
         cnamep = "ATA pass-through(12)";
         apt_cdb[0] = ATA_PT_12_CMD;
-        memcpy(apt_cdb + 1, cdbp + 1,  10);
+        memcpy(apt_cdb + 1, incoming_apt_cdb + 1,  10);
         /* control byte at cdb[11] left at zero */
         break;
     case 16:
         cnamep = "ATA pass-through(16)";
         apt_cdb[0] = ATA_PT_16_CMD;
-        memcpy(apt_cdb + 1, cdbp + 1,  14);
+        memcpy(apt_cdb + 1, incoming_apt_cdb + 1,  14);
         /* control byte at cdb[15] left at zero */
         break;
     case 32:
@@ -1835,15 +1843,10 @@ sg_ll_ata_pt(int sg_fd, const uint8_t * cdbp, int cdb_len,
         /* control byte at cdb[1] left at zero */
         apt_cdb[7] = 0x18;    /* length starting at next byte */
         sg_put_unaligned_be16(ATA_PT_32_SA, apt_cdb + 8);
-        memcpy(apt_cdb + 10, cdbp + 10,  32 - 10);
+        memcpy(apt_cdb + 10, incoming_apt_cdb + 10,  32 - 10);
         break;
     default:
         pr2ws("cdb_len must be 12, 16 or 32\n");
-        return -1;
-    }
-    if (NULL == cdbp) {
-        if (vb)
-            pr2ws("%s NULL cdb pointer\n", cnamep);
         return -1;
     }
     if (sensep && (max_sense_len >= (int)sizeof(sense_b))) {
@@ -2188,7 +2191,7 @@ sg_ll_unmap_v2(int sg_fd, bool anchor, int group_num, int timeout_secs,
     if (anchor)
         u_cdb[1] |= 0x1;
     tmout = (timeout_secs > 0) ? timeout_secs : DEF_PT_TIMEOUT;
-    u_cdb[6] = group_num & 0x1f;
+    u_cdb[6] = group_num & GRPNUM_MASK;
     sg_put_unaligned_be16((uint16_t)param_len, u_cdb + 7);
     if (vb) {
         char b[128];
@@ -2440,7 +2443,7 @@ sg_ll_3party_copy_out(int sg_fd, int sa, unsigned int list_id, int group_num,
     case 0x11:  /* WRITE USING TOKEN (SBC-3) */
         sg_put_unaligned_be32((uint32_t)list_id, xcopy_cdb + 6);
         sg_put_unaligned_be32((uint32_t)param_len, xcopy_cdb + 10);
-        xcopy_cdb[14] = (uint8_t)(group_num & 0x1f);
+        xcopy_cdb[14] = (uint8_t)(group_num & GRPNUM_MASK);
         break;
     case 0x1c:  /* COPY OPERATION ABORT */
         sg_put_unaligned_be32((uint32_t)list_id, xcopy_cdb + 2);
@@ -2542,7 +2545,7 @@ sg_ll_pre_fetch_x(int sg_fd, bool do_seek10, bool cdb16, bool immed,
                 preFetchCdb[1] = 0x2;
             sg_put_unaligned_be64(lba, preFetchCdb + 2);
             sg_put_unaligned_be32(num_blocks, preFetchCdb + 10);
-            preFetchCdb[14] = 0x3f & group_num;
+            preFetchCdb[14] = GRPNUM_MASK & group_num;
         } else {
             preFetchCdb[0] = PRE_FETCH10_CMD;
             cdb_len = PRE_FETCH10_CMDLEN;
@@ -2550,7 +2553,7 @@ sg_ll_pre_fetch_x(int sg_fd, bool do_seek10, bool cdb16, bool immed,
             if (immed)
                 preFetchCdb[1] = 0x2;
             sg_put_unaligned_be32((uint32_t)lba, preFetchCdb + 2);
-            preFetchCdb[6] = 0x3f & group_num;
+            preFetchCdb[6] = GRPNUM_MASK & group_num;
             sg_put_unaligned_be16((uint16_t)num_blocks, preFetchCdb + 7);
         }
     }

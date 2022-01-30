@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021, Douglas Gilbert
+ * Copyright (c) 2005-2022, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -714,8 +714,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     /* Application tag mode subpage: atag [0xa,0x2] sbc3r25 */
     /* descriptor starts here, <start_byte> is relative to start of mode
      * page (i.e. 16 more than shown in t10's descriptor format table) */
-    {"AT_LAST", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK_ZBC, 16, 7, 1, 0,
-        "Last", NULL},
+    {"AT_LAST", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK_ZBC, 16, 7, 1,
+	MF_STOP_IF_SET, "Last", NULL},
     {"AT_LBAT", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK_ZBC, 22, 7, 16, MF_HEX,
         "Logical block application tag", NULL},
     {"AT_LBA", CONTROL_MP, MSP_SBC_APP_TAG, PDT_DISK_ZBC, 24, 7, 64, MF_HEX,
@@ -871,8 +871,8 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
      * in these entries in case it could apply to host-aware (pdt=0x0) */
     {"URSWRZ_M", CONTROL_MP, MSP_ZB_D_CTL, PDT_DISK_ZBC, 4, 0, 1, 0,
         "Unrestricted read in sequential write required management",
-        "0: not configure to support reading unwritten blocks\t"
-        "1: configure to support reading unwritten blocks"},
+        "0: do not allow reading unwritten blocks\t"
+        "1: allow reading unwritten blocks"},
     {"U_UA_CTL", CONTROL_MP, MSP_ZB_D_CTL, PDT_DISK_ZBC, 5, 0, 1, 0,
         "Unrestricted read in sequential write required zone unit "
         "attention control",

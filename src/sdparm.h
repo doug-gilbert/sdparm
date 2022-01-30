@@ -172,6 +172,7 @@ extern "C" {
 #define MF_TWOS_COMP 0x8   /* integer is two's complement */
 #define MF_ALL_1S 0x10     /* even with MF_HEX output all ones as -1 */
 #define MF_SAVE_PGS 0x20   /* advise/require --save option */
+#define MF_STOP_IF_SET 0x40
 #define MF_DESC_ID_B0 0x100      /* mpage descriptor ID, bit 0 */
 #define MF_DESC_ID_B1 0x200
 #define MF_DESC_ID_B2 0x400
@@ -198,9 +199,6 @@ extern "C" {
 #define CMD_CAPACITY 9
 #define CMD_SPEED 10
 #define CMD_PROFILE 11
-
-/* squeeze two PDTs into one field, must not use PDT_DISK as upper */
-#define PDT_DISK_ZBC (PDT_DISK | (PDT_ZBC << 8))
 
 
 /* Mainly command line options */
@@ -463,18 +461,6 @@ void sdp_enumerate_commands();
 int sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp,
                     int cmd_arg, int pdt, const struct sdparm_opt_coll * opts);
 
-/* Must not have PDT_DISK as upper byte of mask */
-#define PDT_LOWER_MASK 0xff
-#define PDT_UPPER_MASK (~PDT_LOWER_MASK)
-
-/* Returns true if left argument is "equal" to the right argument. l_pdt_s
- * is a compound PDT (SCSI Peripheral Device Type) or a negative number
- * which represents a wildcard (i.e. match anything). r_pdt_s has a similar
- * form. PDT values are 5 bits long (0 to 31) and a compound pdt_s is
- * formed by shifting the second (upper) PDT by eight bits to the left and
- * OR-ing it with the first PDT. The pdt_s values must be defined so
- * PDT_DISK (0) is _not_ the upper value in a compound pdt_s. */
-bool pdt_s_eq(int l_pdt_s, int r_pdt_s);
 
 /*
  * Declarations for functions that are port dependent

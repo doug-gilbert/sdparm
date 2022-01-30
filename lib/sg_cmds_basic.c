@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999-2021 Douglas Gilbert.
+ * Copyright (c) 1999-2022 Douglas Gilbert.
  * All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the BSD_LICENSE file.
@@ -42,7 +42,7 @@
 #endif
 
 
-static const char * const version_str = "1.99 20210830";
+static const char * const version_str = "2.00 20220118";
 
 
 #define SENSE_BUFF_LEN 64       /* Arbitrary, could be larger */
@@ -192,7 +192,6 @@ int
 sg_cmds_process_resp(struct sg_pt_base * ptvp, const char * leadin,
                      int pt_res, bool noisy, int verbose, int * o_sense_cat)
 {
-    bool favour_sense;
     int cat, slen, sstat, req_din_x, req_dout_x;
     int act_din_x, act_dout_x;
     const uint8_t * sbp;
@@ -323,19 +322,23 @@ sg_cmds_process_resp(struct sg_pt_base * ptvp, const char * leadin,
             get_scsi_pt_transport_err_str(ptvp, sizeof(b), b);
             pr2ws("%s: transport: %s\n", leadin, b);
         }
-        /* Shall we favour sense data over a transport error (given both) */
 #ifdef SG_LIB_LINUX
-        favour_sense = false; /* DRIVER_SENSE is not passed through */
+        return -1;      /* DRIVER_SENSE is not passed through */
 #else
-        favour_sense = ((SAM_STAT_CHECK_CONDITION ==
-                            get_scsi_pt_status_response(ptvp)) && (slen > 0));
+        /* Shall we favour sense data over a transport error (given both) */
+        {
+            bool favour_sense = ((SAM_STAT_CHECK_CONDITION ==
+                    get_scsi_pt_status_response(ptvp)) && (slen > 0));
+
+            if (favour_sense)
+                return sg_cmds_process_helper(leadin, req_din_x, act_din_x,
+                                              req_dout_x, act_dout_x, sbp,
+                                              slen, noisy, verbose,
+                                              o_sense_cat);
+            else
+                return -1;
+        }
 #endif
-        if (favour_sense)
-            return sg_cmds_process_helper(leadin, req_din_x, act_din_x,
-                                          req_dout_x, act_dout_x, sbp, slen,
-                                          noisy, verbose, o_sense_cat);
-        else
-            return -1;
     case SCSI_PT_RESULT_OS_ERR:
         if (verbose || noisy) {
             get_scsi_pt_os_err_str(ptvp, sizeof(b), b);
@@ -539,7 +542,7 @@ sg_simple_inquiry(int sg_fd, struct sg_simple_inquiry_resp * inq_data,
     if (inq_data) {
         memset(inq_data, 0, sizeof(* inq_data));
         inq_data->peripheral_qualifier = 0x3;
-        inq_data->peripheral_type = 0x1f;
+        inq_data->peripheral_type = PDT_UNKNOWN;
     }
     inq_resp = sg_memalign(SAFE_STD_INQ_RESP_LEN, 0, &free_irp, false);
     if (NULL == inq_resp) {
@@ -551,7 +554,7 @@ sg_simple_inquiry(int sg_fd, struct sg_simple_inquiry_resp * inq_data,
 
     if (inq_data && (0 == ret)) {
         inq_data->peripheral_qualifier = (inq_resp[0] >> 5) & 0x7;
-        inq_data->peripheral_type = inq_resp[0] & 0x1f;
+        inq_data->peripheral_type = inq_resp[0] & PDT_MASK;
         inq_data->byte_1 = inq_resp[1];
         inq_data->version = inq_resp[2];
         inq_data->byte_3 = inq_resp[3];
@@ -581,7 +584,7 @@ sg_simple_inquiry_pt(struct sg_pt_base * ptvp,
     if (inq_data) {
         memset(inq_data, 0, sizeof(* inq_data));
         inq_data->peripheral_qualifier = 0x3;
-        inq_data->peripheral_type = 0x1f;
+        inq_data->peripheral_type = PDT_MASK;
     }
     inq_resp = sg_memalign(SAFE_STD_INQ_RESP_LEN, 0, &free_irp, false);
     if (NULL == inq_resp) {
@@ -593,7 +596,7 @@ sg_simple_inquiry_pt(struct sg_pt_base * ptvp,
 
     if (inq_data && (0 == ret)) {
         inq_data->peripheral_qualifier = (inq_resp[0] >> 5) & 0x7;
-        inq_data->peripheral_type = inq_resp[0] & 0x1f;
+        inq_data->peripheral_type = inq_resp[0] & PDT_MASK;
         inq_data->byte_1 = inq_resp[1];
         inq_data->version = inq_resp[2];
         inq_data->byte_3 = inq_resp[3];
