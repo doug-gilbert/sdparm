@@ -108,10 +108,14 @@ sdp_mpage_len(const uint8_t * mp)
     return (mp[0] & 0x40) ? (sg_get_unaligned_be16(mp + 2) + 4) : (mp[1] + 2);
 }
 
+enum mode_page_class {MPC_VENDOR, MPC_TRANSPORT, MPC_GENERAL};
+
 const struct sdparm_mode_page_t *
 sdp_get_mpage_t(int page_num, int subpage_num, int pdt, int transp_proto,
                 int vendor_id)
 {
+    enum mode_page_class mpc;
+    int decayed_pdt;
     const struct sdparm_mode_page_t * mpp;
 
     if (vendor_id >= 0) {
@@ -119,17 +123,29 @@ sdp_get_mpage_t(int page_num, int subpage_num, int pdt, int transp_proto,
 
         vpp = sdp_get_vendor_pair(vendor_id);
         mpp = (vpp ? vpp->mpage : NULL);
-    } else if ((transp_proto >= 0) && (transp_proto < 16))
+        mpc = MPC_VENDOR;
+    } else if ((transp_proto >= 0) && (transp_proto < 16)) {
         mpp = sdparm_transport_mp[transp_proto].mpage;
-    else
+        mpc = MPC_TRANSPORT;
+    } else {
         mpp = sdparm_gen_mode_pg;
+        mpc = MPC_GENERAL;
+    }
     if (NULL == mpp)
         return NULL;
 
+try_again:
     for ( ; mpp->acron; ++mpp) {
         if ((page_num == mpp->page) && (subpage_num == mpp->subpage)) {
             if ((pdt < 0) || (mpp->pdt_s < 0) || sg_pdt_s_eq(mpp->pdt_s, pdt))
                 return mpp;
+        }
+    }
+    if (MPC_GENERAL == mpc) {
+        decayed_pdt = sg_lib_pdt_decay(pdt);
+        if (decayed_pdt != pdt) {
+            pdt = decayed_pdt;
+            goto try_again;
         }
     }
     return NULL;

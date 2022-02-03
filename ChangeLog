@@ -2,18 +2,19 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for pre-release sdparm-1.13 [20220129] [svn: r359]
+ChangeLog for pre-release sdparm-1.13 [20220202] [svn: r360]
   - control extension mpage: add pwromact, hrdrmact, ssumact
     and fmtmact fields
   - format presets vpd: expand for schema type 4
   - block device characteristics vpd: add MACT field
+  - improve handling of ZBC disks with pdt=0x14
   - zoned block device characteristics vpd: add Zone
     alignment method and Zone starting LBA granularity
     fields [zbc2r11,zbc2r12]
   - act on LAST bit in App tag mpage descriptors to stop
     output of further descriptors, override this
     truncation with --flexible option
-  - point svn:externals to sg3_utils revision 934
+  - point svn:externals to sg3_utils revision 935
 
 ChangeLog for released sdparm-1.12 [20210421] [svn: r347]
   - add Command duration limits T2A and T2B mpages
