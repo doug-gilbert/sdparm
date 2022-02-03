@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.13 20220129 [svn: r359]";
+static const char * version_str = "1.13 20220202 [svn: r360]";
 
 
 #define MAX_DEV_NAMES 256
@@ -433,7 +433,7 @@ enumerate_mitems(int pn, int spn, int pdt,
     bool found = false;
     bool have_desc = false;
     bool have_desc_id = false;
-    int t_pn, t_spn, t_pdt_s, vendor_id, transp, long_o, e_num;
+    int t_pn, t_spn, t_pdt_s, vendor_id, transp, long_o, e_num, decay_pdt;
     const struct sdparm_mode_page_t * mpp = NULL;
     const struct sdparm_mode_descriptor_t * mdp = NULL;
     const struct sdparm_mode_page_item * mpi;
@@ -447,6 +447,13 @@ enumerate_mitems(int pn, int spn, int pdt,
     transp = op->transport;
     long_o = op->do_long;
     e_num = op->do_enum;
+    decay_pdt = sg_lib_pdt_decay(pdt);
+    if (decay_pdt != pdt) {
+        if (op->verbose > 1)
+            pr2serr("%s: decaying pdt=0x%x to 0x%x\n", __func__, pdt,
+                    decay_pdt);
+        pdt = decay_pdt;
+    }
     if (vendor_id >= 0) {
         const struct sdparm_vendor_pair * vpp;
 
@@ -1038,7 +1045,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
     bool for_in_hex = (op->do_hex > 2);
     bool mode6 = op->mode_6;
     bool stop_if_set = false;
-    int res, pg_len, verb, smask, rep_len, req_len, orig_pn;
+    int res, pg_len, verb, smask, rep_len, req_len, orig_pn, decay_pdt;
     int desc_id, desc_len;
     int desc0_off = 0;
     const struct sdparm_mode_page_item * mpi;
@@ -1071,6 +1078,13 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
     b[0] = '\0';
     res = 0;
     verb = (op->verbose > 0) ? op->verbose - 1 : 0;
+    decay_pdt = sg_lib_pdt_decay(pdt);
+    if (decay_pdt != pdt) {
+        if (op->verbose > 1)
+            pr2serr("%s: decaying pdt=0x%x to 0x%x\n", __func__, pdt,
+                    decay_pdt);
+        pdt = decay_pdt;
+    }
     if (((0 == pdt) && (op->do_long > 0) && (0 == op->do_quiet)) ||
         for_in_hex) {
         if (0 != (res = print_direct_access_info(sg_fd, op, verb)))
@@ -1327,7 +1341,7 @@ print_inhex_mode_pages(uint8_t * msense_resp, int msense_resp_len,
     bool first_time, desc_part, warned, spf, have_desc_id, sis;
     bool mode6 = op->mode_6;
     bool stop_if_set = false;
-    int smask, resp_len, orig_pn, v, off, desc0_off, pn, spn;
+    int smask, resp_len, orig_pn, v, off, desc0_off, pn, spn, pdt, decay_pdt;
     int pg_len, transport, vendor_id, desc_id, desc_len;
     const struct sdparm_mode_page_item * mpi;
     const struct sdparm_mode_page_item * last_mpi;
@@ -1338,6 +1352,14 @@ print_inhex_mode_pages(uint8_t * msense_resp, int msense_resp_len,
     void * pc_arr[4];
     char b[128];
 
+    pdt = op->pdt;
+    decay_pdt = sg_lib_pdt_decay(pdt);
+    if (decay_pdt != pdt) {
+        if (op->verbose > 1)
+            pr2serr("%s: decaying pdt=0x%x to 0x%x\n", __func__, pdt,
+                    decay_pdt);
+        pdt = decay_pdt;
+    }
     resp_len = sg_msense_calc_length(msense_resp, msense_resp_len, mode6,
                                      NULL);
     off = sg_mode_page_offset(msense_resp, msense_resp_len, mode6, NULL, 0);
@@ -1352,7 +1374,7 @@ print_inhex_mode_pages(uint8_t * msense_resp, int msense_resp_len,
                 "%d\n", ms_s, (mode6 ? 6 : 10), msense_resp_len, resp_len);
         return SG_LIB_CAT_OTHER;
     }
-    if ((0 == op->pdt) && (op->do_long > 0) && (0 == op->do_quiet)) {
+    if ((0 == pdt) && (op->do_long > 0) && (0 == op->do_quiet)) {
         v = msense_resp[mode6 ? 2 : 3];
         printf("    Direct access device specific parameters: WP=%d  "
                "DPOFUA=%d\n", !!(v & 0x80), !!(v & 0x10));
@@ -1394,7 +1416,7 @@ now_try_generic:
     last_mpi = mpi;
     for ( ; mpi->acron; ++mpi) {
         if ((pn == mpi->pg_num) && (spn == mpi->subpg_num)) {
-            if (sg_pdt_s_eq(op->pdt, mpi->pdt_s) || op->flexible)
+            if (sg_pdt_s_eq(pdt, mpi->pdt_s) || op->flexible)
                 break;
         }
     }
@@ -1407,7 +1429,7 @@ now_try_generic:
             mpi = sdparm_mitem_arr;
             goto now_try_generic;
         }
-        sdp_get_mpt_with_str(pn, spn, op->pdt, transport, vendor_id, 0, false,
+        sdp_get_mpt_with_str(pn, spn, pdt, transport, vendor_id, 0, false,
                              sizeof(b), b);
         if ((vendor_id < 0) && ((0 == pn) || (0x18 == pn) || (0x19 == pn) ||
                                 (pn >= 0x20)))
@@ -1424,7 +1446,7 @@ now_try_generic:
     for (warned = false, first_time = true ; mpi->acron; ++mpi) {
         if (first_time) {
             first_time = false;
-            mpp = sdp_get_mpt_with_str(pn, spn, op->pdt, transport, vendor_id,
+            mpp = sdp_get_mpt_with_str(pn, spn, pdt, transport, vendor_id,
                                        op->do_long, (op->do_hex > 0),
                                       sizeof(b), b);
             warned = false;
@@ -1465,7 +1487,7 @@ now_try_generic:
             check_mode_page(pg_p, pn, pg_len, op);
         } else {        /* if not first_time */
             if ((pn == mpi->pg_num) && (spn == mpi->subpg_num)) {
-                if (! sg_pdt_s_eq(op->pdt, mpi->pdt_s) && ! op->flexible)
+                if (! sg_pdt_s_eq(pdt, mpi->pdt_s) && ! op->flexible)
                     continue;
                 if (! (((orig_pn >= 0) ? true : op->do_all) ||
                        (MF_COMMON & mpi->flags)))
@@ -2500,7 +2522,8 @@ process_mode_page(int sg_fd, const struct sdparm_mode_page_settings * mps,
         mpp = sdp_get_mpage_t(pn, spn, pdt, op->transport, op->vendor_id);
         if (NULL == mpp)
             mpp = sdp_get_mpage_t(pn, spn, -1, op->transport, op->vendor_id);
-        if (mpp && mpp->name && ! sg_pdt_s_eq(pdt, mpp->pdt_s)) {
+        if (mpp && mpp->name && ! sg_pdt_s_eq(pdt, mpp->pdt_s) &&
+            ! sg_pdt_s_eq(sg_lib_pdt_decay(pdt), mpp->pdt_s)) {
             pr2serr(">> Warning: %s mode page associated with\n", mpp->name);
             pr2serr("   peripheral device type 0x%x but device pdt is 0x%x\n",
                     mpp->pdt_s, pdt);
