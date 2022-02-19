@@ -2553,9 +2553,8 @@ try_larger:
         }
         up = b + 4;
         for ( ; len > 5; len -= 6, up += 6)
-            printf("    IEEE Company_id: 0x%06x, vendor specific extension "
-                   "id: 0x%06x\n", sg_get_unaligned_be24(up + 0),
-                   sg_get_unaligned_be24(up + 3));
+            printf("    IEEE identifier: 0x%" PRIx64 "\n",
+                   sg_get_unaligned_be48(up + 0));
         break;
     case VPD_UNIT_SERIAL_NUM:           /* 0x80 */
         if (b[1] != pn)
