@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2019, Douglas Gilbert
+ * Copyright (c) 2005-2022, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -140,6 +140,7 @@ static struct sdparm_mode_page_t sdparm_v_hitachi_mode_pg[] = {
     {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
+/* Western Digital (WD) and Hitachi are synonymous */
 static struct sdparm_mode_page_item sdparm_mitem_v_hitachi_arr[] = {
     /* Vendor unique parameters page, vup [0x0] Hitachi/HGST/WDC */
     {"MRG", UNIT_ATTENTION_MP, 0, 0, 2, 3, 1, 0,
@@ -184,6 +185,8 @@ static struct sdparm_mode_page_item sdparm_mitem_v_hitachi_arr[] = {
         "Fast format enable, format without writes to customer media", NULL},
     {"FCERT", UNIT_ATTENTION_MP, 0, 0, 15, 5, 1, 0,
         "Format certification (enable)", NULL},
+    {"CERT_RDP", UNIT_ATTENTION_MP, 0, 0, 15, 3, 1, 0,
+        "RDP certification (enable)", NULL},
 
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL},
 };
