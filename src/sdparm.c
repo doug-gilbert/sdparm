@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.13 20220202 [svn: r360]";
+static const char * version_str = "1.13 20220602 [svn: r362]";
 
 
 #define MAX_DEV_NAMES 256
@@ -1364,7 +1364,7 @@ print_inhex_mode_pages(uint8_t * msense_resp, int msense_resp_len,
                                      NULL);
     off = sg_mode_page_offset(msense_resp, msense_resp_len, mode6, NULL, 0);
     if ((resp_len < 2) || (off < 2)) {
-        pr2serr("Couldn't decode %s as a %s(%d) command reponse\n",
+        pr2serr("Couldn't decode %s as a %s(%d) command response\n",
                 (op->inhex_fn ? op->inhex_fn : "??"), ms_s, (mode6 ? 6 : 10));
         pr2serr("perhaps it is a VPD page, if so add '-i'\n");
         return SG_LIB_CAT_OTHER;

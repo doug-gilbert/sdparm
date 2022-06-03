@@ -796,7 +796,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     /* Command duration limit T2A mode subpage: cdt2a [0xa,0x7] spc6 */
     {"PVCDG", CONTROL_MP, MSP_SPC_CDLT2A, -1, 7, 7, 4, 0,
         "Perf versus command duration guidelines",
-        "Maximium percentage increase in average command completion times:\t"
+        "Maximum percentage increase in average command completion times:\t"
         "0: 0%\t1: 0.5%\t...\t6: 3%\t7: 4%\t8: 5%\t9: 8%\t10: 10%"
         "11: 15%\t12: 20%"},
     /* descriptor starts here, <start_byte> is relative to start of mode
@@ -833,7 +833,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"PVLC", CONTROL_MP, MSP_SPC_CDLT2B, -1, 7, 3, 4, 0,
         "Perf versus latency control",
         "This field is not defined in SPC6r05??\t"
-        "Maximium percentage increase in average command completion times:\t"
+        "Maximum percentage increase in average command completion times:\t"
         "0: 0%\t1: 0.5%\t...\t6: 3%\t7: 4%\t8: 5%\t9: 8%\t10: 10%"
         "11: 15%\t12: 20%"},
     /* descriptor starts here, <start_byte> is relative to start of mode
@@ -1275,7 +1275,7 @@ struct sdparm_mode_page_item sdparm_mitem_arr[] = {
     {"BPS_TL", IEC_MP, MSP_BACK_CTL, PDT_DISK_ZBC, 8, 7, 16, 0,
         "Background pre-scan time limit (hour)", "0: no limit"},
     {"MIN_IDLE", IEC_MP, MSP_BACK_CTL, PDT_DISK_ZBC, 10, 7, 16, 0,
-        "Minumum idle time before background scan (ms)", NULL},
+        "Minimum idle time before background scan (ms)", NULL},
     {"MAX_SUSP", IEC_MP, MSP_BACK_CTL, PDT_DISK_ZBC, 12, 7, 16, 0,
         "Maximum time to suspend background scan (ms)", NULL},
 
@@ -2017,7 +2017,7 @@ static struct sdparm_mode_page_item sdparm_mitem_sas_arr[] = {
         "transmission packet\t0->1: send protocol revision code packet"},
     {"OOB_PRV", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 6, 7, 16, MF_HEX,
         "Out of band protocol revision code",
-        "example: SFF-8609 revison 1.2 is code 0x102"},
+        "example: SFF-8609 revision 1.2 is code 0x102"},
     {"OOB_D_ID", PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 8, 3, 4,
         0, "Out of band descriptor identifier",
         "0: temperature attribute; 1-15: restricted for SFF-8209"},

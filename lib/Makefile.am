@@ -1,11 +1,14 @@
 libsgutils2_la_SOURCES = \
 	sg_lib.c \
+	sg_pr2serr.c \
 	sg_lib_data.c \
+	sg_lib_names.c \
 	sg_cmds_basic.c \
 	sg_cmds_basic2.c \
 	sg_cmds_extra.c \
 	sg_cmds_mmc.c \
-	sg_pt_common.c
+	sg_pt_common.c \
+	sg_json_builder.c
 
 if OS_LINUX
 if PT_DUMMY
@@ -98,5 +101,4 @@ libsgutils2_la_LDFLAGS = -version-info 2:0:0 -no-undefined -release ${PACKAGE_VE
 
 libsgutils2_la_LIBADD = @GETOPT_O_FILES@
 libsgutils2_la_DEPENDENCIES = @GETOPT_O_FILES@
-
 

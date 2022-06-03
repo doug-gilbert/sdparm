@@ -75,20 +75,6 @@ pr2ws(const char * fmt, ...)
     return n;
 }
 
-/* Users of the sg_pr2serr.h header need this function definition */
-int
-pr2serr(const char * fmt, ...)
-{
-    va_list args;
-    int n;
-
-    va_start(args, fmt);
-    n = vfprintf(stderr, fmt, args);
-    va_end(args);
-    return n;
-}
-
-
 /* Want safe, 'n += snprintf(b + n, blen - n, ...)' style sequence of
  * functions. Returns number of chars placed in cp excluding the
  * trailing null char. So for cp_max_len > 0 the return value is always
@@ -954,8 +940,8 @@ sg_get_designation_descriptor_str(const char * lip, const uint8_t * ddp,
 {
     int m, p_id, piv, c_set, assoc, desig_type, ci_off, c_id, d_id, naa;
     int vsi, k, n, dlen;
+    uint64_t ccc_id, vsei;
     const uint8_t * ip;
-    uint64_t vsei;
     char e[64];
     const char * cp;
 
@@ -1061,17 +1047,9 @@ sg_get_designation_descriptor_str(const char * lip, const uint8_t * ddp,
             n += hex2str(ip, dlen, lip, 1, blen - n, b + n);
             break;
         }
-        c_id = sg_get_unaligned_be24(ip + ci_off);
-        n += sg_scnpr(b + n, blen - n, "%s      IEEE Company_id: 0x%x\n", lip,
-                      c_id);
-        vsei = 0;
-        for (m = 0; m < 5; ++m) {
-            if (m > 0)
-                vsei <<= 8;
-            vsei |= ip[ci_off + 3 + m];
-        }
-        n += sg_scnpr(b + n, blen - n, "%s      Vendor Specific Extension "
-                      "Identifier: 0x%" PRIx64 "\n", lip, vsei);
+        ccc_id = sg_get_unaligned_be64(ip + ci_off);
+        n += sg_scnpr(b + n, blen - n, "%s      IEEE identifier: 0x%"
+                      PRIx64 "x\n", lip, ccc_id);
         if (12 == dlen) {
             d_id = sg_get_unaligned_be32(ip + 8);
             n += sg_scnpr(b + n, blen - n, "%s      Directory ID: 0x%x\n",
@@ -1100,8 +1078,8 @@ sg_get_designation_descriptor_str(const char * lip, const uint8_t * ddp,
             if (do_long) {
                 n += sg_scnpr(b + n, blen - n, "%s      NAA 2, vendor "
                               "specific identifier A: 0x%x\n", lip, d_id);
-                n += sg_scnpr(b + n, blen - n, "%s      IEEE Company_id: "
-                              "0x%x\n", lip, c_id);
+                n += sg_scnpr(b + n, blen - n, "%s      AOI: 0x%x\n", lip,
+                              c_id);
                 n += sg_scnpr(b + n, blen - n, "%s      vendor specific "
                               "identifier B: 0x%x\n", lip, vsi);
                 n += sg_scnpr(b + n, blen - n, "%s      [0x", lip);
@@ -1144,8 +1122,8 @@ sg_get_designation_descriptor_str(const char * lip, const uint8_t * ddp,
                 vsei |= ip[3 + m];
             }
             if (do_long) {
-                n += sg_scnpr(b + n, blen - n, "%s      NAA 5, IEEE "
-                              "Company_id: 0x%x\n", lip, c_id);
+                n += sg_scnpr(b + n, blen - n, "%s      NAA 5, AOI: 0x%x\n",
+                              lip, c_id);
                 n += sg_scnpr(b + n, blen - n, "%s      Vendor Specific "
                               "Identifier: 0x%" PRIx64 "\n", lip, vsei);
                 n += sg_scnpr(b + n, blen - n, "%s      [0x", lip);
@@ -1174,8 +1152,8 @@ sg_get_designation_descriptor_str(const char * lip, const uint8_t * ddp,
                 vsei |= ip[3 + m];
             }
             if (do_long) {
-                n += sg_scnpr(b + n, blen - n, "%s      NAA 6, IEEE "
-                              "Company_id: 0x%x\n", lip, c_id);
+                n += sg_scnpr(b + n, blen - n, "%s      NAA 6, AOI: 0x%x\n",
+                              lip, c_id);
                 n += sg_scnpr(b + n, blen - n, "%s      Vendor Specific "
                               "Identifier: 0x%" PRIx64 "\n", lip, vsei);
                 vsei = sg_get_unaligned_be64(ip + 8);
@@ -1457,7 +1435,7 @@ static const char * dd_usage_reason_str_arr[] = {
     "Unknown",
     "resend this and further commands to:",
     "resend this command to:",
-    "new subsiduary lu added to this administrative lu:",
+    "new subsidiary lu added to this administrative lu:",
     "administrative lu associated with a preferred binding:",
    };
 
@@ -2632,7 +2610,7 @@ sg_get_sfs_str(uint16_t sfs_code, int peri_type, int buff_len, char * buff,
  * structures that are sent across the wire. The FIS register structure is
  * used to move a command from a SATA host to device, but the ATA 'command'
  * is not the first byte. So it is harder to say what will happen if a
- * FIS structure is presented as a SCSI command, hopfully there is a low
+ * FIS structure is presented as a SCSI command, hopefully there is a low
  * probability this function will yield true in that case. */
 bool
 sg_is_scsi_cdb(const uint8_t * cdbp, int clen)
@@ -2951,24 +2929,27 @@ dStrHexErr(const char* str, int len, int no_ascii)
               (sg_warnings_strm ? sg_warnings_strm : stderr));
 }
 
-#define DSHS_LINE_BLEN 160
-#define DSHS_BPL 16
+#define DSHS_LINE_BLEN 160      /* maximum characters per line */
+#define DSHS_BPL 16             /* bytes per line */
 
 /* Read 'len' bytes from 'str' and output as ASCII-Hex bytes (space
  * separated) to 'b' not to exceed 'b_len' characters. Each line
  * starts with 'leadin' (NULL for no leadin) and there are 16 bytes
  * per line with an extra space between the 8th and 9th bytes. 'format'
- * is 0 for repeat in printable ASCII ('.' for non printable) to
- * right of each line; 1 don't (so just output ASCII hex). Returns
- * number of bytes written to 'b' excluding the trailing '\0'. */
+ * is 0 for repeat in printable ASCII ('.' for non printable chars) to
+ * right of each line; 1 don't (so just output ASCII hex). Note that
+ * an address is not printed on each line preceding the hex data. Returns
+ * number of bytes written to 'b' excluding the trailing '\0'.
+ * The only difference between dStrHexStr() and hex2str() is the type of
+ * the first argument. */
 int
 dStrHexStr(const char * str, int len, const char * leadin, int format,
            int b_len, char * b)
 {
     int bpstart, bpos, k, n, prior_ascii_len;
     bool want_ascii;
-    char buff[DSHS_LINE_BLEN + 2];
-    char a[DSHS_BPL + 1];
+    char buff[DSHS_LINE_BLEN + 2];      /* allow for trailing null */
+    char a[DSHS_BPL + 1];               /* printable ASCII bytes or '.' */
     const char * p = str;
 
     if (len <= 0) {
@@ -3052,6 +3033,24 @@ hex2str(const uint8_t * b_str, int len, const char * leadin, int format,
         int b_len, char * b)
 {
     return dStrHexStr((const char *)b_str, len, leadin, format, b_len, b);
+}
+
+void
+hex2fp(const uint8_t * b_str, int len, const char * leadin, int format,
+       FILE * fp)
+{
+    int k, num;
+    char b[800];        /* allow for 4 lines of 16 bytes (in hex) each */
+
+    if (leadin && (strlen(leadin) > 118)) {
+        fprintf(fp, ">>> leadin parameter is too large\n");
+        return;
+    }
+    for (k = 0; k < len; k += num) {
+        num = ((k + 64) < len) ? 64 : (len - k);
+        hex2str(b_str + k, num, leadin, format, sizeof(b), b);
+        fprintf(fp, "%s", b);
+    }
 }
 
 /* Returns true when executed on big endian machine; else returns false.
@@ -3539,6 +3538,8 @@ sg_get_llnum_nomult(const char * buf)
     return (1 == res) ? num : -1;
 }
 
+#define MAX_NUM_ASCII_LINES 1048576
+
 /* Read ASCII hex bytes or binary from fname (a file named '-' taken as
  * stdin). If reading ASCII hex then there should be either one entry per
  * line or a comma, space or tab separated list of bytes. If no_space is
@@ -3630,7 +3631,7 @@ sg_f2hex_arr(const char * fname, bool as_binary, bool no_space,
     }
 
     carry_over[0] = 0;
-    for (j = 0; j < 512; ++j) {
+    for (j = 0; j < MAX_NUM_ASCII_LINES; ++j) {
         if (NULL == fgets(line, sizeof(line), fp))
             break;
         in_len = strlen(line);
@@ -3748,6 +3749,11 @@ sg_f2hex_arr(const char * fname, bool as_binary, bool no_space,
             }
             off += (k + 1);
         }
+    }           /* end of per line loop */
+    if (j >= MAX_NUM_ASCII_LINES) {
+        pr2ws("%s: wow, more than %d lines of ASCII, give up\n", __func__,
+              SG_LIB_LBA_OUT_OF_RANGE);
+        return SG_LIB_LBA_OUT_OF_RANGE;
     }
     *mp_arr_len = off;
     if (stdin != fp)
@@ -3886,7 +3892,7 @@ sg_memalign(uint32_t num_bytes, uint32_t align_to, uint8_t ** buff_to_free,
             pr2ws("%s: hack, len=%d, ", __func__, num_bytes);
             if (buff_to_free)
                 pr2ws("buff_to_free=%p, ", wrkBuff);
-            pr2ws("align_1=%lu, rp=%p\n", align_1, (void *)res);
+            pr2ws("align_1=%" PRIuPTR "u, rp=%p\n", align_1, (void *)res);
         }
         return res;
     }
