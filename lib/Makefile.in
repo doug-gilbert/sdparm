@@ -280,6 +280,7 @@ EGREP = @EGREP@
 ETAGS = @ETAGS@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
+FILECMD = @FILECMD@
 GETOPT_O_FILES = @GETOPT_O_FILES@
 GREP = @GREP@
 INSTALL = @INSTALL@
@@ -403,9 +404,11 @@ AM_CFLAGS = -Wall -W $(DBG_CFLAGS)
 # AM_CFLAGS = -Wall -W -Wextra -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wnull-dereference -Wshadow -Wjump-misses-init
 # AM_CFLAGS = -Wall -W -pedantic -std=c11
 # AM_CFLAGS = -Wall -W -pedantic -std=c11 --analyze
+# AM_CFLAGS = -Wall -W -pedantic -std=c++11
 # AM_CFLAGS = -Wall -W -pedantic -std=c++14
 # AM_CFLAGS = -Wall -W -pedantic -std=c++1z
 # AM_CFLAGS = -Wall -W -pedantic -std=c++20
+# AM_CFLAGS = -Wall -W -pedantic -std=c++23
 lib_LTLIBRARIES = libsgutils2.la
 libsgutils2_la_LDFLAGS = -version-info 2:0:0 -no-undefined -release ${PACKAGE_VERSION}
 libsgutils2_la_LIBADD = @GETOPT_O_FILES@

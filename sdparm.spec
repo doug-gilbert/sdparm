@@ -9,7 +9,7 @@ Release:	%{release}
 License:	FreeBSD
 Group:		Utilities/System
 URL:		https://sg.danny.cz/sg/sdparm.html
-Source0:	https://sg.danny.cz/sg/p/%{name}-%{version}.tgz
+Source0:	https://sg.danny.cz/sg/p/%{name}-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-root
 Packager:	Douglas Gilbert <dgilbert at interlog dot com>
 
