@@ -9,7 +9,7 @@ Release:	%{release}
 License:	FreeBSD
 Group:		Utilities/System
 URL:		https://sg.danny.cz/sg/sdparm.html
-Source0:	https://sg.danny.cz/sg/p/%{name}-%{version}.tgz
+Source0:	https://sg.danny.cz/sg/p/%{name}-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-root
 Packager:	Douglas Gilbert <dgilbert at interlog dot com>
 
@@ -56,7 +56,7 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Wed Feb 02 2022 - dgilbert at interlog dot com
+* Thu Sep 08 2022 - dgilbert at interlog dot com
 - track recent spc6 and sbc5 drafts
   * sdparm-1.13
 * Wed Apr 21 2021 - dgilbert at interlog dot com
