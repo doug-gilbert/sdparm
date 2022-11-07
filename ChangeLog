@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for pre-release sdparm-1.13 [20220825] [svn: r363]
+ChangeLog for pre-release sdparm-1.13 [20221107] [svn: r364]
   - control extension mpage: add pwromact, hrdrmact, ssumact
     and fmtmact fields
   - format presets vpd: expand for schema type 4
@@ -15,7 +15,7 @@ ChangeLog for pre-release sdparm-1.13 [20220825] [svn: r363]
   - act on LAST bit in App tag mpage descriptors to stop
     output of further descriptors, override this
     truncation with --flexible option
-  - point svn:externals to sg3_utils revision 969
+  - point svn:externals to sg3_utils revision 981
   - autoconf: upgrade version 2.70 to 2.71; automake upgrade
     to version 1.16.5
 

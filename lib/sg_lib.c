@@ -1802,7 +1802,7 @@ sg_get_sense_sat_pt_fixed_str(const char * lip, const uint8_t * sp,
                   sp[5], sp[6], (count_upper_nz ? '+' : ' '));
     n += sg_scnpr(b + n, blen - n, "%s  extend=%d, log_index=0x%x, "
                   "lba_high,mid,low(7:0)=0x%x,0x%x,0x%x%c\n", lip,
-                  (int)extend, (0xf & sp[8]), sp[9], sp[10], sp[11],
+                  (int)extend, (0xf & sp[8]), sp[11], sp[10], sp[9],
                   (lba_upper_nz ? '+' : ' '));
     return n;
 }
@@ -2244,6 +2244,10 @@ sg_err_category_sense(const uint8_t * sbp, int sb_len)
         case SPC_SK_RECOVERED_ERROR:
             return SG_LIB_CAT_RECOVERED;
         case SPC_SK_NOT_READY:
+            if ((0x04 == ssh.asc) && (0x0b == ssh.ascq))
+                return SG_LIB_CAT_STANDBY;
+            if ((0x04 == ssh.asc) && (0x0c == ssh.ascq))
+                return SG_LIB_CAT_UNAVAILABLE;
             return SG_LIB_CAT_NOT_READY;
         case SPC_SK_MEDIUM_ERROR:
         case SPC_SK_HARDWARE_ERROR:
