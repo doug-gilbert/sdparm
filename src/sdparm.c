@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022, Douglas Gilbert
+ * Copyright (c) 2005-2023, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.13 20221107 [svn: r364]";
+static const char * version_str = "1.13 20230212 [svn: r365]";
 
 
 #define MAX_DEV_NAMES 256
@@ -939,7 +939,7 @@ static int
 print_direct_access_info(int sg_fd, const struct sdparm_opt_coll * op,
                          int verb)
 {
-    bool for_in_hex = (op->do_hex > 2);
+    bool for_inhex = (op->do_hex > 2);
     int res, v, req_len, resp_len, resid;
     uint8_t * cur_mp = oth_aligned_mp;
 
@@ -955,7 +955,7 @@ print_direct_access_info(int sg_fd, const struct sdparm_opt_coll * op,
             if (verb > 0)
                 pr2serr("%s: resid=%d too large, implies truncated "
                         "response\n", __func__, resid);
-        } else if (for_in_hex) {
+        } else if (for_inhex) {
             uint16_t bd_len = mode6 ? cur_mp[3] :
                                       sg_get_unaligned_be16(cur_mp + 6);
 
@@ -1032,7 +1032,8 @@ print_mode_page_hex(int sg_fd, int pn, int spn,
     printf("Mode page [0x%x,0x%x] current values in hex:\n", pn, spn);
     len -= resid;
     if (len > 0)
-        hex2stdout(mdpg, len, ((op->do_long > 0) ? 0 : -1));
+        hex2stdout(mdpg, len, no_ascii_4hex(op));
+			// xxxxxxx ((op->do_long > 0) ? 0 : -1));
     return res;
 }
 
@@ -1042,7 +1043,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                  const struct sdparm_opt_coll * op)
 {
     bool single_pg, fetch_pg, desc_part, warned, have_desc_id, sis;
-    bool for_in_hex = (op->do_hex > 2);
+    bool for_inhex = (op->do_hex > 2);
     bool mode6 = op->mode_6;
     bool stop_if_set = false;
     int res, pg_len, verb, smask, rep_len, req_len, orig_pn, decay_pdt;
@@ -1086,12 +1087,12 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
         pdt = decay_pdt;
     }
     if (((0 == pdt) && (op->do_long > 0) && (0 == op->do_quiet)) ||
-        for_in_hex) {
+        for_inhex) {
         if (0 != (res = print_direct_access_info(sg_fd, op, verb)))
             return res;
     }
     if (NULL == first_mp) {
-        if (for_in_hex)
+        if (for_inhex)
             printf("# ");
         printf("No page control selected by --out_mask=OM\n");
         return 0;
@@ -1223,7 +1224,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                 return 0;
             }
             if ((smask & MP_OM_CUR) || (! (MP_OM_CUR & op->out_mask))) {
-                if (for_in_hex)
+                if (for_inhex)
                     printf("# ");
 
                 pg_len = sdp_mpage_len(first_mp);
@@ -1247,28 +1248,28 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                         pg_len = req_len;
                     }
                     if (smask & MP_OM_CUR) {
-                        if (for_in_hex)
+                        if (for_inhex)
                             printf("#");
                         printf("    Current:\n");
-                        hex2stdout(cur_mp, pg_len, for_in_hex ? -1 : 1);
+                        hex2stdout(cur_mp, pg_len, for_inhex ? -1 : 1);
                     }
                     if (smask & MP_OM_CHA) {
-                        if (for_in_hex)
+                        if (for_inhex)
                             printf("#");
                         printf("    Changeable:\n");
-                        hex2stdout(cha_mp, pg_len, for_in_hex ? -1 : 1);
+                        hex2stdout(cha_mp, pg_len, for_inhex ? -1 : 1);
                     }
                     if (smask & MP_OM_DEF) {
-                        if (for_in_hex)
+                        if (for_inhex)
                             printf("#");
                         printf("    Default:\n");
-                        hex2stdout(def_mp, pg_len, for_in_hex ? -1 : 1);
+                        hex2stdout(def_mp, pg_len, for_inhex ? -1 : 1);
                     }
                     if (smask & MP_OM_SAV) {
-                        if (for_in_hex)
+                        if (for_inhex)
                             printf("#");
                         printf("    Saved:\n");
-                        hex2stdout(sav_mp, pg_len, for_in_hex ? -1 : 1);
+                        hex2stdout(sav_mp, pg_len, for_inhex ? -1 : 1);
                     }
                 }
             } else {    /* asked for current values and didn't get them */

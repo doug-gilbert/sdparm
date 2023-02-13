@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022, Douglas Gilbert
+ * Copyright (c) 2005-2023, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -2071,18 +2071,6 @@ struct sdparm_transport_pair sdparm_transport_mp[] = {
     {NULL, NULL},
     {NULL, NULL},
     {sdparm_gen_mode_pg, sdparm_mitem_arr}, /* 15: none, treat as generic */
-};
-
-const char * sdparm_ansi_version_arr[] =
-{
-    "no conformance claimed",
-    "SCSI-1",
-    "SCSI-2",
-    "SPC",
-    "SPC-2",
-    "SPC-3",
-    "SPC-4",
-    "ANSI version: 7",
 };
 
 const char * sdparm_network_service_type_arr[] =

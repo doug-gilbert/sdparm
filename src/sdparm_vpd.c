@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022, Douglas Gilbert
+ * Copyright (c) 2005-2023, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -419,7 +419,8 @@ decode_dev_constit_vpd(uint8_t * buff, int len, int req_pdt, bool protect,
                     else
                         printf("      Reserved [0x%x] specific data (in "
                                "hex):\n", cs_type);
-                    hex2stdout(cs_bp + 4, cs_len, 0 /* plus ASCII */);
+                    hex2stdout(cs_bp + 4, cs_len, no_ascii_4hex(op));
+				// xxxxxxxxxx  0 /* plus ASCII */);
                 }
             }   /* end of Constituent specific descriptor loop */
         }
@@ -2014,6 +2015,8 @@ decode_zbdc_vpd(uint8_t * b, int len)
     return 0;
 }
 
+#define DECODE_ALL_VPDS_BUFLEN 256
+
 /* Called from end of 'case VPD_SUPPORTED_VPDS:' in sdp_process_vpd_page().
  * Must take care not to call that function to decode the VPD_SUPPORTED_VPDS
  * page again. That will cause an infinite loop!
@@ -2021,53 +2024,97 @@ decode_zbdc_vpd(uint8_t * b, int len)
 static int
 decode_all_vpds(uint8_t * b, int len, int sg_fd,
                 const struct sdparm_opt_coll * op, int req_pdt,
-                bool protect)
+                bool protect, uint8_t * alt_buf, int off)
 {
-    int k, ret;
-    uint8_t bb[256];
+    bool first_after = false;
+    uint16_t u;
+    int k, ret, moff;
+    uint8_t bb[DECODE_ALL_VPDS_BUFLEN];
 
-    if (len > 256)
-        len = 256;
-    memcpy(bb, b, ((len < 256) ? len : 256));
+    if (len > DECODE_ALL_VPDS_BUFLEN)
+        len = DECODE_ALL_VPDS_BUFLEN;
+    memcpy(bb, b, len);
 
-    for (k = 0; k < len; ++k) {
+    for (k = 0, moff = off; k < len; ++k) {
+pr2serr("%s: k=%d\n", __func__, k);
         if (VPD_SUPPORTED_VPDS == bb[k])
             continue;   /* this avoids infinite loop */
+	if (alt_buf) {
+	    if (! first_after)
+	        first_after = true;
+	    else {
+// hex2stdout(alt_buf + moff, 64, 0);
+	        u = sg_get_unaligned_be16(alt_buf + moff + 2);
+		if (u > 16 * 1024)
+		    return SG_LIB_LOGIC_ERROR;
+	        moff += u + 4;
+	    }
+	}
         printf("\n");
         ret = sdp_process_vpd_page(sg_fd, bb[k], 0, op, req_pdt, protect,
-                                   NULL, 0, NULL, 0);
+                                   NULL, 0, alt_buf, moff);
         if (ret)
             return ret;
     }
     return 0;
 }
 
-/* Assume index is less than 16 */
-const char * sg_ansi_version_arr[] =
+static void
+decode_std_inq(int sz, uint8_t * b, bool hex_set)
 {
-    "no conformance claimed",
-    "SCSI-1",           /* obsolete, ANSI X3.131-1986 */
-    "SCSI-2",           /* obsolete, ANSI X3.131-1994 */
-    "SPC",              /* withdrawn, ANSI INCITS 301-1997 */
-    "SPC-2",            /* ANSI INCITS 351-2001, ISO/IEC 14776-452 */
-    "SPC-3",            /* ANSI INCITS 408-2005, ISO/IEC 14776-453 */
-    "SPC-4",            /* ANSI INCITS 513-2015 */
-    "SPC-5",
-    "ecma=1, [8h]",
-    "ecma=1, [9h]",
-    "ecma=1, [Ah]",
-    "ecma=1, [Bh]",
-    "reserved [Ch]",
-    "reserved [Dh]",
-    "reserved [Eh]",
-    "reserved [Fh]",
-};
+    int pqual, len;
+    char d[64];
+    static const int dlen = sizeof(d);
+
+    pqual = (b[0] & 0xe0) >> 5;
+    printf("standard INQUIRY:");
+    if (0 == pqual)
+        printf("\n");
+    else if (1 == pqual)
+        printf(" [PQ indicates LU temporarily unavailable]\n");
+    else if (3 == pqual)
+        printf(" [PQ indicates LU not accessible via this port]\n");
+    else
+        printf(" [reserved or vendor specific qualifier [%d]]\n", pqual);
+    len = b[4] + 5;
+    len = (len <= sz) ? len : sz;
+    if (hex_set) {
+        hex2stdout(b, len, 0);
+        return;
+    }
+    printf("  PQual=%d  PDT=%d  RMB=%d  LU_CONG=%d  hot_pluggable=%d  "
+           "version=0x%02x ", pqual, b[0] & 0x1f, !!(b[1] & 0x80),
+           !!(b[1] & 0x40), (b[1] >> 4) & 0x3, (unsigned int)b[2]);
+    printf(" [%s]\n", sg_get_scsi_ansi_version_str(0xf & b[2], dlen, d));
+    printf("  [AERC=%d]  [TrmTsk=%d]  NormACA=%d  HiSUP=%d "
+           " Resp_data_format=%d\n  SCCS=%d  ",
+           !!(b[3] & 0x80), !!(b[3] & 0x40), !!(b[3] & 0x20),
+           !!(b[3] & 0x10), b[3] & 0x0f, !!(b[5] & 0x80));
+    printf("ACC=%d  TPGS=%d  3PC=%d  Protect=%d ",
+           !!(b[5] & 0x40), ((b[5] & 0x30) >> 4), !!(b[5] & 0x08),
+           !!(b[5] & 0x01));
+    printf(" [BQue=%d]\n  EncServ=%d  ", !!(b[6] & 0x80), !!(b[6] & 0x40));
+    if (b[6] & 0x10)
+        printf("MultiP=1 (VS=%d)  ", !!(b[6] & 0x20));
+    else
+        printf("MultiP=0  ");
+    printf("[MChngr=%d]  [ACKREQQ=%d]  Addr16=%d\n  [RelAdr=%d]  ",
+           !!(b[6] & 0x08), !!(b[6] & 0x04), !!(b[6] & 0x01),
+           !!(b[7] & 0x80));
+    printf("WBus16=%d  Sync=%d  [Linked=%d]  [TranDis=%d]  ",
+           !!(b[7] & 0x20), !!(b[7] & 0x10), !!(b[7] & 0x08),
+           !!(b[7] & 0x04));
+    printf("CmdQue=%d\n", !!(b[7] & 0x02));
+    printf("  Vendor_identification: %.8s\n", b + 8);
+    printf("  Product_identification: %.16s\n", b + 16);
+    printf("  Product_revision_level: %.4s\n", b + 32);
+}
 
 /* Hack: use vpd page=-1 to indicate want standard INQUIRY response */
 static int
-decode_std_inq(int sg_fd, const struct sdparm_opt_coll * op)
+fetch_decode_std_inq(int sg_fd, const struct sdparm_opt_coll * op)
 {
-    int res, verb, sz, len, pqual;
+    int res, verb, sz;
     int resid = 0;
     int b_sz = DEF_INQ_RESP_LEN;
     uint8_t * b = NULL;
@@ -2094,48 +2141,7 @@ decode_std_inq(int sg_fd, const struct sdparm_opt_coll * op)
             goto fini;
         }
     }
-    pqual = (b[0] & 0xe0) >> 5;
-    printf("standard INQUIRY:");
-    if (0 == pqual)
-        printf("\n");
-    else if (1 == pqual)
-        printf(" [PQ indicates LU temporarily unavailable]\n");
-    else if (3 == pqual)
-        printf(" [PQ indicates LU not accessible via this port]\n");
-    else
-        printf(" [reserved or vendor specific qualifier [%d]]\n", pqual);
-    len = b[4] + 5;
-    len = (len <= sz) ? len : sz;
-    if (op->do_hex) {
-        hex2stdout(b, len, 0);
-        return 0;
-    }
-    printf("  PQual=%d  PDT=%d  RMB=%d  LU_CONG=%d  hot_pluggable=%d  "
-           "version=0x%02x ", pqual, b[0] & 0x1f, !!(b[1] & 0x80),
-           !!(b[1] & 0x40), (b[1] >> 4) & 0x3, (unsigned int)b[2]);
-    printf(" [%s]\n", sg_ansi_version_arr[b[2] & 0xf]);
-    printf("  [AERC=%d]  [TrmTsk=%d]  NormACA=%d  HiSUP=%d "
-           " Resp_data_format=%d\n  SCCS=%d  ",
-           !!(b[3] & 0x80), !!(b[3] & 0x40), !!(b[3] & 0x20),
-           !!(b[3] & 0x10), b[3] & 0x0f, !!(b[5] & 0x80));
-    printf("ACC=%d  TPGS=%d  3PC=%d  Protect=%d ",
-           !!(b[5] & 0x40), ((b[5] & 0x30) >> 4), !!(b[5] & 0x08),
-           !!(b[5] & 0x01));
-    printf(" [BQue=%d]\n  EncServ=%d  ", !!(b[6] & 0x80), !!(b[6] & 0x40));
-    if (b[6] & 0x10)
-        printf("MultiP=1 (VS=%d)  ", !!(b[6] & 0x20));
-    else
-        printf("MultiP=0  ");
-    printf("[MChngr=%d]  [ACKREQQ=%d]  Addr16=%d\n  [RelAdr=%d]  ",
-           !!(b[6] & 0x08), !!(b[6] & 0x04), !!(b[6] & 0x01),
-           !!(b[7] & 0x80));
-    printf("WBus16=%d  Sync=%d  [Linked=%d]  [TranDis=%d]  ",
-           !!(b[7] & 0x20), !!(b[7] & 0x10), !!(b[7] & 0x08),
-           !!(b[7] & 0x04));
-    printf("CmdQue=%d\n", !!(b[7] & 0x02));
-    printf("  Vendor_identification: %.8s\n", b + 8);
-    printf("  Product_identification: %.16s\n", b + 16);
-    printf("  Product_revision_level: %.4s\n", b + 32);
+    decode_std_inq(sz, b, op->do_hex > 0);
     res = 0;
 fini:
     if (free_b)
@@ -2147,8 +2153,12 @@ fini:
  * to by sg_fd; then process the response received. If ihbp is non-NULL then
  * sg_fd is ignored and the buffer pointed to by ihbp (with length no greater
  * than ihb_len) is assumed to be the response to a SCSI INQUIRY command.
+ * Alternatively when alt_buf is non-NULL, is carries 1 or more VPD page
+ * response, the one to decode starts at offset 'off'. If both ihbp and
+ * alt_buf are NULL then expect sg_fd >= 0, an open file descriptor to which
+ * the a SCSI INQUIRY command will be sent to fetch one or more VPD pages.
  * Returns 0 if successful, else error. spn changes what is output, currently
- * it only changes of the output of the Device Identification VPD page. */
+ * it only changes the output of the Device Identification VPD page. */
 int
 sdp_process_vpd_page(int sg_fd, int pn, int spn,
                      const struct sdparm_opt_coll * op, int req_pdt,
@@ -2169,12 +2179,13 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
     int b_sz = 2 * sg_get_page_size();
     char c[80];
 
+pr2serr("%s: alt_buf=%p, ihbp=%p\n", __func__, alt_buf, ihbp);
     verb = (op->verbose > 0) ? op->verbose - 1 : 0;
     if (verb > 3)
         pr2serr("%s: sg_fd=%d, pn=%d, spn=%d, ihbp is %sgiven, alt_buff is "
                 "%sgiven, off=%d\n", __func__, sg_fd, pn, spn,
                 ((!! ihbp) ? "" : "not "), ((!! alt_buf) ? "" : "not "), off);
-    hex_format = (op->do_hex > 2) ? -1 : 0;
+    hex_format = (op->do_hex > 2) ? -1 : no_ascii_4hex(op);
     sz = b_sz;
     if (NULL == alt_buf) {
         b = sg_memalign(b_sz, 0 /* page align */, &free_b, false);
@@ -2193,17 +2204,28 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn,
         } else if (alt_buf) {
             b = alt_buf + off;
             sz -= off;
-            pn = b[1];
+            if (pn >= 0)
+                pn = b[1];
         } else {        /* so ihbp must be non-NULL */
             if (ihb_len < sz)
                 sz = ihb_len;
             memcpy(b, ihbp, sz);
-            pn = b[1];
+            if (pn >= 0)
+                pn = b[1];
+        }
+        if (pn < 0) {
+            if (VPD_NOT_STD_INQ == pn) {
+                decode_std_inq(sz, b, op->do_hex > 0);
+                goto fini;
+            } else  /*  if (op->do_all) */
+                pn = VPD_SUPPORTED_VPDS;  /* if '--all' list supported vpds */
+            /* else
+             *   pn = VPD_DEVICE_ID;   default to device id page */
         }
     } else {             /* so (sg_fd >= 0) , need to read from device */
         if (pn < 0) {
             if (VPD_NOT_STD_INQ == pn) {
-                ret = decode_std_inq(sg_fd, op);
+                ret = fetch_decode_std_inq(sg_fd, op);
                 goto fini;
             } else if (op->do_all)
                 pn = VPD_SUPPORTED_VPDS;  /* if '--all' list supported vpds */
@@ -2240,6 +2262,7 @@ try_larger:
     } else
         pdt = dev_pdt;
 
+pr2serr("%s: pn=0x%x\n", __func__, pn);
     switch (pn) {
     case VPD_SUPPORTED_VPDS:    /* 0x0 */
         if (b[1] != pn)
@@ -2264,9 +2287,10 @@ try_larger:
                     printf("  0x%x\n", b[4 + k]);
             }
             /* Take care not to decode this VPD page [0x0] again! */
-            if ((op->do_all > 1) && (sg_fd >= 0)) {
+            if (op->do_all > 1) {
                 ret = decode_all_vpds(b + 4, len, sg_fd, op, req_pdt,
-                                      protect);
+                                      protect, (uint8_t *)ihbp, len + 4);
+pr2serr("%s: after decode_all_vpds(), ret=%d\n", __func__, ret);
                 if (ret)
                     goto fini;
             }

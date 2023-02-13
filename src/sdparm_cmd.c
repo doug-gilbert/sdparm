@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2018, Douglas Gilbert
+ * Copyright (c) 2005-2023, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -79,6 +79,22 @@ deallocate_res(int res)
         aligned_buff = NULL;
     }
     return res;
+}
+
+int
+no_ascii_4hex(const struct sdparm_opt_coll * op)
+{
+    int dhex = op->do_hex;
+
+    /* don't expect 0 but could be negative */
+    if (dhex < 0)
+        dhex = -dhex;
+    if (dhex < 2)
+        return 1;
+    else if (2 == dhex)
+        return 0;
+    else
+        return -1;
 }
 
 static int

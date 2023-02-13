@@ -1,6 +1,6 @@
-.TH SDPARM "8" "November 2022" "sdparm\-1.13" SDPARM
+.TH SDPARM "8" "February 2023" "sdparm\-1.13" SDPARM
 .SH NAME
-sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
+sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands
 .SH SYNOPSIS
 .B sdparm
 [\fI\-\-all\fR] [\fI\-\-dbd\fR] [\fI\-\-examine\fR] [\fI\-\-flexible\fR]
@@ -43,7 +43,6 @@ sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands.
 [\fI\-\-help\fR] [\fI\-\-version\fR]
 .SH DESCRIPTION
 .\" Add any additional description here
-.PP
 This utility fetches and potentially changes SCSI device (e.g. disk) mode
 pages. Inquiry data including Vital Product Data (VPD) pages can also be
 displayed. Commands associated with starting and stopping the medium; loading
@@ -514,49 +513,27 @@ follows. For brevity subsequent examples of options are shown in their
 shorter form.
 .PP
     \-\-enumerate          list generic mode page information
-.br
     \-e \-\-all             list generic mode page contents
-.br
                          (i.e. parameters)
-.br
     \-e \-\-page=rw         list contents of read write error
-.br
                          recovery mode page
-.br
     \-e \-\-inquiry         list VPD pages this utility can decode
-.br
     \-e \-\-long            list generic mode pages, transport
-.br
                          protocols, mode pages for each
-.br
                          supported transport protocol and
-.br
                          supported commands
-.br
     \-e \-l \-\-all          additionally list the contents of
-.br
                          each mode page
-.br
     \-e \-\-transport=fcp   list mode pages for the fcp
-.br
                          transport protocol
-.br
     \-e \-t fcp \-\-all      additionally list the contents of
-.br
                          each mode page
-.br
     \-e \-\-vendor=sea      list vendor specific mode pages for
-.br
                          "sea" (Seagate)
-.br
     \-e \-M sea \-\-all      additionally list the contents of vendor
-.br
                          specific mode pages for "sea" (Seagate)
-.br
     \-e \-p pcd \-l         list contents of SAS phy control and
-.br
                          discovery mode page plus (due to "\-l")
-.br
                          some descfriptor format information
 .PP
 When known mode pages are listed (via the \fI\-\-enumerate \fR option) each
@@ -809,19 +786,12 @@ if there are specialized storage related devices (e.g. a SES device in
 an enclosure) but does add much extra information in this case.
 .PP
   # sdparm \-www
-.br
-PD0     [C]     <Ata  >  FUJITSU   MHY2160BH         0000
-.br
-PD1     [DF]    <Usb  >  WD        2500BEV External  1.05  WD\-WXE90
-.br
-CDROM0  [E]     <Atapi>  MATSHITA DVD/CDRW UJDA775  CB03
-.br
+  PD0     [C]     <Ata  >  FUJITSU   MHY2160BH         0000
+  PD1     [DF]    <Usb  >  WD        2500BEV External  1.05  WD\-WXE90
+  CDROM0  [E]     <Atapi>  MATSHITA DVD/CDRW UJDA775  CB03
 
-.br
-SCSI0:0,0,0   claimed=1 pdt=0h  FUJITSU   MHY2160BH         0000
-.br
-SCSI1:0,0,0   claimed=1 pdt=5h  MATSHITA  DVD/CDRW UJDA775  CB03
-.PP
+  SCSI0:0,0,0   claimed=1 pdt=0h  FUJITSU   MHY2160BH         0000
+  SCSI1:0,0,0   claimed=1 pdt=5h  MATSHITA  DVD/CDRW UJDA775  CB03
 .SH EXIT STATUS
 To aid scripts that call sdparm, the exit status is set to indicate
 success (0) or failure (1 or more). Note that some of the lower values
@@ -1028,7 +998,7 @@ Written by Douglas Gilbert.
 .SH "REPORTING BUGS"
 Report bugs to <dgilbert at interlog dot com>.
 .SH COPYRIGHT
-Copyright \(co 2005\-2022 Douglas Gilbert
+Copyright \(co 2005\-2023 Douglas Gilbert
 .br
 This software is distributed under a FreeBSD license. There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
