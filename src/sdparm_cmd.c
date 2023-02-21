@@ -426,7 +426,6 @@ sdp_build_cmd(const char * cmd_str, bool * rwp, int * argp)
     }
     if ((NULL == scmdp->name) && (strlen(cp) >= 2)) {
         for (scmdp = sdparm_command_arr; scmdp->name; ++scmdp) {
-            len = strlen(scmdp->min_abbrev);
             if (0 == memcmp(scmdp->min_abbrev, cp, 2))
                 break;
         }

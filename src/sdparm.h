@@ -10,6 +10,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "sg_pr2serr.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -49,7 +51,7 @@ extern "C" {
 #define PROT_SPEC_LU_MP 0x18
 #define PROT_SPEC_PORT_MP 0x19
 #define POWER_MP 0x1a
-#define LUN_MAPPING_MP 0x1b	/* SCC-2 (SCSI Controller Commands) */
+#define LUN_MAPPING_MP 0x1b     /* SCC-2 (SCSI Controller Commands) */
 #define IEC_MP 0x1c
 #define MED_CONF_MP 0x1d
 #define TIMEOUT_PROT_MP 0x1d
@@ -210,6 +212,7 @@ struct sdparm_opt_coll {
     bool inquiry;
     bool mode_6;        /* false (default) for Mode Sense or Select(10) */
     bool num_desc;      /* report number of descriptors */
+    bool do_json;       /* -j (or -J) */
     bool do_raw;        /* -R (usually '-r' but already used) */
     bool read_only;
     bool save;
@@ -229,6 +232,9 @@ struct sdparm_opt_coll {
     int vendor_id;      /* -1 means not vendor specific (def) */
     int verbose;
     const char * inhex_fn;
+    const char * json_arg;
+    const char * js_file;
+    sgj_state json_st;
 };
 
 /* Instances and arrays of the following templates are mainly found in the
@@ -439,15 +445,18 @@ void sdp_mitem_set_value(uint64_t val, const struct sdparm_mode_page_item *mpi,
 int sdp_get_desc_id(int flags);
 int sdp_strcase_eq(const char * s1p, const char * s2p);
 int sdp_strcase_eq_upto(const char * s1p, const char * s2p, int n);
+void named_hhh_output(const char * pname, bool mode_true_or_vpd,
+                      const uint8_t * b, int blen,
+                      const struct sdparm_opt_coll * op);
 
 /*
  * Declarations for functions found in sdparm_vpd.c
  */
 
 int sdp_process_vpd_page(int sg_fd, int pn, int spn,
-                         const struct sdparm_opt_coll * op, int req_pdt,
-                         bool protect, const uint8_t * ihbp, int ihb_len,
-                         uint8_t * alt_buf, int off);
+                         struct sdparm_opt_coll * op, sgj_opaque_p jop,
+                         int req_pdt, bool protect, const uint8_t * ihbp,
+                         int ihb_len, uint8_t * alt_buf, int off);
 
 /*
  * Declarations for functions found in sdparm_cmd.c

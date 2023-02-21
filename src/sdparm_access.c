@@ -98,7 +98,6 @@ sdp_strcase_eq_upto(const char * s1p, const char * s2p, int n)
     return 1;
 }
 
-
 /* Returns length of mode page. Assumes mp pointing at start of a mode
  * page (not the start of a MODE SENSE response). */
 int
