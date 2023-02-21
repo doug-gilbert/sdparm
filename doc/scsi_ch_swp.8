@@ -4,10 +4,9 @@ scsi_ch_swp \- change SCSI Software WRITE Protect and block device settings
 .SH SYNOPSIS
 .B scsi_ch_swp
 [\fI\-\-help\fR] [\fI\-\-set 0|1\fR] [\fI\-\-verbose\fR] [\fI\-\-wr\fR]
-\fIBLK_DEVICE\fR 
+\fIBLK_DEVICE\fR
 .SH DESCRIPTION
 .\" Add any additional description here
-.PP
 This bash shell script attempts to read or change the Software Write
 Protect (SWP) bit in the SCSI Control mode page using the sdparm utility.
 If that change is successful then it uses the blockdev utility to change
@@ -50,7 +49,7 @@ action of this script is to use the sdparm \fI\-\-readonly\fR option when
 be a generic device (e.g. /dev/sg3) which has a different interpretation of
 the read\-only open flag and may fail. For such rare cases the \fI\-\-wr\fR
 option makes sdparm open \fIBLK_DEVICE\fR read\-write when \fI\-\-set 0\fR
-is invoked. 
+is invoked.
 .SH EXIT STATUS
 The exit status of this script is 0 when it is successful. Otherwise the exit
 status is that of the sdparm or the blockdev utility, whichever is called

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2018, Douglas Gilbert
+ * Copyright (c) 2005-2023, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -79,6 +79,22 @@ deallocate_res(int res)
         aligned_buff = NULL;
     }
     return res;
+}
+
+int
+no_ascii_4hex(const struct sdparm_opt_coll * op)
+{
+    int dhex = op->do_hex;
+
+    /* don't expect 0 but could be negative */
+    if (dhex < 0)
+        dhex = -dhex;
+    if (dhex < 2)
+        return 1;
+    else if (2 == dhex)
+        return 0;
+    else
+        return -1;
 }
 
 static int
@@ -410,7 +426,6 @@ sdp_build_cmd(const char * cmd_str, bool * rwp, int * argp)
     }
     if ((NULL == scmdp->name) && (strlen(cp) >= 2)) {
         for (scmdp = sdparm_command_arr; scmdp->name; ++scmdp) {
-            len = strlen(scmdp->min_abbrev);
             if (0 == memcmp(scmdp->min_abbrev, cp, 2))
                 break;
         }

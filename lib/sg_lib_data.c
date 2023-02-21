@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007-2022 Douglas Gilbert.
+ * Copyright (c) 2007-2023 Douglas Gilbert.
  * All rights reserved.
  * Use of this source code is governed by a BSD-style
  * license that can be found in the BSD_LICENSE file.
@@ -19,8 +19,8 @@
 #include "sg_lib_data.h"
 
 
-const char * sg_lib_version_str = "2.95 20221104";
-/* spc6r06, sbc5r03, zbc2r13 */
+const char * sg_lib_version_str = "2.99 20230130";
+/* spc6r07, sbc5r04, zbc2r13 */
 
 
 /* indexed by pdt; those that map to own index do not decay */
@@ -1602,6 +1602,41 @@ const char * sg_lib_pdt_strs[32] = {    /* should have 2**5 elements */
                                     via this lu's port (try the other) */
 };
 
+struct sg_aux_info_t sg_lib_pdt_aux_a[32] = {
+    {"disk", 3, 0, 0, 0},
+    {"tape", 3, 0, 0, 0},
+    {"printer", 5, 0, 0, 0},
+    {"processor", 4, 0, 0, 0},
+    {"wo_opt", 5, 0, 0, 0},
+    /* 5 */ {"dvd;cd;bd", 2, 0, 0, 0},
+    {"scanner", 4, 0, 0, 0},
+    {"optical", 3, 0, 0, 0},
+    {"changer;mch", 3, 0, 0, 0},
+    {"comms", 3, 0, 0, 0},
+    /* 0xa */ {"graphics", 3, 0, 0, 0},
+    {"grb", 3, 0, 0, 0},
+    {"array", 3, 0, 0, 0},
+    {"enc;ses", 3, 0, 0, 0},
+    {"simplified;rbc", 3, 0, 0, 0},
+    {"ocrw", 3, 0, 0, 0},
+    {/* 0x10 */ "bridge", 3, 0, 0, 0},
+    {"obs;object", 3, 0, 0, 0},
+    {"adc", 3, 0, 0, 0},
+    {"security", 3, 0, 0, 0},
+    {"hostm;zone", 4, 0, 0, 0},
+    {"0x15", 4, 0, 0, 0},
+    {"0x16", 4, 0, 0, 0},
+    {"0x17", 4, 0, 0, 0},
+    {"0x18", 4, 0, 0, 0},
+    {"0x19", 4, 0, 0, 0},
+    {"0x1a", 4, 0, 0, 0},
+    {"0x1b", 4, 0, 0, 0},
+    {"0x1c", 4, 0, 0, 0},
+    {"0x1d", 4, 0, 0, 0},
+    {"wlun;well", 4, 0, 0, 0},
+    {"unknown", 3, 0, 0, 0},
+};
+
 const char * sg_lib_transport_proto_strs[] =
 {
     "Fibre Channel Protocol for SCSI (FCP-5)",  /* now at fcp5r01 */
@@ -1911,12 +1946,15 @@ struct sg_value_2names_t sg_exit_str_arr[] = {
     {10, "Copy aborted", "type: sense key"},
     {11, "Aborted command",
          "type: sense key, other than protection related (asc=0x10)"},
-    {12, "Device not ready, standby", "type: sense key"},
-    {13, "Device not ready, unavailable", "type: sense key"},
+    {12, "Device not ready, standby", "type: sense key + asc,ascq=0x4,0xb"},
+    {13, "Device not ready, unavailable", "type: sense key + asc,ascq=0x4,"
+         "0xc"},
     {14, "Miscompare", "type: sense key"},
     {15, "File error", NULL},
     {17, "Illegal request with Info field", NULL},
     {18, "Medium or hardware error with Info", NULL},
+    {19, "Illegal request, Invalid field in parameter list",
+         "type: sense key + asc,ascq=0x26,0"},
     {20, "No sense key", "type: probably additional sense code"},
     {21, "Recovered error (warning)", "type: sense key"},
          /* N.B. this is a warning not error */

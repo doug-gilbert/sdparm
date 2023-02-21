@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022, Douglas Gilbert
+ * Copyright (c) 2005-2023, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.13 20221107 [svn: r364]";
+static const char * version_str = "1.13 20230220 [svn: r366]";
 
 
 #define MAX_DEV_NAMES 256
@@ -116,6 +116,9 @@ static struct option long_options[] = {
     {"hex", no_argument, 0, 'H'},
     {"inquiry", no_argument, 0, 'i'},
     {"inhex", required_argument, 0, 'I'},
+    {"json", optional_argument, 0, 'j'},
+    {"js-file", required_argument, 0, 'J'},
+    {"js_file", required_argument, 0, 'J'},
     {"long", no_argument, 0, 'l'},
     {"num-desc", no_argument, 0, 'n'},
     {"num_desc", no_argument, 0, 'n'},
@@ -140,6 +143,8 @@ static struct option long_options[] = {
 };
 
 static const char * ms_s = "MODE SENSE";
+static const char * sdp_sn = "sdparm";
+static const char * sdp_rsp_sn = "sdparm_response";
 
 static int print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                             const struct sdparm_opt_coll * op);
@@ -152,11 +157,13 @@ usage(int do_help)
         pr2serr(
             "Usage: sdparm [--all] [--dbd] [--examine] [--flexible] "
             "[--get=STR] [--hex]\n"
-            "              [--long] [--num-desc] [--out-mask=OM] "
-            "[--page=PG[,SPG]]\n"
-            "              [--quiet] [--readonly] [--six] [--transport=TN] "
-            "[--vendor=VN]\n"
-            "              [--verbose] DEVICE [DEVICE...]\n\n"
+            "              [--json[=JO]] [--js-file=JFN] [--long] "
+            "[--num-desc]\n"
+            "              [--out-mask=OM] [--page=PG[,SPG]] [--quiet] "
+            "[--readonly]\n"
+            "              [--six] [--transport=TN] [--vendor=VN] "
+            "[--verbose]\n"
+            "              DEVICE [DEVICE...]\n\n"
             "       sdparm [--clear=STR] [--defaults] [--dummy] "
             "[--flexible]\n"
             "              [--page=PG[,SPG]] [--quiet] [--readonly] "
@@ -172,38 +179,43 @@ usage(int do_help)
                 "              DEVICE [DEVICE...]\n\n"
                 "       sdparm --inquiry [--all] [--examine] [--flexible] "
                 "[--hex]\n"
-                "              [--num-desc] [--page=PG[,SPG]] [--quiet] "
-                "[--read‐only]\n"
-                "              [--transport=TN] [--vendor=VN] [--verbose]\n"
-                "              DEVICE [DEVICE...]\n\n"
+                "              [--json[=JO]] [--js-file=JFN] [--num-desc] "
+                "[--page=PG[,SPG]]\n"
+                "              [--quiet] [--read‐only] [--transport=TN] "
+                "[--vendor=VN]\n"
+                "              [--verbose] DEVICE [DEVICE...]\n\n"
                 "       sdparm --enumerate [--all] [--inquiry] [--long] "
                 "[--page=PG[,SPG]]\n"
                 "              [--transport=TN] [--vendor=VN]\n\n"
                 "       sdparm --inhex=FN [--all] [--flexible] [--hex] "
-                "[--inquiry] [--long]\n"
-                "              [--pdt=DT]  [--raw]  [--six] [--transport=TN] "
-                "[--vendor=VN]\n"
-                "              [--verbose]\n\n"
+                "[--inquiry]\n"
+                "              [--json[=JO]] [--js-file=JFN] [--long] "
+                "[--pdt=DT] [--raw]\n"
+                "              [--six] [--transport=TN] [--vendor=VN] "
+                "[--verbose]\n\n"
                 "Or the corresponding short option usage: \n"
-                "  sdparm [-a] [-B] [-E] [-f] [-g STR] [-H] [-l] [-n] "
-                "[-o OM] [-p PG[,SPG]]\n"
-                "         [-q] [-r] [-6] [-t TN] [-M VN] [-v] DEVICE "
-                "[DEVICE...]\n"
+                "  sdparm [-a] [-B] [-E] [-f] [-g STR] [-H] [-j[JO]] "
+                "[-J JFN] [-l] [-n]\n"
+                "         [-o OM] [-p PG[,SPG]] [-q] [-r] [-6] [-t TN] "
+                "[-M VN] [-v]\n"
+                "         DEVICE [DEVICE...]\n"
                 "\n"
                 "  sdparm [-c STR] [-D] [-d] [-f] [-p PG[,SPG]] [-q] [-S] "
-                "[-s STR] [-6] [-t TN]\n"
-                "         [-M VN] [-v] DEVICE [DEVICE...]\n"
+                "[-s STR] [-6]\n"
+                "         [-t TN] [-M VN] [-v] DEVICE [DEVICE...]\n"
                 "\n"
                 "  sdparm -c CMD [-H] [-l] [-r] [-v] DEVICE [DEVICE...]\n"
                 "\n"
-                "  sdparm -i [-a] [-E] [-f] [-H] [-n] [-p PG[,SPG]] [-q] "
-                "[-r] [-t TN]\n"
-                "         [-M VN] [-v] DEVICE [DEVICE...]\n"
+                "  sdparm -i [-a] [-E] [-f] [-H] [-j[JO]] [-J JFN] [-n] "
+                "[-p PG[,SPG]]\n"
+                "         [-q] [-r] [-t TN]  [-M VN] [-v] DEVICE "
+                "[DEVICE...]\n"
                 "\n"
                 "  sdparm -e [-a] [-i] [-l] [-p PG[,SPG]] [-t TN] [-M VN]\n"
                 "\n"
-                "  sdparm -I FN [-a] [-f] [-H] [-i] [-l] [-P PDT] [-R] [-6] "
-                "[-t TN] [-M VN] [-v]\n"
+                "  sdparm -I FN [-a] [-f] [-H] j[JO]] [-J JFN] [-i] [-l] "
+                "[-P PDT] [-R]\n"
+                "         [-6] [-t TN] [-M VN] [-v]\n"
                    );
             pr2serr("\nFor help use '-h' one or more times\n");
             return;
@@ -233,6 +245,13 @@ usage(int do_help)
             "acronym or pos\n"
             "    --hex | -H            output in hex rather than name/value "
             "pairs\n"
+            "    --json[=JO]|-jJO      output in JSON instead of human "
+            "readable\n"
+            "                          test. Use --json=? for JSON help\n"
+            "    --js-file=JFN|-J JFN    JFN is a filename to which JSON "
+            "output is\n"
+            "                            written (def: stdout); truncates "
+            "then writes\n"
             "    --long | -l           add description to field output\n"
             "    --num-desc | -n       report number of mode page "
             "descriptors\n"
@@ -317,6 +336,27 @@ usage(int do_help)
             "available on Windows machines.\n"
            );
     }
+}
+
+void
+named_hhh_output(const char * pname, bool mode_true_or_vpd, const uint8_t * b,
+                 int blen, const struct sdparm_opt_coll * op)
+{
+    if (op->do_hex > 4) {
+        if (pname)
+            printf("\n# %s\n", pname);
+        else {
+            if (mode_true_or_vpd) {
+                if (0x40 & b[0])
+                    printf("\n# mode page 0x%x,0x%x\n", 0x3f & b[0], b[1]);
+                else
+                    printf("\n# mode page 0x%x\n", 0x3f & b[0]);
+
+            } else
+                printf("\n# VPD page 0x%x\n", b[1]);
+        }
+    }
+    hex2stdout(b, blen, -1);
 }
 
 static void
@@ -568,7 +608,8 @@ examine_mode_page(int sg_fd, int pn, const struct sdparm_opt_coll * op,
 
 static int
 examine_vpd_page(int sg_fd, int pn, int spn,
-                 const struct sdparm_opt_coll * op, int req_pdt, bool protect)
+                 struct sdparm_opt_coll * op, sgj_opaque_p jop,
+                 int req_pdt, bool protect)
 {
     bool first = true;
     int k, n, res;
@@ -579,8 +620,8 @@ examine_vpd_page(int sg_fd, int pn, int spn,
             first = false;
         else if (0 == res)
             printf("\n");
-        res = sdp_process_vpd_page(sg_fd, k, 0, op, req_pdt, protect, NULL,
-                                   0, NULL, 0);
+        res = sdp_process_vpd_page(sg_fd, k, 0, op, jop, req_pdt, protect,
+                                   NULL, 0, NULL, 0);
     }
     return 0;
 }
@@ -689,7 +730,7 @@ print_a_mitem(const char * pre, int smask,
         if (sav_mp && (smask & MP_OM_SAV)) {
             if (! prt_pre) {
                 printf("%s%-14s  [", pre, acron);
-                prt_pre = true;
+                // prt_pre = true;
             }
             all_set = false;
             u = sdp_mitem_get_value_check(mpi, sav_mp, &all_set);
@@ -939,7 +980,7 @@ static int
 print_direct_access_info(int sg_fd, const struct sdparm_opt_coll * op,
                          int verb)
 {
-    bool for_in_hex = (op->do_hex > 2);
+    bool for_inhex = (op->do_hex > 2);
     int res, v, req_len, resp_len, resid;
     uint8_t * cur_mp = oth_aligned_mp;
 
@@ -955,7 +996,7 @@ print_direct_access_info(int sg_fd, const struct sdparm_opt_coll * op,
             if (verb > 0)
                 pr2serr("%s: resid=%d too large, implies truncated "
                         "response\n", __func__, resid);
-        } else if (for_in_hex) {
+        } else if (for_inhex) {
             uint16_t bd_len = mode6 ? cur_mp[3] :
                                       sg_get_unaligned_be16(cur_mp + 6);
 
@@ -1032,7 +1073,8 @@ print_mode_page_hex(int sg_fd, int pn, int spn,
     printf("Mode page [0x%x,0x%x] current values in hex:\n", pn, spn);
     len -= resid;
     if (len > 0)
-        hex2stdout(mdpg, len, ((op->do_long > 0) ? 0 : -1));
+        hex2stdout(mdpg, len, no_ascii_4hex(op));
+                        // xxxxxxx ((op->do_long > 0) ? 0 : -1));
     return res;
 }
 
@@ -1042,7 +1084,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                  const struct sdparm_opt_coll * op)
 {
     bool single_pg, fetch_pg, desc_part, warned, have_desc_id, sis;
-    bool for_in_hex = (op->do_hex > 2);
+    bool for_inhex = (op->do_hex > 2);
     bool mode6 = op->mode_6;
     bool stop_if_set = false;
     int res, pg_len, verb, smask, rep_len, req_len, orig_pn, decay_pdt;
@@ -1086,12 +1128,12 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
         pdt = decay_pdt;
     }
     if (((0 == pdt) && (op->do_long > 0) && (0 == op->do_quiet)) ||
-        for_in_hex) {
+        for_inhex) {
         if (0 != (res = print_direct_access_info(sg_fd, op, verb)))
             return res;
     }
     if (NULL == first_mp) {
-        if (for_in_hex)
+        if (for_inhex)
             printf("# ");
         printf("No page control selected by --out_mask=OM\n");
         return 0;
@@ -1223,7 +1265,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                 return 0;
             }
             if ((smask & MP_OM_CUR) || (! (MP_OM_CUR & op->out_mask))) {
-                if (for_in_hex)
+                if (for_inhex)
                     printf("# ");
 
                 pg_len = sdp_mpage_len(first_mp);
@@ -1247,28 +1289,28 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                         pg_len = req_len;
                     }
                     if (smask & MP_OM_CUR) {
-                        if (for_in_hex)
+                        if (for_inhex)
                             printf("#");
                         printf("    Current:\n");
-                        hex2stdout(cur_mp, pg_len, for_in_hex ? -1 : 1);
+                        hex2stdout(cur_mp, pg_len, for_inhex ? -1 : 1);
                     }
                     if (smask & MP_OM_CHA) {
-                        if (for_in_hex)
+                        if (for_inhex)
                             printf("#");
                         printf("    Changeable:\n");
-                        hex2stdout(cha_mp, pg_len, for_in_hex ? -1 : 1);
+                        hex2stdout(cha_mp, pg_len, for_inhex ? -1 : 1);
                     }
                     if (smask & MP_OM_DEF) {
-                        if (for_in_hex)
+                        if (for_inhex)
                             printf("#");
                         printf("    Default:\n");
-                        hex2stdout(def_mp, pg_len, for_in_hex ? -1 : 1);
+                        hex2stdout(def_mp, pg_len, for_inhex ? -1 : 1);
                     }
                     if (smask & MP_OM_SAV) {
-                        if (for_in_hex)
+                        if (for_inhex)
                             printf("#");
                         printf("    Saved:\n");
-                        hex2stdout(sav_mp, pg_len, for_in_hex ? -1 : 1);
+                        hex2stdout(sav_mp, pg_len, for_inhex ? -1 : 1);
                     }
                 }
             } else {    /* asked for current values and didn't get them */
@@ -1413,7 +1455,7 @@ and_again:
         return SG_LIB_CAT_OTHER;
 
 now_try_generic:
-    last_mpi = mpi;
+    // last_mpi = mpi;
     for ( ; mpi->acron; ++mpi) {
         if ((pn == mpi->pg_num) && (spn == mpi->subpg_num)) {
             if (sg_pdt_s_eq(pdt, mpi->pdt_s) || op->flexible)
@@ -1699,7 +1741,7 @@ print_mitems(int sg_fd, const struct sdparm_mode_page_settings * mps,
             pn = mpi->pg_num;
             spn = mpi->subpg_num;
             smask = 0;
-            res = 0;
+            // res = 0;
             switch (val) {      /* for --get=<acron>=0|1|2 */
             case 0:
                 pc_arr[0] = cur_mp;
@@ -2564,13 +2606,17 @@ main(int argc, char * argv[])
     bool protect = false;
     bool rw = false;      /* true: requires RDWR, false: perhaps RDONLY ok */
     bool set_clear = false;
-    int sg_fd, res, c, pdt, req_pdt, k, orig_transport, r;
+    bool as_json = false;
+    int c, pdt, req_pdt, k, orig_transport, r;
+    int res = 0;
+    int sg_fd = -1;
     int cmd_arg = -1;
     int do_help = 0;
     int num_devices = 0;
     int pn = -1;
     int spn = -1;
     int ret = 0;
+    int t_proto;
     struct sdparm_opt_coll * op;
     const char * clear_str = NULL;
     const char * cmd_str = NULL;
@@ -2579,11 +2625,13 @@ main(int argc, char * argv[])
     const char * page_str = NULL;
     const char * device_name_arr[MAX_DEV_NAMES];
     const struct sdparm_mode_page_t * mpp = NULL;
-    int t_proto;
     const struct sdparm_vpd_page_t * vpp = NULL;
     const struct sdparm_vendor_name_t * vnp;
     char * cp;
     const char * ccp;
+    sgj_state * jsp;
+    sgj_opaque_p jop = NULL;
+    sgj_opaque_p jo2p = NULL;
     const struct sdparm_command_t * scmdp = NULL;
     struct sdparm_opt_coll opts;
     struct sdparm_mode_page_settings mp_settings;
@@ -2603,10 +2651,11 @@ main(int argc, char * argv[])
 
 #ifdef SG_LIB_WIN32
         c = getopt_long(argc, argv,
-                       "6aBc:C:dDEefg:hHiI:lM:no:p:P:qrRs:St:vVw",
+                        "6aBc:C:dDeEfg:hHiI:j::J:lM:no:p:P:qrRs:St:vVw",
                         long_options, &option_index);
 #else
-        c = getopt_long(argc, argv, "6aBc:C:dDeEfg:hHiI:lM:no:p:P:qrRs:St:vV",
+        c = getopt_long(argc, argv,
+                        "6aBc:C:dDeEfg:hHiI:j::J:lM:no:p:P:qrRs:St:vV",
                         long_options, &option_index);
 #endif
         if (c == -1)
@@ -2664,6 +2713,14 @@ main(int argc, char * argv[])
             break;
         case 'I':
             op->inhex_fn = optarg;
+            break;
+        case 'j':
+            op->do_json = true;
+            op->json_arg = optarg;
+            break;
+        case 'J':
+            op->do_json = true;
+            op->js_file = optarg;
             break;
         case 'l':
             ++op->do_long;
@@ -2921,40 +2978,65 @@ main(int argc, char * argv[])
                 spn = 0;
         }
     }
+    jsp = &op->json_st;
+    if (op->do_json) {
+        if (! sgj_init_state(jsp, op->json_arg)) {
+            int bad_char = jsp->first_bad_char;
+            char e[1500];
+
+            if (bad_char) {
+                pr2serr("bad argument to --json= option, unrecognized "
+                        "character '%c'\n\n", bad_char);
+            }
+            sg_json_usage(0, e, sizeof(e));
+            pr2serr("%s", e);
+            ret = SG_LIB_SYNTAX_ERROR;
+            goto fini;
+        }
+        jop = sgj_start_r(sdp_sn, version_str, argc, argv, jsp);
+        jo2p = sgj_named_subobject_r(jsp, jop, sdp_rsp_sn);
+    }
+    as_json = jsp->pr_as_json;
 
     if (op->inquiry) {  /* VPD pages or standard INQUIRY response */
         if (set_clear || get_str || cmd_str || op->defaults || op->save) {
             pr2serr("'--inquiry' option lists VPD pages so other options "
                     "that are\nconcerned with mode pages are "
                     "inappropriate\n");
-            return SG_LIB_CONTRADICT;
+            ret = SG_LIB_CONTRADICT;
+            goto fini;
         }
         if (pn > 255) {
             pr2serr("VPD page numbers are from 0 to 255\n");
-            return SG_LIB_SYNTAX_ERROR;
+            ret = SG_LIB_SYNTAX_ERROR;
+            goto fini;
         }
         if (op->do_enum) {
             printf("VPD pages:\n");
             enumerate_vpds();
-            return 0;
+            ret = 0;
+            goto fini;
         }
     } else if (cmd_str) {
         if (set_clear || get_str || op->defaults || op->save || op->examine) {
             pr2serr("'--command=' option is not valid with other "
                     "options that are\nconcerned with mode pages\n");
-            return SG_LIB_CONTRADICT;
+            ret = SG_LIB_CONTRADICT;
+            goto fini;
         }
         if (op->do_enum) {
             printf("Available commands:\n");
             sdp_enumerate_commands();
-            return 0;
+            ret = 0;
+            goto fini;
         }
         scmdp = sdp_build_cmd(cmd_str, &rw, &cmd_arg);
         if (NULL == scmdp) {
             pr2serr("'--command=%s' not found\n", cmd_str);
             printf("available commands\n");
             sdp_enumerate_commands();
-            return SG_LIB_SYNTAX_ERROR;
+            ret = SG_LIB_SYNTAX_ERROR;
+            goto fini;
         }
         if (op->read_only)
             rw = false;         // override any read-write settings
@@ -2970,10 +3052,13 @@ main(int argc, char * argv[])
             if (set_clear) {
                 pr2serr("'--get=' can't be used with '--set=' or "
                         "'--clear='\n");
-                return SG_LIB_CONTRADICT;
+                ret = SG_LIB_CONTRADICT;
+                goto fini;
             }
-            if (! build_mp_settings(get_str, &mp_settings, op, false, true))
-                return SG_LIB_SYNTAX_ERROR;
+            if (! build_mp_settings(get_str, &mp_settings, op, false, true)) {
+                ret = SG_LIB_SYNTAX_ERROR;
+                goto fini;
+            }
         }
         if (op->do_enum) {
             if ((num_devices > 0) || set_clear || get_str || op->save)
@@ -3080,28 +3165,37 @@ main(int argc, char * argv[])
                 }
             } else      /* given mode page number */
                 enumerate_mitems(pn, spn, pdt, op);
-            return 0;
+            ret = 0;
+            goto fini;
         }
 
         if (op->num_desc && (pn < 0)) {
             pr2serr("when '--num-desc' is given an explicit mode page is "
                     "required\n");
-            return SG_LIB_CONTRADICT;
+            ret = SG_LIB_CONTRADICT;
+            goto fini;
         }
 
         if (op->defaults && (set_clear || get_str)) {
             pr2serr("'--get=', '--set=' or '--clear=' "
                     "can't be used with '--defaults'\n");
-            return SG_LIB_CONTRADICT;
+            ret = SG_LIB_CONTRADICT;
+            goto fini;
         }
 
         if (set_str) {
-            if (! build_mp_settings(set_str, &mp_settings, op, false, false))
-                return SG_LIB_SYNTAX_ERROR;
+            if (! build_mp_settings(set_str, &mp_settings, op, false,
+                                    false)) {
+                ret = SG_LIB_SYNTAX_ERROR;
+                goto fini;
+            }
         }
         if (clear_str) {
-            if (! build_mp_settings(clear_str, &mp_settings, op, true, false))
-                return SG_LIB_SYNTAX_ERROR;
+            if (! build_mp_settings(clear_str, &mp_settings, op, true,
+                                    false)) {
+                ret = SG_LIB_SYNTAX_ERROR;
+                goto fini;
+            }
         }
 
         if (op->verbose && (mp_settings.num_it_vals > 0))
@@ -3110,7 +3204,8 @@ main(int argc, char * argv[])
         if ((1 == op->defaults) && (pn < 0)) {
             pr2serr("to set a page's defaults, the '--page=' option must be "
                     "used\n");
-            return SG_LIB_CONTRADICT;
+            ret = SG_LIB_CONTRADICT;
+            goto fini;
         }
     }
 
@@ -3119,23 +3214,25 @@ main(int argc, char * argv[])
 
         if (num_devices > 0) {
             pr2serr("Cannot have both a DEVICE and --inhex= option\n");
-            return SG_LIB_CONTRADICT;
+            ret = SG_LIB_CONTRADICT;
+            goto fini;
         }
-        res = sg_f2hex_arr(op->inhex_fn, op->do_raw, false, inhex_buff,
+        ret = sg_f2hex_arr(op->inhex_fn, op->do_raw, false, inhex_buff,
                            &inhex_len, sizeof(inhex_buff));
-        if (res)
-            return res;
+        if (ret)
+            goto fini;
         if (op->verbose > 2)
             pr2serr("Read %d bytes from user input\n", inhex_len);
         if (op->verbose > 3)
             hex2stderr(inhex_buff, inhex_len, 0);
         op->do_raw = false;
         if (op->inquiry)
-            return sdp_process_vpd_page(-1, pn, ((spn < 0) ? 0: spn), op,
-                                        pdt, protect, inhex_buff, inhex_len,
-                                        NULL, 0);
+            ret = sdp_process_vpd_page(-1, pn, ((spn < 0) ? 0: spn), op,
+                                       jo2p, pdt, protect, inhex_buff,
+                                       inhex_len, NULL, 0);
         else
-            return print_inhex_mode_pages(inhex_buff, inhex_len, op);
+            ret = print_inhex_mode_pages(inhex_buff, inhex_len, op);
+        goto fini;
     }
 
     if (0 == num_devices) {
@@ -3144,7 +3241,8 @@ main(int argc, char * argv[])
             pr2serr("\n");
             usage((do_help > 0) ? do_help : 0);
         }
-        return SG_LIB_SYNTAX_ERROR;
+        ret = SG_LIB_SYNTAX_ERROR;
+        goto fini;
     }
 
     /* Page sized heap allocations aligned to a page */
@@ -3157,13 +3255,13 @@ main(int argc, char * argv[])
         (NULL == def_aligned_mp) || (NULL == sav_aligned_mp) ||
         (NULL == oth_aligned_mp)) {
         ret = sg_convert_errno(ENOMEM);
-        goto no_mem_out;
+        goto fini;
     }
 
     req_pdt = pdt;
     ret = 0;
     for (k = 0; k < num_devices; ++k) {
-        r = 0;
+        // r = 0;
         pdt = -1;
         if (op->verbose > 1)
             pr2serr(">>> about to open device name: %s\n",
@@ -3178,10 +3276,12 @@ main(int argc, char * argv[])
 
         if (op->inquiry) {
             if (op->examine)
-                r = examine_vpd_page(sg_fd, pn, spn, op, req_pdt, protect);
+                r = examine_vpd_page(sg_fd, pn, spn, op, jo2p, req_pdt,
+                                     protect);
             else
                 r = sdp_process_vpd_page(sg_fd, pn, ((spn < 0) ? 0: spn), op,
-                                         req_pdt, protect, NULL, 0, NULL, 0);
+                                         jo2p, req_pdt, protect, NULL, 0,
+                                         NULL, 0);
         } else {
             if (cmd_str && scmdp)   /* process command */
                 r = sdp_process_cmd(sg_fd, scmdp, cmd_arg, pdt, op);
@@ -3204,8 +3304,9 @@ main(int argc, char * argv[])
         }
         if (r  && ((0 == ret) || (SG_LIB_FILE_ERROR == ret)))
             ret = r;
-    }
-no_mem_out:
+    }   /* end of DEVICEs for loop */
+
+fini:           /* error expected in ret, ret==0 means no error */
     if (free_cur_aligned_mp)
         free(free_cur_aligned_mp);
     if (free_cha_aligned_mp)
@@ -3216,7 +3317,29 @@ no_mem_out:
         free(free_sav_aligned_mp);
     if (free_oth_aligned_mp)
         free(free_oth_aligned_mp);
-    return (ret >= 0) ? ret : SG_LIB_CAT_OTHER;
+    ret = (ret >= 0) ? ret : SG_LIB_CAT_OTHER;
+    if (as_json) {
+        FILE * fp = stdout;
+
+        if (op->js_file) {
+            if ((1 != strlen(op->js_file)) || ('-' != op->js_file[0])) {
+                fp = fopen(op->js_file, "w");   /* truncate if exists */
+                if (NULL == fp) {
+                    pr2serr("unable to open file: %s\n", op->js_file);
+                    res = SG_LIB_FILE_ERROR;
+                }
+            }
+            /* '--js-file=-' will send JSON output to stdout */
+        }
+        if (fp)
+            sgj_js2file(jsp, NULL, res, fp);
+        if (op->js_file && fp && (stdout != fp))
+            fclose(fp);
+        sgj_finish(jsp);
+        if ((0 == ret) && (res > 0))
+            ret = res;
+    }
+    return ret;
 }
 
 #ifdef SG_LIB_LINUX

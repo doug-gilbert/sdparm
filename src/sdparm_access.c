@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2022, Douglas Gilbert
+ * Copyright (c) 2005-2023, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -97,7 +97,6 @@ sdp_strcase_eq_upto(const char * s1p, const char * s2p, int n)
     }
     return 1;
 }
-
 
 /* Returns length of mode page. Assumes mp pointing at start of a mode
  * page (not the start of a MODE SENSE response). */
@@ -488,15 +487,6 @@ sdp_mitem_set_value(uint64_t val, const struct sdparm_mode_page_item * mpi,
 {
     sg_set_big_endian(val, mp + mpi->start_byte, mpi->start_bit,
                       mpi->num_bits);
-}
-
-char *
-sdp_get_ansi_version_str(int version, int buff_len, char * buff)
-{
-    version &= 0x7;
-    buff[buff_len - 1] = '\0';
-    strncpy(buff, sdparm_ansi_version_arr[version], buff_len - 1);
-    return buff;
 }
 
 int
