@@ -80,7 +80,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.13 20230221 [svn: r367]";
+static const char * version_str = "1.13 20230222 [svn: r368]";
 
 
 #define MAX_DEV_NAMES 256
@@ -143,6 +143,8 @@ static struct option long_options[] = {
 };
 
 static const char * ms_s = "MODE SENSE";
+static const char * mp_s = "Mode page";
+static const char * mpgf_s = "Mode pages for";
 static const char * sdp_sn = "sdparm";
 static const char * sdp_rsp_sn = "sdparm_response";
 
@@ -151,9 +153,9 @@ static int print_mode_pages(int sg_fd, int pn, int spn, int pdt,
 
 
 static void
-usage(int do_help)
+usage(const struct sdparm_opt_coll * op)
 {
-    if (do_help < 2) {
+    if (op->do_help < 2) {
         pr2serr(
             "Usage: sdparm [--all] [--dbd] [--examine] [--flexible] "
             "[--get=STR] [--hex]\n"
@@ -172,7 +174,7 @@ usage(int do_help)
             "[--verbose]\n"
             "              DEVICE [DEVICE...]\n\n"
               );
-        if (do_help < 1) {
+        if (op->do_help < 1) {
             pr2serr(
                 "       sdparm --command=CMD [--hex] [--long] [--readonly] "
                 "[--verbose]\n"
@@ -190,9 +192,10 @@ usage(int do_help)
                 "       sdparm --inhex=FN [--all] [--flexible] [--hex] "
                 "[--inquiry]\n"
                 "              [--json[=JO]] [--js-file=JFN] [--long] "
-                "[--pdt=DT] [--raw]\n"
-                "              [--six] [--transport=TN] [--vendor=VN] "
-                "[--verbose]\n\n"
+                "[--out=mask=,IM]\n"
+                "              [--pdt=DT] [--raw] [--six] [--transport=TN] "
+                "[--vendor=VN]\n"
+                "              [--verbose]\n\n"
                 "Or the corresponding short option usage: \n"
                 "  sdparm [-a] [-B] [-E] [-f] [-g STR] [-H] [-j[JO]] "
                 "[-J JFN] [-l] [-n]\n"
@@ -214,8 +217,8 @@ usage(int do_help)
                 "  sdparm -e [-a] [-i] [-l] [-p PG[,SPG]] [-t TN] [-M VN]\n"
                 "\n"
                 "  sdparm -I FN [-a] [-f] [-H] j[JO]] [-J JFN] [-i] [-l] "
-                "[-P PDT] [-R]\n"
-                "         [-6] [-t TN] [-M VN] [-v]\n"
+                "[-o ,IM]\n"
+                "         [-P PDT] [-R] [-6] [-t TN] [-M VN] [-v]\n"
                    );
             pr2serr("\nFor help use '-h' one or more times\n");
             return;
@@ -255,10 +258,11 @@ usage(int do_help)
             "    --long | -l           add description to field output\n"
             "    --num-desc | -n       report number of mode page "
             "descriptors\n"
-            "    --out-mask=OM | -o OM    select whether current, "
-            "changeable, default\n"
-            "                             and/or saveable values out, "
-            "(def: all(0xf)\n"
+            "    --out-mask=OM | -o OM    select whether current(1), "
+            " changeable(2),\n"
+            "                             default(4) and/or saveable "
+            "values(8)\n"
+            "                             are output, (def: all(0xf))\n"
             "    --page=PG[,SPG] | -p PG[,SPG]    page (and optionally "
             "subpage) number\n"
             "                          [or abbrev] to output, change or "
@@ -320,6 +324,8 @@ usage(int do_help)
             "page(s))\n"
             "                          use --page=PG for VPD number (-1 "
             "for std inq)\n"
+            "    --out-mask=,IM | -o ,IM    mask like '-o OM' but applies "
+            "to inhex\n"
             "    --pdt=DT|-P DT        peripheral Device Type (e.g. "
             "0->disk)\n"
             "    --raw | -R            FN (in '-I FN') assumed to be "
@@ -473,7 +479,7 @@ enumerate_mitems(int pn, int spn, int pdt,
     bool found = false;
     bool have_desc = false;
     bool have_desc_id = false;
-    int t_pn, t_spn, t_pdt_s, vendor_id, transp, long_o, e_num, decay_pdt;
+    int t_pn, t_spn, t_com_pdt, vendor_id, transp, long_o, e_num, decay_pdt;
     const struct sdparm_mode_page_t * mpp = NULL;
     const struct sdparm_mode_descriptor_t * mdp = NULL;
     const struct sdparm_mode_page_item * mpi;
@@ -482,7 +488,7 @@ enumerate_mitems(int pn, int spn, int pdt,
 
     t_pn = -1;
     t_spn = -1;
-    t_pdt_s = -2;
+    t_com_pdt = -2;
     vendor_id = op->vendor_id;
     transp = op->transport;
     long_o = op->do_long;
@@ -507,25 +513,25 @@ enumerate_mitems(int pn, int spn, int pdt,
         return;
 
     for ( ; mpi->acron; ++mpi) {
-        if (! sg_pdt_s_eq(pdt, mpi->pdt_s))
+        if (! sg_pdt_s_eq(pdt, mpi->com_pdt))
             continue;
         if ((t_pn == mpi->pg_num) && (t_spn == mpi->subpg_num) &&
-            sg_pdt_s_eq(t_pdt_s, mpi->pdt_s)) {
+            sg_pdt_s_eq(t_com_pdt, mpi->com_pdt)) {
             if ((pn >= 0) && ((pn != t_pn) || (spn != t_spn)))
                 continue;
         } else {
             t_pn = mpi->pg_num;
             t_spn = mpi->subpg_num;
-            t_pdt_s = mpi->pdt_s;
+            t_com_pdt = mpi->com_pdt;
             if ((pn >= 0) && ((pn != t_pn) || (spn != t_spn)))
                 continue;
-            if (! sg_pdt_s_eq(pdt, t_pdt_s))
+            if (! sg_pdt_s_eq(pdt, t_com_pdt))
                 continue;
-            mpp = sdp_get_mpt_with_str(t_pn, t_spn, t_pdt_s, transp,
+            mpp = sdp_get_mpt_with_str(t_pn, t_spn, t_com_pdt, transp,
                                        vendor_id, long_o, true, sizeof(d), d);
             if (long_o && (transp < 0) && (vendor_id < 0))
                 printf("%s [%s] mode page:\n", d,
-                       sg_get_pdt_str(t_pdt_s, sizeof(b), b));
+                       sg_get_pdt_str(t_com_pdt, sizeof(b), b));
             else
                 printf("%s mode page:\n", d);
             if (mpp && ((mdp = mpp->mp_desc))) {
@@ -621,7 +627,7 @@ examine_vpd_page(int sg_fd, int pn, int spn,
         else if (0 == res)
             printf("\n");
         res = sdp_process_vpd_page(sg_fd, k, 0, op, jop, req_pdt, protect,
-                                   NULL, 0, NULL, 0);
+                                   NULL, NULL, 0);
     }
     return 0;
 }
@@ -640,7 +646,7 @@ list_mp_settings(const struct sdparm_mode_page_settings * mps, bool get)
             printf("  [0x%x,0x%x]", mpip->pg_num, mpip->subpg_num);
 
         printf("  pdt=%d start_byte=0x%x start_bit=%d num_bits=%d  val=%"
-               PRId64 "", mpip->pdt_s, mpip->start_byte, mpip->start_bit,
+               PRId64 "", mpip->com_pdt, mpip->start_byte, mpip->start_bit,
                mpip->num_bits, mps->it_vals[k].val);
         if (mpip->acron) {
             printf("  acronym: %s", mpip->acron);
@@ -1070,11 +1076,10 @@ print_mode_page_hex(int sg_fd, int pn, int spn,
     res = ll_mode_sense(sg_fd, op, pn, spn, mdpg, len, &resid, vb);
     if (res)
         return res;
-    printf("Mode page [0x%x,0x%x] current values in hex:\n", pn, spn);
+    printf("%s [0x%x,0x%x] current values in hex:\n", mp_s, pn, spn);
     len -= resid;
     if (len > 0)
         hex2stdout(mdpg, len, no_ascii_4hex(op));
-                        // xxxxxxx ((op->do_long > 0) ? 0 : -1));
     return res;
 }
 
@@ -1122,13 +1127,13 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
     verb = (op->verbose > 0) ? op->verbose - 1 : 0;
     decay_pdt = sg_lib_pdt_decay(pdt);
     if (decay_pdt != pdt) {
-        if (op->verbose > 1)
+        if ((pdt >= 0) && (op->verbose > 2))
             pr2serr("%s: decaying pdt=0x%x to 0x%x\n", __func__, pdt,
                     decay_pdt);
         pdt = decay_pdt;
     }
-    if (((0 == pdt) && (op->do_long > 0) && (0 == op->do_quiet)) ||
-        for_inhex) {
+    if (((0 == pdt) && (op->do_long > 0) && (0 == op->do_quiet) &&
+         (! op->examine)) || for_inhex) {
         if (0 != (res = print_direct_access_info(sg_fd, op, verb)))
             return res;
     }
@@ -1158,7 +1163,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
         fetch_pg = true;
         for ( ; mpi->acron; ++mpi) {
             if ((pn == mpi->pg_num) && (spn == mpi->subpg_num)) {
-                if (sg_pdt_s_eq(pdt, mpi->pdt_s) || op->flexible)
+                if (sg_pdt_s_eq(pdt, mpi->com_pdt) || op->flexible)
                     break;
             }
         }
@@ -1198,7 +1203,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
     for (smask = 0, warned = false ; mpi->acron; ++mpi, fetch_pg = false) {
         if (! fetch_pg) {
             if ((pn == mpi->pg_num) && (spn == mpi->subpg_num)) {
-                if (! sg_pdt_s_eq(pdt, mpi->pdt_s) && ! op->flexible)
+                if (! sg_pdt_s_eq(pdt, mpi->com_pdt) && ! op->flexible)
                     continue;
                 if (! (((orig_pn >= 0) ? 1 : op->do_all) ||
                        (MF_COMMON & mpi->flags)))
@@ -1218,8 +1223,8 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                     break;
                 if (stop_if_set)
                     stop_if_set = false;
-                if (! sg_pdt_s_eq(pdt, mpi->pdt_s))
-                    continue;   /* ... but pdt_s didn't match */
+                if (! sg_pdt_s_eq(pdt, mpi->com_pdt))
+                    continue;   /* ... but com_pdt didn't match */
                 fetch_pg = true;
                 pn = mpi->pg_num;
                 spn = mpi->subpg_num;
@@ -1377,49 +1382,75 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
 /* Print one or more mode pages found in FN specified by the --inhex=FN
  * command line option. Returns 0 if ok else error number.  */
 static int
-print_inhex_mode_pages(uint8_t * msense_resp, int msense_resp_len,
-                       const struct sdparm_opt_coll * op)
+print_inhex_mode_pages(uint8_t * msense_resp, struct sdparm_opt_coll * op)
 {
-    bool first_time, desc_part, warned, spf, have_desc_id, sis;
+    bool first_time, desc_part, warned, spf, n_spf, have_desc_id, sis;
     bool mode6 = op->mode_6;
     bool stop_if_set = false;
-    int smask, resp_len, orig_pn, v, off, desc0_off, pn, spn, pdt, decay_pdt;
-    int pg_len, transport, vendor_id, desc_id, desc_len;
+    int smask, resp_len, resp_mp_len, orig_pn, v, off, desc0_off, pn, spn;
+    int pdt, decay_pdt, k, pg_len, transport, vendor_id, desc_id, desc_len;
+    int n, inhx_mp_len;
+    int inhx_len = op->inhex_len;
+    int vb = op->verbose;
     const struct sdparm_mode_page_item * mpi;
     const struct sdparm_mode_page_item * last_mpi;
     const struct sdparm_mode_page_item * fdesc_mpi = NULL;
     const struct sdparm_mode_page_t * mpp = NULL;
     const struct sdparm_mode_descriptor_t * mdp;
     uint8_t * pg_p;
-    void * pc_arr[4];
-    char b[128];
+    uint8_t * n_pg_p;
+    sgj_state * jsp = &op->json_st;
+    void * pc_arr[MP_NUM_PG_CTL];
+    char b[192];
+    char c[96];
+    static const int blen = sizeof(b);
+    static const int clen = sizeof(c);
 
-    pdt = op->pdt;
+    pdt = op->cl_pdt;
     decay_pdt = sg_lib_pdt_decay(pdt);
     if (decay_pdt != pdt) {
-        if (op->verbose > 1)
+        if (vb > 1)
             pr2serr("%s: decaying pdt=0x%x to 0x%x\n", __func__, pdt,
                     decay_pdt);
         pdt = decay_pdt;
     }
-    resp_len = sg_msense_calc_length(msense_resp, msense_resp_len, mode6,
-                                     NULL);
-    off = sg_mode_page_offset(msense_resp, msense_resp_len, mode6, NULL, 0);
-    if ((resp_len < 2) || (off < 2)) {
+    resp_len = sg_msense_calc_length(msense_resp, inhx_len, mode6, NULL);
+    off = sg_mode_page_offset(msense_resp, inhx_len, mode6, NULL, 0);
+    if ((resp_len < 2) || (off < 2) || (off >= resp_len)) {
         pr2serr("Couldn't decode %s as a %s(%d) command response\n",
                 (op->inhex_fn ? op->inhex_fn : "??"), ms_s, (mode6 ? 6 : 10));
         pr2serr("perhaps it is a VPD page, if so add '-i'\n");
         return SG_LIB_CAT_OTHER;
     }
-    if (msense_resp_len < resp_len) {
+    if (inhx_len < resp_len) {
         pr2serr("given %s(%d) response is too short, given %d bytes, expected "
-                "%d\n", ms_s, (mode6 ? 6 : 10), msense_resp_len, resp_len);
+                "%d\n", ms_s, (mode6 ? 6 : 10), inhx_len, resp_len);
         return SG_LIB_CAT_OTHER;
+    }
+    inhx_mp_len = inhx_len - off;
+    resp_mp_len = resp_len - off;
+    if (inhx_mp_len > resp_mp_len) {
+        if (0 == (inhx_mp_len % resp_mp_len)) {
+            n = inhx_mp_len / resp_mp_len;
+            if (vb > 2)
+                pr2serr("%s: have %d times as many mpages, assume page "
+                        "controls\n", __func__, n);
+            resp_len = inhx_len;
+            resp_mp_len = inhx_mp_len;
+        } else {
+            if (vb > 0)
+                pr2serr("%s: strange, inhx_mp_len=%d, resp_mp_len=%d\n",
+                        __func__, inhx_mp_len, resp_mp_len);
+        }
     }
     if ((0 == pdt) && (op->do_long > 0) && (0 == op->do_quiet)) {
         v = msense_resp[mode6 ? 2 : 3];
-        printf("    Direct access device specific parameters: WP=%d  "
-               "DPOFUA=%d\n", !!(v & 0x80), !!(v & 0x10));
+        sgj_pr_hr(jsp, "    Direct access device specific parameters: "
+                  "WP=%d  DPOFUA=%d\n", !!(v & 0x80), !!(v & 0x10));
+    }
+    if (0 == op->in_mask) {
+        sgj_pr_hr(jsp, "in_mask is 0, so don't decode any pages\n");
+        return 0;
     }
 
 and_again:
@@ -1429,6 +1460,7 @@ and_again:
     spf = !! (pg_p[0] & 0x40);
     spn = spf ? pg_p[1] : 0;
     pc_arr[0] = pg_p;
+    k = 0;
     pc_arr[1] = NULL;
     pc_arr[2] = NULL;
     pc_arr[3] = NULL;
@@ -1436,8 +1468,43 @@ and_again:
     have_desc_id = false;
     desc_id = -1;
     desc_len = -1;
+    while ((off + pg_len + 4) < resp_len) {
+        n_pg_p = msense_resp + off + pg_len;
+        n_spf = !! (n_pg_p[0] & 0x40);
+        if ((pn != (n_pg_p[0] & 0x3f)) ||
+            (spn != (n_spf ? n_pg_p[1] : 0)))
+            break;
+        pg_len = sdp_mpage_len(n_pg_p);
+        off += pg_len;
+        pc_arr[++k] = n_pg_p;
+        smask |= (1 << k);
+        pg_p = n_pg_p;
+        if (k > 2)
+            break;
+    }
+    if (op->in_mask < MP_IM_ALL) {
+        int j, m, msk;
+        void * t_pc_arr[MP_NUM_PG_CTL];
 
+        smask = 0;
+        for (j = 0; j < MP_NUM_PG_CTL; ++j) {
+            t_pc_arr[j] = pc_arr[j];
+            pc_arr[j] = 0;
+        }
+        for (j = 0, m = 0, msk = 1; j < MP_NUM_PG_CTL; ++j, msk <<= 1) {
+            if (NULL == t_pc_arr[m])
+                m++;
+            else if (op->in_mask & msk) {
+                pc_arr[j] = t_pc_arr[m++];
+                smask |= msk;
+            }
+        }
+        if (vb > 1)
+            pr2serr("%s: local in_mask is 0x%x for pn,spg=0x%x,0x%x\n",
+                    __func__, smask, pn, spn);
+    }
     b[0] = '\0';
+    c[0] = '\0';
     orig_pn = pn;
     /* choose a mode page item namespace (vendor, transport or generic) */
     transport = op->transport;
@@ -1458,7 +1525,7 @@ now_try_generic:
     // last_mpi = mpi;
     for ( ; mpi->acron; ++mpi) {
         if ((pn == mpi->pg_num) && (spn == mpi->subpg_num)) {
-            if (sg_pdt_s_eq(pdt, mpi->pdt_s) || op->flexible)
+            if (sg_pdt_s_eq(pdt, mpi->com_pdt) || op->flexible)
                 break;
         }
     }
@@ -1472,14 +1539,14 @@ now_try_generic:
             goto now_try_generic;
         }
         sdp_get_mpt_with_str(pn, spn, pdt, transport, vendor_id, 0, false,
-                             sizeof(b), b);
+                             clen, c);
         if ((vendor_id < 0) && ((0 == pn) || (0x18 == pn) || (0x19 == pn) ||
                                 (pn >= 0x20)))
             pr2serr("%s mode page may be transport or vendor specific,\n"
-                    "try '--transport=TN' or '--vendor=VN'.\n", b);
+                    "try '--transport=TN' or '--vendor=VN'.\n", c);
         else
             pr2serr("%s mode page, no fields found. Add '-v' or '--v' "
-                    "to\nsee more debug.\n", b);
+                    "to\nsee more debug.\n", c);
     }
     mdp = NULL;
 
@@ -1490,7 +1557,7 @@ now_try_generic:
             first_time = false;
             mpp = sdp_get_mpt_with_str(pn, spn, pdt, transport, vendor_id,
                                        op->do_long, (op->do_hex > 0),
-                                      sizeof(b), b);
+                                       clen, c);
             warned = false;
             fdesc_mpi = NULL;
             /* check for mode page descriptors */
@@ -1514,22 +1581,22 @@ now_try_generic:
                     report_number_of_descriptors(pg_p, mdp, op);
                 return 0;
             }
-            printf("%s ", b);
-            if (op->verbose) {
+            n = sg_scnpr(b, blen, "%s ", c);
+            if (vb) {
                 if (spn)
-                    printf("[0x%x,0x%x] ", pn, spn);
+                    n += sg_scnpr(b + n, blen - n, "[0x%x,0x%x] ", pn, spn);
                 else
-                    printf("[0x%x] ", pn);
+                    n += sg_scnpr(b + n, blen - n, "[0x%x] ", pn);
             }
-            printf("mode page");
-            if ((op->do_long > 1) || op->verbose)
-                printf(" [PS=%d]:\n", !!(pg_p[0] & 0x80));
+            n += sg_scnpr(b + n, blen - n, "mode page");
+            if ((op->do_long > 1) || vb)
+                sgj_pr_hr(jsp, "%s [PS=%d]:\n", b, !!(pg_p[0] & 0x80));
             else
-                printf(":\n");
+                sgj_pr_hr(jsp, "%s:\n", b);
             check_mode_page(pg_p, pn, pg_len, op);
         } else {        /* if not first_time */
             if ((pn == mpi->pg_num) && (spn == mpi->subpg_num)) {
-                if (! sg_pdt_s_eq(pdt, mpi->pdt_s) && ! op->flexible)
+                if (! sg_pdt_s_eq(pdt, mpi->com_pdt) && ! op->flexible)
                     continue;
                 if (! (((orig_pn >= 0) ? true : op->do_all) ||
                        (MF_COMMON & mpi->flags)))
@@ -1548,7 +1615,7 @@ now_try_generic:
         }
         if (smask && (! op->do_hex)) {
             if (mpi->start_byte >= pg_len) {
-                if ((! op->flexible) && (0 == op->verbose))
+                if ((! op->flexible) && (0 == vb))
                     continue;   // step over
                 if (! warned) {
                     warned = true;
@@ -1721,7 +1788,7 @@ print_mitems(int sg_fd, const struct sdparm_mode_page_settings * mps,
         val = ivp->val;
         desc_num = ivp->descriptor_num;
         mpi = &ivp->mpi;
-        mpp = sdp_get_mpt_with_str(mpi->pg_num, mpi->subpg_num, mpi->pdt_s,
+        mpp = sdp_get_mpt_with_str(mpi->pg_num, mpi->subpg_num, mpi->com_pdt,
                                    op->transport, op->vendor_id, op->do_long,
                                    (op->do_hex > 0), sizeof(b), b);
         if (desc_num > 0) {
@@ -1798,11 +1865,11 @@ print_mitems(int sg_fd, const struct sdparm_mode_page_settings * mps,
                 goto out;
             }
         }
-        if (! warned && mpi->acron && ! sg_pdt_s_eq(pdt, mpi->pdt_s)) {
+        if (! warned && mpi->acron && ! sg_pdt_s_eq(pdt, mpi->com_pdt)) {
             warned = true;
             pr2serr(">> warning: peripheral device type (pdt) is 0x%x but "
                     "acronym %s\n   is associated with pdt 0x%x.\n", pdt,
-                    ivp->mpi.acron, ivp->mpi.pdt_s);
+                    ivp->mpi.acron, ivp->mpi.com_pdt);
         }
         len = (smask & 1) ? sdp_mpage_len(cur_mp) : 0;
         if (mpi->start_byte >= len) {
@@ -1900,11 +1967,11 @@ change_mode_page(int sg_fd, int pdt,
         /* sanity check: check acronym's pdt matches device's pdt */
         for (k = 0; k < mps->num_it_vals; ++k) {
             ivp = &mps->it_vals[k];
-            if (ivp->mpi.acron && ! sg_pdt_s_eq(pdt, ivp->mpi.pdt_s)) {
+            if (ivp->mpi.acron && ! sg_pdt_s_eq(pdt, ivp->mpi.com_pdt)) {
                 pr2serr("%s: peripheral device type (pdt) is 0x%x but "
                         "acronym %s\n  is associated with pdt 0x%x. To "
                         "bypass use numeric addressing mode.\n", __func__,
-                         pdt, ivp->mpi.acron, ivp->mpi.pdt_s);
+                         pdt, ivp->mpi.acron, ivp->mpi.com_pdt);
                 return SG_LIB_SYNTAX_ERROR;
             }
         }
@@ -2439,7 +2506,7 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
                     }
                 }
             }
-            ivp->mpi.pdt_s = -1;  /* don't known pdt now, so don't restrict */
+            ivp->mpi.com_pdt = -1;/* don't known pdt now, so don't restrict */
             if (ivp->mpi.start_byte < 0) {
                 pr2serr("need positive start byte offset\n");
                 return false;
@@ -2482,11 +2549,15 @@ build_mp_settings(const char * arg, struct sdparm_mode_page_settings * mps,
 /* Returns open file descriptor ( >= 0) or negated sg3_utils error code. */
 static int
 open_and_simple_inquiry(const char * device_name, bool rw, int * pdt,
-                        bool * protect, const struct sdparm_opt_coll * op)
+                        bool * protect, struct sdparm_opt_coll * op)
 {
-    int res, verb, sg_fd, l_pdt;
+    int n, res, verb, sg_fd, l_pdt;
+    sgj_state * jsp = &op->json_st;
     struct sg_simple_inquiry_resp sir;
-    char b[32];
+    char b[168];
+    char c[32];
+    static const int blen = sizeof(b);
+    static const int clen = sizeof(c);
 
     verb = (op->verbose > 0) ? op->verbose - 1 : 0;
     sg_fd = sg_cmds_open_device(device_name, ! rw /* read_only */ , verb);
@@ -2528,11 +2599,12 @@ open_and_simple_inquiry(const char * device_name, bool rw, int * pdt,
     if (protect)
         *protect = !! (sir.byte_5 & 0x1);  /* PROTECT bit SPC-3 and later */
     if ((0 == op->do_hex) && (0 == op->do_quiet)) {
-        printf("    %s: %.8s  %.16s  %.4s",
+        n = sg_scnpr(b, blen, "    %s: %.8s  %.16s  %.4s",
                device_name, sir.vendor, sir.product, sir.revision);
         if (0 != l_pdt)
-            printf("  [%s]", sg_get_pdt_str(l_pdt, sizeof(b), b));
-        printf("\n");
+            sg_scnpr(b + n, blen - n, "  [%s]",
+                     sg_get_pdt_str(l_pdt, clen, c));
+        sgj_pr_hr(jsp, "%s\n", b);
     }
     return sg_fd;
 
@@ -2544,9 +2616,10 @@ err_out:
 /* Process mode page(s) operation. Returns 0 if successful */
 static int
 process_mode_page(int sg_fd, const struct sdparm_mode_page_settings * mps,
-                  int pn, int spn, bool set_clear, bool get,
-                  const struct sdparm_opt_coll * op, int pdt)
+                  int pn, int spn, int pdt, const struct sdparm_opt_coll * op)
 {
+    bool set_clear = op->set_clear;
+    bool get = !! op->get_str;
     int res;
     const struct sdparm_mode_page_t * mpp;
 
@@ -2564,11 +2637,11 @@ process_mode_page(int sg_fd, const struct sdparm_mode_page_settings * mps,
         mpp = sdp_get_mpage_t(pn, spn, pdt, op->transport, op->vendor_id);
         if (NULL == mpp)
             mpp = sdp_get_mpage_t(pn, spn, -1, op->transport, op->vendor_id);
-        if (mpp && mpp->name && ! sg_pdt_s_eq(pdt, mpp->pdt_s) &&
-            ! sg_pdt_s_eq(sg_lib_pdt_decay(pdt), mpp->pdt_s)) {
+        if (mpp && mpp->name && ! sg_pdt_s_eq(pdt, mpp->com_pdt) &&
+            ! sg_pdt_s_eq(sg_lib_pdt_decay(pdt), mpp->com_pdt)) {
             pr2serr(">> Warning: %s mode page associated with\n", mpp->name);
             pr2serr("   peripheral device type 0x%x but device pdt is 0x%x\n",
-                    mpp->pdt_s, pdt);
+                    mpp->com_pdt, pdt);
             if (! op->flexible)
                 pr2serr("   may need '--flexible' option to override\n");
         }
@@ -2596,56 +2669,125 @@ process_mode_page(int sg_fd, const struct sdparm_mode_page_settings * mps,
     return res;
 }
 
-
-int
-main(int argc, char * argv[])
+static int
+sdp_enumerate_mpages(int pn, int spn, int com_pdt,
+                     struct sdparm_opt_coll * op)
 {
-#ifdef SG_LIB_WIN32
-    int do_wscan = 0;
-#endif
-    bool protect = false;
-    bool rw = false;      /* true: requires RDWR, false: perhaps RDONLY ok */
-    bool set_clear = false;
-    bool as_json = false;
-    int c, pdt, req_pdt, k, orig_transport, r;
-    int res = 0;
-    int sg_fd = -1;
-    int cmd_arg = -1;
-    int do_help = 0;
-    int num_devices = 0;
-    int pn = -1;
-    int spn = -1;
-    int ret = 0;
-    int t_proto;
-    struct sdparm_opt_coll * op;
-    const char * clear_str = NULL;
-    const char * cmd_str = NULL;
-    const char * get_str = NULL;
-    const char * set_str = NULL;
-    const char * page_str = NULL;
-    const char * device_name_arr[MAX_DEV_NAMES];
-    const struct sdparm_mode_page_t * mpp = NULL;
-    const struct sdparm_vpd_page_t * vpp = NULL;
-    const struct sdparm_vendor_name_t * vnp;
-    char * cp;
+    int k;
     const char * ccp;
-    sgj_state * jsp;
-    sgj_opaque_p jop = NULL;
-    sgj_opaque_p jo2p = NULL;
-    const struct sdparm_command_t * scmdp = NULL;
-    struct sdparm_opt_coll opts;
-    struct sdparm_mode_page_settings mp_settings;
+    sgj_state * jsp = &op->json_st;
     char b[256];
+    static const int blen = sizeof(b);
+    static const char * tp_s = "Transport protocol";
 
-    op = &opts;
-    memset(op, 0, sizeof(opts));
-    op->out_mask = MP_OM_ALL;   /* 0xf */
-    op->pdt = -1;
-    op->transport = -1;
-    op->vendor_id = -1;
-    memset(device_name_arr, 0, sizeof(device_name_arr));
-    memset(&mp_settings, 0, sizeof(mp_settings));
-    pdt = -1;
+    if ((op->num_devices > 0) || op->set_clear || op->get_str || op->save)
+        /* think about --get= with --enumerate */
+        pr2serr("<scsi_device> as well as most options are ignored "
+                "when '--enumerate' is given\n");
+    if (pn < 0) {
+        if (op->vendor_id >= 0) {
+            ccp = sdp_get_vendor_name(op->vendor_id);
+            if (ccp)
+                sgj_pr_hr(jsp, "%s %s vendor:\n", mpgf_s, ccp);
+            else
+                sgj_pr_hr(jsp, "%s vendor 0x%x:\n", mpgf_s, op->vendor_id);
+            if (op->do_all)
+                enumerate_mitems(pn, spn, com_pdt, op);
+            else {
+                enumerate_mpages(op->transport, op->vendor_id);
+            }
+        } else if (op->transport >= 0) {
+            ccp = sdp_get_transport_name(op->transport, blen, b);
+            if (strlen(ccp) > 0)
+                sgj_pr_hr(jsp, "%s %s %s:\n", mpgf_s, ccp, tp_s);
+            else
+                sgj_pr_hr(jsp, "%s %s 0x%x:\n", mpgf_s, tp_s, op->transport);
+            if (op->do_all)
+                enumerate_mitems(pn, spn, com_pdt, op);
+            else
+                enumerate_mpages(op->transport, op->vendor_id);
+        } else {        /* neither vendor nor transport given */
+            if (op->do_long || (op->do_enum > 1)) {
+                sgj_pr_hr(jsp, "%ss (not related to any %s or vendor):\n",
+                          mp_s, tp_s);
+                enumerate_mpages(-1, -1);
+                sgj_pr_hr(jsp, "\n%ss:\n", tp_s);
+                enumerate_transports(false, op);
+                sgj_pr_hr(jsp, "\nVendors:\n");
+                enumerate_vendors();
+                if (op->do_all) {
+                    struct sdparm_opt_coll t_opts;
+
+                    printf("\n");
+                    t_opts = *op;
+                    enumerate_mitems(pn, spn, com_pdt, op);
+                    for (k = 0; k < 15; ++k) {
+                        /* skip "no specific protocol" (0xf) */
+                        ccp = sdp_get_transport_name(k, blen, b);
+                        if (0 == strlen(ccp))
+                            continue;
+                        printf("\n");
+                        printf("%s %s %s:\n", mpgf_s, ccp, tp_s);
+                        t_opts.transport = k;
+                        t_opts.vendor_id = -1;
+                        enumerate_mitems(pn, spn, com_pdt, &t_opts);
+                    }
+                    for (k = 0; k < sdparm_vendor_mp_len; ++k) {
+                        if (VENDOR_NONE == k)
+                            continue;
+                        ccp = sdp_get_vendor_name(k);
+                        if (NULL == ccp)
+                            continue;
+                        printf("\n");
+                        printf("%s %s vendor:\n", mpgf_s, ccp);
+                        t_opts.transport = -1;
+                        t_opts.vendor_id = k;
+                        enumerate_mitems(pn, spn, com_pdt, &t_opts);
+                    }
+                } else {
+                    for (k = 0; k < 15; ++k) {
+                        /* skip "no specific protocol" (0xf) */
+                        ccp = sdp_get_transport_name(k, blen, b);
+                        if (0 == strlen(ccp))
+                            continue;
+                        printf("\n");
+                        printf("%s %s %s:\n", mpgf_s, ccp, tp_s);
+                        enumerate_mpages(k, -1);
+                    }
+                    for (k = 0; k < sdparm_vendor_mp_len; ++k) {
+                        if (VENDOR_NONE == k)
+                            continue;
+                        ccp = sdp_get_vendor_name(k);
+                        if (NULL == ccp)
+                            continue;
+                        printf("\n");
+                        printf("%s %s vendor:\n", mpgf_s, ccp);
+                        enumerate_mpages(-1, k);
+                    }
+                }
+                printf("\n");
+                printf("Commands:\n");
+                sdp_enumerate_commands();
+            } else {
+                printf("Generic mode pages:\n");
+                enumerate_mpages(-1, -1);
+                if (op->do_all)
+                    enumerate_mitems(pn, spn, com_pdt, op);
+            }
+        }
+    } else      /* given mode page number */
+        enumerate_mitems(pn, spn, com_pdt, op);
+    return 0;
+}
+
+static int
+parse_cmd_line(struct sdparm_opt_coll * op, int argc, char * argv[],
+               const char * device_name_arr[])
+{
+    int c, res, t_proto;
+    const char * ccp;
+    const struct sdparm_vendor_name_t * vnp;
+
     while (1) {
         int option_index = 0;
 
@@ -2672,19 +2814,19 @@ main(int argc, char * argv[])
             op->dbd = true;
             break;
         case 'c':
-            clear_str = optarg;
-            set_clear = true;
-            rw = true;
+            op->clear_str = optarg;
+            op->set_clear = true;
+            op->do_rw = true;
             break;
         case 'C':
-            cmd_str = optarg;
+            op->cmd_str = optarg;
             break;
         case 'd':
             op->dummy = true;
             break;
         case 'D':
             ++op->defaults;
-            rw = true;
+            op->do_rw = true;
             break;
         case 'e':
             ++op->do_enum;
@@ -2696,14 +2838,14 @@ main(int argc, char * argv[])
             op->flexible = true;
             break;
         case 'g':
-            get_str = optarg;
+            op->get_str = optarg;
             break;
         case 'h':
-            ++do_help;
+            ++op->do_help;
             break;
         case '?':
             pr2serr("\n");
-            usage((do_help > 0) ? do_help : 0);
+            usage(op);
             return SG_LIB_SYNTAX_ERROR;
         case 'H':
             ++op->do_hex;
@@ -2754,30 +2896,42 @@ main(int argc, char * argv[])
             op->num_desc = true;
             break;
         case 'o':
-            res = sg_get_num_nomult(optarg);
-            if ((res < 0) || (res > 15)) {
-                pr2serr("Bad out-mask value, expect 0 to 15 (or 0xf)\n");
-                return SG_LIB_SYNTAX_ERROR;
+            ccp = strchr(optarg, ',');
+            if (ccp) {
+                res = sg_get_num_nomult(ccp + 1);
+                if ((res < 0) || (res > 15)) {
+                    pr2serr("Bad out-mask value after comma, expect 0 to "
+                             "15 (or 0xf)\n");
+                    return SG_LIB_SYNTAX_ERROR;
+                }
+                op->in_mask = res;
             }
-            op->out_mask = res;
+            if (',' != optarg[0]) {
+                res = sg_get_num_nomult(optarg);
+                if ((res < 0) || (res > 15)) {
+                    pr2serr("Bad out-mask value, expect 0 to 15 (or 0xf)\n");
+                    return SG_LIB_SYNTAX_ERROR;
+                }
+                op->out_mask = res;
+            }
             break;
         case 'q':
             ++op->do_quiet;
             break;
         case 'p':
-            if (page_str) {
+            if (op->page_str) {
                 pr2serr("only one '--page=' option permitted\n");
-                usage((do_help > 0) ? do_help : 0);
+                usage(op);
                 return SG_LIB_CONTRADICT;
             } else
-                page_str = optarg;
+                op->page_str = optarg;
             break;
         case 'P':
             if ('-' == optarg[0])
-                op->pdt = -1;           /* those in SPC */
+                op->cl_pdt = -1;           /* those in SPC */
             else {
-                op->pdt = sg_get_num_nomult(optarg);
-                if ((op->pdt < 0) || (op->pdt > 0x1f)) {
+                op->cl_pdt = sg_get_num_nomult(optarg);
+                if ((op->cl_pdt < 0) || (op->cl_pdt > 0x1f)) {
                     pr2serr("--pdt argument should be -1 to 31\n");
                     return SG_LIB_SYNTAX_ERROR;
                 }
@@ -2790,9 +2944,9 @@ main(int argc, char * argv[])
             op->do_raw = true;
             break;
         case 's':
-            set_str = optarg;
-            rw = true;
-            set_clear = true;
+            op->set_str = optarg;
+            op->do_rw = true;
+            op->set_clear = true;
             break;
         case 'S':
             op->save = true;
@@ -2833,21 +2987,67 @@ main(int argc, char * argv[])
 #endif
         default:
             pr2serr("unrecognised option code 0x%x ??\n", c);
-            usage((do_help > 0) ? do_help : 0);
+            usage(op);
             return SG_LIB_SYNTAX_ERROR;
         }
     }
     while (optind < argc) {
-        if (num_devices < MAX_DEV_NAMES) {
-            device_name_arr[num_devices++] = argv[optind];
+        if (op->num_devices < MAX_DEV_NAMES) {
+            device_name_arr[op->num_devices++] = argv[optind];
             ++optind;
         } else {
             for (; optind < argc; ++optind)
                 pr2serr("Unexpected extra argument: %s\n", argv[optind]);
-            usage((do_help > 0) ? do_help : 0);
+            usage(op);
             return SG_LIB_SYNTAX_ERROR;
         }
     }
+    return 0;
+}
+
+int
+main(int argc, char * argv[])
+{
+#ifdef SG_LIB_WIN32
+    int do_wscan = 0;
+#endif
+    bool protect = false;
+    bool as_json = false;
+    int t_com_pdt, req_pdt, k, orig_transport, r;
+    int res = 0;
+    int sg_fd = -1;
+    int cmd_arg = -1;
+    int pn = -1;
+    int spn = -1;
+    int ret = 0;
+    struct sdparm_opt_coll * op;
+    const char * device_name_arr[MAX_DEV_NAMES];
+    const struct sdparm_mode_page_t * mpp = NULL;
+    const struct sdparm_vpd_page_t * vpp = NULL;
+    char * cp;
+    sgj_state * jsp;
+    sgj_opaque_p jop = NULL;
+    sgj_opaque_p jo2p = NULL;
+    const struct sdparm_command_t * scmdp = NULL;
+    char b[144];
+    struct sdparm_opt_coll opts;
+    struct sdparm_mode_page_settings mp_settings;
+    static const int blen = sizeof(b);
+
+    op = &opts;
+    memset(op, 0, sizeof(opts));
+    op->out_mask = MP_OM_ALL;   /* 0xf */
+    op->in_mask = MP_IM_ALL;    /* 0xf */
+    op->cl_pdt = -1;
+    op->transport = -1;
+    op->vendor_id = -1;
+    memset(device_name_arr, 0, sizeof(device_name_arr));
+    memset(&mp_settings, 0, sizeof(mp_settings));
+    t_com_pdt = -1;
+
+    res = parse_cmd_line(op, argc, argv, device_name_arr);
+    if (res)
+        return res;
 
 #ifdef DEBUG
     pr2serr("In DEBUG mode, ");
@@ -2870,15 +3070,15 @@ main(int argc, char * argv[])
         return 0;
     }
 
-    if (do_help > 0) {
-        usage(do_help);
+    if (op->do_help > 0) {
+        usage(op);
         return 0;
     }
 
     if (op->read_only)
-        rw = false;         // override any read-write settings
+        op->do_rw = false;         // override any read-write settings
 
-    if ((!!get_str + !!set_str + !!clear_str) > 1) {
+    if ((!!op->get_str + !!op->set_str + !!op->clear_str) > 1) {
         pr2serr("Can only give one of '--get=', '--set=' and '--clear='\n");
         return SG_LIB_CONTRADICT;
     }
@@ -2886,98 +3086,6 @@ main(int argc, char * argv[])
     if (do_wscan)
         return sg_do_wscan('\0', do_wscan, op->verbose);
 #endif
-
-    if (page_str) {
-        if ((0 == strcmp("-1", page_str)) || (0 == strcmp("-2", page_str))) {
-            op->inquiry = true;
-            pn = VPD_NOT_STD_INQ;
-        } else if (isalpha(page_str[0])) {
-            while ( 1 ) {      /* dummy loop, just using break */
-                mpp = sdp_find_mpt_by_acron(page_str, op->transport,
-                                            op->vendor_id);
-                if (mpp)
-                    break;
-                vpp = sdp_find_vpd_by_acron(page_str);
-                if (vpp)
-                    break;
-                orig_transport = op->transport;
-                if ((op->vendor_id < 0) && (op->transport < 0)) {
-                    op->transport = DEF_TRANSPORT_PROTOCOL;
-                    mpp = sdp_find_mpt_by_acron(page_str, op->transport,
-                                                op->vendor_id);
-                    if (mpp)
-                        break;
-                }
-                if ((op->vendor_id < 0) && (orig_transport < 0))
-                    pr2serr("abbreviation matches neither a mode page nor "
-                            "a VPD page\n"
-                            "    [perhaps a '--transport=<tn>' or "
-                            "'--vendor=<vn>' option is needed]\n");
-                else
-                    pr2serr("abbreviation matches neither a mode page nor "
-                            "a VPD page\n");
-                if (op->inquiry) {
-                    printf("available VPD pages:\n");
-                    enumerate_vpds();
-                    return SG_LIB_SYNTAX_ERROR;
-                } else {
-                    printf("available mode pages");
-                    if (op->vendor_id >= 0)
-                        printf(" (for given vendor):\n");
-                    else if (orig_transport >= 0)
-                        printf(" (for given transport):\n");
-                    else
-                        printf(":\n");
-                    enumerate_mpages(orig_transport, op->vendor_id);
-                    return SG_LIB_SYNTAX_ERROR;
-                }
-            }
-            if (vpp) {
-                pn = vpp->vpd_num;
-                spn = vpp->subvalue;
-                op->inquiry = true;
-                pdt = vpp->pdt_s;
-            } else {
-                if (op->inquiry) {
-                    pr2serr("matched mode page acronym but given '-i' so "
-                            "expecting a VPD page\n");
-                    return SG_LIB_CONTRADICT;
-                }
-                pn = mpp->page;
-                spn = mpp->subpage;
-                pdt = mpp->pdt_s;
-            }
-        } else {        /* got page_str and first char probably numeric */
-            cp = (char *)strchr(page_str, ',');
-            pn = sg_get_num_nomult(page_str);
-            if ((pn < 0) || (pn > 255)) {
-                pr2serr("Bad page code value after '-p' option\n");
-                if (op->inquiry) {
-                    printf("available VPD pages:\n");
-                    enumerate_vpds();
-                    return SG_LIB_SYNTAX_ERROR;
-                } else {
-                    printf("available mode pages");
-                    if (op->vendor_id >= 0)
-                        printf(" (for given vendor):\n");
-                    else if (op->transport >= 0)
-                        printf(" (for given transport):\n");
-                    else
-                        printf(":\n");
-                    enumerate_mpages(op->transport, op->vendor_id);
-                    return SG_LIB_SYNTAX_ERROR;
-                }
-            }
-            if (cp) {
-                spn = sg_get_num_nomult(cp + 1);
-                if ((spn < 0) || (spn > 255)) {
-                    pr2serr("Bad second value after '-p' option\n");
-                    return SG_LIB_SYNTAX_ERROR;
-                }
-            } else
-                spn = 0;
-        }
-    }
     jsp = &op->json_st;
     if (op->do_json) {
         if (! sgj_init_state(jsp, op->json_arg)) {
@@ -2998,8 +3106,102 @@ main(int argc, char * argv[])
     }
     as_json = jsp->pr_as_json;
 
+    if (op->page_str) {
+        if ((0 == strcmp("-1", op->page_str)) ||
+            (0 == strcmp("-2", op->page_str))) {
+            op->inquiry = true;
+            pn = VPD_NOT_STD_INQ;
+        } else if (isalpha(op->page_str[0])) {
+            while ( true ) {      /* dummy loop, exit using break */
+                mpp = sdp_find_mpt_by_acron(op->page_str, op->transport,
+                                            op->vendor_id);
+                if (mpp)
+                    break;
+                vpp = sdp_find_vpd_by_acron(op->page_str);
+                if (vpp)
+                    break;
+                orig_transport = op->transport;
+                if ((op->vendor_id < 0) && (op->transport < 0)) {
+                    op->transport = DEF_TRANSPORT_PROTOCOL;
+                    mpp = sdp_find_mpt_by_acron(op->page_str, op->transport,
+                                                op->vendor_id);
+                    if (mpp)
+                        break;
+                }
+                if ((op->vendor_id < 0) && (orig_transport < 0))
+                    pr2serr("abbreviation matches neither a mode page nor "
+                            "a VPD page\n"
+                            "    [perhaps a '--transport=<tn>' or "
+                            "'--vendor=<vn>' option is needed]\n");
+                else
+                    pr2serr("abbreviation matches neither a mode page nor "
+                            "a VPD page\n");
+                if (op->inquiry) {
+                    sgj_pr_hr(jsp, "available VPD pages:\n");
+                    enumerate_vpds();
+                    return SG_LIB_SYNTAX_ERROR;
+                } else {
+                    sg_scnpr(b, blen, "available mode pages");
+                    if (op->vendor_id >= 0)
+                        sgj_pr_hr(jsp, "%s (for given vendor):\n", b);
+                    else if (orig_transport >= 0)
+                        sgj_pr_hr(jsp, "%s (for given transport):\n", b);
+                    else
+                        sgj_pr_hr(jsp, "%s:\n", b);
+                    enumerate_mpages(orig_transport, op->vendor_id);
+                    return SG_LIB_SYNTAX_ERROR;
+                }
+            }
+            if (vpp) {
+                pn = vpp->vpd_num;
+                spn = vpp->subvalue;
+                op->inquiry = true;
+                t_com_pdt = vpp->com_pdt;
+            } else {
+                if (op->inquiry) {
+                    pr2serr("matched mode page acronym but given '-i' so "
+                            "expecting a VPD page\n");
+                    return SG_LIB_CONTRADICT;
+                }
+                pn = mpp->page;
+                spn = mpp->subpage;
+                t_com_pdt = mpp->com_pdt;
+            }
+        } else {        /* got page_str and first char probably numeric */
+            cp = (char *)strchr(op->page_str, ',');
+            pn = sg_get_num_nomult(op->page_str);
+            if ((pn < 0) || (pn > 255)) {
+                pr2serr("Bad page code value after '-p' option\n");
+                if (op->inquiry) {
+                    sgj_pr_hr(jsp, "available VPD pages:\n");
+                    enumerate_vpds();
+                    return SG_LIB_SYNTAX_ERROR;
+                } else {
+                    sg_scnpr(b, blen, "available mode pages");
+                    if (op->vendor_id >= 0)
+                        sgj_pr_hr(jsp, "%s (for given vendor):\n", b);
+                    else if (op->transport >= 0)
+                        sgj_pr_hr(jsp, "%s (for given transport):\n", b);
+                    else
+                        sgj_pr_hr(jsp, "%s:\n", b);
+                    enumerate_mpages(op->transport, op->vendor_id);
+                    return SG_LIB_SYNTAX_ERROR;
+                }
+            }
+            if (cp) {
+                spn = sg_get_num_nomult(cp + 1);
+                if ((spn < 0) || (spn > 255)) {
+                    pr2serr("Bad second value after '-p' option\n");
+                    return SG_LIB_SYNTAX_ERROR;
+                }
+            } else
+                spn = 0;
+        }
+    }
+
     if (op->inquiry) {  /* VPD pages or standard INQUIRY response */
-        if (set_clear || get_str || cmd_str || op->defaults || op->save) {
+        if (op->set_clear || op->get_str || op->cmd_str || op->defaults ||
+            op->save) {
             pr2serr("'--inquiry' option lists VPD pages so other options "
                     "that are\nconcerned with mode pages are "
                     "inappropriate\n");
@@ -3012,34 +3214,35 @@ main(int argc, char * argv[])
             goto fini;
         }
         if (op->do_enum) {
-            printf("VPD pages:\n");
+            sgj_pr_hr(jsp, "VPD pages:\n");
             enumerate_vpds();
             ret = 0;
             goto fini;
         }
-    } else if (cmd_str) {
-        if (set_clear || get_str || op->defaults || op->save || op->examine) {
+    } else if (op->cmd_str) {
+        if (op->set_clear || op->get_str || op->defaults || op->save ||
+            op->examine) {
             pr2serr("'--command=' option is not valid with other "
                     "options that are\nconcerned with mode pages\n");
             ret = SG_LIB_CONTRADICT;
             goto fini;
         }
         if (op->do_enum) {
-            printf("Available commands:\n");
+            sgj_pr_hr(jsp, "Available commands:\n");
             sdp_enumerate_commands();
             ret = 0;
             goto fini;
         }
-        scmdp = sdp_build_cmd(cmd_str, &rw, &cmd_arg);
+        scmdp = sdp_build_cmd(op->cmd_str, &op->do_rw, &cmd_arg);
         if (NULL == scmdp) {
-            pr2serr("'--command=%s' not found\n", cmd_str);
-            printf("available commands\n");
+            pr2serr("'--command=%s' not found\n", op->cmd_str);
+            sgj_pr_hr(jsp, "available commands\n");
             sdp_enumerate_commands();
             ret = SG_LIB_SYNTAX_ERROR;
             goto fini;
         }
         if (op->read_only)
-            rw = false;         // override any read-write settings
+            op->do_rw = false;         // override any read-write settings
     } else {            /* assume mode page access */
         if (pn < 0) {
             mp_settings.pg_num = -1;
@@ -3048,123 +3251,21 @@ main(int argc, char * argv[])
             mp_settings.pg_num = pn;
             mp_settings.subpg_num = spn;
         }
-        if (get_str) {
-            if (set_clear) {
+        if (op->get_str) {
+            if (op->set_clear) {
                 pr2serr("'--get=' can't be used with '--set=' or "
                         "'--clear='\n");
                 ret = SG_LIB_CONTRADICT;
                 goto fini;
             }
-            if (! build_mp_settings(get_str, &mp_settings, op, false, true)) {
+            if (! build_mp_settings(op->get_str, &mp_settings, op, false,
+                                    true)) {
                 ret = SG_LIB_SYNTAX_ERROR;
                 goto fini;
             }
         }
         if (op->do_enum) {
-            if ((num_devices > 0) || set_clear || get_str || op->save)
-                /* think about --get= with --enumerate */
-                printf("<scsi_device> as well as most options are ignored "
-                       "when '--enumerate' is given\n");
-            if (pn < 0) {
-                if (op->vendor_id >= 0) {
-                    ccp = sdp_get_vendor_name(op->vendor_id);
-                    if (ccp)
-                        printf("Mode pages for %s vendor:\n", ccp);
-                    else
-                        printf("Mode pages for vendor 0x%x:\n", op->vendor_id);
-                    if (op->do_all)
-                        enumerate_mitems(pn, spn, pdt, op);
-                    else {
-                        enumerate_mpages(op->transport, op->vendor_id);
-                    }
-                } else if (op->transport >= 0) {
-                    ccp = sdp_get_transport_name(op->transport, sizeof(b), b);
-                    if (strlen(ccp) > 0)
-                        printf("Mode pages for %s transport protocol:\n",
-                               ccp);
-                    else
-                        printf("Mode pages for transport protocol 0x%x:\n",
-                               op->transport);
-                    if (op->do_all)
-                        enumerate_mitems(pn, spn, pdt, op);
-                    else {
-                        enumerate_mpages(op->transport, op->vendor_id);
-                    }
-                } else {        /* neither vendor nor transport given */
-                    if (op->do_long || (op->do_enum > 1)) {
-                        printf("Mode pages (not related to any transport "
-                               "protocol or vendor):\n");
-                        enumerate_mpages(-1, -1);
-                        printf("\n");
-                        printf("Transport protocols:\n");
-                        enumerate_transports(false, op);
-                        printf("\n");
-                        printf("Vendors:\n");
-                        enumerate_vendors();
-                        if (op->do_all) {
-                            struct sdparm_opt_coll t_opts;
-
-                            printf("\n");
-                            t_opts = opts;
-                            enumerate_mitems(pn, spn, pdt, op);
-                            for (k = 0; k < 15; ++k) {
-                                /* skip "no specific protocol" (0xf) */
-                                ccp = sdp_get_transport_name(k, sizeof(b), b);
-                                if (0 == strlen(ccp))
-                                    continue;
-                                printf("\n");
-                                printf("Mode pages for %s transport "
-                                       "protocol:\n", ccp);
-                                t_opts.transport = k;
-                                t_opts.vendor_id = -1;
-                                enumerate_mitems(pn, spn, pdt, &t_opts);
-                            }
-                            for (k = 0; k < sdparm_vendor_mp_len; ++k) {
-                                if (VENDOR_NONE == k)
-                                    continue;
-                                ccp = sdp_get_vendor_name(k);
-                                if (NULL == ccp)
-                                    continue;
-                                printf("\n");
-                                printf("Mode pages for %s vendor:\n", ccp);
-                                t_opts.transport = -1;
-                                t_opts.vendor_id = k;
-                                enumerate_mitems(pn, spn, pdt, &t_opts);
-                            }
-                        } else {
-                            for (k = 0; k < 15; ++k) {
-                                /* skip "no specific protocol" (0xf) */
-                                ccp = sdp_get_transport_name(k, sizeof(b), b);
-                                if (0 == strlen(ccp))
-                                    continue;
-                                printf("\n");
-                                printf("Mode pages for %s transport "
-                                       "protocol:\n", ccp);
-                                enumerate_mpages(k, -1);
-                            }
-                            for (k = 0; k < sdparm_vendor_mp_len; ++k) {
-                                if (VENDOR_NONE == k)
-                                    continue;
-                                ccp = sdp_get_vendor_name(k);
-                                if (NULL == ccp)
-                                    continue;
-                                printf("\n");
-                                printf("Mode pages for %s vendor:\n", ccp);
-                                enumerate_mpages(-1, k);
-                            }
-                        }
-                        printf("\n");
-                        printf("Commands:\n");
-                        sdp_enumerate_commands();
-                    } else {
-                        printf("Generic mode pages:\n");
-                        enumerate_mpages(-1, -1);
-                        if (op->do_all)
-                            enumerate_mitems(pn, spn, pdt, op);
-                    }
-                }
-            } else      /* given mode page number */
-                enumerate_mitems(pn, spn, pdt, op);
+            ret = sdp_enumerate_mpages(pn, spn, t_com_pdt, op);
             ret = 0;
             goto fini;
         }
@@ -3176,22 +3277,22 @@ main(int argc, char * argv[])
             goto fini;
         }
 
-        if (op->defaults && (set_clear || get_str)) {
+        if (op->defaults && (op->set_clear || op->get_str)) {
             pr2serr("'--get=', '--set=' or '--clear=' "
                     "can't be used with '--defaults'\n");
             ret = SG_LIB_CONTRADICT;
             goto fini;
         }
 
-        if (set_str) {
-            if (! build_mp_settings(set_str, &mp_settings, op, false,
+        if (op->set_str) {
+            if (! build_mp_settings(op->set_str, &mp_settings, op, false,
                                     false)) {
                 ret = SG_LIB_SYNTAX_ERROR;
                 goto fini;
             }
         }
-        if (clear_str) {
-            if (! build_mp_settings(clear_str, &mp_settings, op, true,
+        if (op->clear_str) {
+            if (! build_mp_settings(op->clear_str, &mp_settings, op, true,
                                     false)) {
                 ret = SG_LIB_SYNTAX_ERROR;
                 goto fini;
@@ -3199,7 +3300,7 @@ main(int argc, char * argv[])
         }
 
         if (op->verbose && (mp_settings.num_it_vals > 0))
-            list_mp_settings(&mp_settings, (NULL != get_str));
+            list_mp_settings(&mp_settings, (NULL != op->get_str));
 
         if ((1 == op->defaults) && (pn < 0)) {
             pr2serr("to set a page's defaults, the '--page=' option must be "
@@ -3210,36 +3311,34 @@ main(int argc, char * argv[])
     }
 
     if (op->inhex_fn) {
-        int inhex_len = 0;
-
-        if (num_devices > 0) {
+        if (op->num_devices > 0) {
             pr2serr("Cannot have both a DEVICE and --inhex= option\n");
             ret = SG_LIB_CONTRADICT;
             goto fini;
         }
         ret = sg_f2hex_arr(op->inhex_fn, op->do_raw, false, inhex_buff,
-                           &inhex_len, sizeof(inhex_buff));
+                           &op->inhex_len, sizeof(inhex_buff));
         if (ret)
             goto fini;
         if (op->verbose > 2)
-            pr2serr("Read %d bytes from user input\n", inhex_len);
+            pr2serr("Read %d bytes from user input\n", op->inhex_len);
         if (op->verbose > 3)
-            hex2stderr(inhex_buff, inhex_len, 0);
+            hex2stderr(inhex_buff, op->inhex_len, 0);
         op->do_raw = false;
         if (op->inquiry)
-            ret = sdp_process_vpd_page(-1, pn, ((spn < 0) ? 0: spn), op,
-                                       jo2p, pdt, protect, inhex_buff,
-                                       inhex_len, NULL, 0);
+            ret = sdp_process_vpd_page(-1, pn, ((spn < 0) ? 0: spn), op, jo2p,
+                                       t_com_pdt, protect, inhex_buff,
+                                       NULL, 0);
         else
-            ret = print_inhex_mode_pages(inhex_buff, inhex_len, op);
+            ret = print_inhex_mode_pages(inhex_buff, op);
         goto fini;
     }
 
-    if (0 == num_devices) {
+    if (0 == op->num_devices) {
         pr2serr("one or more device names required\n");
         if (! op->do_quiet) {
             pr2serr("\n");
-            usage((do_help > 0) ? do_help : 0);
+            usage(op);
         }
         ret = SG_LIB_SYNTAX_ERROR;
         goto fini;
@@ -3258,15 +3357,17 @@ main(int argc, char * argv[])
         goto fini;
     }
 
-    req_pdt = pdt;
+    req_pdt = t_com_pdt;
     ret = 0;
-    for (k = 0; k < num_devices; ++k) {
+    for (k = 0; k < op->num_devices; ++k) {
+        int pdt = -1;
+
         // r = 0;
-        pdt = -1;
+        t_com_pdt = -1;
         if (op->verbose > 1)
             pr2serr(">>> about to open device name: %s\n",
                     device_name_arr[k]);
-        sg_fd = open_and_simple_inquiry(device_name_arr[k], rw, &pdt,
+        sg_fd = open_and_simple_inquiry(device_name_arr[k], op->do_rw, &pdt,
                                         &protect, op);
         if (sg_fd < 0) {
             if (0 == ret)
@@ -3280,10 +3381,10 @@ main(int argc, char * argv[])
                                      protect);
             else
                 r = sdp_process_vpd_page(sg_fd, pn, ((spn < 0) ? 0: spn), op,
-                                         jo2p, req_pdt, protect, NULL, 0,
+                                         jo2p, req_pdt, protect, NULL,
                                          NULL, 0);
         } else {
-            if (cmd_str && scmdp)   /* process command */
+            if (op->cmd_str && scmdp)   /* process command */
                 r = sdp_process_cmd(sg_fd, scmdp, cmd_arg, pdt, op);
             else {                  /* mode page */
                 if (op->examine)
@@ -3291,8 +3392,7 @@ main(int argc, char * argv[])
 
                 else
                     r = process_mode_page(sg_fd, &mp_settings, pn, spn,
-                                          set_clear, (NULL != get_str), op,
-                                          pdt);
+                                          pdt, op);
             }
         }
 

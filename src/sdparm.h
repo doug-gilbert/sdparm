@@ -187,7 +187,9 @@ extern "C" {
 #define MP_OM_CHA 0x2
 #define MP_OM_DEF 0x4
 #define MP_OM_SAV 0x8
+#define MP_NUM_PG_CTL 4
 #define MP_OM_ALL 0xf
+#define MP_IM_ALL 0xf
 
 /* enumerations for commands */
 #define CMD_READY 1
@@ -214,8 +216,10 @@ struct sdparm_opt_coll {
     bool num_desc;      /* report number of descriptors */
     bool do_json;       /* -j (or -J) */
     bool do_raw;        /* -R (usually '-r' but already used) */
+    bool do_rw;		/* true: requires RDWR, false: perhaps RDONLY ok */
     bool read_only;
     bool save;
+    bool set_clear;     /* --set= or --clear= has been invoked */
     bool verbose_given;
     bool version_given;
     int defaults;       /* set mode page to its default values, or when set
@@ -223,15 +227,24 @@ struct sdparm_opt_coll {
     int do_all;         /* -iaa outputs all VPD pages found in the Supported
                          * VPD Pages VPD page (0x0) */
     int do_enum;
+    int do_help;
     int do_hex;
     int do_long;
     int out_mask;       /* OR-ed MP_OM_* values, default: MP_OM_ALL (0xf) */
-    int pdt;
+    int in_mask;        /* inhex mask, default: MP_IM_ALL (0xf) */
+    int cl_pdt;		/* pdt given on command line ('-P DT') or -1 */
     int do_quiet;
+    int inhex_len;	/* number of bytes found when --inhex=FN fetched */
+    int num_devices;
     int transport;      /* -1 means not transport specific (def) */
     int vendor_id;      /* -1 means not vendor specific (def) */
     int verbose;
     const char * inhex_fn;
+    const char * clear_str;
+    const char * cmd_str;
+    const char * get_str;
+    const char * page_str;
+    const char * set_str;
     const char * json_arg;
     const char * js_file;
     sgj_state json_st;
@@ -295,10 +308,9 @@ struct sdparm_mode_descriptor_t {
 struct sdparm_mode_page_t {
     int page;
     int subpage;
-    int pdt_s;       /* compound peripheral device type id, -1 is the default
+    int com_pdt;     /* compound peripheral device type id, -1 is the default
                       * for fields defined in SPC (common to all PDTs).
-                      * Compound pdt_s may hold two PDTs. The most common
-                      * example is:
+                      * com_pdt may hold two PDTs. The most common example is:
                       *    PDT_DISK | (PDT_ZBC << 8)    */
     int ro;          /* read-only */
     const char * acron;
@@ -311,7 +323,7 @@ struct sdparm_mode_page_t {
 struct sdparm_vpd_page_t {
     int vpd_num;
     int subvalue;
-    int pdt_s;       /* see pdt_s explanation above */
+    int com_pdt;       /* see com_pdt explanation above */
     const char * acron;
     const char * name;
 };
@@ -331,7 +343,7 @@ struct sdparm_mode_page_item {
     const char * acron;
     int pg_num;
     int subpg_num;
-    int pdt_s;       /* see pdt_s explanation above */
+    int com_pdt;       /* see com_pdt explanation above */
     int start_byte;
     int start_bit;
     int num_bits;
@@ -456,7 +468,7 @@ void named_hhh_output(const char * pname, bool mode_true_or_vpd,
 int sdp_process_vpd_page(int sg_fd, int pn, int spn,
                          struct sdparm_opt_coll * op, sgj_opaque_p jop,
                          int req_pdt, bool protect, const uint8_t * ihbp,
-                         int ihb_len, uint8_t * alt_buf, int off);
+                         uint8_t * alt_buf, int off);
 
 /*
  * Declarations for functions found in sdparm_cmd.c

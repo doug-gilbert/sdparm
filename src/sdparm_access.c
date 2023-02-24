@@ -136,7 +136,8 @@ sdp_get_mpage_t(int page_num, int subpage_num, int pdt, int transp_proto,
 try_again:
     for ( ; mpp->acron; ++mpp) {
         if ((page_num == mpp->page) && (subpage_num == mpp->subpage)) {
-            if ((pdt < 0) || (mpp->pdt_s < 0) || sg_pdt_s_eq(mpp->pdt_s, pdt))
+            if ((pdt < 0) || (mpp->com_pdt < 0) ||
+                sg_pdt_s_eq(mpp->com_pdt, pdt))
                 return mpp;
         }
     }
@@ -150,6 +151,10 @@ try_again:
     return NULL;
 }
 
+/* Returns pointer to a sdparm_mode_page_t object matching the first 5
+ * arguments. If no match returns NULL. If match and bp is non-NULL
+ * then outputs a the name, acronym (if plus_acron) and hex values
+ * (if 'hex' == true) to bp . */
 const struct sdparm_mode_page_t *
 sdp_get_mpt_with_str(int page_num, int subpage_num, int pdt, int transp_proto,
                      int vendor_id, bool plus_acron, bool hex, int b_len,
@@ -159,15 +164,15 @@ sdp_get_mpt_with_str(int page_num, int subpage_num, int pdt, int transp_proto,
     const struct sdparm_mode_page_t * mpp = NULL;
     const char * cp;
 
-    if (len < 0)
-        return mpp;
-    bp[len] = '\0';
     /* first try to match given pdt */
     mpp = sdp_get_mpage_t(page_num, subpage_num, pdt, transp_proto,
                           vendor_id);
     if (NULL == mpp) /* didn't match specific pdt so try -1 (ie. SPC) */
         mpp = sdp_get_mpage_t(page_num, subpage_num, -1, transp_proto,
                               vendor_id);
+    if ((len < 0) || (NULL == bp))
+        return mpp;
+    bp[len] = '\0';
     if (mpp && mpp->name) {
         cp = mpp->acron;
         if (NULL == cp)
@@ -237,7 +242,7 @@ sdp_get_vpd_detail(int page_num, int subvalue, int pdt)
     for (vpp = sdparm_vpd_pg; vpp->acron; ++vpp) {
         if ((page_num == vpp->vpd_num) &&
             (sv || (subvalue == vpp->subvalue)) &&
-            (ty || (pdt == vpp->pdt_s)))
+            (ty || (pdt == vpp->com_pdt)))
             return vpp;
     }
     if (! ty)

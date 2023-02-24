@@ -46,8 +46,12 @@ Build infrastructure
 --------------------
 This package uses the automake and autoconf tools. The generating files
 (scripts) are configure.ac, Makefile.am, src/Makefile.am and autogen.sh .
-The autogen.sh script only needs to be executed if one of the other generating
-files in the above list is changed.
+From revision 367 onwards (pre-release of version 1.13) the autogen.sh
+script (or the bootstrap script which calls autogen.sh) is needed to
+build the configure script (invocation: ./autogen.sh ).
+
+Prior to revision 367 the autogen.sh script only needs to be invoked if one
+of the other generating files in the above list is changed.
 
 There is a rpm "spec" file in the main directory: sdparm.spec . There are
 Debian build files in the "debian" directory and a script called
@@ -267,4 +271,4 @@ SCSI5:0,112,0 claimed=0 pdt=10h         LSI       PSEUDO DEVICE     2.34
 
 
 Douglas Gilbert
-16th April 2021
+21th February 2023
