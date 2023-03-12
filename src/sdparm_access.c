@@ -508,7 +508,9 @@ sdp_mp_convert2snake(const char * in_name, char * sn_name,
     int inlen, k;
     const char * lpar;
     const char * rpar;
-    char b[144];
+    const char * lbra;
+    const char * rbra;
+    char b[168];
     static const int blen = sizeof(b);
     static const char * s_mp_s = " mode page";
     static const char * dummy_in_s = "null mode page";
@@ -524,6 +526,12 @@ sdp_mp_convert2snake(const char * in_name, char * sn_name,
     rpar = strchr(b, ')');
     if (lpar && rpar) {         /* remove parentheses */
         memmove((char *)lpar, rpar + 1, rpar + 1 - lpar);
+        inlen = strlen(b);
+    }
+    lbra = strchr(b, '[');
+    rbra = strchr(b, ']');
+    if (lbra && rbra) {         /* remove parentheses */
+        memmove((char *)lbra, rbra + 1, rbra + 1 - lbra);
         inlen = strlen(b);
     }
     for (k = inlen; k < blen; ++k) {

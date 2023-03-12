@@ -45,6 +45,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
@@ -80,7 +81,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.17 20230304 [svn: r369]";
+static const char * version_str = "1.17 20230312 [svn: r370]";
 
 
 #define MAX_DEV_NAMES 256
@@ -143,12 +144,16 @@ static struct option long_options[] = {
     {0, 0, 0, 0},
 };
 
+/* incremented when subpage requested but non-subpage returned */
+static int non_spg_warning;
+
 static const char * ms_s = "Mode sense";
 static const char * ump_s = "Mode page";
 static const char * mp_s = "mode page";
 static const char * mpgf_s = "Mode pages for";
 static const char * sdp_sn = "sdparm";
 static const char * sdp_rsp_sn = "sdparm_response";
+static const char * sdp_enum_sn = "sdparm_enumeration";
 static const char * cur_s = "current";
 static const char * cha_s = "changeable";
 static const char * def_s = "default";
@@ -330,8 +335,8 @@ usage(const struct sdparm_opt_coll * op)
             "    --hex | -H            output in hex rather than name/value "
             "pairs\n"
             "    --inner-hex | -x      print innermost fields in hex\n"
-            "    --json[=JO] | -jJO    output in JSON instead of human "
-            "readable\n"
+            "    --json[=JO] | -jJO    output in JSON instead of plain "
+            "text\n"
             "                          test. Use --json=? for JSON help\n"
             "    --long | -l           add description to field output\n"
             "    --num-desc | -n       report number of mode page "
@@ -524,8 +529,8 @@ usage(const struct sdparm_opt_coll * op)
             "acronym or pos\n"
             "    --hex | -H            output in hex rather than name/value "
             "pairs\n"
-            "    --json[=JO]|-jJO      output in JSON instead of human "
-            "readable\n"
+            "    --json[=JO]|-jJO      output in JSON instead of plain "
+            "text\n"
             "                          test. Use --json=? for JSON help\n"
             "    --js-file=JFN|-J JFN    JFN is a filename to which JSON "
             "output is\n"
@@ -727,17 +732,21 @@ enumerate_vendor_names()
 }
 
 static void
-print_mp_extra(const char * extra, struct sdparm_opt_coll * op)
+print_mp_extra(const char * extra, struct sdparm_opt_coll * op,
+               sgj_opaque_p jop)
 {
     int n;
     int m = 0;
+    int o = 0;
     char * cp;
     char * p;
     sgj_state * jsp = &op->json_st;
     char b[128];
     char d[256];
+    char e[256];
     static const int blen = sizeof(b);
     static const int dlen = sizeof(d);
+    static const int elen = sizeof(e);
 
     d[0] = '\0';
     for (p = (char *)extra; (cp = (char *)strchr(p, '\t')); p = cp + 1) {
@@ -747,26 +756,91 @@ print_mp_extra(const char * extra, struct sdparm_opt_coll * op)
         strncpy(b, p, n);
         b[n] = '\0';
         m += sg_scnpr(d + m, dlen - m, "\t%s\n", b);
+        o += sg_scnpr(e + o, elen - o, "%s; ", b);
     }
     sgj_pr_hr(jsp, "%s\t%s\n", d, p);
+    if (op->do_json) {
+        snprintf(d, dlen, "%.200s%s", e, p);
+        sgj_js_nv_s(jsp, jop, "extra", d);
+    }
+}
+
+static sgj_opaque_p
+jsonify_mpip(const struct sdparm_mp_item_t *mpip, struct sdparm_opt_coll * op,
+             sgj_opaque_p jop)
+{
+    int m;
+    sgj_state * jsp = &op->json_st;
+    sgj_opaque_p jo2p;
+    const char * cp;
+    const char * js_nm;
+    const char * js_acron = NULL;
+    const char * js_desc = NULL;
+    char d[96];
+    char e[80];
+    static const int elen = sizeof(e);
+    static const char * no_name = "no_name";
+
+    if (mpip->js_name) {
+        js_nm = mpip->js_name;
+        js_acron = mpip->acron;
+        js_desc = mpip->description;
+    } else if (MF_J_USE_DESC & mpip->flags) {
+        js_nm = mpip->description;
+        js_acron = mpip->acron;
+        js_desc = mpip->description;
+    } else if (MF_J_NPARAM_DESC & mpip->flags) {
+        /* truncate mpip->description at first '(' */
+        cp = strchr(mpip->description, '(');
+        if (cp && (cp > mpip->description)) {
+            m = cp - mpip->description - 1;
+            memcpy(d, mpip->description, m);
+            d[m] = '\0';
+            js_nm = d;  /* trailing spaces removed by sgj_convert2snake */
+        } else {
+            pr2serr("%s: bad JSON name candidate: %s\n", __func__,
+                    mpip->description);
+            js_nm = no_name;
+        }
+        js_acron = mpip->acron;
+        js_desc = mpip->description;
+    } else if (mpip->acron) {
+        js_nm = mpip->acron;
+        js_acron = mpip->acron;
+        js_desc = mpip->description;
+    } else
+        js_nm = no_name;
+    jo2p = sgj_named_subobject_r(jsp, jop,
+                                 sgj_convert2snake(js_nm, e, elen));
+    if (js_acron)
+        sgj_js_nv_s(jsp, jo2p, "acronym", js_acron);
+    if (js_desc)
+        sgj_js_nv_s(jsp, jo2p, "description", js_desc);
+    return jo2p;
 }
 
 /* Enumerate mode page items. Reading from internal dataset. */
 static void
-enumerate_mitems(int pn, int spn, int pdt,
-                 struct sdparm_opt_coll * op)
+enumerate_mitems(int pn, int spn, int pdt, struct sdparm_opt_coll * op,
+                 sgj_opaque_p jop)
 {
     bool found = false;
     bool have_desc = false;
     bool have_desc_id = false;
     int t_pn, t_spn, t_com_pdt, vendor_id, transp, long_o, e_num, decay_pdt;
+    int t;
+    sgj_state * jsp = &op->json_st;
+    sgj_opaque_p jo2p = NULL;
+    sgj_opaque_p jo3p = NULL;
     const struct sdparm_mp_name_t * mnp = NULL;
     const struct sdparm_mode_descriptor_t * mdp = NULL;
     const struct sdparm_mp_item_t * mpip;
+    char b[256];
     char d[128];
-    char b[128];
-    static const int dlen = sizeof(d);
+    char e[128];
     static const int blen = sizeof(b);
+    static const int dlen = sizeof(d);
+    static const int elen = sizeof(e);
 
     t_pn = -1;
     t_spn = -1;
@@ -812,10 +886,10 @@ enumerate_mitems(int pn, int spn, int pdt,
             mnp = sdp_get_mp_nm_with_str(t_pn, t_spn, t_com_pdt, transp,
                                          vendor_id, long_o, true, dlen, d);
             if (long_o && (transp < 0) && (vendor_id < 0))
-                printf("%s [%s] %s:\n", d,
-                       sg_get_pdt_str(t_com_pdt, blen, b), mp_s);
+                sgj_pr_hr(jsp, "%s [%s] %s:\n", d,
+                          sg_get_pdt_str(t_com_pdt, elen, e), mp_s);
             else
-                printf("%s %s:\n", d, mp_s);
+                sgj_pr_hr(jsp, "%s %s:\n", d, mp_s);
             if (mnp && ((mdp = mnp->mp_desc))) {
                 have_desc = true;
                 have_desc_id = mdp->have_desc_id;
@@ -823,18 +897,40 @@ enumerate_mitems(int pn, int spn, int pdt,
                 have_desc = false;
                 have_desc_id = false;
             }
+// yyyyyy
+            if (op->do_json) {
+                jo2p = sgj_named_subobject_r(jsp, jop,
+                                        sdp_mp_convert2snake(d, b, blen));
+                sgj_js_nv_i(jsp, jo2p, "page_code", t_pn);
+                sgj_js_nv_i(jsp, jo2p, "spf", !! (t_spn > 0));
+                if (t_spn > 0)
+                    sgj_js_nv_i(jsp, jo2p, "subpage_code", t_spn);
+                t = (0xff & t_com_pdt);
+                if (0xff == t)
+                    t = -1;
+                sgj_js_nv_i(jsp, jo2p, "lower_pdt", t);
+                t = (0xff & (t_com_pdt >> 8));
+                if ((0xff != t) && (t > 0))
+                    sgj_js_nv_i(jsp, jo2p, "upper_pdt", t);
+                sgj_js_nv_i(jsp, jo2p, "descriptor_format", (int)have_desc);
+            }
         }
         if (have_desc_id && (MF_CLASH_OK & mpip->flags))
-            printf("  %-10s [0x%02x:%d:%-2d  %d]  %s\n", mpip->acron,
-                   mpip->start_byte, mpip->start_bit, mpip->num_bits,
-                   sdp_get_desc_id(mpip->flags), mpip->description);
+            snprintf(b, blen, "[0x%02x:%d:%-2d  %d]", mpip->start_byte,
+                     mpip->start_bit, mpip->num_bits,
+                     sdp_get_desc_id(mpip->flags));
         else
-            printf("  %-10s [0x%02x:%d:%-2d]  %s\n", mpip->acron,
-                   mpip->start_byte, mpip->start_bit, mpip->num_bits,
-                   mpip->description);
+            snprintf(b, blen, "[0x%02x:%d:%-2d]", mpip->start_byte,
+                     mpip->start_bit, mpip->num_bits);
+
+        sgj_pr_hr(jsp, "  %-10s %s  %s\n", mpip->acron, b, mpip->description);
+        if (op->do_json) {
+            jo3p = jsonify_mpip(mpip, op, jo2p);
+            sgj_js_nv_s(jsp, jo3p, "position_length", b);
+        }
         if (mpip->extra) {
             if ((long_o > 1) || (e_num > 1))
-                print_mp_extra(mpip->extra, op);
+                print_mp_extra(mpip->extra, op, jo3p);
         }
         found = true;
     }
@@ -847,19 +943,19 @@ enumerate_mitems(int pn, int spn, int pdt,
         if ((-1 == mdp->num_descs_off) && (-1 == mdp->num_descs_bytes))
             return;     /* Nothing to warn about in this case */
         if (mdp->name)
-            printf("  <<%s mode descriptor>>\n", mdp->name);
+            sgj_pr_hr(jsp, "  <<%s mode descriptor>>\n", mdp->name);
         else
-            printf("  <<mode descriptor>>\n");
-        printf("    num_descs_off=%d, num_descs_bytes=%d, "
-               "num_descs_inc=%d, first_desc_off=%d\n",
-               mdp->num_descs_off, mdp->num_descs_bytes,
-               mdp->num_descs_inc,  mdp->first_desc_off);
+            sgj_pr_hr(jsp, "  <<mode descriptor>>\n");
+        sgj_pr_hr(jsp, "    num_descs_off=%d, num_descs_bytes=%d, "
+                  "num_descs_inc=%d, first_desc_off=%d\n",
+                  mdp->num_descs_off, mdp->num_descs_bytes,
+                  mdp->num_descs_inc,  mdp->first_desc_off);
         if (mdp->desc_len > 0)
-            printf("    descriptor_len=%d, ", mdp->desc_len);
+            sgj_pr_hr(jsp, "    descriptor_len=%d, ", mdp->desc_len);
         else
-            printf("    desc_len_off=%d, desc_len_bytes=%d, ",
-                   mdp->desc_len_off, mdp->desc_len_bytes);
-        printf("desc_id=%s\n", (have_desc_id ? "true" : "false"));
+            sgj_pr_hr(jsp, "    desc_len_off=%d, desc_len_bytes=%d, ",
+                      mdp->desc_len_off, mdp->desc_len_bytes);
+        sgj_pr_hr(jsp, "desc_id=%s\n", (have_desc_id ? "true" : "false"));
     }
 }
 
@@ -968,38 +1064,13 @@ print_a_mitem(const char * pre, int smask,
     sgj_state * jsp = &op->json_st;
     sgj_opaque_p jo2p = NULL;
     char b[144];
-    char e[64];
+    char e[80];
     static const int blen = sizeof(b);
     static const int elen = sizeof(e);
-    static const char * no_name = "no_name";
 
     acron = (mpip->acron ? mpip->acron : "");
-    if (op->do_json) {
-        const char * js_nm;
-        const char * js_acron = NULL;
-        const char * js_desc = NULL;
-
-        if (mpip->js_name) {
-            js_nm = mpip->js_name;
-            js_acron = mpip->acron;
-            js_desc = mpip->description;
-        } else if (MF_J_USE_DESC & mpip->flags) {
-            js_nm = mpip->description;
-            js_acron = mpip->acron;
-            js_desc = mpip->description;
-        } else if (mpip->acron) {
-            js_nm = mpip->acron;
-            js_acron = mpip->acron;
-            js_desc = mpip->description;
-        } else
-            js_nm = no_name;
-        jo2p = sgj_named_subobject_r(jsp, jop,
-                                     sgj_convert2snake(js_nm, e, elen));
-        if (js_acron)
-            sgj_js_nv_s(jsp, jo2p, "acronym", js_acron);
-        if (js_desc)
-            sgj_js_nv_s(jsp, jo2p, "description", js_desc);
-    }
+    if (op->do_json)
+        jo2p = jsonify_mpip(mpip, op, jop);
 
     if (MP_OM_CUR & smask) {
         u = sdp_mitem_get_value_check(mpip, cur_mp, &all_set);
@@ -1089,7 +1160,7 @@ print_a_mitem(const char * pre, int smask,
         n += sg_scnpr(b + n, blen - n, "  %s", mpip->description);
     sgj_pr_hr(jsp, "%s\n", b);
     if ((op->do_long > 1) && mpip->extra)
-        print_mp_extra(mpip->extra, op);
+        print_mp_extra(mpip->extra, op, jo2p);
     return stop_if_set;
 }
 
@@ -1600,6 +1671,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
     int res, pg_len, verb, smask, rep_len, req_len, orig_pn, decay_pdt;
     int n, desc_id, desc_len;
     int desc0_off = 0;
+    int skip_spn = INT_MIN;
     const struct sdparm_mp_item_t * mpip;
     const struct sdparm_mp_item_t * last_mpip;
     const struct sdparm_mp_item_t * fdesc_mpip = NULL;
@@ -1713,6 +1785,10 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
      * namespace */
     stop_if_set = false;
     for (smask = 0, warned = false ; mpip->acron; ++mpip, fetch_pg = false) {
+        if (skip_spn == mpip->subpg_num)
+            continue;
+        else if (skip_spn >= 0)
+            skip_spn = INT_MIN;
         if (! fetch_pg) {
             if ((pn == mpip->pg_num) && (spn == mpip->subpg_num)) {
                 if (! sg_pdt_s_eq(pdt, mpip->com_pdt) && ! op->flexible)
@@ -1744,7 +1820,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
         }
         if (fetch_pg) {
             pg_len = 0;
-            /* Only fetch mode page when needed (e.g. item page changed) */
+            /* Only fetch mode page when needed (e.g. item mpage changed) */
             mnp = sdp_get_mp_nm_with_str(pn, spn, pdt, op->transport,
                                          op->vendor_id, op->do_long,
                                          (op->do_hex > 0), elen, e);
@@ -1764,6 +1840,22 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                 pr2serr("%s: get_mp_controls: [0x%x,0x%x] res=%d, "
                         "req_len=%d, resp_len=%d\n", __func__, pn, spn, res,
                         req_len, rep_len);
+            if ((spn > 0) && (spn < ALL_MSPAGES) && (1 & smask)) {
+                /* asked for subpage and got back 'current' control. It
+                 * should have the SPF bit set in the first mpage */
+                if (! (0x40 & cur_mp[0])) {
+                    if (verb > 0)
+                        pr2serr("%s: asked to subpage [0x%x,0x%x] but SPF "
+                                "bit not set in response, ignore\n",
+                                __func__, pn, spn);
+                    /* say nothing was reported */
+                    smask = 0;
+                    ++non_spg_warning;
+                    skip_spn = spn;
+                    continue;
+                }
+            }
+
             /* check for mode page descriptors */
             mdp = (mnp && (! op->do_hex)) ? mnp->mp_desc : NULL;
             have_desc_id = mdp ? mdp->have_desc_id : false;
@@ -1822,7 +1914,7 @@ print_mode_pages(int sg_fd, int pn, int spn, int pdt,
                         pr2serr("failed\n");
                 }
             }
-        }       /* end of fetch_pg */
+        }       /* end of if(fetch_pg) block */
         if (smask) {
             if (mpip->start_byte >= pg_len) {
                 if ((! op->flexible) && (0 == op->verbose))
@@ -3203,7 +3295,8 @@ process_mode_page(int sg_fd, const struct sdparm_mp_settings_t * mps,
 
 static void
 sdp_enumerate_mp_contents(int pn, int spn, int com_pdt,
-                          struct sdparm_opt_coll * op)
+                          struct sdparm_opt_coll * op,
+                          sgj_opaque_p jop)
 {
     int k;
     const char * ccp;
@@ -3224,7 +3317,7 @@ sdp_enumerate_mp_contents(int pn, int spn, int com_pdt,
             else
                 sgj_pr_hr(jsp, "%s vendor 0x%x:\n", mpgf_s, op->vendor_id);
             if (op->do_all)
-                enumerate_mitems(pn, spn, com_pdt, op);
+                enumerate_mitems(pn, spn, com_pdt, op, jop);
             else {
                 enumerate_mpage_names(op->transport, op->vendor_id, op);
             }
@@ -3235,7 +3328,7 @@ sdp_enumerate_mp_contents(int pn, int spn, int com_pdt,
             else
                 sgj_pr_hr(jsp, "%s %s 0x%x:\n", mpgf_s, tp_s, op->transport);
             if (op->do_all)
-                enumerate_mitems(pn, spn, com_pdt, op);
+                enumerate_mitems(pn, spn, com_pdt, op, jop);
             else
                 enumerate_mpage_names(op->transport, op->vendor_id, op);
         } else {        /* neither vendor nor transport given */
@@ -3252,17 +3345,17 @@ sdp_enumerate_mp_contents(int pn, int spn, int com_pdt,
 
                     printf("\n");
                     t_opts = *op;
-                    enumerate_mitems(pn, spn, com_pdt, op);
+                    enumerate_mitems(pn, spn, com_pdt, op, jop);
                     for (k = 0; k < 15; ++k) {
                         /* skip "no specific protocol" (0xf) */
                         ccp = sdp_get_transport_name(k, blen, b);
                         if (0 == strlen(ccp))
                             continue;
-                        printf("\n");
-                        printf("%s %s %s:\n", mpgf_s, ccp, tp_s);
+                        sgj_pr_hr(jsp, "\n");
+                        sgj_pr_hr(jsp, "%s %s %s:\n", mpgf_s, ccp, tp_s);
                         t_opts.transport = k;
                         t_opts.vendor_id = -1;
-                        enumerate_mitems(pn, spn, com_pdt, &t_opts);
+                        enumerate_mitems(pn, spn, com_pdt, &t_opts, jop);
                     }
                     for (k = 0; k < sdparm_vendor_mp_len; ++k) {
                         if (VENDOR_NONE == k)
@@ -3270,11 +3363,11 @@ sdp_enumerate_mp_contents(int pn, int spn, int com_pdt,
                         ccp = sdp_get_vendor_name(k);
                         if (NULL == ccp)
                             continue;
-                        printf("\n");
-                        printf("%s %s vendor:\n", mpgf_s, ccp);
+                        sgj_pr_hr(jsp, "\n");
+                        sgj_pr_hr(jsp, "%s %s vendor:\n", mpgf_s, ccp);
                         t_opts.transport = -1;
                         t_opts.vendor_id = k;
-                        enumerate_mitems(pn, spn, com_pdt, &t_opts);
+                        enumerate_mitems(pn, spn, com_pdt, &t_opts, jop);
                     }
                 } else {
                     for (k = 0; k < 15; ++k) {
@@ -3282,8 +3375,8 @@ sdp_enumerate_mp_contents(int pn, int spn, int com_pdt,
                         ccp = sdp_get_transport_name(k, blen, b);
                         if (0 == strlen(ccp))
                             continue;
-                        printf("\n");
-                        printf("%s %s %s:\n", mpgf_s, ccp, tp_s);
+                        sgj_pr_hr(jsp, "\n");
+                        sgj_pr_hr(jsp, "%s %s %s:\n", mpgf_s, ccp, tp_s);
                         enumerate_mpage_names(k, -1, op);
                     }
                     for (k = 0; k < sdparm_vendor_mp_len; ++k) {
@@ -3292,23 +3385,23 @@ sdp_enumerate_mp_contents(int pn, int spn, int com_pdt,
                         ccp = sdp_get_vendor_name(k);
                         if (NULL == ccp)
                             continue;
-                        printf("\n");
-                        printf("%s %s vendor:\n", mpgf_s, ccp);
+                        sgj_pr_hr(jsp, "\n");
+                        sgj_pr_hr(jsp, "%s %s vendor:\n", mpgf_s, ccp);
                         enumerate_mpage_names(-1, k, op);
                     }
                 }
-                printf("\n");
-                printf("Commands:\n");
+                sgj_pr_hr(jsp, "\n");
+                sgj_pr_hr(jsp, "Commands:\n");
                 sdp_enumerate_commands();
             } else {
-                printf("Generic %s:\n", mp_s);
+                sgj_pr_hr(jsp, "Generic %s:\n", mp_s);
                 enumerate_mpage_names(-1, -1, op);
                 if (op->do_all)
-                    enumerate_mitems(pn, spn, com_pdt, op);
+                    enumerate_mitems(pn, spn, com_pdt, op, jop);
             }
         }
     } else      /* given mode page number */
-        enumerate_mitems(pn, spn, com_pdt, op);
+        enumerate_mitems(pn, spn, com_pdt, op, jop);
 }
 
 static int
@@ -3740,7 +3833,8 @@ main(int argc, char * argv[])
             goto fini;
         }
         jop = sgj_start_r(sdp_sn, version_str, argc, argv, jsp);
-        jo2p = sgj_named_subobject_r(jsp, jop, sdp_rsp_sn);
+        jo2p = sgj_named_subobject_r(jsp, jop,
+                                 op->do_enum ? sdp_enum_sn : sdp_rsp_sn);
     }
     as_json = jsp->pr_as_json;
 
@@ -3817,7 +3911,7 @@ main(int argc, char * argv[])
             }
         }
         if (op->do_enum) {
-            sdp_enumerate_mp_contents(pn, spn, t_com_pdt, op);
+            sdp_enumerate_mp_contents(pn, spn, t_com_pdt, op, jo2p);
             ret = 0;
             goto fini;
         }
@@ -4001,6 +4095,9 @@ fini:           /* error expected in ret, ret==0 means no error */
         if ((0 == ret) && (res > 0))
             ret = res;
     }
+    if ((0 == op->do_quiet) && (non_spg_warning > 0))
+        pr2serr("%d instances of mode subpage requested but non-subpage "
+                "returned\n", non_spg_warning);
     return ret;
 }
 
