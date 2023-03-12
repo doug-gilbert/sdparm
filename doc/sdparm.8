@@ -1,13 +1,15 @@
-.TH SDPARM "8" "February 2023" "sdparm\-1.13" SDPARM
+.TH SDPARM "8" "March 2023" "sdparm\-1.13" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands
 .SH SYNOPSIS
 .B sdparm
 [\fI\-\-all\fR] [\fI\-\-dbd\fR] [\fI\-\-examine\fR] [\fI\-\-flexible\fR]
-[\fI\-\-get=STR\fR] [\fI\-\-hex\fR] [\fI\-\-long\fR] [\fI\-\-num\-desc\fR]
-[\fI\-\-out\-mask=OM\fR] [\fI\-\-page=PG[,SPG]\fR] [\fI\-\-quiet\fR]
-[\fI\-\-readonly\fR] [\fI\-\-six\fR] [\fI\-\-transport=TN\fR]
-[\fI\-\-vendor=VN\fR] [\fI\-\-verbose\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
+[\fI\-\-get=STR\fR] [\fI\-\-hex\fR] [\fI\-\-inner\-hex\fR]
+[\fI\-\-json[=JO]\fR] [\fI\-\-js\-file=JFN\fR] [\fI\-\-long\fR]
+[\fI\-\-num\-desc\fR] [\fI\-\-out\-mask=OM\fR] [\fI\-\-page=PG[,SPG]\fR]
+[\fI\-\-quiet\fR] [\fI\-\-readonly\fR] [\fI\-\-six\fR]
+[\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR] [\fI\-\-verbose\fR]
+\fIDEVICE\fR [\fIDEVICE\fR...]
 .PP
 .B sdparm
 [\fI\-\-clear=STR\fR] [\fI\-\-defaults\fR] [\fI\-\-dummy\fR]
@@ -22,9 +24,10 @@ sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands
 .PP
 .B sdparm
 \fI\-\-inquiry\fR [\fI\-\-all\fR] [\fI\-\-examine\fR] [\fI\-\-flexible\fR]
-[\fI\-\-hex\fR] [\fI\-\-num\-desc\fR] [\fI\-\-page=PG[,SPG]\fR]
-[\fI\-\-quiet\fR] [\fI\-\-readonly\fR] [\fI\-\-transport=TN\fR]
-[\fI\-\-verbose\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
+[\fI\-\-hex\fR] [\fI\-\-json[=JO]\fR] [\fI\-\-js\-file=JFN\fR]
+[\fI\-\-num\-desc\fR] [\fI\-\-page=PG[,SPG]\fR] [\fI\-\-quiet\fR]
+[\fI\-\-readonly\fR] [\fI\-\-transport=TN\fR] [\fI\-\-verbose\fR]
+\fIDEVICE\fR [\fIDEVICE\fR...]
 .PP
 .B sdparm
 \fI\-\-enumerate\fR [\fI\-\-all\fR] [\fI\-\-inquiry\fR] [\fI\-\-long\fR]
@@ -32,9 +35,10 @@ sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands
 .PP
 .B sdparm
 \fI\-\-inhex=FN\fR [\fI\-\-all\fR] [\fI\-\-flexible\fR] [\fI\-\-hex\fR]
-[\fI\-\-inquiry\fR] [\fI\-\-long\fR] [\fI\-\-pdt=DT\fR] [\fI\-\-raw\fR]
-[\fI\-\-six\fR] [\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
-[\fI\-\-verbose\fR]
+[\fI\-\-inner\-hex\fR] [\fI\-\-inquiry\fR] [\fI\-\-json[=JO]\fR]
+[\fI\-\-js\-file=JFN\fR] [\fI\-\-long\fR] [\fI\-\-out\-mask=OM\fR]
+[\fI\-\-pdt=DT\fR] [\fI\-\-raw\fR] [\fI\-\-six\fR] [\fI\-\-transport=TN\fR]
+[\fI\-\-vendor=VN\fR] [\fI\-\-verbose\fR]
 .PP
 .B sdparm
 \fI\-\-wscan\fR [\fI\-\-verbose\fR]
@@ -231,7 +235,20 @@ bytes; with '\-HHH' outputs the same response in a format suitable
 for 'hdparm \-\-Istdin' to decode.
 .br
 Mode page output with the '\-HHH' option is suitable for a later invocation
-of sdparm with the \fI\-\-inhex=FN\fR option.
+of sdparm with the \fI\-\-inhex=FN\fR option. The first entry in the hex
+output is the mode parameter header and associated block descriptors. Then
+for each mode page there are up to four outputs, one for each of the current,
+changeable, default and saveable page controls. A subset of the available
+page controls can be output by using the \fI\-\-out\-mask=OM\fR option.
+.br
+It is recommended that the '\-HHHHH' option (i.e. '--hex' five times) is
+used since this adds a comment line above each block of hex. The comment
+start with '#' and briefly describes the following hex block. This will make
+it easier to debug if something goes wrong. Any line starting with '#'
+is ignored in a subsequent invocation of the \fI\-\-inhex=FN\fR option.
+.TP
+\fB\-x\fR, \fB\-\-inner\-hex\fR
+xxxxxxxxxxxxx tdb
 .TP
 \fB\-I\fR, \fB\-\-inhex\fR=\fIFN\fR
 \fIFN\fR is expected to be a file name (or '\-' for stdin) which contains
@@ -265,6 +282,15 @@ output.
 \fI\-\-page=sinq\fR or \fI\-\-page=\-1\fR given with this option will
 output the standard INQUIRY response instead of a VPD page.
 .TP
+\fB\-j[JO]\fR, \fB\-\-json[=JO]\fR
+See the accompanying sdparm_json(8) manpage. Note that the \fIJO\fR argument
+is itself optional. The optional argument to the short form is shown here
+to stress that in this case there is no space between the "j" and its
+optional argument.
+.TP
+\fB\-J\fR, \fB\-\-js\-file\fR=\fIJFN\fR
+See the accompanying sdparm_json(8) manpage.
+.TP
 \fB\-l\fR, \fB\-\-long\fR
 output extra information. In the case of mode page fields a description (with
 units if applicable) is output to the right. If used twice, then for some
@@ -280,12 +306,23 @@ response is output.
 for a mode page that can have descriptors, the number of descriptors for the
 given page on the \fIDEVICE\fR is output. Otherwise 0 is output.
 .TP
-\fB\-o\fR, \fB\-\-out\-mask\fR=\fIOM\fR
+\fB\-o\fR, \fB\-\-out\-mask\fR=\fIOM[,IM]\fR
 \fIOM\fR is a bit mask for mode page selections that will be printed/output.
 The 0x1 value is for the 'current' values, 0x2 is for the 'changeable'
 values, 0x4 is for the 'default' values and 0x8 is for the 'saveable' values.
 The default value is 0xf (i.e. the OR of all four values set). The option is
 useful for limiting the amount of output with the '\-HHH'.
+.br
+If a value is given after a comma, it is known as \fIIM\fR which can be
+interpreted as the 'Inhex Mask'. When output from a previous invocation with
+hex output (e.g. with '\-HHH' or more) is being parsed with the
+\fI\-\-inhex=FN\fR option \fIIM\fR may be needed. If multiple entries of each
+page are found, without \fIIM\fR they are assumed to be the current,
+changeable, default and saveable page controls, in that order. If \fIIM\fR
+is given then the pages found in \fIFN\fR are allocated to the page control
+with 1 in the corresponding bit mask position in \fIIM\fR. For example, if
+\fIIM\fR is 0 then no pages are selected; if \fIIM\fR is 5 then the first
+page is the current and the second page is the default page control.
 .TP
 \fB\-p\fR, \fB\-\-page\fR=\fIPG[,SPG]\fR
 supply the page number (\fIPG\fR) and optionally the sub page
@@ -361,9 +398,10 @@ variants are used. RBC and old SCSI devices may need this option. This
 utility outputs a suggestion to use this option if the SCSI status indicates
 that the 10 byte cdb variant is not supported.
 .br
-The SPC\-4 standard (and SPC\-5 drafts) include a note stating that
-implementers migrate away from the SCSI MODE SELECT(6) and MODE SENSE(6)
-commands in favour of the 10 byte variants (e.g.  MODE SEMSE(10)).
+The SPC\-4 and SPC\-5 standards state that implementers should migrate away
+from the SCSI MODE SELECT(6) and MODE SENSE(6) commands in favour of the 10
+byte variants (e.g.  MODE SEMSE(10)). In draft SPC\-6 revision 7 the SCSI
+MODE SELECT(6) and MODE SENSE(6) commands have been removed.
 .TP
 \fB\-t\fR, \fB\-\-transport\fR=\fITN\fR
 Specifies the transport protocol where \fITN\fR is either a number in the
@@ -1006,6 +1044,6 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 There is a web page discussing this package at
 https://sg.danny.cz/sg/sdparm.html .
 .SH "SEE ALSO"
-.B hdparm(hdparm),
+.B sdparm_json(8), hdparm(hdparm),
 .B sg_modes, sg_wr_mode, sginfo, sg_inq, sg_vpd(all in sg3_utils),
 .B smartmontools(smartmontools.sourceforge.net), mt, eject(eject),

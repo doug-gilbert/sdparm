@@ -109,35 +109,36 @@ sdp_mpage_len(const uint8_t * mp)
 
 enum mode_page_class {MPC_VENDOR, MPC_TRANSPORT, MPC_GENERAL};
 
-const struct sdparm_mode_page_t *
-sdp_get_mpage_t(int page_num, int subpage_num, int pdt, int transp_proto,
-                int vendor_id)
+const struct sdparm_mp_name_t *
+sdp_get_mp_nm(int page_num, int subpage_num, int pdt, int transp_proto,
+              int vendor_id)
 {
     enum mode_page_class mpc;
     int decayed_pdt;
-    const struct sdparm_mode_page_t * mpp;
+    const struct sdparm_mp_name_t * mnp;
 
     if (vendor_id >= 0) {
         const struct sdparm_vendor_pair * vpp;
 
         vpp = sdp_get_vendor_pair(vendor_id);
-        mpp = (vpp ? vpp->mpage : NULL);
+        mnp = (vpp ? vpp->mpage : NULL);
         mpc = MPC_VENDOR;
     } else if ((transp_proto >= 0) && (transp_proto < 16)) {
-        mpp = sdparm_transport_mp[transp_proto].mpage;
+        mnp = sdparm_transport_mp[transp_proto].mpage;
         mpc = MPC_TRANSPORT;
     } else {
-        mpp = sdparm_gen_mode_pg;
+        mnp = sdparm_gen_mode_pg;
         mpc = MPC_GENERAL;
     }
-    if (NULL == mpp)
+    if (NULL == mnp)
         return NULL;
 
 try_again:
-    for ( ; mpp->acron; ++mpp) {
-        if ((page_num == mpp->page) && (subpage_num == mpp->subpage)) {
-            if ((pdt < 0) || (mpp->pdt_s < 0) || sg_pdt_s_eq(mpp->pdt_s, pdt))
-                return mpp;
+    for ( ; mnp->mp_acron; ++mnp) {
+        if ((page_num == mnp->page) && (subpage_num == mnp->subpage)) {
+            if ((pdt < 0) || (mnp->com_pdt < 0) ||
+                sg_pdt_s_eq(mnp->com_pdt, pdt))
+                return mnp;
         }
     }
     if (MPC_GENERAL == mpc) {
@@ -150,48 +151,51 @@ try_again:
     return NULL;
 }
 
-const struct sdparm_mode_page_t *
-sdp_get_mpt_with_str(int page_num, int subpage_num, int pdt, int transp_proto,
-                     int vendor_id, bool plus_acron, bool hex, int b_len,
-                     char * bp)
+/* Returns pointer to a sdparm_mp_name_t object matching the first 5
+ * arguments. If no match returns NULL. If match and bp is non-NULL
+ * then outputs a the name, acronym (if plus_acron) and hex values
+ * (if 'hex' == true) to bp . */
+const struct sdparm_mp_name_t *
+sdp_get_mp_nm_with_str(int page_num, int subpage_num, int pdt, int transp_proto,
+                       int vendor_id, bool plus_acron, bool hex, int b_len,
+                       char * bp)
 {
     int len = b_len - 1;
-    const struct sdparm_mode_page_t * mpp = NULL;
+    const struct sdparm_mp_name_t * mnp = NULL;
     const char * cp;
 
-    if (len < 0)
-        return mpp;
-    bp[len] = '\0';
     /* first try to match given pdt */
-    mpp = sdp_get_mpage_t(page_num, subpage_num, pdt, transp_proto,
-                          vendor_id);
-    if (NULL == mpp) /* didn't match specific pdt so try -1 (ie. SPC) */
-        mpp = sdp_get_mpage_t(page_num, subpage_num, -1, transp_proto,
-                              vendor_id);
-    if (mpp && mpp->name) {
-        cp = mpp->acron;
+    mnp = sdp_get_mp_nm(page_num, subpage_num, pdt, transp_proto, vendor_id);
+    if (NULL == mnp) /* didn't match specific pdt so try -1 (ie. SPC) */
+        mnp = sdp_get_mp_nm(page_num, subpage_num, -1, transp_proto,
+                            vendor_id);
+    if ((len < 0) || (NULL == bp))
+        return mnp;
+    bp[len] = '\0';
+    if (mnp && mnp->mp_name) {
+        cp = mnp->mp_acron;
         if (NULL == cp)
             cp = "";
         if (hex) {
             if (0 == subpage_num) {
                 if (plus_acron)
-                    snprintf(bp, len, "%s [%s: 0x%x]", mpp->name, cp,
+                    snprintf(bp, len, "%s [%s: 0x%x]", mnp->mp_name, cp,
                              page_num);
                 else
-                    snprintf(bp, len, "%s [0x%x]", mpp->name, page_num);
+                    snprintf(bp, len, "%s [0x%x]", mnp->mp_name, page_num);
             } else {
                 if (plus_acron)
-                    snprintf(bp, len, "%s [%s: 0x%x,0x%x]", mpp->name, cp,
+                    snprintf(bp, len, "%s [%s: 0x%x,0x%x]", mnp->mp_name, cp,
                              page_num, subpage_num);
                 else
-                    snprintf(bp, len, "%s [0x%x,0x%x]", mpp->name, page_num,
-                             subpage_num);
+                    snprintf(bp, len, "%s [0x%x,0x%x]", mnp->mp_name,
+                             page_num, subpage_num);
             }
         } else {
             if (plus_acron)
-                snprintf(bp, len, "%s [%s]", mpp->name, cp);
+                snprintf(bp, len, "%s [%s]", mnp->mp_name, cp);
             else
-                snprintf(bp, len, "%s", mpp->name);
+                snprintf(bp, len, "%s", mnp->mp_name);
         }
     } else {
         if (0 == subpage_num)
@@ -199,29 +203,29 @@ sdp_get_mpt_with_str(int page_num, int subpage_num, int pdt, int transp_proto,
         else
             snprintf(bp, len, "[0x%x,0x%x]", page_num, subpage_num);
     }
-    return mpp;
+    return mnp;
 }
 
-const struct sdparm_mode_page_t *
-sdp_find_mpt_by_acron(const char * ap, int transp_proto, int vendor_id)
+const struct sdparm_mp_name_t *
+sdp_find_mp_nm_by_acron(const char * ap, int transp_proto, int vendor_id)
 {
-    const struct sdparm_mode_page_t * mpp;
+    const struct sdparm_mp_name_t * mnp;
 
     if (vendor_id >= 0) {
         const struct sdparm_vendor_pair * vpp;
 
         vpp = sdp_get_vendor_pair(vendor_id);
-        mpp = (vpp ? vpp->mpage : NULL);
+        mnp = (vpp ? vpp->mpage : NULL);
     } else if ((transp_proto >= 0) && (transp_proto < 16))
-        mpp = sdparm_transport_mp[transp_proto].mpage;
+        mnp = sdparm_transport_mp[transp_proto].mpage;
     else
-        mpp = sdparm_gen_mode_pg;
-    if (NULL == mpp)
+        mnp = sdparm_gen_mode_pg;
+    if (NULL == mnp)
         return NULL;
 
-    for ( ; mpp->acron; ++mpp) {
-        if (sdp_strcase_eq(mpp->acron, ap))
-            return mpp;
+    for ( ; mnp->mp_acron; ++mnp) {
+        if (sdp_strcase_eq(mnp->mp_acron, ap))
+            return mnp;
     }
     return NULL;
 }
@@ -234,10 +238,10 @@ sdp_get_vpd_detail(int page_num, int subvalue, int pdt)
 
     sv = (subvalue < 0) ? 1 : 0;
     ty = (pdt < 0) ? 1 : 0;
-    for (vpp = sdparm_vpd_pg; vpp->acron; ++vpp) {
+    for (vpp = sdparm_vpd_pg; vpp->vpd_acron; ++vpp) {
         if ((page_num == vpp->vpd_num) &&
             (sv || (subvalue == vpp->subvalue)) &&
-            (ty || (pdt == vpp->pdt_s)))
+            (ty || (pdt == vpp->com_pdt)))
             return vpp;
     }
     if (! ty)
@@ -252,8 +256,8 @@ sdp_find_vpd_by_acron(const char * ap)
 {
     const struct sdparm_vpd_page_t * vpp;
 
-    for (vpp = sdparm_vpd_pg; vpp->acron; ++vpp) {
-        if (sdp_strcase_eq(vpp->acron, ap))
+    for (vpp = sdparm_vpd_pg; vpp->vpd_acron; ++vpp) {
+        if (sdp_strcase_eq(vpp->vpd_acron, ap))
             return vpp;
     }
     return NULL;
@@ -334,12 +338,12 @@ sdp_get_vendor_pair(int vendor_id)
  * *from_p is set to the offset of the sentinel at the end of the
  * selected mitem array. Start iteration by setting from_p to NULL or
  * point it at -1. */
-const struct sdparm_mode_page_item *
+const struct sdparm_mp_item_t *
 sdp_find_mitem_by_acron(const char * ap, int * from_p, int transp_proto,
                         int vendor_id)
 {
     int k = 0;
-    const struct sdparm_mode_page_item * mpi;
+    const struct sdparm_mp_item_t * mpi;
 
     if (from_p) {
         k = *from_p;
@@ -370,7 +374,7 @@ sdp_find_mitem_by_acron(const char * ap, int * from_p, int transp_proto,
 }
 
 uint64_t
-sdp_mitem_get_value(const struct sdparm_mode_page_item *mpi,
+sdp_mitem_get_value(const struct sdparm_mp_item_t *mpi,
                     const uint8_t * mp)
 {
     return sg_get_big_endian(mp + mpi->start_byte, mpi->start_bit,
@@ -385,7 +389,7 @@ sdp_mitem_get_value(const struct sdparm_mode_page_item *mpi,
  * Returns the value in an unsigned 64 bit integer. To print a value as a
  * signed quantity use sdp_print_signed_decimal(). */
 uint64_t
-sdp_mitem_get_value_check(const struct sdparm_mode_page_item *mpi,
+sdp_mitem_get_value_check(const struct sdparm_mp_item_t *mpi,
                           const uint8_t * mp, bool * all_setp)
 {
     uint64_t res;
@@ -426,8 +430,9 @@ sdp_mitem_get_value_check(const struct sdparm_mode_page_item *mpi,
     return res;
 }
 
-void
-sdp_print_signed_decimal(uint64_t u, int num_bits, bool leading_zeros)
+char *
+sdp_signed_decimal_str(uint64_t u, int num_bits, bool leading_zeros,
+                       char * b, int blen)
 {
     unsigned int ui;
     uint8_t uc;
@@ -439,50 +444,51 @@ sdp_print_signed_decimal(uint64_t u, int num_bits, bool leading_zeros)
         if (0x8 & uc)
             uc |= 0xf0;         /* sign extend */
         if (leading_zeros)
-            printf("%02hhd", (signed char)uc);
+            sg_scnpr(b, blen, "%02hhd", (signed char)uc);
         else
-            printf("%hhd", (signed char)uc);
+            sg_scnpr(b, blen, "%hhd", (signed char)uc);
         break;
     case 8:     /* -128 to 127 */
         if (leading_zeros)
-            printf("%02hhd", (signed char)u);
+            sg_scnpr(b, blen, "%02hhd", (signed char)u);
         else
-            printf("%hhd", (signed char)u);
+            sg_scnpr(b, blen, "%hhd", (signed char)u);
         break;
     case 16:    /* -32768 to 32767 */
         if (leading_zeros)
-            printf("%02hd", (short int)u);
+            sg_scnpr(b, blen, "%02hd", (short int)u);
         else
-            printf("%hd", (short int)u);
+            sg_scnpr(b, blen, "%hd", (short int)u);
         break;
     case 24:
         ui = 0xffffff & u;
         if (0x800000 & ui)
             ui |= 0xff000000;
         if (leading_zeros)
-            printf("%02d", (int)ui);
+            sg_scnpr(b, blen, "%02d", (int)ui);
         else
-            printf("%d", (int)ui);
+            sg_scnpr(b, blen, "%d", (int)ui);
         break;
     case 32:
         if (leading_zeros)
-            printf("%02d", (int)u);
+            sg_scnpr(b, blen, "%02d", (int)u);
         else
-            printf("%d", (int)u);
+            sg_scnpr(b, blen, "%d", (int)u);
         break;
     case 64:
     default:
         if (leading_zeros)
-            printf("%02" PRId64 , (int64_t)u);
+            sg_scnpr(b, blen, "%02" PRId64 , (int64_t)u);
         else
-            printf("%" PRId64 , (int64_t)u);
+            sg_scnpr(b, blen, "%" PRId64 , (int64_t)u);
         break;
     }
+    return b;
 }
 
 /* Place 'val' at an offset to 'mp' as indicated by mpi. */
 void
-sdp_mitem_set_value(uint64_t val, const struct sdparm_mode_page_item * mpi,
+sdp_mitem_set_value(uint64_t val, const struct sdparm_mp_item_t * mpi,
                     uint8_t * mp)
 {
     sg_set_big_endian(val, mp + mpi->start_byte, mpi->start_bit,
@@ -493,4 +499,47 @@ int
 sdp_get_desc_id(int flags)
 {
     return (MF_DESC_ID_MASK & flags) >> MF_DESC_ID_SHIFT;
+}
+
+char *
+sdp_mp_convert2snake(const char * in_name, char * sn_name,
+                     int max_sn_name_len)
+{
+    int inlen, k;
+    const char * lpar;
+    const char * rpar;
+    const char * lbra;
+    const char * rbra;
+    char b[168];
+    static const int blen = sizeof(b);
+    static const char * s_mp_s = " mode page";
+    static const char * dummy_in_s = "null mode page";
+
+    inlen = strlen(in_name ? in_name : dummy_in_s);
+    if (inlen >= (blen - 1)) {
+        pr2serr("%s: buffer too short\n", __func__);
+        return sn_name;
+    }
+    memcpy(b, in_name ? in_name : dummy_in_s,
+           inlen + 1);  /* want trailing null */
+    lpar = strchr(b, '(');
+    rpar = strchr(b, ')');
+    if (lpar && rpar) {         /* remove parentheses */
+        memmove((char *)lpar, rpar + 1, rpar + 1 - lpar);
+        inlen = strlen(b);
+    }
+    lbra = strchr(b, '[');
+    rbra = strchr(b, ']');
+    if (lbra && rbra) {         /* remove parentheses */
+        memmove((char *)lbra, rbra + 1, rbra + 1 - lbra);
+        inlen = strlen(b);
+    }
+    for (k = inlen; k < blen; ++k) {
+        b[k] = s_mp_s[k - inlen];
+        if ('\0' == b[k])
+            break;
+    }
+    if (k == blen)
+        b[k - 1] = '\0';
+    return sgj_convert2snake(b, sn_name, max_sn_name_len);
 }

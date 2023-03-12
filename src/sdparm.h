@@ -18,6 +18,7 @@ extern "C" {
 
 #define DEF_MODE_6_RESP_LEN 252
 #define DEF_MODE_RESP_LEN 512
+#define MAX_MP_BUFF_SZ 8192     /* assume all mode pages+subpages will fit */
 #define DEF_INQ_RESP_LEN 252
 #define VPD_ATA_INFO_RESP_LEN 572
 #define VPD_XCOPY_RESP_LEN 572
@@ -60,6 +61,7 @@ extern "C" {
 #define DEV_CAP_MP 0x1f
 #define MMCMS_MP 0x2a
 #define ALL_MPAGES 0x3f
+#define ALL_MSPAGES 0xff
 
 /* Mode subpage numbers (when SPF bit is set in bit 6, byte 0 of response) */
 #define NO_MSP 0                /* SPF is clear (0) in this case */
@@ -167,7 +169,7 @@ extern "C" {
 #define VENDOR_NVME 0x7
 #define VENDOR_SG 0x8
 
-/* bit flag settings for sdparm_mode_page_item::flags */
+/* bit flag settings for sdparm_mp_item_t::flags */
 #define MF_COMMON 0x1   /* output in summary mode */
 #define MF_HEX 0x2
 #define MF_CLASH_OK 0x4 /* know this overlaps safely with generic */
@@ -181,13 +183,22 @@ extern "C" {
 #define MF_DESC_ID_B3 0x800
 #define MF_DESC_ID_MASK 0xf00
 #define MF_DESC_ID_SHIFT 8
+#define MF_OBSOLETE 0x1000
+#define MF_J_USE_DESC 0x2000    /* def: JSON uses 'acron' field */
+#define MF_J_NPARAM_DESC 0x4000 /* use description, exclude parentheses */
 
 /* Output (bit) mask values */
 #define MP_OM_CUR 0x1
 #define MP_OM_CHA 0x2
 #define MP_OM_DEF 0x4
 #define MP_OM_SAV 0x8
+#define MP_NUM_PG_CTL 4
 #define MP_OM_ALL 0xf
+#define MP_IM_ALL 0xf
+
+#define MP_GET_VAL_ALL 0   /* print current, changeable, default, saveable */
+#define MP_GET_VAL_CURR 1
+#define MP_GET_VAL_SIGNED 2     /* print current only in signed decimal */
 
 /* enumerations for commands */
 #define CMD_READY 1
@@ -214,24 +225,39 @@ struct sdparm_opt_coll {
     bool num_desc;      /* report number of descriptors */
     bool do_json;       /* -j (or -J) */
     bool do_raw;        /* -R (usually '-r' but already used) */
+    bool do_rw;         /* true: requires RDWR, false: perhaps RDONLY ok */
     bool read_only;
     bool save;
+    bool set_clear;     /* --set= or --clear= has been invoked */
     bool verbose_given;
     bool version_given;
+    int cl_pn;          /* Mode or VPD page number from --page= */
+    int cl_spn;         /* Mode or VPD subpage number from --page= */
     int defaults;       /* set mode page to its default values, or when set
                          * twice set RTD bit to set defaults on all pages */
     int do_all;         /* -iaa outputs all VPD pages found in the Supported
                          * VPD Pages VPD page (0x0) */
     int do_enum;
+    int do_help;
     int do_hex;
     int do_long;
     int out_mask;       /* OR-ed MP_OM_* values, default: MP_OM_ALL (0xf) */
-    int pdt;
+    int in_mask;        /* inhex mask, default: MP_IM_ALL (0xf) */
+    int cl_pdt;         /* pdt given on command line ('-P DT') or -1 */
     int do_quiet;
+    int inhex_len;      /* number of bytes found when --inhex=FN fetched */
+    int inner_hex;      /* -x  decoding hex at mode page field level */
+    int num_devices;
+    int sinq_version;   /* standard INQUIRY response, byte 2 */
     int transport;      /* -1 means not transport specific (def) */
     int vendor_id;      /* -1 means not vendor specific (def) */
     int verbose;
     const char * inhex_fn;
+    const char * clear_str;
+    const char * cmd_str;
+    const char * get_str;
+    const char * page_str;
+    const char * set_str;
     const char * json_arg;
     const char * js_file;
     sgj_state json_st;
@@ -292,17 +318,17 @@ struct sdparm_mode_descriptor_t {
 
 /* Template for each mode page, array populated in sdparm_data.c for generic
  * and transport mpages. Vendor mode pages found in sdparm_data_vendor.c . */
-struct sdparm_mode_page_t {
+struct sdparm_mp_name_t {
     int page;
     int subpage;
-    int pdt_s;       /* compound peripheral device type id, -1 is the default
+    int com_pdt;     /* compound peripheral device type id, -1 is the default
                       * for fields defined in SPC (common to all PDTs).
-                      * Compound pdt_s may hold two PDTs. The most common
-                      * example is:
+                      * com_pdt may hold two PDTs. The most common example is:
                       *    PDT_DISK | (PDT_ZBC << 8)    */
     int ro;          /* read-only */
-    const char * acron;
-    const char * name;
+    const char * mp_acron;
+    const char * mp_name;
+    const char * js_name;    /* NULL means use sdp_mp_convert2snake((name) */
     const struct sdparm_mode_descriptor_t * mp_desc;
                     /* non-NULL when mpage has descriptor format */
 };
@@ -311,8 +337,8 @@ struct sdparm_mode_page_t {
 struct sdparm_vpd_page_t {
     int vpd_num;
     int subvalue;
-    int pdt_s;       /* see pdt_s explanation above */
-    const char * acron;
+    int com_pdt;       /* see com_pdt explanation above */
+    const char * vpd_acron;
     const char * name;
 };
 
@@ -326,26 +352,28 @@ struct sdparm_vendor_name_t {
 
 /* Template for each mode page field (item), arrays for generic and each
  * transport populated in sdparm_data.c . Arrays for vendors populated
- * in sdparm_data_vendor.c */
-struct sdparm_mode_page_item {
+ * in sdparm_data_vendor.c . The 'mpip' variable is pointer to an
+ * instance of this structure. */
+struct sdparm_mp_item_t {
     const char * acron;
     int pg_num;
     int subpg_num;
-    int pdt_s;       /* see pdt_s explanation above */
+    int com_pdt;       /* see com_pdt explanation above */
     int start_byte;
     int start_bit;
     int num_bits;
     int flags;       /* bit settings or-ed, see MF_* */
     const char * description;
+    const char * js_name;       /* NULL means use sgj_convert2snake((acron) */
     const char * extra;
 };
 
 /* Command line arguments to --clear, --get= and --set= are parsed into
  * one or more instances of this structure. On the command line each
  * has the form: <mitem>[.<d_num>][=<val>]
- * struct sdparm_mode_page_settings contains an array of these. */
-struct sdparm_mode_page_it_val {
-    struct sdparm_mode_page_item mpi;   /* holds <mitem> in above form */
+ * struct sdparm_mp_settings_t contains an array of these. */
+struct sdparm_mp_it_val_t {
+    struct sdparm_mp_item_t mp_it;   /* holds <mitem> in above form */
     int64_t val;        /* holds <val> in above form. Defaults to 1 for
                          * for --set=, and to 0 for --clear= and --get= .
                          * The <val> for --get= is for output format. */
@@ -360,10 +388,10 @@ struct sdparm_mode_page_it_val {
  * mode page number and sub-page number. That argument could be empty, a
  * single <mitem>[.<d_num>][=<val>] instance or a comma separated list of
  * them. */
-struct sdparm_mode_page_settings {
+struct sdparm_mp_settings_t {
     int pg_num;
     int subpg_num;
-    struct sdparm_mode_page_it_val it_vals[MAX_MP_IT_VAL];
+    struct sdparm_mp_it_val_t it_vals[MAX_MP_IT_VAL];
     int num_it_vals;    /* number of active elements in it_vals[] */
 };
 
@@ -372,17 +400,17 @@ struct sdparm_mode_page_settings {
  * (which is a number from 0 to 15). Undefined or unsupported entries
  * contain NULL, NULL. */
 struct sdparm_transport_pair {
-    struct sdparm_mode_page_t * mpage;          /* array of transport specific
+    struct sdparm_mp_name_t * mpage;            /* array of transport specific
                                                    mode pages */
-    struct sdparm_mode_page_item * mitem;       /* array of transport specific
+    struct sdparm_mp_item_t * mitem;            /* array of transport specific
                                                    mode page fields (items) */
 };
 
 /* Template for a vendor's mode pages and fields. Array of these found in
  * sdparm_data_vendor.c . */
 struct sdparm_vendor_pair {
-    struct sdparm_mode_page_t * mpage;
-    struct sdparm_mode_page_item * mitem;
+    struct sdparm_mp_name_t * mpage;
+    struct sdparm_mp_item_t * mitem;
 };
 
 /* Template for a simple SCSI command supported by sdparm. Array of them
@@ -400,7 +428,7 @@ struct sdparm_val_desc_t {
         const char * desc;
 };
 
-extern struct sdparm_mode_page_t sdparm_gen_mode_pg[];
+extern struct sdparm_mp_name_t sdparm_gen_mode_pg[];
 extern struct sdparm_vpd_page_t sdparm_vpd_pg[];
 extern struct sdparm_val_desc_t sdparm_transport_id[];
 extern struct sdparm_val_desc_t sdparm_add_transport_acron[];
@@ -408,7 +436,8 @@ extern struct sdparm_transport_pair sdparm_transport_mp[];
 extern struct sdparm_vendor_name_t sdparm_vendor_id[];
 extern struct sdparm_vendor_pair sdparm_vendor_mp[];
 extern const int sdparm_vendor_mp_len;
-extern struct sdparm_mode_page_item sdparm_mitem_arr[];
+extern struct sdparm_mp_item_t sdparm_mitem_arr[];
+extern struct sdparm_mp_item_t sdparm_mitem_sas_arr[];
 extern struct sdparm_command_t sdparm_command_arr[];
 extern struct sdparm_val_desc_t sdparm_profile_arr[];
 
@@ -417,12 +446,12 @@ extern const char * sdparm_mode_page_policy_arr[];
 
 
 int sdp_mpage_len(const uint8_t * mp);    /* page, not MS response */
-const struct sdparm_mode_page_t * sdp_get_mpage_t(int page_num,
+const struct sdparm_mp_name_t * sdp_get_mp_nm(int page_num,
                 int subpage_num, int pdt, int transp_proto, int vendor_num);
-const struct sdparm_mode_page_t * sdp_get_mpt_with_str(int page_num,
+const struct sdparm_mp_name_t * sdp_get_mp_nm_with_str(int page_num,
                 int subpage_num, int pdt, int transp_proto, int vendor_num,
                 bool plus_acron, bool hex, int max_b_len, char * bp);
-const struct sdparm_mode_page_t * sdp_find_mpt_by_acron(const char * ap,
+const struct sdparm_mp_name_t * sdp_find_mp_nm_by_acron(const char * ap,
                 int transp_proto, int vendor_num);
 const struct sdparm_vpd_page_t * sdp_get_vpd_detail(int page_num,
                 int subvalue, int pdt);
@@ -433,30 +462,30 @@ int sdp_find_transport_id_by_acron(const char * ap);
 const char * sdp_get_vendor_name(int vendor_num);
 const struct sdparm_vendor_name_t * sdp_find_vendor_by_acron(const char * ap);
 const struct sdparm_vendor_pair * sdp_get_vendor_pair(int vendor_num);
-const struct sdparm_mode_page_item * sdp_find_mitem_by_acron(const char * ap,
+const struct sdparm_mp_item_t * sdp_find_mitem_by_acron(const char * ap,
                 int * from, int transp_proto, int vendor_num);
-uint64_t sdp_mitem_get_value(const struct sdparm_mode_page_item *mpi,
+uint64_t sdp_mitem_get_value(const struct sdparm_mp_item_t *mpi,
                              const uint8_t * mp);
-uint64_t sdp_mitem_get_value_check(const struct sdparm_mode_page_item *mpi,
+uint64_t sdp_mitem_get_value_check(const struct sdparm_mp_item_t *mpi,
                                    const uint8_t * mp, bool * all_setp);
-void sdp_print_signed_decimal(uint64_t u, int num_bits, bool leading_zeros);
-void sdp_mitem_set_value(uint64_t val, const struct sdparm_mode_page_item *mpi,
+char * sdp_signed_decimal_str(uint64_t u, int num_bits, bool leading_zeros,
+                              char * b, int blen);
+void sdp_mitem_set_value(uint64_t val, const struct sdparm_mp_item_t *mpi,
                          uint8_t * mp);
 int sdp_get_desc_id(int flags);
 int sdp_strcase_eq(const char * s1p, const char * s2p);
 int sdp_strcase_eq_upto(const char * s1p, const char * s2p, int n);
-void named_hhh_output(const char * pname, bool mode_true_or_vpd,
-                      const uint8_t * b, int blen,
-                      const struct sdparm_opt_coll * op);
+char * sdp_mp_convert2snake(const char * in_name, char * sn_name,
+                            int max_sn_name_len);
 
 /*
  * Declarations for functions found in sdparm_vpd.c
  */
 
 int sdp_process_vpd_page(int sg_fd, int pn, int spn,
-                         struct sdparm_opt_coll * op, sgj_opaque_p jop,
                          int req_pdt, bool protect, const uint8_t * ihbp,
-                         int ihb_len, uint8_t * alt_buf, int off);
+                         uint8_t * alt_buf, int off,
+                         struct sdparm_opt_coll * op, sgj_opaque_p jop);
 
 /*
  * Declarations for functions found in sdparm_cmd.c

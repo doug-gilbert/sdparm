@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005-2021, Douglas Gilbert
+ * Copyright (c) 2005-2023, Douglas Gilbert
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,7 +24,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /* Version 1.15 20210320  */
+ /* Version 1.16 20230227  */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -60,14 +60,14 @@ static void clear_cl()
 
 /* result: 0 -> good, 1 -> clash at given pdt, 2 -> clash
  *         other than given pdt, -1 -> bad input */
-static int check_cl(int off, int pdt_s, uint8_t mask)
+static int check_cl(int off, int com_pdt, uint8_t mask)
 {
     int k;
-    int a_pdt = (pdt_s & 0xff);
+    int a_pdt = (com_pdt & 0xff);
 
     if (off >= MAX_MP_LEN)
         return -1;
-    if (pdt_s < 0) {
+    if (com_pdt < 0) {
         if (cl_common_arr[off] & mask)
             return 1;
         for (k = 0; k <= MAX_PDT; ++k) {
@@ -80,30 +80,30 @@ static int check_cl(int off, int pdt_s, uint8_t mask)
             return 1;
         if (cl_common_arr[off] & mask)
             return 2;
-        if (pdt_s & ~0xff)
-            return check_cl(off, (pdt_s >> 8), mask);
+        if (com_pdt & ~0xff)
+            return check_cl(off, (com_pdt >> 8), mask);
         return 0;
     }
     return -1;
 }
 
-static void set_cl(int off, int pdt_s, uint8_t mask)
+static void set_cl(int off, int com_pdt, uint8_t mask)
 {
-    int a_pdt = (pdt_s & 0xff);
+    int a_pdt = (com_pdt & 0xff);
 
     if (off < MAX_MP_LEN) {
-        if (pdt_s < 0)
+        if (com_pdt < 0)
             cl_common_arr[off] |= mask;
         else if (a_pdt <= MAX_PDT) {
             cl_pdt_arr[a_pdt][off] |= mask;
-            if (pdt_s & ~0xff)
-                return set_cl(off, (pdt_s >> 8), mask);
+            if (com_pdt & ~0xff)
+                return set_cl(off, (com_pdt >> 8), mask);
         }
     }
 }
 
-static int check(const struct sdparm_mode_page_item * mpi,
-                 const struct sdparm_mode_page_item * mpi_b)
+static int check(const struct sdparm_mp_item_t * mpi,
+                 const struct sdparm_mp_item_t * mpi_b)
 {
     bool second_k = false;
     bool second_j = false;
@@ -111,8 +111,8 @@ static int check(const struct sdparm_mode_page_item * mpi,
     int res, prev_mp, prev_msp, prev_pdt, sbyte, sbit, nbits;
     int bad_count = 0;
     uint8_t mask;
-    const struct sdparm_mode_page_item * kp = mpi;
-    const struct sdparm_mode_page_item * jp = mpi;
+    const struct sdparm_mp_item_t * kp = mpi;
+    const struct sdparm_mp_item_t * jp = mpi;
     const char * acron;
 
     clear_cl();
@@ -140,16 +140,16 @@ static int check(const struct sdparm_mode_page_item * mpi,
             }
             prev_mp = kp->pg_num;
             prev_msp = kp->subpg_num;
-            prev_pdt = kp->pdt_s;
+            prev_pdt = kp->com_pdt;
             clear_cl();
-        } else if ((prev_pdt >= 0) && (prev_pdt != kp->pdt_s)) {
-            if (prev_pdt > kp->pdt_s) {
+        } else if ((prev_pdt >= 0) && (prev_pdt != kp->com_pdt)) {
+            if (prev_pdt > kp->com_pdt) {
                 printf("  mode page 0x%x,0x%x pdt out of order, pdt was "
                        "%d, now %d\n", kp->pg_num, kp->subpg_num,
-                       prev_pdt, kp->pdt_s);
+                       prev_pdt, kp->com_pdt);
                 ++bad_count;
             }
-            prev_pdt = kp->pdt_s;
+            prev_pdt = kp->com_pdt;
         }
         for (jp = kp + 1, second_j = second_k; ; ++jp) {
             if (NULL == jp->acron) {
@@ -200,7 +200,7 @@ static int check(const struct sdparm_mode_page_item * mpi,
         mask = (1 << (sbit + 1)) - 1;
         if ((nbits - 1) < sbit)
             mask &= ~((1 << (sbit + 1 - nbits)) - 1);
-        res = check_cl(sbyte, kp->pdt_s, mask);
+        res = check_cl(sbyte, kp->com_pdt, mask);
         if (res) {
             if (1 == res) {
                 printf("  0x%x,0x%x: clash at start_byte: %d, bit: %d "
@@ -219,7 +219,7 @@ static int check(const struct sdparm_mode_page_item * mpi,
                 ++bad_count;
             }
         }
-        set_cl(sbyte, kp->pdt_s, mask);
+        set_cl(sbyte, kp->com_pdt, mask);
         if ((nbits - 1) > sbit) {
             nbits -= (sbit + 1);
             if ((nbits > 7) && (0 != (nbits % 8))) {
@@ -237,7 +237,7 @@ static int check(const struct sdparm_mode_page_item * mpi,
                     mask &= ~((1 << (8 - nbits)) - 1);
                     nbits = 0;
                 }
-                res = check_cl(sbyte, kp->pdt_s, mask);
+                res = check_cl(sbyte, kp->com_pdt, mask);
                 if (res) {
                     if (1 == res) {
                         printf("   0x%x,0x%x: clash at start_byte: %d, "
@@ -256,7 +256,7 @@ static int check(const struct sdparm_mode_page_item * mpi,
                         ++bad_count;
                     }
                 }
-                set_cl(sbyte, kp->pdt_s, mask);
+                set_cl(sbyte, kp->com_pdt, mask);
             } while (nbits > 0);
         }
     }

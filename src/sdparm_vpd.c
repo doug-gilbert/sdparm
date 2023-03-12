@@ -160,6 +160,19 @@ sgjv_js_hex_long(sgj_state * jsp, sgj_opaque_p jop, const uint8_t * bp,
     }
 }
 
+static void
+named_hhh_output(const char * pname, const uint8_t * b, int blen,
+                 const struct sdparm_opt_coll * op)
+{
+    if (op->do_hex > 4) {
+        if (pname)
+            printf("\n# %s\n", pname);
+        else
+            printf("\n# VPD page 0x%x\n", b[1]);
+    }
+    hex2stdout(b, blen, -1);
+}
+
 static void             /* VPD_SUPPORTED_VPDS  ["sv"] */
 decode_supported_vpd(uint8_t * buff, int len, struct sdparm_opt_coll * op,
                      sgj_opaque_p jap)
@@ -194,9 +207,10 @@ decode_supported_vpd(uint8_t * buff, int len, struct sdparm_opt_coll * op,
         vpp = sdp_get_vpd_detail(pn, -1, pdt);
         if (vpp) {
             if (op->do_long)
-                sgj_pr_hr(jsp, "  %s  %s [%s]\n", b, vpp->name, vpp->acron);
+                sgj_pr_hr(jsp, "  %s  %s [%s]\n", b, vpp->name,
+                          vpp->vpd_acron);
             else
-                sgj_pr_hr(jsp, "  %s [%s]\n", vpp->name, vpp->acron);
+                sgj_pr_hr(jsp, "  %s [%s]\n", vpp->name, vpp->vpd_acron);
         } else
             sgj_pr_hr(jsp, "  %s\n", b);
         if (jsp->pr_as_json) {
@@ -205,7 +219,7 @@ decode_supported_vpd(uint8_t * buff, int len, struct sdparm_opt_coll * op,
             sgj_js_nv_s(jsp, jo2p, "hex", b + 2);
             if (vpp) {
                 sgj_js_nv_s(jsp, jo2p, "name", vpp->name);
-                sgj_js_nv_s(jsp, jo2p, "acronym", vpp->acron);
+                sgj_js_nv_s(jsp, jo2p, "acronym", vpp->vpd_acron);
             } else {
                 sgj_js_nv_s(jsp, jo2p, "name", "unknown");
                 sgj_js_nv_s(jsp, jo2p, "acronym", "unknown");
@@ -681,9 +695,8 @@ decode_dev_constit_vpd(uint8_t * buff, int len, int req_pdt, bool protect,
                               vpd_pg_s, q + 1);
                     /* SPC-5 says these shall _not_ themselves be Device
                      * Constituent VPD pages. So no infinite recursion. */
-                    res = sdp_process_vpd_page(-1, pn, 0, op, jo3p,
-                                               req_pdt, protect, NULL, 0,
-                                               buff, off);
+                    res = sdp_process_vpd_page(-1, pn, 0, req_pdt, protect,
+                                               NULL, buff, off, op, jo3p);
                     if (res)
                         return res;
                 } else {
@@ -1683,7 +1696,7 @@ decode_ext_inq_vpd(const uint8_t * b, int len, bool protect,
         } else {
             cp = "none";
             d[0] = '\0';
-	}
+        }
         if (cp[0])
             snprintf(d, dlen, " [%s]", cp);
         sgj_pr_hr(jsp, "  SPT=%d%s\n", n, d);
@@ -1913,7 +1926,7 @@ decode_ata_info_vpd(const uint8_t * buff, int len, struct sdparm_opt_coll * op,
     }
     if (op->do_hex > 0) {
         if (op->do_hex > 2)
-            named_hhh_output(ai_vpdp, false /* vpd */, buff, len, op);
+            named_hhh_output(ai_vpdp, buff, len, op);
         else
             hex2stdout(buff, len, no_ascii_4hex(op));
         return;
@@ -3292,9 +3305,9 @@ decode_cap_prod_id_vpd(const uint8_t * buff, int len,
  * page again. That will cause an infinite loop!
  * Called when '--inquiry --all --all' or '-iaa' used on command line. */
 static int
-decode_all_vpds(uint8_t * b, int len, int sg_fd, struct sdparm_opt_coll * op,
-                sgj_opaque_p jop, int req_pdt, bool protect,
-                uint8_t * alt_buf, int off)
+decode_all_vpds(uint8_t * b, int len, int sg_fd, int req_pdt, bool protect,
+                uint8_t * alt_buf, int off, struct sdparm_opt_coll * op,
+                sgj_opaque_p jop)
 {
     uint16_t u;
     int k, ret, moff;
@@ -3315,8 +3328,8 @@ decode_all_vpds(uint8_t * b, int len, int sg_fd, struct sdparm_opt_coll * op,
             moff += u + 4;
         }
         sgj_pr_hr(&op->json_st, "\n");
-        ret = sdp_process_vpd_page(sg_fd, bb[k], 0, op, jop, req_pdt,
-                                   protect, NULL, 0, alt_buf, moff);
+        ret = sdp_process_vpd_page(sg_fd, bb[k], 0, req_pdt, protect,
+                                   NULL, alt_buf, moff, op, jop);
         if (ret)
             return ret;
     }
@@ -3563,18 +3576,17 @@ fini:
 /* If ihbp is NULL then need to send SCSI INQUIRY command to device referred
  * to by sg_fd; then process the response received. If ihbp is non-NULL then
  * sg_fd is ignored and the buffer pointed to by ihbp (with length no greater
- * than ihb_len) is assumed to be the response to a SCSI INQUIRY command.
- * Alternatively when alt_buf is non-NULL, is carries 1 or more VPD page
- * response, the one to decode starts at offset 'off'. If both ihbp and
+ * than op->inhex_len) is assumed to be the response to a SCSI INQUIRY
+ * command. Alternatively when alt_buf is non-NULL, is carries 1 or more VPD
+ * page response, the one to decode starts at offset 'off'. If both ihbp and
  * alt_buf are NULL then expect sg_fd >= 0, an open file descriptor to which
  * the a SCSI INQUIRY command will be sent to fetch one or more VPD pages.
  * Returns 0 if successful, else error. spn changes what is output, currently
  * it only changes the output of the Device Identification VPD page. */
 int
-sdp_process_vpd_page(int sg_fd, int pn, int spn, struct sdparm_opt_coll * op,
-                     sgj_opaque_p jop, int req_pdt, bool protect,
-                     const uint8_t * ihbp, int ihb_len, uint8_t * alt_buf,
-                     int off)
+sdp_process_vpd_page(int sg_fd, int pn, int spn, int req_pdt, bool protect,
+                     const uint8_t * ihbp, uint8_t * alt_buf, int off,
+                     struct sdparm_opt_coll * op, sgj_opaque_p jop)
 {
     bool sbc = false;
     bool ssc = false;
@@ -3600,7 +3612,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn, struct sdparm_opt_coll * op,
         pr2serr("%s: sg_fd=%d, pn=0x%x, spn=%d, ihbp is %sgiven, alt_buff is "
                 "%sgiven, ihb_len=%d, off=%d\n", __func__, sg_fd,
                 (unsigned int)pn, spn, ((!! ihbp) ? "" : "not "),
-                ((!! alt_buf) ? "" : "not "), ihb_len, off);
+                ((!! alt_buf) ? "" : "not "), op->inhex_len, off);
     hex_format = (dhex > 2) ? -1 : no_ascii_4hex(op);
     sz = b_sz;
     if (NULL == alt_buf) {
@@ -3623,8 +3635,8 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn, struct sdparm_opt_coll * op,
             if (pn < 0)
                 pn = b[1];
         } else {        /* so ihbp must be non-NULL */
-            if (ihb_len < sz)
-                sz = ihb_len;
+            if (op->inhex_len < sz)
+                sz = op->inhex_len;
             memcpy(b, ihbp, sz);
             if (pn < 0)
                 pn = b[1];
@@ -3667,7 +3679,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn, struct sdparm_opt_coll * op,
                 if (pn != l_pn) {
                     prev_l_pn = l_pn;
                     continue;
-		}
+                }
 #if 0
                 if (pn > max_pn) {
                     if (op->verbose > 2)
@@ -3698,11 +3710,11 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn, struct sdparm_opt_coll * op,
                 pn = VPD_DEVICE_ID;  /* default to device id page */
         }
         sz = (VPD_ATA_INFO == pn) ? VPD_ATA_INFO_RESP_LEN : DEF_INQ_RESP_LEN;
-	if (NULL == b) {
-	    pr2serr("Logic error, b should not be NULL\n");
-	    ret = SG_LIB_CAT_MALFORMED;
-	    goto fini;
-	}
+        if (NULL == b) {
+            pr2serr("Logic error, b should not be NULL\n");
+            ret = SG_LIB_CAT_MALFORMED;
+            goto fini;
+        }
 try_larger:
         ret = sg_ll_inquiry_v2(sg_fd, true, pn, b, sz, 0, &resid, false,
                                verb);
@@ -3741,10 +3753,13 @@ try_larger:
             sgj_pr_hr(jsp, "%s:\n", svp_vpdp);
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(svp_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(svp_vpdp, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             ret = 0;
+            if (op->do_all > 1)
+                ret = decode_all_vpds(b, len, sg_fd, req_pdt, protect,
+                                      (uint8_t *)ihbp, 0, op, jop);
             goto fini;
         }
         if (len > 0) {
@@ -3769,8 +3784,8 @@ try_larger:
 #endif
             /* Take care not to decode this VPD page [0x0] again! */
             if (op->do_all > 1) {
-                ret = decode_all_vpds(b, len, sg_fd, op, jop, req_pdt,
-                                      protect, (uint8_t *)ihbp, 0);
+                ret = decode_all_vpds(b, len, sg_fd, req_pdt, protect,
+                                      (uint8_t *)ihbp, 0, op, jop);
                 if (ret)
                     goto fini;
             }
@@ -3802,7 +3817,7 @@ try_larger:
             else if (4 == dhex)
                 hex2stdout(b, len, -1);
             else if (dhex > 4)
-                named_hhh_output(svp_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(svp_vpdp, b, len, op);
             goto fini;
         }
         if (as_json)
@@ -3825,7 +3840,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(di_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(di_vpdp, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -3870,7 +3885,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(eid_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(eid_vpdp, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -3895,7 +3910,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(mna_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(mna_vpdp, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -3923,7 +3938,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(mpp_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(mpp_vpdp, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -3951,7 +3966,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(pc_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(pc_vpdp, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -3976,7 +3991,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(dc_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(dc_vpdp, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4006,7 +4021,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(cpi_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(cpi_vpdp, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4034,7 +4049,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(psm_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(psm_vpdp, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4062,7 +4077,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(pslu_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(pslu_vpdp, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4090,7 +4105,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(pspo_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(pspo_vpdp, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4118,7 +4133,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(sfs_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(sfs_vpdp, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4145,7 +4160,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(sp_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(sp_vpdp, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4175,7 +4190,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(sii_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(sii_vpdp, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4206,7 +4221,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(usn_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(usn_vpdp, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             break;
@@ -4259,7 +4274,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(tpc_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(tpc_vpdp, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4305,7 +4320,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(nm, false /* vpd */, b, len, op);
+                named_hhh_output(nm, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4353,7 +4368,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(nm, false /* vpd */, b, len, op);
+                named_hhh_output(nm, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4394,7 +4409,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(nm, false /* vpd */, b, len, op);
+                named_hhh_output(nm, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4434,7 +4449,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(nm, false /* vpd */, b, len, op);
+                named_hhh_output(nm, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4478,7 +4493,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(nm, false /* vpd */, b, len, op);
+                named_hhh_output(nm, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4524,7 +4539,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(nm, false /* vpd */, b, len, op);
+                named_hhh_output(nm, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4562,7 +4577,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(nm, false /* vpd */, b, len, op);
+                named_hhh_output(nm, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4595,7 +4610,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(nm, false /* vpd */, b, len, op);
+                named_hhh_output(nm, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4628,7 +4643,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(nm, false /* vpd */, b, len, op);
+                named_hhh_output(nm, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4665,7 +4680,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(nm, false /* vpd */, b, len, op);
+                named_hhh_output(nm, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4700,14 +4715,14 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(cap_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(cap_vpdp, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
         }
         if (cap) {
             if (dhex > 2) {
-                named_hhh_output(cap_vpdp, false /* vpd */, b, len, op);
+                named_hhh_output(cap_vpdp, b, len, op);
                 goto fini;
             }
             if (as_json) {
@@ -4718,7 +4733,7 @@ try_larger:
             decode_cap_prod_id_vpd(b, len, op, jap);
         } else if (dhex > 2) {
             snprintf(c, clen, "%s=0x%x, pdt=0x%x:\n", vpd_pg_s, pn, pdt);
-            named_hhh_output(c, false /* vpd */, b, len, op);
+            named_hhh_output(c, b, len, op);
             goto fini;
         }
         break;
@@ -4733,8 +4748,6 @@ try_larger:
             snprintf(c, clen, "VPD page 0x%x", pn);
         if (dhex < 3)
             sgj_pr_hr(jsp, "%s in hex:\n", c);
-        else
-            pr2serr("%s in hex:\n", c);
         if (len > b_sz) {
             if (op->verbose)
                 pr2serr("page length=%d too long, trim\n", len);
@@ -4742,7 +4755,7 @@ try_larger:
         }
         if (dhex > 0) {
             if (dhex > 2)
-                named_hhh_output(c, false /* vpd */, b, len, op);
+                named_hhh_output(c, b, len, op);
             else
                 hex2stdout(b, len, hex_format);
             goto fini;
@@ -4783,4 +4796,3 @@ fini:
         free(free_b);
     return ret;
 }
-
