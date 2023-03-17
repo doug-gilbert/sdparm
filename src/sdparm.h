@@ -178,8 +178,10 @@ extern "C" {
 #define MF_SAVE_PGS 0x20   /* advise/require --save option */
 #define MF_STOP_IF_SET 0x40
 #define MF_OBSOLETE 0x80
-#define MF_J_USE_DESC 0x100    /* def: JSON uses 'acron' field */
-#define MF_J_NPARAM_DESC 0x200 /* use description, exclude parentheses */
+#define MF_J_USE_DESC 0x100    /* use description (including parenthesised
+                                * expression); def: JSON uses 'acron' field */
+#define MF_J_NPARAM_DESC 0x200 /* use description, exclude parentheses and
+                                * brackets plus their contents */
 #define MF_DESC_ID_B0 0x10000  /* mpage descriptor ID, bit 0 */
 #define MF_DESC_ID_B1 0x20000
 #define MF_DESC_ID_B2 0x40000
@@ -395,6 +397,7 @@ struct sdparm_mp_settings_t {
     int pg_num;
     int subpg_num;
     struct sdparm_mp_it_val_t it_vals[MAX_MP_IT_VAL];
+    /* num_it_vals of zero after a build implies an error has occurred */
     int num_it_vals;    /* number of active elements in it_vals[] */
 };
 
@@ -497,7 +500,7 @@ int sdp_process_vpd_page(int sg_fd, int pn, int spn,
 int no_ascii_4hex(const struct sdparm_opt_coll * op);
 const struct sdparm_command_t * sdp_build_cmd(const char * cmd_str,
                                               bool * rwp, int * argp);
-void sdp_enumerate_commands();
+void sdp_enumerate_commands(struct sdparm_opt_coll * op);
 int sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp,
                     int cmd_arg, int pdt, const struct sdparm_opt_coll * opts);
 

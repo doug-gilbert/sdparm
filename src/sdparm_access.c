@@ -156,9 +156,9 @@ try_again:
  * then outputs a the name, acronym (if plus_acron) and hex values
  * (if 'hex' == true) to bp . */
 const struct sdparm_mp_name_t *
-sdp_get_mp_nm_with_str(int page_num, int subpage_num, int pdt, int transp_proto,
-                       int vendor_id, bool plus_acron, bool hex, int b_len,
-                       char * bp)
+sdp_get_mp_nm_with_str(int page_num, int subpage_num, int pdt,
+                       int transp_proto, int vendor_id, bool plus_acron,
+                       bool hex, int b_len, char * bp)
 {
     int len = b_len - 1;
     const struct sdparm_mp_name_t * mnp = NULL;
@@ -501,11 +501,13 @@ sdp_get_desc_id(int flags)
     return (MF_DESC_ID_MASK & flags) >> MF_DESC_ID_SHIFT;
 }
 
+/* Remove up to two parenthesised and two square bracketed expressions.
+ * Append 'mode page' to what is left, then convert to snake case. */
 char *
 sdp_mp_convert2snake(const char * in_name, char * sn_name,
                      int max_sn_name_len)
 {
-    int inlen, k;
+    int inlen, o_inlen, k, m;
     const char * lpar;
     const char * rpar;
     const char * lbra;
@@ -516,24 +518,38 @@ sdp_mp_convert2snake(const char * in_name, char * sn_name,
     static const char * dummy_in_s = "null mode page";
 
     inlen = strlen(in_name ? in_name : dummy_in_s);
+    o_inlen = inlen;
     if (inlen >= (blen - 1)) {
-        pr2serr("%s: buffer too short\n", __func__);
-        return sn_name;
+	static const char * bts_s = "buffer too short";
+		
+        pr2serr("%s: %s\n", __func__, bts_s);
+        return sgj_convert2snake(bts_s, sn_name, max_sn_name_len);
     }
     memcpy(b, in_name ? in_name : dummy_in_s,
            inlen + 1);  /* want trailing null */
-    lpar = strchr(b, '(');
-    rpar = strchr(b, ')');
-    if (lpar && rpar) {         /* remove parentheses */
-        memmove((char *)lpar, rpar + 1, rpar + 1 - lpar);
-        inlen = strlen(b);
+    for (m = 0; m < 2; ++m) {
+        if (m > 0) {
+            if (inlen == o_inlen)
+                break;
+        }
+        lpar = strchr(b, '(');
+	if (lpar) {
+            rpar = strchr(b, ')');
+            if (rpar) {         /* remove parentheses */
+                memmove((char *)lpar, rpar + 1, rpar + 1 - lpar);
+                inlen = strlen(b);
+            }
+        }
+        lbra = strchr(b, '[');
+	if (lbra) {
+            rbra = strchr(b, ']');
+            if (rbra) {         /* remove square brackets */
+                memmove((char *)lbra, rbra + 1, rbra + 1 - lbra);
+                inlen = strlen(b);
+            }
+	}
     }
-    lbra = strchr(b, '[');
-    rbra = strchr(b, ']');
-    if (lbra && rbra) {         /* remove parentheses */
-        memmove((char *)lbra, rbra + 1, rbra + 1 - lbra);
-        inlen = strlen(b);
-    }
+    /* append 'mode page' */
     for (k = inlen; k < blen; ++k) {
         b[k] = s_mp_s[k - inlen];
         if ('\0' == b[k])
