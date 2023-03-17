@@ -341,12 +341,13 @@ VPD page abbreviation then the \fI\-\-inquiry\fR option is assumed. For
 usage with \fI\-\-enumerate\fR see the ENUMERATE section below.
 .TP
 \fB\-P\fR, \fB\-\-pdt\fR=\fIDT\fR
-This option is only active when the \fI\-\-inhex=FN\fR option is given.
-\fIDT\fR is the peripheral Device Type, a value between 0 and 31 and
-can be found in the response to the INQUIRY command. The default value
-is \-1 (which may also be given for \fIDT\fR) and it is interpreted as
-SPC (i.e. common mode pages) or as a wild card. If available this option
-should be supplied with the \fI\-\-inhex=FN\fR option.
+This option is only active when the \fI\-\-inhex=FN\fR or the
+\fI\-\-enumerate\fR option is given. \fIDT\fR is the peripheral Device Type,
+a value between 0 and 31 and can be found in the response to the INQUIRY
+command. The default value is \-1 (which may also be given for \fIDT\fR) and
+it is interpreted as SPC (i.e. common mode pages) or as a wild card.
+\fIDT\fR may also be an acronym; for a list of available acronyms
+use 'xxx' for \fIDT\fR.
 .TP
 \fB\-q\fR, \fB\-\-quiet\fR
 suppress output of device name followed by the vendor, product and revision

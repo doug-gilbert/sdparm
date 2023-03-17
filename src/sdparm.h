@@ -170,22 +170,24 @@ extern "C" {
 #define VENDOR_SG 0x8
 
 /* bit flag settings for sdparm_mp_item_t::flags */
-#define MF_COMMON 0x1   /* output in summary mode */
+#define MF_COMMON 0x1      /* output in summary mode */
 #define MF_HEX 0x2
 #define MF_CLASH_OK 0x4 /* know this overlaps safely with generic */
 #define MF_TWOS_COMP 0x8   /* integer is two's complement */
 #define MF_ALL_1S 0x10     /* even with MF_HEX output all ones as -1 */
 #define MF_SAVE_PGS 0x20   /* advise/require --save option */
 #define MF_STOP_IF_SET 0x40
-#define MF_DESC_ID_B0 0x100      /* mpage descriptor ID, bit 0 */
-#define MF_DESC_ID_B1 0x200
-#define MF_DESC_ID_B2 0x400
-#define MF_DESC_ID_B3 0x800
-#define MF_DESC_ID_MASK 0xf00
-#define MF_DESC_ID_SHIFT 8
-#define MF_OBSOLETE 0x1000
-#define MF_J_USE_DESC 0x2000    /* def: JSON uses 'acron' field */
-#define MF_J_NPARAM_DESC 0x4000 /* use description, exclude parentheses */
+#define MF_OBSOLETE 0x80
+#define MF_J_USE_DESC 0x100    /* use description (including parenthesised
+                                * expression); def: JSON uses 'acron' field */
+#define MF_J_NPARAM_DESC 0x200 /* use description, exclude parentheses and
+                                * brackets plus their contents */
+#define MF_DESC_ID_B0 0x10000  /* mpage descriptor ID, bit 0 */
+#define MF_DESC_ID_B1 0x20000
+#define MF_DESC_ID_B2 0x40000
+#define MF_DESC_ID_B3 0x80000
+#define MF_DESC_ID_MASK 0xf0000
+#define MF_DESC_ID_SHIFT 16
 
 /* Output (bit) mask values */
 #define MP_OM_CUR 0x1
@@ -231,6 +233,9 @@ struct sdparm_opt_coll {
     bool set_clear;     /* --set= or --clear= has been invoked */
     bool verbose_given;
     bool version_given;
+#ifdef SG_LIB_WIN32
+    int do_wscan;
+#endif
     int cl_pn;          /* Mode or VPD page number from --page= */
     int cl_spn;         /* Mode or VPD subpage number from --page= */
     int defaults;       /* set mode page to its default values, or when set
@@ -392,6 +397,7 @@ struct sdparm_mp_settings_t {
     int pg_num;
     int subpg_num;
     struct sdparm_mp_it_val_t it_vals[MAX_MP_IT_VAL];
+    /* num_it_vals of zero after a build implies an error has occurred */
     int num_it_vals;    /* number of active elements in it_vals[] */
 };
 
@@ -494,7 +500,7 @@ int sdp_process_vpd_page(int sg_fd, int pn, int spn,
 int no_ascii_4hex(const struct sdparm_opt_coll * op);
 const struct sdparm_command_t * sdp_build_cmd(const char * cmd_str,
                                               bool * rwp, int * argp);
-void sdp_enumerate_commands();
+void sdp_enumerate_commands(struct sdparm_opt_coll * op);
 int sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp,
                     int cmd_arg, int pdt, const struct sdparm_opt_coll * opts);
 

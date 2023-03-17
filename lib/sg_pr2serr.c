@@ -238,7 +238,7 @@ sg_json_usage(int char_if_not_j, char * b, int blen)
                    "      n    show 'name_extra' information fields\n");
     n +=  sg_scnpr(b + n, blen - n,
                    "      o    non-JSON output placed in 'plain_text_output' "
-		   "array in lead-in\n");
+                   "array in lead-in\n");
     if (n >= (blen - 1))
         goto fini;
     n +=  sg_scnpr(b + n, blen - n,
@@ -473,34 +473,62 @@ sgj_pr_hr(sgj_state * jsp, const char * fmt, ...)
 {
     va_list args;
 
-    if (jsp->pr_as_json && jsp->pr_out_hr) {
-        size_t len;
-        char b[256];
-
-        va_start(args, fmt);
-        len = vsnprintf(b, sizeof(b), fmt, args);
-        if ((len > 0) && (len < sizeof(b))) {
-            const char * cp = b;
-
-            /* remove up to two trailing linefeeds */
-            if (b[len - 1] == '\n') {
-                --len;
-                if (b[len - 1] == '\n')
-                    --len;
-                b[len] = '\0';
-            }
-            /* remove leading linefeed, if present */
-            if ((len > 0) && ('\n' == b[0]))
-                ++cp;
-            json_array_push((json_value *)jsp->out_hrp, json_string_new(cp));
-        }
-        va_end(args);
-    } else if (jsp->pr_as_json) {
-        va_start(args, fmt);
-        va_end(args);
-    } else {
+    if ((NULL == jsp) || (! jsp->pr_as_json)) {
         va_start(args, fmt);
         vfprintf(stdout, fmt, args);
+        va_end(args);
+    } else if (jsp->pr_out_hr) {
+        bool step = false;
+        size_t ln;
+        char b[256];
+        static const int blen = sizeof(b);
+
+        va_start(args, fmt);
+        ln = vsnprintf(b, blen, fmt, args);
+        if ((ln > 0) && (ln < blen)) {
+            char * cp;
+
+             /* deal with leading, trailing and embedded newlines */
+             while ( true ) {
+                cp = strrchr(b, '\n');
+                if (NULL == cp)
+                    break;
+                else if (cp == b) {
+                    if ('\0' == *(cp + 1))
+                        *cp = '\0';
+                    else
+                        step = true;
+                    break;
+                } else if ('\0' == *(cp + 1))
+                    *cp = '\0';
+                else
+                    *cp = ';';
+             }
+             /* replace any tabs with semicolons or spaces */
+             while ( true ) {
+                cp = strchr(b, '\t');
+                if (NULL == cp)
+                    break;
+                else if (cp == b) {
+                    if ('\0' == *(cp + 1))
+                        *cp = '\0';
+                    else {
+                        *cp = ' ';      /* so don't find \t again and again */
+                        step = true;
+                    }
+                } else {
+                    if (';' == *(cp - 1))
+                        *cp = ' ';
+                    else
+                        *cp = ';';
+                }
+            }
+        }
+        json_array_push((json_value *)jsp->out_hrp,
+                        json_string_new(step ? b + 1 : b));
+        va_end(args);
+    } else {    /* do nothing, just consume arguments */
+        va_start(args, fmt);
         va_end(args);
     }
 }
@@ -949,8 +977,8 @@ sgj_is_snake_name(const char * in_name)
  * "snake_case"). Parentheses and the characters between them are removed.
  * Returns number of characters placed in 'out' excluding the trailing
  * NULL */
-static int
-sgj_name_to_snake(const char * in, char * out, int maxlen_out)
+char *
+sgj_convert2snake_rm_parens(const char * in, char * out, int maxlen_out)
 {
     bool prev_underscore = false;
     bool within_paren = false;
@@ -959,7 +987,7 @@ sgj_name_to_snake(const char * in, char * out, int maxlen_out)
     if (maxlen_out < 2) {
         if (maxlen_out == 1)
             out[0] = '\0';
-        return 0;
+        return out;
     }
     inlen = strlen(in);
     for (k = 0, j = 0; (k < inlen) && (j < maxlen_out); ++k) {
@@ -982,6 +1010,11 @@ sgj_name_to_snake(const char * in, char * out, int maxlen_out)
     }
     if (j == maxlen_out)
         out[--j] = '\0';
+    else if (0 == j) {
+        out[0] = '_';
+        out[1] = '\0';
+        return out;
+    }
     /* trim of trailing underscores (might have been spaces) */
     for (k = j - 1; k >= 0; --k) {
         if (out[k] != '_')
@@ -992,7 +1025,43 @@ sgj_name_to_snake(const char * in, char * out, int maxlen_out)
     else
         ++k;
     out[k] = '\0';
-    return k;
+    return out;
+}
+
+static int
+sgj_name_to_snake(const char * in, char * out, int maxlen_out)
+{
+    bool prev_underscore = false;
+    int c, k, j, inlen;
+
+    if (maxlen_out < 2) {
+        if (maxlen_out == 1)
+            out[0] = '\0';
+        return 0;
+    }
+    inlen = strlen(in);
+    for (k = 0, j = 0; (k < inlen) && (j < maxlen_out); ++k) {
+        c = in[k];
+        if (isalnum(c)) {
+            out[j++] = isupper(c) ? tolower(c) : c;
+            prev_underscore = false;
+        } else if ((j > 0) && (! prev_underscore)) {
+            out[j++] = '_';
+            prev_underscore = true;
+        }
+        /* else we are skipping character 'c' */
+    }
+    if (j == maxlen_out)
+        out[--j] = '\0';
+    /* trim of trailing underscore (can only be one) */
+    if (0 == j) {
+        out[j++] = '_';         /* degenerate case: name set to '_' */
+        out[j] = '\0';
+    } else if ('_' == out[j - 1])
+        out[--j] = '\0';
+    else
+        out[j] = '\0';
+    return j;
 }
 
 static int

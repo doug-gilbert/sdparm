@@ -445,15 +445,16 @@ sdp_build_cmd(const char * cmd_str, bool * rwp, int * argp)
 }
 
 void
-sdp_enumerate_commands()
+sdp_enumerate_commands(struct sdparm_opt_coll * op)
 {
     const struct sdparm_command_t * scmdp;
+    sgj_state * jsp = &op->json_st;
 
     for (scmdp = sdparm_command_arr; scmdp->name; ++scmdp) {
         if (scmdp->extra_arg)
-            printf("  %s[=%s]\n", scmdp->name, scmdp->extra_arg);
+            sgj_pr_hr(jsp, "  %s[=%s]\n", scmdp->name, scmdp->extra_arg);
         else
-            printf("  %s\n", scmdp->name);
+            sgj_pr_hr(jsp, "  %s\n", scmdp->name);
     }
 }
 
