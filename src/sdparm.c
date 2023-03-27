@@ -81,7 +81,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.17 20230326 [svn: r373]";
+static const char * version_str = "1.17 20230327 [svn: r374]";
 
 
 static uint8_t * inhex_buffp;
@@ -524,7 +524,7 @@ get_out_but_expect_back:
             n += sg_scnpr(b + n, blen - n, "flags: ");
             n += enumerate_mit_flags_str(mpip->flags, b + n, blen - n);
             if (0 == op->do_quiet)
-                n += sg_scnpr(b + n, blen - n, "  description:");
+                /* n += */ sg_scnpr(b + n, blen - n, "  description:");
         }
         if (0 == op->do_quiet)
             sgj_pr_hr(jsp, "  %-10s %s %s\n", mpip->acron, b,
@@ -783,7 +783,7 @@ print_a_mitem(const char * pre, int smask,
         n += sg_scnpr(b + n, blen - n, "]");
     }
     if (op->do_long && mpip->description)
-        n += sg_scnpr(b + n, blen - n, "  %s", mpip->description);
+        /* n += */ sg_scnpr(b + n, blen - n, "  %s", mpip->description);
     sgj_pr_hr(jsp, "%s\n", b);
     if ((op->do_long > 1) && mpip->extra)
         print_mpi_extra(mpip->extra, op, jo2p);
@@ -1519,7 +1519,7 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
             if ((l_spn > 0) && (l_spn < ALL_MSPAGES) && (1 & smask)) {
                 /* asked for subpage and got back 'current' control. It
                  * should have the SPF bit set in the first mpage */
-                if (! (0x40 & cur_mp[0])) {
+                if (! (cur_mp && (0x40 & cur_mp[0]))) {
                     if (verb > 0)
                         pr2serr("%s: asked to subpage [0x%x,0x%x] but SPF "
                                 "bit not set in response, ignore\n",
@@ -1563,8 +1563,8 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
                 }
                 n += sg_scnpr(b + n, blen - n, "%s", mp_s);
                 if ((op->do_long > 1) || op->verbose)
-                    n += sg_scnpr(b + n, blen - n, " [PS=%d]",
-                                  !!(first_mp[0] & 0x80));
+                    /* n += */ sg_scnpr(b + n, blen - n, " [PS=%d]",
+                                        !!(first_mp[0] & 0x80));
                 if (op->do_quiet < 3)
                     sgj_pr_hr(jsp, "%s:\n", b);
                 if (op->do_json)
@@ -2079,7 +2079,8 @@ print_get_mitems_from_hex(uint8_t * msense_resp,
                           const struct sdparm_mp_settings_t * mps,
                           struct sdparm_opt_coll * op, sgj_opaque_p jop)
 {
-    int k, res, desc_num;
+    int k, desc_num;
+    int res = 0;
     const struct sdparm_mp_item_t * mpip;
     const struct sdparm_mp_name_t * mnp = NULL;
     const struct sdparm_mp_it_val_t * ivp;
@@ -2118,7 +2119,7 @@ print_get_mitems_from_hex(uint8_t * msense_resp,
 //  yyyyyyyyyyyyyyyyyyyyyy  may need more here (descriptor stuff)
     }
 out:
-    return 0;
+    return res;
 }
 
 /* Print one or more mode page items (from '--get='). Returns 0 if ok. */
