@@ -30,15 +30,18 @@ sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands
 \fIDEVICE\fR [\fIDEVICE\fR...]
 .PP
 .B sdparm
-\fI\-\-enumerate\fR [\fI\-\-all\fR] [\fI\-\-inquiry\fR] [\fI\-\-long\fR]
-[\fI\-\-page=PG[,SPG]\fR] [\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
+\fI\-\-enumerate\fR [\fI\-\-all\fR] [\fI\-\-inquiry\fR] [\fI\-\-get=STR\fR]
+[\fI\-\-json[=JO]\fR] [\fI\-\-js\-file=JFN\fR] [\fI\-\-long\fR]
+[\fI\-\-page=PG[,SPG]\fR] [\fI\-\-pdt=DT\fR] [\fI\-\-transport=TN\fR]
+[\fI\-\-vendor=VN\fR]
 .PP
 .B sdparm
-\fI\-\-inhex=FN\fR [\fI\-\-all\fR] [\fI\-\-flexible\fR] [\fI\-\-hex\fR]
-[\fI\-\-inner\-hex\fR] [\fI\-\-inquiry\fR] [\fI\-\-json[=JO]\fR]
-[\fI\-\-js\-file=JFN\fR] [\fI\-\-long\fR] [\fI\-\-out\-mask=OM\fR]
-[\fI\-\-pdt=DT\fR] [\fI\-\-raw\fR] [\fI\-\-six\fR] [\fI\-\-transport=TN\fR]
-[\fI\-\-vendor=VN\fR] [\fI\-\-verbose\fR]
+\fI\-\-inhex=FN\fR [\fI\-\-all\fR] [\fI\-\-flexible\fR] [\fI\-\-get=STR\fR]
+[\fI\-\-hex\fR] [\fI\-\-inner\-hex\fR] [\fI\-\-inquiry\fR]
+[\fI\-\-json[=JO]\fR] [\fI\-\-js\-file=JFN\fR] [\fI\-\-long\fR]
+[\fI\-\-out\-mask=OM\fR] [\fI\-\-page=PG[,SPG]\fR] [\fI\-\-pdt=DT\fR]
+[\fI\-\-raw\fR] [\fI\-\-six\fR] [\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
+[\fI\-\-verbose\fR]
 .PP
 .B sdparm
 \fI\-\-wscan\fR [\fI\-\-verbose\fR]
@@ -74,6 +77,12 @@ line. If the \fI\-\-all\fR option is given then all known mode page fields
 for that device are listed. Individual fields can be displayed with the
 \fI\-\-get=STR\fR option (e.g. '\-\-get=WCE' to fetch the state of the
 Writeback Cache Enable field).
+.PP
+If \fI\-\-inhex=FN\fR is the only option given, then all fields in the first
+mode page found in \fIFN\fR are decoded. To list all mode pages add the
+\fI\-\-all\fR. To decode a specific mode page use the \fI\-\-page=PG[,SPG]\fR
+option and to search for a specific field (or several) use the
+\fI\-\-get=STR\fR option.
 .PP
 This utility completes with an exit status of 0 when successful. For other
 values see the EXIT STATUS section below.
@@ -172,9 +181,10 @@ for testing.
 .TP
 \fB\-e\fR, \fB\-\-enumerate\fR
 lists out descriptive information about the pages and fields known to this
-utility. Ignores the \fIDEVICE\fR argument and other options apart from
-the \fI\-\-all\fR, \fI\-\-inquiry\fR, \fI\-\-long\fR, \fI\-\-page=PG[,SPG]\fR,
-\fI\-\-transport=TN\fR and \fI\-\-vendor=VN\fR. If \fI\-\-enumerate\fR is
+utility. Ignores the \fIDEVICE\fR argument and many other options. The main
+options that it does support are listed in the SYNOPSIS section for
+enumeration. When the \fI\-\-inquiry\fR option is given, VPD pages are
+enumerated, otherwise mode pages are enumerated. If \fI\-\-enumerate\fR is
 given without other options then the known (generic) mode pages are listed.
 See the ENUMERATE section below.
 .TP
@@ -216,6 +226,8 @@ section below. The \fI\-\-long\fR and \fI\-\-hex\fR options effect the output
 format. Also if a value of "1" is given (e.g. '\-\-get=WCE=1') only the
 current value is output (i.e. not the change mask, the default value and the
 saved value).
+.br
+This option may be used \fI\-\-enumerate\fR or \fI\-\-inhex=FN\fR options.
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 output the usage message then exit.
@@ -246,9 +258,26 @@ used since this adds a comment line above each block of hex. The comment
 start with '#' and briefly describes the following hex block. This will make
 it easier to debug if something goes wrong. Any line starting with '#'
 is ignored in a subsequent invocation of the \fI\-\-inhex=FN\fR option.
+.br
+In a similar fashion the sg_modes utility can be used to generate hex
+output that this utility can parse. See the EXAMPLES section in the
+sg_modes(8) manpage.
 .TP
 \fB\-x\fR, \fB\-\-inner\-hex\fR
-xxxxxxxxxxxxx tdb
+instead of displaying mode page field values like
+this: "1  [cha: n, def:  1]" they are displayed as (up to) four hex bytes.
+The previous output becomes: "0x01 0x00 0x01 \-" that correspond to the
+current, changeable, default and saveable values respectively. If a value is
+not supported then a '\-' appears in it place.
+.br
+When used once, the field name acronym appears at the beginning of each
+line, followed by the 4 byte hex tuple. When used twice, only the 4 byte
+hex tuple appears on each line. To further cut down displayed "clutter"
+the mode page name's output can be suppressed with '\-qqq' .
+.br
+This option was introduced to make mode page field values easier to parse.
+The more recent addition of JSON output may be a better way to parse out
+these field values.
 .TP
 \fB\-I\fR, \fB\-\-inhex\fR=\fIFN\fR
 \fIFN\fR is expected to be a file name (or '\-' for stdin) which contains
@@ -269,6 +298,8 @@ The hexadecimal in \fIFN\fR should be arranged as 1 or 2 digits representing
 a byte each of which is whitespace or comma separated. Anything from and
 including a hash mark to the end of line is ignored. If the \fI\-\-raw\fR
 option is given then \fIFN\fR is treated as binary.
+The hex format is further described in the FORMAT OF FILES CONTAINING ASCII
+HEX section of the sg3_utils(8) manpage in the sg3_utils package.
 .TP
 \fB\-i\fR, \fB\-\-inquiry\fR
 output a VPD page which is in the response of a SCSI INQUIRY command sent
@@ -359,6 +390,10 @@ di_port, di_target and di_asis.
 If this option is used twice then additionally mode page output suppresses the
 changeable, default and saved values that are usually shown in braces, if
 available.
+.br
+If this option is used thrice then the displaying of the mode page name is
+suppressed when the fields of a full or partial mode page(s) are being
+displayed.
 .TP
 \fB\-r\fR, \fB\-\-readonly\fR
 override other logic to open \fIDEVICE\fR in read\-only mode. The default
@@ -548,12 +583,12 @@ descriptor.
 .SH ENUMERATE
 The \fI\-\-enumerate\fR option essentially dumps out static information held
 by this utility. A list of \fI\-\-enumerate\fR variants and their actions
-follows. For brevity subsequent examples of options are shown in their
+follows. For brevity subsequent examples of options are often shown in their
 shorter form.
 .PP
     \-\-enumerate          list generic mode page information
     \-e \-\-all             list generic mode page contents
-                         (i.e. parameters)
+                         (i.e. field names, location amd length)
     \-e \-\-page=rw         list contents of read write error
                          recovery mode page
     \-e \-\-inquiry         list VPD pages this utility can decode
@@ -573,7 +608,9 @@ shorter form.
                          specific mode pages for "sea" (Seagate)
     \-e \-p pcd \-l         list contents of SAS phy control and
                          discovery mode page plus (due to "\-l")
-                         some descfriptor format information
+                         some descriptor format information
+    \-e \-\-all \-\-json      produce JSON listing generic mode page
+                         contents (not a schema but similar)
 .PP
 When known mode pages are listed (via the \fI\-\-enumerate \fR option) each
 line starts with a two or three letter abbreviation. This is followed by

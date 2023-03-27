@@ -38,15 +38,785 @@
 #include "config.h"
 #endif
 
+#ifdef HAVE_GETOPT_LONG
+#include <getopt.h>
+#else
+#include "port_getopt.h"
+#endif
+
 #include "sdparm.h"
 #include "sg_lib.h"
 #include "sg_unaligned.h"
 #include "sg_pr2serr.h"
 
 /* sdparm_access.c : helpers for sdparm to access tables in
- * sdparm_data.c
+ * sdparm_data.c and command line help.
  */
 
+static struct option long_options[] = {
+    {"six", no_argument, 0, '6'},
+    {"all", no_argument, 0, 'a'},
+    {"dbd", no_argument, 0, 'B'},
+    {"clear", required_argument, 0, 'c'},
+    {"command", required_argument, 0, 'C'},
+    {"defaults", no_argument, 0, 'D'},
+    {"dummy", no_argument, 0, 'd'},
+    {"enumerate", no_argument, 0, 'e'},
+    {"examine", no_argument, 0, 'E'},
+    {"flags", no_argument, 0, 'F'},
+    {"flexible", no_argument, 0, 'f'},
+    {"get", required_argument, 0, 'g'},
+    {"help", no_argument, 0, 'h'},
+    {"hex", no_argument, 0, 'H'},
+    {"inquiry", no_argument, 0, 'i'},
+    {"inhex", required_argument, 0, 'I'},
+    {"inner-hex", no_argument, 0, 'x'},
+    {"inner_hex", no_argument, 0, 'x'},
+    {"json", optional_argument, 0, 'j'},
+    {"js-file", required_argument, 0, 'J'},
+    {"js_file", required_argument, 0, 'J'},
+    {"long", no_argument, 0, 'l'},
+    {"num-desc", no_argument, 0, 'n'},
+    {"num_desc", no_argument, 0, 'n'},
+    {"numdesc", no_argument, 0, 'n'},
+    {"out-mask", required_argument, 0, 'o'},
+    {"out_mask", required_argument, 0, 'o'},
+    {"page", required_argument, 0, 'p'},
+    {"pdt", required_argument, 0, 'P'},
+    {"quiet", no_argument, 0, 'q'},
+    {"raw", no_argument, 0, 'R'},
+    {"readonly", no_argument, 0, 'r'},
+    {"set", required_argument, 0, 's'},
+    {"save", no_argument, 0, 'S'},
+    {"transport", required_argument, 0, 't'},
+    {"vendor", required_argument, 0, 'M'},
+    {"verbose", no_argument, 0, 'v'},
+    {"version", no_argument, 0, 'V'},
+#ifdef SG_LIB_WIN32
+    {"wscan", no_argument, 0, 'w'},
+#endif
+    {0, 0, 0, 0},
+};
+
+
+static void mp_rd_usage(bool long_opt)
+{
+    if (long_opt)
+        pr2serr(
+            "    sdparm [--all] [--dbd] [--examine] [--flexible] [--get=STR] "
+            "[--hex]\n"
+            "           [--inner-hex] [--json[=JO]] [--js-file=JFN] "
+            "[--long]\n"
+            "           [--num-desc] [--out-mask=OM] [--page=PG[,SPG]] "
+            "[--quiet]\n"
+            "           [--readonly] [--six] [--transport=TN] "
+            "[--vendor=VN]\n"
+            "           [--verbose] DEVICE [DEVICE...]\n"
+              );
+    else
+        pr2serr(
+            "    sdparm [-a] [-B] [-E] [-f] [-g STR] [-H] [-x] [-j[JO]] "
+            "[-J JFN] [-l]\n"
+            "           [-n] [-o OM] [-p PG[,SPG]] [-q] [-r] [-6] [-t TN] "
+            "[-M VN] [-v]\n"
+            "           DEVICE [DEVICE...]\n"
+              );
+}
+
+static void mp_wr_usage(bool long_opt)
+{
+    if (long_opt)
+        pr2serr(
+            "    sdparm [--clear=STR] [--defaults] [--dummy] [--flexible]\n"
+            "           [--page=PG[,SPG]] [--quiet] [--save] [--set=STR] "
+            "[--six]\n"
+            "           [--transport=TN] [--vendor=VN] [--verbose]\n"
+            "           DEVICE [DEVICE...]\n"
+              );
+    else
+        pr2serr(
+            "    sdparm [-c STR] [-D] [-d] [-f] [-p PG[,SPG]] [-q] [-S] "
+            "[-s STR] [-6]\n"
+            "           [-t TN] [-M VN] [-v] DEVICE [DEVICE...]\n"
+              );
+}
+
+static void inq_usage(bool long_opt)
+{
+    if (long_opt)
+        pr2serr(
+            "    sdparm --inquiry [--all] [--examine] [--flexible] "
+            "[--hex]\n"
+            "           [--json[=JO]] [--js-file=JFN] [--num-desc] "
+            "[--page=PG[,SPG]]\n"
+            "           [--quiet] [--read‐only] [--transport=TN] "
+            "[--vendor=VN]\n"
+            "           [--verbose] DEVICE [DEVICE...]\n"
+              );
+    else
+        pr2serr(
+            "    sdparm -i [-a] [-E] [-f] [-H] [-j[JO]] [-J JFN] [-n] "
+            "[-p PG[,SPG]]\n"
+            "           [-q] [-r] [-t TN]  [-M VN] [-v] DEVICE [DEVICE...]\n"
+              );
+}
+
+static void cmd_usage(bool long_opt)
+{
+    if (long_opt)
+        pr2serr(
+            "    sdparm --command=CMD [--hex] [--long] [--readonly] "
+            "[--verbose]\n"
+            "           DEVICE [DEVICE...]\n"
+              );
+    else
+        pr2serr(
+            "    sdparm -C CMD [-H] [-l] [-r] [-v] DEVICE [DEVICE...]\n"
+              );
+}
+
+static void enum_usage(bool long_opt)
+{
+    if (long_opt)
+        pr2serr(
+            "    sdparm --enumerate [--all] [--flags] [--get=STR] "
+            "[--inquiry]\n"
+            "           [--json[=JO]] [--js-file=JFN] [--long] "
+            "[--page=PG[,SPG]]\n"
+            "           [--transport=TN] [--vendor=VN]\n"
+              );
+    else
+        pr2serr(
+            "    sdparm -e [-a] [-F] [-g STR] [-i] [-j[JO]] [-J JFN] [-l]\n"
+            "           [-p PG[,SPG]] [-t TN] [-M VN]\n"
+              );
+}
+
+static void inhex_usage(bool long_opt)
+{
+    if (long_opt)
+        pr2serr(
+            "    sdparm --inhex=FN [--all] [--flexible] [--get=STR] [--hex] "
+            "[--inner-hex]\n"
+            "           [--inquiry] [--json[=JO]] [--js-file=JFN] "
+            "[--long]\n"
+            "           [--out=mask=,IM] [--page=PG[,SPG]] [--pdt=DT] "
+            "[--raw] [--six]\n"
+            "           [--transport=TN] [--vendor=VN] [--verbose]\n"
+              );
+    else
+        pr2serr(
+            "    sdparm -I FN [-a] [-f] [-g STR] [-H] [-x] [-i] [-j[JO]] "
+            "[-J JFN]\n"
+            "           [-l] [-o ,IM] [-p PG[,SPG]] [-P PDT] [-R] [-6] "
+            "[-t TN]\n"
+            "           [-M VN] [-v]\n"
+              );
+}
+
+void
+sdp_usage(const struct sdparm_opt_coll * op)
+{
+    static const char * mp_s = "mode page";
+
+    if (0 == op->do_help) {
+        pr2serr("%s access usage with long form options:\n", mp_s);
+        mp_rd_usage(true);
+        pr2serr(" Usage with corresponding short form options:\n");
+        mp_rd_usage(false);
+        pr2serr("\n");
+        pr2serr("%s changes usage with long form options:\n", mp_s);
+        mp_wr_usage(true);
+        pr2serr(" Usage with corresponding short form options:\n");
+        mp_wr_usage(false);
+        pr2serr("\n");
+        pr2serr("VPD page access usage with long form options:\n");
+        inq_usage(true);
+        pr2serr(" Usage with corresponding short form options:\n");
+        inq_usage(false);
+        pr2serr("\n");
+        pr2serr("SCSI commands usage with long form options:\n");
+        cmd_usage(true);
+        pr2serr(" Usage with corresponding short form options:\n");
+        cmd_usage(false);
+        pr2serr("\n");
+        pr2serr("Enumeration of internal tables usage with long form "
+                "options:\n");
+        enum_usage(true);
+        pr2serr(" Usage with corresponding short form options:\n");
+        enum_usage(false);
+        pr2serr("\n");
+        pr2serr("inhex specific usage with long form options:\n");
+        inhex_usage(true);
+        pr2serr(" Usage with corresponding short form options:\n");
+        inhex_usage(false);
+        return;
+    }
+    if (1 == op->do_help) {
+        pr2serr("Usage for mode pages:\n");
+        mp_rd_usage(true);
+        mp_wr_usage(true);
+        pr2serr("\n");
+        pr2serr(
+            // "       sdparm   << for more usages, see 'sdparm -hh' >>\n\n"
+
+            "  where mode page access (1st usage) and change (2nd usage) "
+            "options are:\n"
+            "    --all | -a            list all known pages and fields for "
+            "given DEVICE\n"
+            "    --clear=STR | -c STR    clear (zero) field value(s), or "
+            "set to 'val'\n"
+            "    --dbd | -B            set DBD bit in mode sense cdb "
+	    "(disable\n"
+	    "                          block descriptors)\n"
+            "    --defaults | -D       set a mode page to its default "
+            "values\n"
+            "                          when use twice set all pages to "
+            "their defaults\n"
+            "    --dummy | -d          don't write back modified mode page\n"
+            "    --flags | -F          show enumeration item flags\n"
+            "    --flexible | -f       compensate for common errors, "
+            "relax some checks\n"
+            "    --get=STR | -g STR    get (fetch) field value(s), by "
+            "acronym or pos\n"
+            "    --hex | -H            output in hex rather than name/value "
+            "pairs\n"
+            "    --inner-hex | -x      print innermost fields in hex\n"
+            "    --json[=JO] | -jJO    output in JSON instead of plain "
+            "text\n"
+            "                          test. Use --json=? for JSON help\n"
+            "    --long | -l           add description to field output\n"
+            "    --num-desc | -n       report number of mode page "
+            "descriptors\n"
+            "    --out-mask=OM | -o OM    select whether current(1), "
+            " changeable(2),\n"
+            "                             default(4) and/or saveable "
+            "values(8)\n"
+            "                             are output, (def: all(0xf))\n"
+            "    --page=PG[,SPG] | -p PG[,SPG]    page (and optionally "
+            "subpage) number\n"
+            "                          [or abbrev] to output, change or "
+            "enumerate\n"
+            "    --quiet | -q          suppress DEVICE vendor/product/"
+            "revision strings\n"
+            "    --readonly | -r       force read-only open of DEVICE (def: "
+            "depends\n"
+            "                          on operation). Mainly for ATA disks\n"
+            "    --save | -S           place mode changes in saved page as "
+            "well\n"
+            "    --set=STR | -s STR    set field value(s) to 1, or to "
+            "'val'\n"
+            "    --six | -6            use 6 byte SCSI mode cdbs (def: 10 "
+            "byte)\n"
+            "    --transport=TN | -t TN    transport protocol number "
+            "[or abbrev]\n"
+            "    --vendor=VN | -M VN    vendor (manufacturer) number "
+            "[or abbrev]\n"
+            "    --verbose | -v        increase verbosity\n"
+            "\nAccess or change SCSI mode page fields (e.g. of a disk or "
+            "CD/DVD drive).\nSTR can be <acronym>[=val] or "
+            "<start_byte>:<start_bit>:<num_bits>[=val].\nUse '-h' or "
+            "'--help' twice or more for help on other usages.\n"
+           );
+
+            return;
+    }
+    if (2 == op->do_help) {
+        pr2serr("Usage for VPD pages and inhex:\n");
+        inq_usage(true);
+        inhex_usage(true);
+        pr2serr("\n");
+        pr2serr(
+            "  where some additional options are:\n"
+            "    --examine | -E        cycle through mode or vpd page "
+            "numbers (default\n"
+            "                          with '-a': only check pages with "
+            "known fields)\n"
+            "    --help | -h           print out usage message\n"
+            "    --inhex=FN|-I FN      read ASCII hex from file FN instead "
+            "of DEVICE;\n"
+            "                          if used with -HH then read binary "
+            "from FN\n"
+            "    --inquiry | -i        output INQUIRY VPD page(s) (def: mode "
+            "page(s))\n"
+            "                          use --page=PG for VPD number (-1 "
+            "for std inq)\n"
+            "    --js-file=JFN | -J JFN    JFN is a filename to which JSON "
+            "output is\n"
+            "                              written (def: stdout); truncates "
+            "then writes\n"
+            "    --out-mask=,IM | -o ,IM    mask like '-o OM' but applies "
+            "to inhex\n"
+            "    --pdt=DT|-P DT        peripheral Device Type (e.g. "
+            "0->disk)\n"
+            "    --raw | -R            FN (in '-I FN') assumed to be "
+            "binary\n"
+            "    --version | -V        print version string and exit\n"
+            "\nThe available commands will be listed when a invalid CMD is "
+            "given\n(e.g. '--command=xxx'). VPD page(s) are read and decoded "
+            "in the\n'--inquiry DEVICE' form. The '--enumerate' form outputs "
+            "internal data\nabout mode or VPD pages (and ignores DEVICE if "
+            "given). The '--inhex'\nform reads data from the the file FN "
+            "(or stdin) and decodes it as a\nmode or VPD page response. The "
+            "'--wscan' form is for listing Windows\ndevices and is only "
+            "available on Windows machines.\n"
+           );
+        return;
+    }
+    if (3 == op->do_help) {
+        pr2serr("Usage for commands, enumerate and others:\n");
+        cmd_usage(true);
+        enum_usage(true);
+        pr2serr("\n");
+        pr2serr(
+            "  where some additional options are:\n"
+            "    --command=CMD | -C CMD    perform CMD (e.g. 'eject')\n"
+            "    --enumerate | -e      list known pages and fields "
+            "(ignore DEVICE)\n"
+            "    --wscan | -w          windows scan for device names\n"
+        );
+        return;
+    }
+    if (op->do_help < 2) {
+        pr2serr(
+            "       sdparm [--all] [--dbd] [--examine] [--flexible] "
+            "[--get=STR] [--hex]\n"
+            "              [--inner-hex] [--json[=JO]] [--js-file=JFN] "
+            "[--long]\n"
+            "              [--num-desc] [--out-mask=OM] [--page=PG[,SPG]] "
+            "[--quiet]\n"
+            "              [--readonly] [--six] [--transport=TN] "
+            "[--vendor=VN]\n"
+            "              [--verbose] DEVICE [DEVICE...]\n\n"
+            "       sdparm [--clear=STR] [--defaults] [--dummy] "
+            "[--flexible]\n"
+            "              [--page=PG[,SPG]] [--quiet] [--readonly] "
+            "[--save] [--set=STR]\n"
+            "              [--six] [--transport=TN] [--vendor=VN] "
+            "[--verbose]\n"
+            "              DEVICE [DEVICE...]\n\n"
+              );
+        if (op->do_help < 1) {
+            pr2serr(
+                "       sdparm --command=CMD [--hex] [--long] [--readonly] "
+                "[--verbose]\n"
+                "              DEVICE [DEVICE...]\n\n"
+                "       sdparm --inquiry [--all] [--examine] [--flexible] "
+                "[--hex]\n"
+                "              [--json[=JO]] [--js-file=JFN] [--num-desc] "
+                "[--page=PG[,SPG]]\n"
+                "              [--quiet] [--read‐only] [--transport=TN] "
+                "[--vendor=VN]\n"
+                "              [--verbose] DEVICE [DEVICE...]\n\n"
+                "       sdparm --enumerate [--all] [--inquiry] [--long] "
+                "[--page=PG[,SPG]]\n"
+                "              [--transport=TN] [--vendor=VN]\n\n"
+                "       sdparm --inhex=FN [--all] [--flexible] [--hex] "
+                "[--inner-hex]\n"
+                "              [--inquiry] [--json[=JO]] [--js-file=JFN] "
+                "[--long]\n"
+                "              [--out=mask=,IM] [--pdt=DT] [--raw] [--six]\n"
+                "              [--transport=TN] [--vendor=VN] [--verbose]\n\n"
+                "Or the corresponding short option usage: \n"
+                "  sdparm [-a] [-B] [-E] [-f] [-g STR] [-H] [-x] [-j[JO]] "
+                "[-J JFN] [-l]\n"
+                "         [-n] [-o OM] [-p PG[,SPG]] [-q] [-r] [-6] [-t TN] "
+                "[-M VN] [-v]\n"
+                "         DEVICE [DEVICE...]\n"
+                "\n"
+                "  sdparm [-c STR] [-D] [-d] [-f] [-p PG[,SPG]] [-q] [-S] "
+                "[-s STR] [-6]\n"
+                "         [-t TN] [-M VN] [-v] DEVICE [DEVICE...]\n"
+                "\n"
+                "  sdparm -C CMD [-H] [-l] [-r] [-v] DEVICE [DEVICE...]\n"
+                "\n"
+                "  sdparm -i [-a] [-E] [-f] [-H] [-j[JO]] [-J JFN] [-n] "
+                "[-p PG[,SPG]]\n"
+                "         [-q] [-r] [-t TN]  [-M VN] [-v] DEVICE "
+                "[DEVICE...]\n"
+                "\n"
+                "  sdparm -e [-a] [-i] [-l] [-p PG[,SPG]] [-t TN] [-M VN]\n"
+                "\n"
+                "  sdparm -I FN [-a] [-f] [-H] [-x] [-j[JO]] [-J JFN] [-i] "
+                "[-l]\n"
+                "         [-o ,IM] [-P PDT] [-R] [-6] [-t TN] [-M VN] [-v]\n"
+                   );
+            pr2serr("\nFor help use '-h' one or more times\n");
+            return;
+        }
+        pr2serr(
+            "       sdparm   << for more usages, see 'sdparm -hh' >>\n\n"
+
+            "  where mode page read (1st usage) and change (2nd usage) "
+            "options are:\n"
+            "    --all | -a            list all known pages and fields for "
+            "given DEVICE\n"
+            "    --clear=STR | -c STR    clear (zero) field value(s), or "
+            "set to 'val'\n"
+            "    --dbd | -B            set DBD bit in mode sense cdb\n"
+            "    --defaults | -D       set a mode page to its default "
+            "values\n"
+            "                          when use twice set all pages to "
+            "their defaults\n"
+            "    --dummy | -d          don't write back modified mode page\n"
+            "    --examine | -E        cycle through mode or vpd page "
+            "numbers (default\n"
+            "                          with '-a': only check pages with "
+            "known fields)\n"
+            "    --flexible | -f       compensate for common errors, "
+            "relax some checks\n"
+            "    --get=STR | -g STR    get (fetch) field value(s), by "
+            "acronym or pos\n"
+            "    --hex | -H            output in hex rather than name/value "
+            "pairs\n"
+            "    --json[=JO]|-jJO      output in JSON instead of plain "
+            "text\n"
+            "                          test. Use --json=? for JSON help\n"
+            "    --js-file=JFN|-J JFN    JFN is a filename to which JSON "
+            "output is\n"
+            "                            written (def: stdout); truncates "
+            "then writes\n"
+            "    --long | -l           add description to field output\n"
+            "    --num-desc | -n       report number of mode page "
+            "descriptors\n"
+            "    --out-mask=OM | -o OM    select whether current(1), "
+            " changeable(2),\n"
+            "                             default(4) and/or saveable "
+            "values(8)\n"
+            "                             are output, (def: all(0xf))\n"
+            "    --page=PG[,SPG] | -p PG[,SPG]    page (and optionally "
+            "subpage) number\n"
+            "                          [or abbrev] to output, change or "
+            "enumerate\n"
+            "    --quiet | -q          suppress DEVICE vendor/product/"
+            "revision string line\n"
+            "    --readonly | -r       force read-only open of DEVICE (def: "
+            "depends\n"
+            "                          on operation). Mainly for ATA disks\n"
+            "    --save | -S           place mode changes in saved page as "
+            "well\n"
+            "    --set=STR | -s STR    set field value(s) to 1, or to "
+            "'val'\n"
+            "    --six | -6            use 6 byte SCSI mode cdbs (def: 10 "
+            "byte)\n"
+            "    --transport=TN | -t TN    transport protocol number "
+            "[or abbrev]\n"
+            "    --vendor=VN | -M VN    vendor (manufacturer) number "
+            "[or abbrev]\n"
+            "    --verbose | -v        increase verbosity\n"
+            "\nView or change SCSI mode page fields (e.g. of a disk or "
+            "CD/DVD drive).\nSTR can be <acronym>[=val] or "
+            "<start_byte>:<start_bit>:<num_bits>[=val].\nUse '-h' or "
+            "'--help' twice for help on other usages including "
+            "executing\nsome simple commands, reading and decoding VPD "
+            "pages, enumerating internal\ntables of mode and VPD pages, and "
+            "decoding response data supplied in a\nfile or stdin (rather "
+            "than from a DEVICE).\n"
+           );
+    } else {
+        pr2serr("Further usages of the sdparm utility:\n"
+            "       sdparm --command=CMD [-hex] [--long] [--readonly] "
+            "[--verbose]\n"
+            "              DEVICE [DEVICE...]\n\n"
+            "       sdparm --inquiry [--all] [--flexible] [--hex]\n"
+            "              [--page=PG[,SPG]] [--quiet] [--readonly] "
+            "[--transport=TN]\n"
+            "              [--vendor=VN] [--verbose] DEVICE [DEVICE...]\n\n");
+        pr2serr("       sdparm --enumerate [--all] [--inquiry] [--long] "
+            "[--page=PG[,SPG]]\n"
+            "              [--transport=TN] [--vendor=VN]\n\n"
+            "       sdparm --inhex=FN [--all] [--flexible] [--hex] "
+            "[--inquiry]\n"
+            "              [--long] [--pdt=PDT] [--raw] [--six] "
+            "[--transport=TN]\n"
+            "              [--vendor=VN]\n\n"
+            "       sdparm --wscan [--verbose]\n\n"
+            "       sdparm [--help] [--version]\n\n"
+            "  where the additional options are:\n"
+            "    --command=CMD | -C CMD    perform CMD (e.g. 'eject')\n"
+            "    --enumerate | -e      list known pages and fields "
+            "(ignore DEVICE)\n"
+            "    --help | -h           print out usage message\n"
+            "    --inhex=FN|-I FN      read ASCII hex from file FN instead "
+            "of DEVICE;\n"
+            "                          if used with -HH then read binary "
+            "from FN\n"
+            "    --inquiry | -i        output INQUIRY VPD page(s) (def: mode "
+            "page(s))\n"
+            "                          use --page=PG for VPD number (-1 "
+            "for std inq)\n"
+            "    --out-mask=,IM | -o ,IM    mask like '-o OM' but applies "
+            "to inhex\n"
+            "    --pdt=DT|-P DT        peripheral Device Type (e.g. "
+            "0->disk)\n"
+            "    --raw | -R            FN (in '-I FN') assumed to be "
+            "binary\n"
+            "    --version | -V        print version string and exit\n"
+            "    --wscan | -w          windows scan for device names\n"
+            "\nThe available commands will be listed when a invalid CMD is "
+            "given\n(e.g. '--command=xxx'). VPD page(s) are read and decoded "
+            "in the\n'--inquiry DEVICE' form. The '--enumerate' form outputs "
+            "internal data\nabout mode or VPD pages (and ignores DEVICE if "
+            "given). The '--inhex'\nform reads data from the the file FN "
+            "(or stdin) and decodes it as a\nmode or VPD page response. The "
+            "'--wscan' form is for listing Windows\ndevices and is only "
+            "available on Windows machines.\n"
+           );
+    }
+}
+
+int
+sdp_parse_cmdline(struct sdparm_opt_coll * op, int argc, char * argv[],
+                  const char * device_name_arr[])
+{
+    int c, res, t_proto;
+    const char * ccp;
+    const struct sdparm_vendor_name_t * vnp;
+
+    while (1) {
+        int option_index = 0;
+
+#ifdef SG_LIB_WIN32
+        c = getopt_long(argc, argv,
+                        "6aBc:C:dDeEfFg:hHiI:j::J:lM:no:p:P:qrRs:St:vVwx",
+                        long_options, &option_index);
+#else
+        c = getopt_long(argc, argv,
+                        "6aBc:C:dDeEfFg:hHiI:j::J:lM:no:p:P:qrRs:St:vVx",
+                        long_options, &option_index);
+#endif
+        if (c == -1)
+            break;
+
+        switch (c) {
+        case '6':
+            op->mode_6 = true;
+            break;
+        case 'a':
+            ++op->do_all;
+            break;
+        case 'B':
+            op->dbd = true;
+            break;
+        case 'c':
+            op->clear_str = optarg;
+            op->set_clear = true;
+            op->do_rw = true;
+            break;
+        case 'C':
+            op->cmd_str = optarg;
+            break;
+        case 'd':
+            op->dummy = true;
+            break;
+        case 'D':
+            ++op->defaults;
+            op->do_rw = true;
+            break;
+        case 'e':
+            ++op->do_enum;
+            break;
+        case 'E':
+            op->examine = true;
+            break;
+        case 'f':
+            op->flexible = true;
+            break;
+        case 'F':
+            ++op->do_flags;
+            break;
+        case 'g':
+            if (op->get_str) {
+                pr2serr("Can have only one --get= option. Instead the "
+                        "arguments to\n--get= can be concaternated using a "
+                        "comma as a separator.\n");
+                return SG_LIB_SYNTAX_ERROR;
+            }
+            op->get_str = optarg;
+            break;
+        case 'h':
+            ++op->do_help;
+            break;
+        case '?':
+            pr2serr("\n");
+            sdp_usage(op);
+            return SG_LIB_OK_FALSE;
+        case 'H':
+            ++op->do_hex;
+            break;
+        case 'i':
+            op->inquiry = true;
+            break;
+        case 'I':
+            op->inhex_fn = optarg;
+            break;
+        case 'j':
+            op->do_json = true;
+            op->json_arg = optarg;
+            break;
+        case 'J':
+            op->do_json = true;
+            op->js_file = optarg;
+            break;
+        case 'l':
+            ++op->do_long;
+            break;
+        case 'M':
+            if (isalpha(optarg[0])) {
+                vnp = sdp_find_vendor_by_acron(optarg);
+                if (NULL == vnp) {
+                    pr2serr("abbreviation does not match a vendor\n");
+                    printf("Available vendors:\n");
+                    sdp_enumerate_vendor_names(op);
+                    return SG_LIB_SYNTAX_ERROR;
+                } else
+                    op->vendor_id = vnp->vendor_id;
+            } else {
+                const struct sdparm_vendor_pair * svpp;
+
+                res = sg_get_num_nomult(optarg);
+                svpp = sdp_get_vendor_pair(res);
+                if (NULL == svpp) {
+                    pr2serr("Bad vendor value after '-M' (or '--vendor=') "
+                            "option\n");
+                    printf("Available vendors:\n");
+                    sdp_enumerate_vendor_names(op);
+                    return SG_LIB_SYNTAX_ERROR;
+                }
+                op->vendor_id = res;
+            }
+            break;
+        case 'n':
+            op->num_desc = true;
+            break;
+        case 'o':
+            ccp = strchr(optarg, ',');
+            if (ccp) {
+                res = sg_get_num_nomult(ccp + 1);
+                if ((res < 0) || (res > 15)) {
+                    pr2serr("Bad out-mask value after comma, expect 0 to "
+                             "15 (or 0xf)\n");
+                    return SG_LIB_SYNTAX_ERROR;
+                }
+                op->in_mask = res;
+            }
+            if (',' != optarg[0]) {
+                res = sg_get_num_nomult(optarg);
+                if ((res < 0) || (res > 15)) {
+                    pr2serr("Bad out-mask value, expect 0 to 15 (or 0xf)\n");
+                    return SG_LIB_SYNTAX_ERROR;
+                }
+                op->out_mask = res;
+            }
+            break;
+        case 'q':
+            ++op->do_quiet;
+            break;
+        case 'p':
+            if (op->page_str) {
+                pr2serr("only one '--page=' option permitted\n");
+                sdp_usage(op);
+                return SG_LIB_CONTRADICT;
+            } else
+                op->page_str = optarg;
+            break;
+        case 'P':
+            if ('-' == optarg[0])
+                op->cl_pdt = -1;           /* those in SPC */
+            else if (isdigit(optarg[0])) {
+                op->cl_pdt = sg_get_num_nomult(optarg);
+                if ((op->cl_pdt < 0) || (op->cl_pdt > 0x1f)) {
+                    pr2serr("--pdt= argument should be -1 to 31 or "
+                            "acronym\n");
+                    return SG_LIB_SYNTAX_ERROR;
+                }
+            } else {
+                op->cl_pdt = sg_get_pdt_from_acronym(optarg);
+                if (op->cl_pdt < -1) {
+                    if (-3 == op->cl_pdt)
+                        return SG_LIB_OK_FALSE;
+                    pr2serr("could not decode acronym in --pdt= argument, "
+                            "try '--pdt=xxx' to see what is available\n");
+                    return SG_LIB_SYNTAX_ERROR;
+                }
+            }
+            break;
+        case 'r':
+            op->read_only = true;
+            break;
+        case 'R':
+            op->do_raw = true;
+            break;
+        case 's':
+            if (op->set_str) {
+                pr2serr("Can have only one --set= option. Instead the "
+                        "arguments to\n--set= can be concaternated using a "
+                        "comma as a separator.\n");
+                return SG_LIB_SYNTAX_ERROR;
+            }
+            op->set_str = optarg;
+            op->do_rw = true;
+            op->set_clear = true;
+            break;
+        case 'S':
+            op->save = true;
+            break;
+        case 't':
+            if (isalpha(optarg[0])) {
+                t_proto = sdp_find_transport_id_by_acron(optarg);
+                if (t_proto < 0) {
+                    pr2serr("abbreviation does not match a transport "
+                            "protocol\n");
+                    printf("Available transport protocols:\n");
+                    sdp_enumerate_transport_names(true, op);
+                    return SG_LIB_SYNTAX_ERROR;
+                } else
+                    op->transport = t_proto;
+            } else {
+                res = sg_get_num_nomult(optarg);
+                if ((res < 0) || (res > 15)) {
+                    pr2serr("Bad transport value after '-t' option\n");
+                    printf("Available transport protocols:\n");
+                    sdp_enumerate_transport_names(false, op);
+                    return SG_LIB_SYNTAX_ERROR;
+                }
+                op->transport = res;
+            }
+            break;
+        case 'v':
+            op->verbose_given = true;
+            ++op->verbose;
+            break;
+        case 'V':
+            op->version_given = true;
+            break;
+#ifdef SG_LIB_WIN32
+        case 'w':
+            ++op->do_wscan;
+            break;
+#endif
+        case 'x':
+            ++op->inner_hex;
+            break;
+        default:
+            pr2serr("unrecognised option code 0x%x ??\n", c);
+            sdp_usage(op);
+            return SG_LIB_SYNTAX_ERROR;
+        }
+    }
+    while (optind < argc) {
+        if (op->num_devices < MAX_DEV_NAMES) {
+            device_name_arr[op->num_devices++] = argv[optind];
+            ++optind;
+        } else {
+            for (; optind < argc; ++optind)
+                pr2serr("Unexpected extra argument: %s\n", argv[optind]);
+            sdp_usage(op);
+            return SG_LIB_SYNTAX_ERROR;
+        }
+    }
+    return 0;
+}
 
 /* Returns 1 if strings equal (same length, characters same or only differ
  * by case), else returns 0. Assumes 7 bit ASCII (English alphabet). */
@@ -514,14 +1284,14 @@ sdp_mp_convert2snake(const char * in_name, char * sn_name,
     const char * rbra;
     char b[168];
     static const int blen = sizeof(b);
-    static const char * s_mp_s = " mode page";
     static const char * dummy_in_s = "null mode page";
+    static const char * ump_s = "_mode page";
 
     inlen = strlen(in_name ? in_name : dummy_in_s);
     o_inlen = inlen;
     if (inlen >= (blen - 1)) {
-	static const char * bts_s = "buffer too short";
-		
+        static const char * bts_s = "buffer too short";
+
         pr2serr("%s: %s\n", __func__, bts_s);
         return sgj_convert2snake(bts_s, sn_name, max_sn_name_len);
     }
@@ -533,7 +1303,7 @@ sdp_mp_convert2snake(const char * in_name, char * sn_name,
                 break;
         }
         lpar = strchr(b, '(');
-	if (lpar) {
+        if (lpar) {
             rpar = strchr(b, ')');
             if (rpar) {         /* remove parentheses */
                 memmove((char *)lpar, rpar + 1, rpar + 1 - lpar);
@@ -541,17 +1311,17 @@ sdp_mp_convert2snake(const char * in_name, char * sn_name,
             }
         }
         lbra = strchr(b, '[');
-	if (lbra) {
+        if (lbra) {
             rbra = strchr(b, ']');
             if (rbra) {         /* remove square brackets */
                 memmove((char *)lbra, rbra + 1, rbra + 1 - lbra);
                 inlen = strlen(b);
             }
-	}
+        }
     }
     /* append 'mode page' */
     for (k = inlen; k < blen; ++k) {
-        b[k] = s_mp_s[k - inlen];
+        b[k] = ump_s[k - inlen];
         if ('\0' == b[k])
             break;
     }

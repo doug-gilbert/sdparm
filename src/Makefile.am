@@ -2,7 +2,7 @@ bin_PROGRAMS = sdparm
 
 # for C++/clang testing
 ## CC = gcc-8
-## CC = g++
+CC = g++
 ## CC = clang
 ## CC = clang++
 
@@ -16,13 +16,14 @@ endif
 
 # -std=<s> can be c99, c11, gnu11, etc. Default is gnu11
 AM_CPPFLAGS = -iquote ${top_srcdir}/include $(DBG_CPPFLAGS)
-AM_CFLAGS = -Wall -W $(DBG_CFLAGS)
+###AM_CFLAGS = -Wall -W $(DBG_CFLAGS)
 # AM_CFLAGS = -Wall -W -Wextra -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wnull-dereference -Wshadow -Wjump-misses-init
 # AM_CFLAGS = -Wall -W -Werror=misleading-indentation
 # AM_CFLAGS = -Wall -W -pedantic -std=c11
 # AM_CFLAGS = -Wall -W -pedantic -std=c++14
 # AM_CFLAGS = -Wall -W -pedantic -std=c++20
 # AM_CFLAGS = -Wall -W -pedantic -std=c++20 --analyze
+AM_CFLAGS = -Wall -W -pedantic -std=c++23
 
 sdparm_SOURCES =	sdparm.c	\
 			sdparm.h	\
