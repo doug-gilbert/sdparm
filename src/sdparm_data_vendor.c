@@ -63,26 +63,33 @@ static struct sdparm_mp_name_t sdparm_v_seagate_mode_pg[] = {
     {0, 0, 0, 0, NULL, NULL, NULL, NULL},
 };
 
+// MF_J_NPARAM_DESC
+// MF_J_USE_DESC
+
+/* Seagate make spinning magnetic disks, called "hard disks" abbreviated below
+ * as 'hd' in the description. They also make Solid-State Drives (SSDs) which
+ * are abbreviated below as 'ssd'. If a field is support by both their hard
+ * disks and SSDs then neither 'hd' nor 'ssd' appears in the description. */
 static struct sdparm_mp_item_t sdparm_mitem_v_seagate_arr[] = {
     /* Unit attention page, ua [0x0] Seagate */
     {"PM", UNIT_ATTENTION_MP, 0, 0, 2, 7, 1, MF_COMMON,
-        "Performance Mode", NULL,
+        "Performance Mode (hd)", NULL,
         "0: adaptive cache ('server mode')\t"
         "1: number of cache segments as per caching page ('desktop mode')"},
     {"SSM", UNIT_ATTENTION_MP, 0, 0, 2, 6, 1, 0,
         "Synchronous select mode (SPI)", NULL,
         "0: drive will not initiate WDTR or SDTR\t"
         "1: drive may initiate WDTR or SDTR"},
-    {"IL", UNIT_ATTENTION_MP, 0, 0, 2, 5, 1, MF_COMMON,
+    {"IL", UNIT_ATTENTION_MP, 0, 0, 2, 5, 1, MF_COMMON | MF_J_USE_DESC,
         "Inquiry length", NULL,
         "0: more than 36 bytes in response\t"
         "1: 36 byte response as per SCSI-2"},
-    {"UA", UNIT_ATTENTION_MP, 0, 0, 2, 4, 1, MF_COMMON,
+    {"UA", UNIT_ATTENTION_MP, 0, 0, 2, 4, 1, MF_COMMON | MF_J_USE_DESC,
         "Unit attention", NULL,
         "0: unit attention condition for all initiators after reset\t"
         "1: no check condition with unit attention after reset"},
     {"DFUA", UNIT_ATTENTION_MP, 0, 0, 2, 3, 1, 0,
-        "Disable force unit access (FUA)", NULL,
+        "Disable force unit access (FUA) (obsolete)", NULL,
         "0: honour FUA bit setting on READ and WRITE commands\t"
         "1: ignore FUA bit setting"},
     {"ROUND", UNIT_ATTENTION_MP, 0, 0, 2, 2, 1, 0,
@@ -94,40 +101,42 @@ static struct sdparm_mp_item_t sdparm_mitem_v_seagate_arr[] = {
         "0: silently ignore\t"
         "1: report as error"},
     {"SCSI2", UNIT_ATTENTION_MP, 0, 0, 2, 0, 1, MF_COMMON,
-        "SCSI-2 lengths for control and caching mode pages", NULL,
+        "SCSI-2 lengths for control and caching mode pages", "scsi_2",
         "0: as per recent standards\t"
         "1: SCSI-2 lengths: control, 6; caching, 10"},
     {"DAR", UNIT_ATTENTION_MP, 0, 0, 3, 7, 1, 0,
-        "Deferred auto reallocation", NULL,
+        "Deferred auto reallocation (hd)", NULL,
         "0: disabled\t"
         "1: enabled: unrecoverable read LBA remembered, re-assigned on next "
         "write"},
-    {"SSEEK", UNIT_ATTENTION_MP, 0, 0, 3, 6, 1, 0,
-        "Self seek", NULL,
+    {"SSEEK", UNIT_ATTENTION_MP, 0, 0, 3, 6, 1, MF_J_NPARAM_DESC,
+        "Self seek (hd)", NULL,
         "0: off (normal operating mode)\t"
         "1: enter self seek mode (test power dissipation, acoustics, etc)"},
-    {"VJIT_DIS", UNIT_ATTENTION_MP, 0, 0, 4, 7, 1, 0,
-        "VJIT disabled", NULL,
+    {"SDTE", UNIT_ATTENTION_MP, 0, 0, 3, 1, 1, 0,
+        "SMART depopulation trigger enable (hd)", NULL, NULL},
+    {"VJIT_DIS", UNIT_ATTENTION_MP, 0, 0, 4, 7, 1, MF_J_NPARAM_DESC,
+        "VJIT disabled (hd)", NULL,
         "0: follow settings of JIT0, JIT1, JIT2 and JIT3\t"
         "1: ignore settings of JIT0, JIT1, JIT2 and JIT3"},
     {"JIT3", UNIT_ATTENTION_MP, 0, 0, 4, 3, 1, 0,
-        "Just in time 3, slowest seek type", NULL,
+        "Just in time 3, slowest seek type (hd)", NULL,
         "0: can not use this seek type in seek speed algorithm\t"
         "1: can use this seek type in seek speed algorithm"},
     {"JIT2", UNIT_ATTENTION_MP, 0, 0, 4, 2, 1, 0,
-        "Just in time 2, second slowest seek type", NULL,
+        "Just in time 2, second slowest seek type (hd)", NULL,
         "0: can not use this seek type in seek speed algorithm\t"
         "1: can use this seek type in seek speed algorithm"},
     {"JIT1", UNIT_ATTENTION_MP, 0, 0, 4, 1, 1, 0,
-        "Just in time 1, second fastest seek type", NULL,
+        "Just in time 1, second fastest seek type (hd)", NULL,
         "0: can not use this seek type in seek speed algorithm\t"
         "1: can use this seek type in seek speed algorithm"},
     {"JIT0", UNIT_ATTENTION_MP, 0, 0, 4, 0, 1, 0,
-        "Just in time 0, fastest seek type", NULL,
+        "Just in time 0, fastest seek type (hd)", NULL,
         "0: can not use this seek type in seek speed algorithm\t"
         "1: can use this seek type in seek speed algorithm"},
     {"TTE", UNIT_ATTENTION_MP, 0, 0, 6, 0, 1, 0,
-        "Thermal throttle enable (SSD)", NULL,
+        "Thermal throttle enable (ssd)", NULL,
         "0: drive activity is not limited, based on temperature\t"
         "1: drive activity is limited, based on temperature"},
 
@@ -150,11 +159,11 @@ static struct sdparm_mp_item_t sdparm_mitem_v_hitachi_arr[] = {
     {"RRNDE", UNIT_ATTENTION_MP, 0, 0, 3, 1, 1, 0,
         "Report recovered non data errors (when PER set)", NULL, NULL},
     {"DNS", UNIT_ATTENTION_MP, 0, 0, 4, 2, 1, 0,
-        "Disable notify for standby", NULL, NULL},
+        "Disable notify for standby (obsolete)", NULL, NULL},
     {"LRPMS", UNIT_ATTENTION_MP, 0, 0, 4, 1, 1, 0,
-        "Low RPM standby", NULL, NULL},
+        "Low RPM standby (obsolete)", NULL, NULL},
     {"LCS", UNIT_ATTENTION_MP, 0, 0, 4, 0, 1, 0,
-        "Limited current startup", NULL, NULL},
+        "Limited current startup (obsolete)", NULL, NULL},
     {"FDD", UNIT_ATTENTION_MP, 0, 0, 5, 4, 1, 0,
         "Format degraded disable (reporting for Test Unit Ready)", NULL, NULL},
     {"CAEN", UNIT_ATTENTION_MP, 0, 0, 5, 1, 1, MF_COMMON,
@@ -165,28 +174,29 @@ static struct sdparm_mp_item_t sdparm_mitem_v_hitachi_arr[] = {
         "AV ERP mode (maximum retry count for read errors)", NULL,
         "0: use default (ignore RRC)\t"
         "1: use RRC field"},
-    {"OCT", UNIT_ATTENTION_MP, 0, 0, 6, 3, 12, 0,
+    {"OCT", UNIT_ATTENTION_MP, 0, 0, 6, 3, 12, MF_J_USE_DESC,
         "Overall command timer, 0 -> disabled (50 ms)", NULL, NULL},
-    {"TT", UNIT_ATTENTION_MP, 0, 0, 9, 7, 8, 0,
+    {"TT", UNIT_ATTENTION_MP, 0, 0, 9, 7, 8, MF_J_NPARAM_DESC,
         "Temperature threshold (celsius), 0 -> 85C", NULL, NULL},
-    {"CAL", UNIT_ATTENTION_MP, 0, 0, 10, 7, 16, 0,
+    {"CAL", UNIT_ATTENTION_MP, 0, 0, 10, 7, 16, MF_J_NPARAM_DESC,
         "Command aging limit (50 ms)", NULL, NULL},
     {"RRT", UNIT_ATTENTION_MP, 0, 0, 12, 7, 8, 0,
-        "Read reporting threshold for read recovered errors when PER set", NULL,
-        NULL},
+        "Read reporting threshold for read recovered errors when PER set",
+        "read_reporting_threshold", NULL},
     {"WRT", UNIT_ATTENTION_MP, 0, 0, 13, 7, 8, 0,
-        "Write reporting threshold for write recovered errors when PER set", NULL,
-        NULL},
+        "Write reporting threshold for write recovered errors when PER set",
+        "write_reporting_threshold", NULL},
     {"DRRT", UNIT_ATTENTION_MP, 0, 0, 14, 7, 1, 0,
         "Disable restore reassign target", NULL,
         "0: REASSIGN attempts to recovery old data\t"
         "1: REASSIGN ignores old data"},
     {"FFMT", UNIT_ATTENTION_MP, 0, 0, 14, 3, 1, 0,
-        "Fast format enable, format without writes to customer media", NULL, NULL},
+        "Fast format enable, format without writes to customer media", NULL,
+        NULL},
     {"FCERT", UNIT_ATTENTION_MP, 0, 0, 15, 5, 1, 0,
         "Format certification (enable)", NULL, NULL},
     {"CERT_RDP", UNIT_ATTENTION_MP, 0, 0, 15, 3, 1, 0,
-        "RDP certification (enable)", NULL, NULL},
+        "RDP certification (enable)", "certify_rdp_bit", NULL},
 
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL},
 };
@@ -248,14 +258,14 @@ static struct sdparm_mp_item_t sdparm_mitem_v_lto5_arr[] = {
     {"ENCR_C", 0x24, 0, PDT_TAPE, 7, 0, 1, MF_COMMON,
         "Encryption capable", NULL, NULL},
     /* Behaviour configuration [0x2f] LTO-5 */
-    {"FE_BEH", 0x2f, 0, PDT_TAPE, 2, 7, 8, MF_COMMON,
-        "Fence behaviour", NULL, NULL},
-    {"CL_BEH", 0x2f, 0, PDT_TAPE, 3, 7, 8, MF_COMMON,
-        "Clean behaviour", NULL, NULL},
-    {"WO_BEH", 0x2f, 0, PDT_TAPE, 4, 7, 8, MF_COMMON,
-        "Worm behaviour", NULL, NULL},
-    {"SD_BEH", 0x2f, 0, PDT_TAPE, 5, 7, 8, MF_COMMON,
-        "Sense data behaviour", NULL, NULL},
+    {"FE_BEH", 0x2f, 0, PDT_TAPE, 2, 7, 8, MF_COMMON | MF_J_USE_DESC,
+        "Fence behavior", NULL, NULL},
+    {"CL_BEH", 0x2f, 0, PDT_TAPE, 3, 7, 8, MF_COMMON | MF_J_USE_DESC,
+        "Clean behavior", NULL, NULL},
+    {"WO_BEH", 0x2f, 0, PDT_TAPE, 4, 7, 8, MF_COMMON | MF_J_USE_DESC,
+        "Worm behavior", NULL, NULL},
+    {"SD_BEH", 0x2f, 0, PDT_TAPE, 5, 7, 8, MF_COMMON | MF_J_USE_DESC,
+        "Sense data behavior", NULL, NULL},
     {"CCDM", 0x2f, 0, PDT_TAPE, 6, 2, 1, MF_COMMON,
         "Check condition for dead media", NULL, NULL},
     {"DDEOR", 0x2f, 0, PDT_TAPE, 6, 1, 1, MF_COMMON,
@@ -274,46 +284,51 @@ static struct sdparm_mp_item_t sdparm_mitem_v_lto5_arr[] = {
         "Tape alert 10h", NULL, NULL},
     /* Serial number override [0x3b] LTO-5, HP */
     {"MSN", 0x3b, 0, PDT_TAPE, 2, 1, 2, MF_COMMON | MF_CLASH_OK,
-        "Non-auto", NULL, "0: not reported\t1: manufacturer's default SN\t2: not "
-        "reported\t3: non-default Serial Number"},
+        "Non-auto", NULL, "0: not reported\t1: manufacturer's default SN\t2: "
+        "not reported\t3: non-default Serial Number"},
     {"SN0_7", 0x3b, 0, PDT_TAPE, 6, 7, 8 * 8, MF_HEX | MF_CLASH_OK,
-     "Serial Number, bytes 0 to 7", NULL, "ASCII hex in range 0x20 to 0x7f"},
+     "Serial Number, bytes 0 to 7", "serial_number_0_7",
+     "ASCII hex in range 0x20 to 0x7f"},
     {"SN8_11", 0x3b, 0, PDT_TAPE, 14, 7, 4 * 8, MF_HEX | MF_CLASH_OK,
-     "Serial Number, bytes 8 to 11", NULL, "ASCII hex in range 0x20 to 0x7f"},
+     "Serial Number, bytes 8 to 11", "serial_number_8_11",
+     "ASCII hex in range 0x20 to 0x7f"},
     /* Device time [0x3c] LTO-5, HP */
     {"LT_VAL", 0x3c, 0, PDT_TAPE, 2, 2, 1, MF_COMMON | MF_CLASH_OK,
-     "Library time valid", NULL, NULL},
+     "Library time valid", "lt", NULL},
     {"WT_VAL", 0x3c, 0, PDT_TAPE, 2, 1, 1, MF_COMMON | MF_CLASH_OK,
-     "World time valid", NULL, NULL},
+     "World time valid", "wt", NULL},
     {"PT_VAL", 0x3c, 0, PDT_TAPE, 2, 0, 1, MF_COMMON | MF_CLASH_OK,
-     "Power-on time valid", NULL, NULL},
-    {"CP_COUNT", 0x3c, 0, PDT_TAPE, 6, 7, 2 * 8, MF_COMMON | MF_CLASH_OK,
+     "Power-on time valid", "pt", NULL},
+    {"CP_COUNT", 0x3c, 0, PDT_TAPE, 6, 7, 2 * 8,
+     MF_COMMON | MF_CLASH_OK | MF_J_USE_DESC,
      "Current power-on count", NULL, NULL},
     {"UTC", 0x3c, 0, PDT_TAPE, 14, 1, 1, MF_COMMON | MF_CLASH_OK,
      "UTC", NULL, "0: local time zone\t1: UTC"},
     {"NTP", 0x3c, 0, PDT_TAPE, 14, 0, 1, MF_COMMON | MF_CLASH_OK,
      "NTP", NULL, "0: unsure if NTP synced\t1: NTP synced"},
-    {"WOR_TIME", 0x3c, 0, PDT_TAPE, 16, 7, 4 * 8, MF_COMMON | MF_CLASH_OK,
+    {"WOR_TIME", 0x3c, 0, PDT_TAPE, 16, 7, 4 * 8,
+     MF_COMMON | MF_CLASH_OK | MF_J_USE_DESC,
      "World time", NULL, "seconds since 00:00:00, 1 January 1970 UTC"},
-    {"LT_HR", 0x3c, 0, PDT_TAPE, 23, 7, 8, MF_COMMON | MF_CLASH_OK,
-     "Library time (hours)", NULL, NULL},
-    {"LT_MIN", 0x3c, 0, PDT_TAPE, 24, 7, 8, MF_COMMON | MF_CLASH_OK,
-     "Library time (minutes)", NULL, NULL},
-    {"LT_SEC", 0x3c, 0, PDT_TAPE, 25, 7, 8, MF_COMMON | MF_CLASH_OK,
-     "Library time (seconds)", NULL, NULL},
-    {"CUM_PT", 0x3c, 0, PDT_TAPE, 32, 7, 4 * 8, MF_COMMON | MF_CLASH_OK,
-     "Cumulative power-on time (seconds)", NULL, NULL},
+    {"LT_HR", 0x3c, 0, PDT_TAPE, 23, 7, 8, MF_COMMON | MF_CLASH_OK |
+     MF_J_USE_DESC, "Library time (hrs)", NULL, NULL},
+    {"LT_MIN", 0x3c, 0, PDT_TAPE, 24, 7, 8, MF_COMMON | MF_CLASH_OK |
+     MF_J_USE_DESC, "Library time (mins)", NULL, NULL},
+    {"LT_SEC", 0x3c, 0, PDT_TAPE, 25, 7, 8, MF_COMMON | MF_CLASH_OK |
+     MF_J_USE_DESC, "Library time (secs)", NULL, NULL},
+    {"CUM_PT", 0x3c, 0, PDT_TAPE, 32, 7, 4 * 8, MF_COMMON | MF_CLASH_OK |
+     MF_J_NPARAM_DESC, "Cumulative power-on time (seconds)", NULL, NULL},
     /* Extended reset [0x3d] LTO-5, HP */
-    {"RES_BEH", 0x3d, 0, PDT_TAPE, 2, 1, 2, MF_COMMON | MF_CLASH_OK,
-        "Reset behaviour", NULL, "0: normal\t1: flush, rewind\t2: no flush, "
-        "maintain position"},
+    {"RES_BEH", 0x3d, 0, PDT_TAPE, 2, 1, 2, MF_COMMON | MF_CLASH_OK |
+        MF_J_USE_DESC, "Reset behavior", NULL,
+        "0: normal\t1: flush, rewind\t2: no flush, maintain position"},
     /* CD-ROM emulator / disaster recovery [0x3e] LTO-5, HP */
-    {"NON_AUTO", 0x3e, 0, PDT_TAPE, 2, 1, 1, MF_COMMON | MF_CLASH_OK,
-        "Non-auto", NULL, "0: reverts to tape after 100 blocks read in cd-rom "
-        "emulation mode\t1: inhibits return and stays in cd-rom emulation "
-        "mode"},
-    {"CD_MODE", 0x3e, 0, PDT_TAPE, 2, 0, 1, MF_COMMON | MF_CLASH_OK,
-        "CDmode", NULL, "0: tape drive mode\t1: cd-rom emulation mode"},
+    {"NON_AUTO", 0x3e, 0, PDT_TAPE, 2, 1, 1, MF_COMMON | MF_CLASH_OK |
+        MF_J_USE_DESC, "Non-auto", NULL, "0: reverts to tape after 100 "
+        "blocks read in cd-rom emulation mode\t1: inhibits return and "
+        "stays in cd-rom emulation mode"},
+    {"CD_MODE", 0x3e, 0, PDT_TAPE, 2, 0, 1, MF_COMMON | MF_CLASH_OK |
+        MF_J_USE_DESC, "CDmode", NULL,
+        "0: tape drive mode\t1: cd-rom emulation mode"},
 
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL},
 };
@@ -332,49 +347,53 @@ static struct sdparm_mp_name_t sdparm_v_lto6_mode_pg[] = {
 };
 
 static struct sdparm_mp_item_t sdparm_mitem_v_lto6_arr[] = {
-
     /* Serial number override [0x3b] LTO-5, HP */
     {"MSN", 0x3b, 0, PDT_TAPE, 2, 1, 2, MF_COMMON | MF_CLASH_OK,
-        "Non-auto", NULL, "0: not reported\t1: manufacturer's default SN\t2: not "
-        "reported\t3: non-default Serial Number"},
+        "Non-auto", NULL, "0: not reported\t1: manufacturer's default SN\t2: "
+        "not reported\t3: non-default Serial Number"},
     {"SN0_7", 0x3b, 0, PDT_TAPE, 6, 7, 8 * 8, MF_HEX | MF_CLASH_OK,
-     "Serial Number, bytes 0 to 7", NULL, "ASCII hex in range 0x20 to 0x7f"},
+     "Serial Number, bytes 0 to 7", "serial_number_0_7",
+     "ASCII hex in range 0x20 to 0x7f"},
     {"SN8_11", 0x3b, 0, PDT_TAPE, 14, 7, 4 * 8, MF_HEX | MF_CLASH_OK,
-     "Serial Number, bytes 8 to 11", NULL, "ASCII hex in range 0x20 to 0x7f"},
+     "Serial Number, bytes 8 to 11", "serial_number_8_11",
+     "ASCII hex in range 0x20 to 0x7f"},
     /* Device time [0x3c] LTO-5, HP */
     {"LT_VAL", 0x3c, 0, PDT_TAPE, 2, 2, 1, MF_COMMON | MF_CLASH_OK,
-     "Library time valid", NULL, NULL},
+     "Library time valid", "lt", NULL},
     {"WT_VAL", 0x3c, 0, PDT_TAPE, 2, 1, 1, MF_COMMON | MF_CLASH_OK,
-     "World time valid", NULL, NULL},
+     "World time valid", "wt", NULL},
     {"PT_VAL", 0x3c, 0, PDT_TAPE, 2, 0, 1, MF_COMMON | MF_CLASH_OK,
+     "Power-on time valid", "pt", NULL},
+    {"CP_COUNT", 0x3c, 0, PDT_TAPE, 6, 7, 2 * 8,
+     MF_COMMON | MF_CLASH_OK | MF_J_USE_DESC,
      "Current power-on count", NULL, NULL},
-    {"CP_COUNT", 0x3c, 0, PDT_TAPE, 6, 7, 2 * 8, MF_COMMON | MF_CLASH_OK,
-     "Power-on time (seconds)", NULL, NULL},
     {"UTC", 0x3c, 0, PDT_TAPE, 14, 1, 1, MF_COMMON | MF_CLASH_OK,
      "UTC", NULL, "0: local time zone\t1: UTC"},
     {"NTP", 0x3c, 0, PDT_TAPE, 14, 0, 1, MF_COMMON | MF_CLASH_OK,
      "NTP", NULL, "0: unsure if NTP synced\t1: NTP synced"},
-    {"WOR_TIME", 0x3c, 0, PDT_TAPE, 16, 7, 4 * 8, MF_COMMON | MF_CLASH_OK,
+    {"WOR_TIME", 0x3c, 0, PDT_TAPE, 16, 7, 4 * 8,
+     MF_COMMON | MF_CLASH_OK | MF_J_USE_DESC,
      "World time", NULL, "seconds since 00:00:00, 1 January 1970 UTC"},
-    {"LT_HR", 0x3c, 0, PDT_TAPE, 23, 7, 8, MF_COMMON | MF_CLASH_OK,
-     "Library time (hours)", NULL, NULL},
-    {"LT_MIN", 0x3c, 0, PDT_TAPE, 24, 7, 8, MF_COMMON | MF_CLASH_OK,
-     "Library time (minutes)", NULL, NULL},
-    {"LT_SEC", 0x3c, 0, PDT_TAPE, 25, 7, 8, MF_COMMON | MF_CLASH_OK,
-     "Library time (seconds)", NULL, NULL},
-    {"CUM_PT", 0x3c, 0, PDT_TAPE, 32, 7, 4 * 8, MF_COMMON | MF_CLASH_OK,
-     "Cumulative power-on time (seconds)", NULL, NULL},
+    {"LT_HR", 0x3c, 0, PDT_TAPE, 23, 7, 8, MF_COMMON | MF_CLASH_OK |
+     MF_J_USE_DESC, "Library time (hrs)", NULL, NULL},
+    {"LT_MIN", 0x3c, 0, PDT_TAPE, 24, 7, 8, MF_COMMON | MF_CLASH_OK |
+     MF_J_USE_DESC, "Library time (mins)", NULL, NULL},
+    {"LT_SEC", 0x3c, 0, PDT_TAPE, 25, 7, 8, MF_COMMON | MF_CLASH_OK |
+     MF_J_USE_DESC, "Library time (secs)", NULL, NULL},
+    {"CUM_PT", 0x3c, 0, PDT_TAPE, 32, 7, 4 * 8, MF_COMMON | MF_CLASH_OK |
+     MF_J_NPARAM_DESC, "Cumulative power-on time (seconds)", NULL, NULL},
     /* Extended reset [0x3d] LTO-5, HP */
-    {"RES_BEH", 0x3d, 0, PDT_TAPE, 2, 1, 2, MF_COMMON | MF_CLASH_OK,
-        "Reset behaviour", NULL, "0: normal\t1: flush, rewind\t2: no flush, "
-        "maintain position"},
+    {"RES_BEH", 0x3d, 0, PDT_TAPE, 2, 1, 2, MF_COMMON | MF_CLASH_OK |
+        MF_J_USE_DESC, "Reset behavior", NULL,
+        "0: normal\t1: flush, rewind\t2: no flush, maintain position"},
     /* CD-ROM emulator / disaster recovery [0x3e] LTO-5, HP */
-    {"NON_AUTO", 0x3e, 0, PDT_TAPE, 2, 1, 1, MF_COMMON | MF_CLASH_OK,
-        "Non-auto", NULL, "0: reverts to tape after 100 blocks read in cd-rom "
-        "emulation mode\t1: inhibits return and stays in cd-rom emulation "
-        "mode"},
-    {"CD_MODE", 0x3e, 0, PDT_TAPE, 2, 0, 1, MF_COMMON | MF_CLASH_OK,
-        "CDmode", NULL, "0: tape drive mode\t1: cd-rom emulation mode"},
+    {"NON_AUTO", 0x3e, 0, PDT_TAPE, 2, 1, 1, MF_COMMON | MF_CLASH_OK |
+        MF_J_USE_DESC, "Non-auto", NULL, "0: reverts to tape after 100 "
+        "blocks read in cd-rom emulation mode\t1: inhibits return and "
+        "stays in cd-rom emulation mode"},
+    {"CD_MODE", 0x3e, 0, PDT_TAPE, 2, 0, 1, MF_COMMON | MF_CLASH_OK |
+        MF_J_USE_DESC, "CDmode", NULL,
+        "0: tape drive mode\t1: cd-rom emulation mode"},
 
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL},
 };

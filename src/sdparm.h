@@ -188,6 +188,7 @@ extern "C" {
 #define MF_DESC_ID_B3 0x80000
 #define MF_DESC_ID_MASK 0xf0000
 #define MF_DESC_ID_SHIFT 16
+#define MF_BITS_USED 20
 
 /* Output (bit) mask values */
 #define MP_OM_CUR 0x1
@@ -198,9 +199,13 @@ extern "C" {
 #define MP_OM_ALL 0xf
 #define MP_IM_ALL 0xf
 
-#define MP_GET_VAL_ALL 0   /* print current, changeable, default, saveable */
-#define MP_GET_VAL_CURR 1
-#define MP_GET_VAL_SIGNED 2     /* print current only in signed decimal */
+/* The 'mpi_get' values control the output format of '--get=<acron>' and
+ * '--get=<acron>=<mpi_get_val>' options */
+#define MPI_GET_VALS_U 0         /* print current, changeable, default, and
+                                  * saveable (unsigned), default */
+#define MPI_GET_VAL_CUR_U 1      /* print current only (unsigned) */
+#define MPI_GET_VAL_CUR_S 2      /* print current only in signed decimal */
+#define MPI_GET_VALS_S 3         /* print all values (signed) */
 
 /* enumerations for commands */
 #define CMD_READY 1
@@ -214,6 +219,8 @@ extern "C" {
 #define CMD_CAPACITY 9
 #define CMD_SPEED 10
 #define CMD_PROFILE 11
+
+#define MAX_DEV_NAMES 256
 
 
 /* Mainly command line options */
@@ -243,6 +250,7 @@ struct sdparm_opt_coll {
     int do_all;         /* -iaa outputs all VPD pages found in the Supported
                          * VPD Pages VPD page (0x0) */
     int do_enum;
+    int do_flags;	/* -F ; show enumeration item flags */
     int do_help;
     int do_hex;
     int do_long;
@@ -367,7 +375,7 @@ struct sdparm_mp_item_t {
     int start_byte;
     int start_bit;
     int num_bits;
-    int flags;       /* bit settings or-ed, see MF_* */
+    int flags;       /* bit settings OR-ed together, see MF_* */
     const char * description;
     const char * js_name;       /* NULL means use sgj_convert2snake((acron) */
     const char * extra;
@@ -381,7 +389,8 @@ struct sdparm_mp_it_val_t {
     struct sdparm_mp_item_t mp_it;   /* holds <mitem> in above form */
     int64_t val;        /* holds <val> in above form. Defaults to 1 for
                          * for --set=, and to 0 for --clear= and --get= .
-                         * The <val> for --get= is for output format. */
+                         * The <val> for --get= is for output format,
+                         * see MPI_GET_VAL* . */
     int64_t orig_val;   /* what Mode sense indicates is currently in that
                          * <mitem>[.<d_num>] . If same, nothing to do */
     int descriptor_num; /* holds <d_num> in the above form. Defaults to 0
@@ -449,7 +458,16 @@ extern struct sdparm_val_desc_t sdparm_profile_arr[];
 
 extern const char * sdparm_network_service_type_arr[];
 extern const char * sdparm_mode_page_policy_arr[];
+extern const char * mf_flags_str_a[];
+extern const int mf_flags_str_a_sz;
 
+
+void sdp_usage(const struct sdparm_opt_coll * op);
+int sdp_parse_cmdline(struct sdparm_opt_coll * op, int argc, char * argv[],
+                      const char * device_name_arr[]);
+void sdp_enumerate_vendor_names(struct sdparm_opt_coll * op);
+void sdp_enumerate_transport_names(bool multiple_acrons,
+                                   struct sdparm_opt_coll * op);
 
 int sdp_mpage_len(const uint8_t * mp);    /* page, not MS response */
 const struct sdparm_mp_name_t * sdp_get_mp_nm(int page_num,

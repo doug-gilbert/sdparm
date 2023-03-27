@@ -40,9 +40,8 @@
  * data in the sdparm_data.c tables.
  *
  * Build with a line like:
- *      gcc -I ../include -Wall -o chk_sdparm_data sdparm_data.o
- *               sg_lib.o sg_lib_data.o sdparm_data_vendor.o
- *               chk_sdparm_data.c
+ *      gcc -I ../include -Wall -o chk_sdparm_data sdparm_data.o sg_lib.o
+ *             sg_lib_data.o sdparm_data_vendor.o chk_sdparm_data.c
  *
  */
 

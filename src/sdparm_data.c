@@ -2116,7 +2116,6 @@ struct sdparm_mp_item_t sdparm_mitem_sas_arr[] = {
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL},
 };
 
-// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 /* fixed length, indexed by transport protocol number */
 struct sdparm_transport_pair sdparm_transport_mp[] = {
     {sdparm_fcp_mode_pg, sdparm_mitem_fcp_arr}, /* 0 */
@@ -2219,3 +2218,33 @@ struct sdparm_val_desc_t sdparm_profile_arr[] = {
         {0xffff, "Non-conforming profile"},
         {-1, NULL},
 };
+
+/* This array of C strings can be indexed by taking the log_base2 of the
+ * corresponding MF_* constant which are found in sdparm.h . One or more
+ * of these flags is found OR-ed together in the sdparm_mp_item_t::flags
+ * field. These are set on a per mode page item basis in tables found
+ * in sdparm_data.c and sdparm_data_vendor.c . */
+const char * mf_flags_str_a[] = {
+    "common",   /* set the MF_* defines in sdparm.h for some descriptions */
+    "hex",
+    "clash_ok",
+    "twos_comp",
+    "all_1s",
+    "save_pgs",
+    "stop_if_set",
+    "obsolete",         /* 8 */
+    "j_use_desc",
+    "j_nparen_desc",
+    "unused_1",
+    "unused_2",
+    "unused_3",
+    "unused_4",
+    "unused_5",
+    "unused_6",         /* 16 */
+    "desc_id_b0",
+    "desc_id_b1",
+    "desc_id_b2",
+    "desc_id_b3",       /* 20 */
+};
+
+const int mf_flags_str_a_sz = SG_ARRAY_SIZE(mf_flags_str_a);

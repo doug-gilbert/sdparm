@@ -1,0 +1,113 @@
+#
+# This file was created by calling:
+#    sdparm -HHHH -a /dev/sg0 > {this_file}
+# where /dev/sg0 was the scsi_debug driver in a Linux system
+#
+# Later this file can be fully decoded like this:
+#    sdparm -I sdp_sdeb_ahhhh.hex -a
+# or the Caching mode page decoded with
+#    sdparm -I sdp_sdeb_ahhhh.hex --page=ca
+# or a single field fetched:
+#    sdparm -I sdp_sdeb_ahhhh.hex --get=wce
+# and many other variants.
+
+
+# Mode parameter header(10) and block descriptor(s), llbaa=1:
+00 f6 00 10 01 00 00 10  00 00 00 00 00 80 00 00
+00 00 00 00 00 00 02 00
+
+# Read write error recovery mode page [0x1]:
+#    current:
+01 0a c0 0b f0 00 00 00  05 00 ff ff
+#    changeable:
+01 0a 00 00 00 00 00 00  00 00 00 00
+#    default:
+01 0a c0 0b f0 00 00 00  05 00 ff ff
+
+# Disconnect-reconnect (SPC + transports) mode page [0x2]:
+#    current:
+02 0e 80 80 00 0a 00 00  00 00 00 00 00 00 00 00
+#    changeable:
+02 0e 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+#    default:
+02 0e 80 80 00 0a 00 00  00 00 00 00 00 00 00 00
+
+# Format (SBC) mode page [0x3]:
+#    current:
+03 16 00 00 00 00 00 00  00 00 00 3f 02 00 00 00
+00 00 00 00 40 00 00 00
+#    changeable:
+03 16 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+#    default:
+03 16 00 00 00 00 00 00  00 00 00 3f 02 00 00 00
+00 00 00 00 40 00 00 00
+
+# Caching (SBC) mode page [0x8]:
+#    current:
+08 12 10 00 ff ff 00 00  ff ff ff ff 80 14 00 00
+00 00 00 00
+#    changeable:
+08 12 04 00 00 00 00 00  00 00 00 00 00 00 00 00
+00 00 00 00
+#    default:
+08 12 14 00 ff ff 00 00  ff ff ff ff 80 14 00 00
+00 00 00 00
+
+# Control mode page [0xa]:
+#    current:
+0a 0a 02 00 00 80 00 00  00 00 02 4b
+#    changeable:
+0a 0a 06 00 00 00 00 00  00 00 00 00
+#    default:
+0a 0a 02 00 00 00 00 00  00 00 02 4b
+
+# Protocol specific port mode page [0x19]:
+#    current:
+19 06 06 00 07 d0 00 00
+#    changeable:
+19 06 00 00 00 00 00 00
+#    default:
+19 06 06 00 07 d0 00 00
+
+# Phy control and discover (SAS) mode page [0x19,0x1]:
+#    current:
+59 01 00 64 00 06 00 02  00 00 00 00 10 09 08 00
+32 22 22 20 00 00 07 ce  31 11 11 10 00 00 00 01
+02 00 00 00 00 00 00 00  88 99 00 00 00 00 00 00
+00 00 00 00 00 00 00 00  00 01 00 00 10 09 08 00
+32 22 22 20 00 00 07 cf  31 11 11 10 00 00 00 01
+03 00 00 00 00 00 00 00  88 99 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+#    changeable:
+59 01 00 64 00 00 00 00  00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+#    default:
+59 01 00 64 00 06 00 02  00 00 00 00 10 09 08 00
+32 22 22 20 00 00 07 ce  31 11 11 10 00 00 00 01
+02 00 00 00 00 00 00 00  88 99 00 00 00 00 00 00
+00 00 00 00 00 00 00 00  00 01 00 00 10 09 08 00
+32 22 22 20 00 00 07 cf  31 11 11 10 00 00 00 01
+03 00 00 00 00 00 00 00  88 99 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+
+# Shared port control (SAS) mode page [0x19,0x2]:
+#    current:
+59 02 00 0c 00 06 10 00  00 00 00 00 00 00 00 00
+#    changeable:
+59 02 00 0c 00 00 00 00  00 00 00 00 00 00 00 00
+#    default:
+59 02 00 0c 00 06 10 00  00 00 00 00 00 00 00 00
+
+# Informational exceptions control mode page [0x1c]:
+#    current:
+1c 0a 08 00 00 00 00 00  00 00 00 00
+#    changeable:
+1c 0a 04 0f 00 00 00 00  00 00 00 00
+#    default:
+1c 0a 08 00 00 00 00 00  00 00 00 00
