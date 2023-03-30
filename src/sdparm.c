@@ -81,7 +81,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.17 20230327 [svn: r374]";
+static const char * version_str = "1.17 20230329 [svn: r375]";
 
 
 static uint8_t * inhex_buffp;
@@ -103,6 +103,7 @@ static int non_spg_warning;
 static const char * ms_s = "Mode sense";
 static const char * ump_s = "Mode page";
 static const char * mp_s = "mode page";
+static const char * mp_sn = "mode_page";
 static const char * mpgf_s = "Mode pages for";
 static const char * sdp_sn = "sdparm";
 static const char * sdp_rsp_sn = "sdparm_response";
@@ -115,10 +116,20 @@ static const char * cffa_s = "couldn't find field acronym";
 static const char * tn_s = "'--transport=<tn>'";
 static const char * vn_s = "'--vendor=<vn>'";
 
+static int msense6_good_count;
+static int msense6_pc_not_sup_count;  /* > 0 page controls not supported */
+static int msense6_ill_req_count;
+static int msense6_oth_err_count;
+static int msense10_good_count;
+static int msense10_pc_not_sup_count;
+static int msense10_ill_req_count;
+static int msense10_oth_err_count;
+
 static int print_full_mpgs(int sg_fd, int pn, int spn, int pdt,
                            struct sdparm_opt_coll * op, sgj_opaque_p jop);
 
 /* Command line help and usage pages found in sdparm_access.c */
+
 
 static void
 enumerate_mpage_names(int transport, int vendor_id,
@@ -248,6 +259,7 @@ print_mpi_extra(const char * extra, struct sdparm_opt_coll * op,
     static const int elen = sizeof(e);
 
     d[0] = '\0';
+    e[0] = '\0';
     for (p = (char *)extra; (cp = (char *)strchr(p, '\t')); p = cp + 1) {
         n = cp - p;
         if (n > (blen - 1))
@@ -476,8 +488,15 @@ get_out_but_expect_back:
                 have_desc_id = false;
             }
             if (op->do_json) {
-                jo2p = sgj_named_subobject_r(jsp, jop,
-                                        sdp_mp_convert2snake(d, b, blen));
+                const char * cp = b;
+
+                if (op->inner_hex > 0)
+                    snprintf(b, blen, "%s_%.02x_%.02x", mp_sn, t_pn, t_spn);
+                else
+                    sdp_mp_convert2snake(d, b, blen);
+                jo2p = sgj_named_subobject_r(jsp, jop, cp);
+                if (op->inner_hex > 0)
+                    sgj_js_nv_s(jsp, jo2p, "mp_name", d);
                 sgj_js_nv_ihex(jsp, jo2p, "page_code", t_pn);
                 sgj_js_nv_i(jsp, jo2p, "spf", !! (t_spn > 0));
                 if (t_spn > 0)
@@ -807,10 +826,23 @@ ll_mode_sense(int fd, int pn, int spn, bool llbaa, uint8_t * resp,
             *residp = 0;
         res = sg_ll_mode_sense6(fd, op->dbd, 0 /*current */, pn, spn,
                                 resp, mx_resp_len, true /* noisy */, vb);
-    } else
+        if (0 == res)
+            ++msense6_good_count;
+        else if (SG_LIB_CAT_ILLEGAL_REQ == res)
+            ++msense6_ill_req_count; /* N.B. doesn't include invalid opcode */
+        else
+            ++msense6_oth_err_count;
+    } else {
         res = sg_ll_mode_sense10_v2(fd, llbaa, op->dbd, 0, pn,
                                     spn, resp, mx_resp_len, 0, residp,
                                     true /* noisy */, vb);
+        if (0 == res)
+            ++msense10_good_count;
+        else if (SG_LIB_CAT_ILLEGAL_REQ == res)
+            ++msense10_ill_req_count; /* N.B. doesn't include invalid opcode */
+        else
+            ++msense10_oth_err_count;
+    }
     if ((0 == res) && (vb > 2)) {
         int resid = residp ? *residp : 0;
         int num_ret = mx_resp_len - resid;
@@ -820,6 +852,38 @@ ll_mode_sense(int fd, int pn, int spn, bool llbaa, uint8_t * resp,
                 resid, num_ret);
         if (vb > 3)
             hex2stderr(resp, num_ret, 1);
+    }
+    return res;
+}
+
+static int
+ll_mode_page_controls(int sg_fd, bool mode_6, int pn, int spn, int req_len,
+                      int * smaskp, void * pc_arr[], int * resp_lenp, int verb,
+                      const struct sdparm_opt_coll * op)
+{
+    int res = sg_get_mode_page_controls(sg_fd, mode_6, pn, spn, op->dbd,
+                                    op->flexible, req_len, smaskp, pc_arr,
+                                    resp_lenp, verb);
+    if (mode_6) {
+        if (0 == res)
+            ++msense6_good_count;
+        else if (SG_LIB_CAT_ILLEGAL_REQ == res) {
+            if (*smaskp)
+                ++msense6_pc_not_sup_count;
+            else
+                ++msense6_ill_req_count; /* N.B. excluding invalid opcode */
+        } else
+            ++msense6_oth_err_count;
+    } else {
+        if (0 == res)
+            ++msense10_good_count;
+        else if (SG_LIB_CAT_ILLEGAL_REQ == res) {
+            if (*smaskp)
+                ++msense10_pc_not_sup_count;
+            else
+                ++msense10_ill_req_count; /* N.B. excluding invalid opcode */
+        } else
+            ++msense10_oth_err_count;
     }
     return res;
 }
@@ -1091,9 +1155,8 @@ try_again:
     pc_arr[3] = sav_aligned_mp;
 
 one_more:
-    res = sg_get_mode_page_controls(sg_fd, l_mode_6, l_pn, l_spn, op->dbd,
-                                    op->flexible, req_len, &rmask, pc_arr,
-                                    &resp_len, verb);
+    res = ll_mode_page_controls(sg_fd, l_mode_6, l_pn, l_spn, req_len,
+                                &rmask, pc_arr, &resp_len, verb, op);
     if (res) {
         if (0 == rmask) {
             if ((pn < 0) && (ALL_MSPAGES == l_spn)) {
@@ -1291,7 +1354,7 @@ print_get_mi_innerh(const char * pre, int smask,
 
     if ((MPI_GET_VALS_U == g_val) || is_gvals_sgn) {
         /* these cases: --get=<acron>[=0] or --get=<acron>=3 */
-        if (op->inner_hex) {
+        if (op->inner_hex && (! jsp->pr_as_json)) {
             if (smask & MP_OM_CUR) {
                 u = sdp_mitem_get_value(mpip, (const uint8_t *)pc_arr[0]);
                 n += sg_scnpr(b + n, blen - n, "0x%02" PRIx64 " ", u);
@@ -1507,9 +1570,8 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
             pc_arr[1] = cha_mp;
             pc_arr[2] = def_mp;
             pc_arr[3] = sav_mp;
-            res = sg_get_mode_page_controls(
-                        sg_fd, mode6, l_pn, l_spn, op->dbd, op->flexible,
-                        req_len, &smask, pc_arr, &rep_len, verb);
+            res = ll_mode_page_controls(sg_fd, mode6, l_pn, l_spn, req_len,
+                                        &smask, pc_arr, &rep_len, verb, op);
             if (res && (SG_LIB_CAT_ILLEGAL_REQ != res))
                 return verb ? report_error(res, mode6) : res;
             else if (verb > 2)
@@ -1567,9 +1629,18 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
                                         !!(first_mp[0] & 0x80));
                 if (op->do_quiet < 3)
                     sgj_pr_hr(jsp, "%s:\n", b);
-                if (op->do_json)
-                    jo2p = sgj_named_subobject_r(jsp, jop,
-                                         sdp_mp_convert2snake(e, b, blen));
+                if (op->do_json) {
+                    const char * cp = b;
+
+                    if (op->inner_hex > 0)
+                        snprintf(b, blen, "%s_%.02x_%.02x", mp_sn, l_pn,
+                                 l_spn);
+                    else
+                        sdp_mp_convert2snake(e, b, blen);
+                    jo2p = sgj_named_subobject_r(jsp, jop, cp);
+                    if (op->inner_hex > 0)
+                        sgj_js_nv_s(jsp, jo2p, "mp_name", e);
+                }
 
                 pg_len = sdp_mpage_len(first_mp);
                 check_mode_page(first_mp, l_pn, pg_len, op);
@@ -1956,9 +2027,17 @@ get_is_active:
                 sgj_pr_hr(jsp, "%s [PS=%d]:\n", b, !!(l_pg_p[0] & 0x80));
             else
                 sgj_pr_hr(jsp, "%s:\n", b);
-            if (op->do_json)
-                jo2p = sgj_named_subobject_r(jsp, jop,
-                                        sdp_mp_convert2snake(c, b, blen));
+            if (op->do_json) {
+                const char * cp = b;
+
+                if (op->inner_hex > 0)
+                    snprintf(b, blen, "%s_%.02x_%.02x", mp_sn, l_pn, l_spn);
+                else
+                    sdp_mp_convert2snake(c, b, blen);
+                jo2p = sgj_named_subobject_r(jsp, jop, cp);
+                if (op->inner_hex > 0)
+                    sgj_js_nv_s(jsp, jo2p, "mp_name", c);
+            }
             check_mode_page(l_pg_p, l_pn, pg_len, op);
         } else {        /* if not first_time */
             if (get_active)
@@ -2190,9 +2269,17 @@ print_get_mitems(int sg_fd, const struct sdparm_mp_settings_t * mps,
         if ((0 == k) || (pn != mpip->pg_num) || (spn != mpip->subpg_num)) {
             pn = mpip->pg_num;
             spn = mpip->subpg_num;
-            if (jsp->pr_as_json)
-                jo2p = sgj_named_subobject_r(jsp, jop,
-                                        sdp_mp_convert2snake(b, e, elen));
+            if (jsp->pr_as_json) {
+                const char * cp = e;
+
+                if (op->inner_hex > 0)
+                    snprintf(e, elen, "%s_%.02x_%.02x", mp_sn, pn, spn);
+                else
+                    sdp_mp_convert2snake(b, e, elen);
+                jo2p = sgj_named_subobject_r(jsp, jop, cp);
+                if (op->inner_hex > 0)
+                    sgj_js_nv_s(jsp, jo2p, "mp_name", b);
+            }
             smask = 0;
             // res = 0;
             switch (val) {      /* for --get=<acron>=0|1|2|3 */
@@ -2219,9 +2306,8 @@ print_get_mitems(int sg_fd, const struct sdparm_mp_settings_t * mps,
                 res = SG_LIB_SYNTAX_ERROR;
                 goto out;
             }
-            res = sg_get_mode_page_controls(sg_fd, mode6, pn, spn, op->dbd,
-                                            op->flexible, req_len, &smask,
-                                            pc_arr, &rep_len, verb);
+            res = ll_mode_page_controls(sg_fd, mode6, pn, spn, req_len,
+                                        &smask, pc_arr, &rep_len, verb, op);
             if (res && (SG_LIB_CAT_ILLEGAL_REQ != res)) {
                 if (verb)
                     report_error(res, mode6);
@@ -2576,9 +2662,8 @@ set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
     pc_arr[1] = NULL;
     pc_arr[2] = def_mp;
     pc_arr[3] = NULL;
-    res = sg_get_mode_page_controls(sg_fd, op->mode_6, pn, spn, op->dbd,
-                                    op->flexible, req_len, &smask, pc_arr,
-                                    &rep_len, op->verbose);
+    res = ll_mode_page_controls(sg_fd, op->mode_6, pn, spn, req_len, &smask,
+                                pc_arr, &rep_len, op->verbose, op);
     if (res) {
         if (SG_LIB_CAT_INVALID_OP == res)
             pr2serr("%s byte %s cdb not supported, try again with%s '-6' "
@@ -3262,7 +3347,7 @@ main(int argc, char * argv[])
 {
     bool protect = false;
     bool as_json = false;
-    int t_com_pdt, req_pdt, k, r;
+    int t_com_pdt, req_pdt, k, r, vb;
     int res = 0;
     int sg_fd = -1;
     int cmd_arg = -1;
@@ -3323,6 +3408,7 @@ main(int argc, char * argv[])
         sdp_usage(op);
         return 0;
     }
+    vb = op->verbose;
 
     if (op->read_only)
         op->do_rw = false;         // override any read-write settings
@@ -3333,7 +3419,7 @@ main(int argc, char * argv[])
     }
 #ifdef SG_LIB_WIN32
     if (op->do_wscan)
-        return sg_do_wscan('\0', op->do_wscan, op->verbose);
+        return sg_do_wscan('\0', op->do_wscan, vb);
 #endif
     jsp = &op->json_st;
     if (op->do_json) {
@@ -3454,7 +3540,7 @@ main(int argc, char * argv[])
             }
         }
 
-        if (op->verbose && (mps->num_it_vals > 0))
+        if (vb && (mps->num_it_vals > 0))
             list_mp_settings(mps, (NULL != op->get_str), op);
 
         if ((1 == op->defaults) && (pn < 0)) {
@@ -3480,9 +3566,9 @@ main(int argc, char * argv[])
                            &op->inhex_len, MAX_MP_BUFF_SZ);
         if (ret)
             goto fini;
-        if (op->verbose > 2)
+        if (vb > 2)
             pr2serr("Read %d bytes from user input\n", op->inhex_len);
-        if (op->verbose > 3)
+        if (vb > 3)
             hex2stderr(inhex_buffp, op->inhex_len, 0);
         op->do_raw = false;
         if (op->inquiry)
@@ -3530,7 +3616,7 @@ main(int argc, char * argv[])
     for (k = 0; k < op->num_devices; ++k) {
         int pdt = -1;
 
-        if (op->verbose > 1)
+        if (vb > 1)
             pr2serr(">>> about to open device name: %s\n",
                     device_name_arr[k]);
         sg_fd = open_and_simple_inquiry(device_name_arr[k], op->do_rw, &pdt,
@@ -3585,6 +3671,13 @@ fini:           /* error expected in ret, ret==0 means no error */
     if (free_oth_aligned_mp)
         free(free_oth_aligned_mp);
     ret = (ret >= 0) ? ret : SG_LIB_CAT_OTHER;
+    if (SG_LIB_CAT_ILLEGAL_REQ == ret) {
+        /* suppress ILLEGAL REQUEST errors cause by either a page control
+         * (e.g. 'save') not being supported or a page_code/subpage_code
+         * not being supported. These are expected. */
+        if ((0 == msense6_oth_err_count) && (0 == msense10_oth_err_count))
+            ret = 0;
+    }
     if (as_json) {
         FILE * fp = stdout;
 
@@ -3609,6 +3702,16 @@ fini:           /* error expected in ret, ret==0 means no error */
     if ((0 == op->do_quiet) && (non_spg_warning > 0))
         pr2serr("%d instances of mode subpage requested but non-subpage "
                 "returned\n", non_spg_warning);
+    if (vb > 1) {
+        pr2serr("mode_sense_6 counts: good=%d, pc_not_sup=%d, ill_req=%d, "
+                "oth_err=%d\n", msense6_good_count, msense6_pc_not_sup_count,
+                msense6_ill_req_count,
+                msense6_oth_err_count);
+        pr2serr("mode_sense_10 counts: good=%d, pc_not_sup=%d, ill_req=%d, "
+                "oth_err=%d\n", msense10_good_count,
+                msense10_pc_not_sup_count, msense10_ill_req_count,
+                msense10_oth_err_count);
+    }
     return ret;
 }
 

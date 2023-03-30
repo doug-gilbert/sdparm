@@ -261,23 +261,34 @@ is ignored in a subsequent invocation of the \fI\-\-inhex=FN\fR option.
 .br
 In a similar fashion the sg_modes utility can be used to generate hex
 output that this utility can parse. See the EXAMPLES section in the
-sg_modes(8) manpage.
+sg_modes(8) manpage. This option is not compatible with those options that
+cause JSON output.
 .TP
 \fB\-x\fR, \fB\-\-inner\-hex\fR
 instead of displaying mode page field values like
 this: "1  [cha: n, def:  1]" they are displayed as (up to) four hex bytes.
 The previous output becomes: "0x01 0x00 0x01 \-" that correspond to the
 current, changeable, default and saveable values respectively. If a value is
-not supported then a '\-' appears in it place.
+not supported then a '\-' appears in it place. This paragraph describes the
+action of this option when JSON output is not requested (i.e. when neither
+the \fI\-\-json[=JO]\fR nor the \fI\-\-js\-file=JFN\fR option is given).
 .br
 When used once, the field name acronym appears at the beginning of each
 line, followed by the 4 byte hex tuple. When used twice, only the 4 byte
 hex tuple appears on each line. To further cut down displayed "clutter"
 the mode page name's output can be suppressed with '\-qqq' .
 .br
-This option was introduced to make mode page field values easier to parse.
-The more recent addition of JSON output may be a better way to parse out
-these field values.
+The above paragraphs describe the action of this option when JSON output
+is not requested (i.e. when neither the \fI\-\-json[=JO]\fR nor the
+\fI\-\-js\-file=JFN\fR option is given).
+.br
+When this option is used together with the \fI\-\-json[=JO]\fR or
+\fI\-\-js\-file=JFN\fR option then the name of the mode page subobject
+is changed to 'mode_page_<pn>_<spn>' where <pn> is two hex digits representing
+the page number and <spn> is two hex digits representing the subpage
+number. The hex uses lower case 'a' through 'f'. The first element of that
+subobject is named 'mp_name' and its value is a string containing the mode
+page name as it appears in the T10 documents.
 .TP
 \fB\-I\fR, \fB\-\-inhex\fR=\fIFN\fR
 \fIFN\fR is expected to be a file name (or '\-' for stdin) which contains
@@ -494,11 +505,10 @@ or a trailing 'h' or 'H' (i.e. the convention used at www.t10.org ). In
 the case of \fI\-\-page\fR= either a string or number is expected, so hex
 numbers like 'ch' (12) should be prefixed by a zero (e.g. '0ch').
 .PP
-The SPC\-4 draft (rev 2) says that devices that implement no
-distinction between current and saved pages can return an
-error (ILLEGAL REQUEST, invalid field in cdb) if the SP bit (which
-corresponds to the \fI\-\-save\fR option) is _not_ set. In such cases
-the \fI\-\-save\fR option needs to be given.
+The SPC\-4 draft (rev 2) says that devices that implement no distinction
+between current and saved pages can return an error (ILLEGAL REQUEST, invalid
+field in cdb) if the SP bit (which corresponds to the \fI\-\-save\fR option)
+is _not_ set. In such cases the \fI\-\-save\fR option needs to be given.
 .PP
 If the \fI\-\-save\fR option is given but the existing mode page indicates (via
 its PS bit) that the page is not saveable, then this utility generates
@@ -538,6 +548,10 @@ start the disk again some time later. The user might additionally mark
 the disk as "offline" with 'echo offline > /sys/block/sda/device/state'
 where sda is the block name of the disk. To restart the disk "offline"
 can be replaced with "running".
+.PP
+There is no option that causes ASCII hex produced by the \fI\-\-hex\fR
+option to produce binary instead. If binary is required, the
+sg_decode_sense utility in the sg3_utils package can be used to do that.
 .SH PARAMETERS
 In their simplest form the \fI\-\-clear\fR=, \fI\-\-get\fR= and
 \fI\-\-set\fR= options (or their short forms) take an acronym_name such
@@ -1083,5 +1097,6 @@ There is a web page discussing this package at
 https://sg.danny.cz/sg/sdparm.html .
 .SH "SEE ALSO"
 .B sdparm_json(8), hdparm(hdparm),
-.B sg_modes, sg_wr_mode, sginfo, sg_inq, sg_vpd(all in sg3_utils),
-.B smartmontools(smartmontools.sourceforge.net), mt, eject(eject),
+.B sg_modes, sg_wr_mode, sginfo, sg_inq, sg_vpd, sg_decode_sense
+.B (all in sg3_utils), smartmontools(smartmontools.sourceforge.net)
+.B mt(mt-st), eject(eject)
