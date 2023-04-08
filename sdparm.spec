@@ -32,6 +32,7 @@ such that the disk stops operating or is slowed down. Use with care.
 %setup -q
 
 %build
+./autogen.sh
 %configure
 
 %install
@@ -56,7 +57,7 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Wed Mar 22 2023 - dgilbert at interlog dot com
+* Sat Apr 08 2023 - dgilbert at interlog dot com
 - track recent spc6 and sbc5 drafts
   * sdparm-1.13
 * Wed Apr 21 2021 - dgilbert at interlog dot com
