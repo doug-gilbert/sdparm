@@ -81,7 +81,9 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.17 20230408 [svn: r376]";
+static const char * version_str = "1.17 20230420 [svn: r377]";
+
+static const char * my_name = "sdparm: ";
 
 
 static uint8_t * inhex_buffp;
@@ -3375,6 +3377,8 @@ main(int argc, char * argv[])
     memset(mps, 0, sizeof(* mps));
     t_com_pdt = -1;
 
+    if (getenv("SG3_UTILS_INVOCATION"))
+        sg_rep_invocation(my_name, version_str, argc, argv, stderr);
     res = sdp_parse_cmdline(op, argc, argv, device_name_arr);
     if (res) {
         if (SG_LIB_OK_FALSE == res)

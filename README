@@ -6,7 +6,8 @@ command set. Apart form SCSI disks, examples of devices that use SCSI command
 sets are ATAPI CD/DVD drives, SCSI and ATAPI tape drives and SCSI enclosures.
 
 This utility was originally written for Linux. It has been ported to FreeBSD,
-Solaris, Tru64, and Windows.
+NetBSD, Solaris, Tru64, and Windows. There are some tweaks to the Linux port
+to support Android.
 
 Relationship to sg3_utils
 -------------------------
@@ -271,4 +272,4 @@ SCSI5:0,112,0 claimed=0 pdt=10h         LSI       PSEUDO DEVICE     2.34
 
 
 Douglas Gilbert
-21th February 2023
+2th April 2023
