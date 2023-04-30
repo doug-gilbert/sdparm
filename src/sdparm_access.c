@@ -267,8 +267,8 @@ sdp_usage(const struct sdparm_opt_coll * op)
             "    --clear=STR | -c STR    clear (zero) field value(s), or "
             "set to 'val'\n"
             "    --dbd | -B            set DBD bit in mode sense cdb "
-	    "(disable\n"
-	    "                          block descriptors)\n"
+            "(disable\n"
+            "                          block descriptors)\n"
             "    --defaults | -D       set a mode page to its default "
             "values\n"
             "                          when use twice set all pages to "
@@ -662,7 +662,7 @@ sdp_parse_cmdline(struct sdparm_opt_coll * op, int argc, char * argv[],
             ++op->do_long;
             break;
         case 'M':
-            if (isalpha(optarg[0])) {
+            if (isalpha((uint8_t)optarg[0])) {
                 vnp = sdp_find_vendor_by_acron(optarg);
                 if (NULL == vnp) {
                     pr2serr("abbreviation does not match a vendor\n");
@@ -723,7 +723,7 @@ sdp_parse_cmdline(struct sdparm_opt_coll * op, int argc, char * argv[],
         case 'P':
             if ('-' == optarg[0])
                 op->cl_pdt = -1;           /* those in SPC */
-            else if (isdigit(optarg[0])) {
+            else if (isdigit((uint8_t)optarg[0])) {
                 op->cl_pdt = sg_get_num_nomult(optarg);
                 if ((op->cl_pdt < 0) || (op->cl_pdt > 0x1f)) {
                     pr2serr("--pdt= argument should be -1 to 31 or "
@@ -762,7 +762,7 @@ sdp_parse_cmdline(struct sdparm_opt_coll * op, int argc, char * argv[],
             op->save = true;
             break;
         case 't':
-            if (isalpha(optarg[0])) {
+            if (isalpha((uint8_t)optarg[0])) {
                 t_proto = sdp_find_transport_id_by_acron(optarg);
                 if (t_proto < 0) {
                     pr2serr("abbreviation does not match a transport "

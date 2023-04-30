@@ -81,7 +81,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.17 20230420 [svn: r377]";
+static const char * version_str = "1.17 20230429 [svn: r378]";
 
 static const char * my_name = "sdparm: ";
 
@@ -2770,8 +2770,8 @@ build_mp_settings(const char * arg, struct sdparm_mp_settings_t * mps,
         } else
             strncpy(b, cp, (blen - 1));
         colon = strchr(b, ':') ? 1 : 0;
-        if ((isalpha(b[0]) && (! colon)) ||
-            (isdigit(b[0]) && ('_' == b[1]))) { /* expect acronym */
+        if ((isalpha((uint8_t)b[0]) && (! colon)) ||
+            (isdigit((uint8_t)b[0]) && ('_' == b[1]))) { /* expect acronym */
             ecp = strchr(b, '=');
             if (ecp) {
                 strncpy(acron, b, ecp - b);
@@ -3254,7 +3254,7 @@ parse_page_str(int * t_com_pdtp, struct sdparm_opt_coll * op)
     if ((0 == strcmp("-1", pg_str)) || (0 == strcmp("-2", pg_str))) {
         op->inquiry = true;
         pn = VPD_NOT_STD_INQ;
-    } else if (isalpha(pg_str[0])) {
+    } else if (isalpha((uint8_t)pg_str[0])) {
         while ( true ) {      /* dummy loop, exit using break */
             mnp = sdp_find_mp_nm_by_acron(pg_str, trans, op->vendor_id);
             if (mnp)
