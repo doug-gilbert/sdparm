@@ -650,17 +650,17 @@ decode_dev_constit_vpd(uint8_t * buff, int len, int req_pdt, bool protect,
         strcpy(d, "T10_vendor_identification");
         snprintf(b, blen, "%.8s", bp + 4);
         sgj_pr_hr(jsp, "    %s: %s\n", d, b);
-        d[0] = tolower(d[0]);
+        d[0] = tolower((uint8_t)d[0]);
         sgj_js_nv_s(jsp, jo2p, d, b);
         strcpy(d, "Product_identification");
         snprintf(b, blen, "%.16s", bp + 12);
         sgj_pr_hr(jsp, "    %s: %s\n", d, b);
-        d[0] = tolower(d[0]);
+        d[0] = tolower((uint8_t)d[0]);
         sgj_js_nv_s(jsp, jo2p, d, b);
         strcpy(d, "Product_revision_level");
         snprintf(b, blen, "%.4s", bp + 28);
         sgj_pr_hr(jsp, "    %s: %s\n", d, b);
-        d[0] = tolower(d[0]);
+        d[0] = tolower((uint8_t)d[0]);
         sgj_js_nv_s(jsp, jo2p, d, b);
         csd_len = sg_get_unaligned_be16(bp + 34);
         bump = 36 + csd_len;
@@ -2946,7 +2946,6 @@ decode_format_presets_vpd(const uint8_t * buff, int len,
     static const char * llczp = "Low LBA conventional zones percentage";
     static const char * hlczp = "High LBA conventional zones percentage";
     static const char * ztzd = "Zone type for zone domain";
-    static const char * const fp_vpdp = "Format presets VPD page";
 
 #if 0
     if (op->do_hex > 0) {
@@ -3656,19 +3655,21 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn, int req_pdt, bool protect,
                 pr2serr("%s: do_all=%d, skip pn!=b[1] loop\n", __func__,
                         op->do_all);
         } else if (pn != b[1]) {
-            int off, l_pn;
+            /* told to look for specific page from --inhex input but we are
+             * not there at the moment. So scan whole --inhex buffer */
+            int k, l_pn;
             int bump = 4;
             int prev_l_pn = -1;
             uint8_t * rp;
 
-            for (off = 0; off < sz; off += bump) {
-                rp = b + off;
+            for (k = 0; k < sz; k += bump) {
+                rp = b + k;
                 l_pn = rp[1];
                 bump = sg_get_unaligned_be16(rp + 2) + 4;
-                if ((off + bump) > sz) {
+                if ((k + bump) > sz) {
                     pr2serr("%s: page 0x%x size (%d) exceeds buffer\n",
                             __func__, l_pn, bump);
-                    bump = sz - off;
+                    bump = sz - k;
                 }
                 if (l_pn <= prev_l_pn) {
                     pr2serr("%s: prev_pn=0x%x, this pn=0x%x, not ascending so "
@@ -3691,7 +3692,7 @@ sdp_process_vpd_page(int sg_fd, int pn, int spn, int req_pdt, bool protect,
                 b = rp;
                 break;
             }
-            if (off >= sz) {
+            if (k >= sz) {
                 pr2serr("VPD page 0x%x not found in %s\n", pn,
                         op->inhex_fn ? op->inhex_fn : "");
                 ret = SG_LIB_CAT_OTHER;

@@ -115,7 +115,7 @@ static void mp_rd_usage(bool long_opt)
               );
     else
         pr2serr(
-            "    sdparm [-a] [-B] [-E] [-f] [-g STR] [-H] [-x] [-j[JO]] "
+            "    sdparm [-a] [-B] [-E] [-f] [-g STR] [-H] [-x] [-j[=JO]] "
             "[-J JFN] [-l]\n"
             "           [-n] [-o OM] [-p PG[,SPG]] [-q] [-r] [-6] [-t TN] "
             "[-M VN] [-v]\n"
@@ -155,7 +155,7 @@ static void inq_usage(bool long_opt)
               );
     else
         pr2serr(
-            "    sdparm -i [-a] [-E] [-f] [-H] [-j[JO]] [-J JFN] [-n] "
+            "    sdparm -i [-a] [-E] [-f] [-H] [-j[=JO]] [-J JFN] [-n] "
             "[-p PG[,SPG]]\n"
             "           [-q] [-r] [-t TN]  [-M VN] [-v] DEVICE [DEVICE...]\n"
               );
@@ -187,7 +187,7 @@ static void enum_usage(bool long_opt)
               );
     else
         pr2serr(
-            "    sdparm -e [-a] [-F] [-g STR] [-i] [-j[JO]] [-J JFN] [-l]\n"
+            "    sdparm -e [-a] [-F] [-g STR] [-i] [-j[=JO]] [-J JFN] [-l]\n"
             "           [-p PG[,SPG]] [-t TN] [-M VN]\n"
               );
 }
@@ -206,7 +206,7 @@ static void inhex_usage(bool long_opt)
               );
     else
         pr2serr(
-            "    sdparm -I FN [-a] [-f] [-g STR] [-H] [-x] [-i] [-j[JO]] "
+            "    sdparm -I FN [-a] [-f] [-g STR] [-H] [-x] [-i] [-j[=JO]] "
             "[-J JFN]\n"
             "           [-l] [-o ,IM] [-p PG[,SPG]] [-P PDT] [-R] [-6] "
             "[-t TN]\n"
@@ -267,8 +267,8 @@ sdp_usage(const struct sdparm_opt_coll * op)
             "    --clear=STR | -c STR    clear (zero) field value(s), or "
             "set to 'val'\n"
             "    --dbd | -B            set DBD bit in mode sense cdb "
-	    "(disable\n"
-	    "                          block descriptors)\n"
+            "(disable\n"
+            "                          block descriptors)\n"
             "    --defaults | -D       set a mode page to its default "
             "values\n"
             "                          when use twice set all pages to "
@@ -282,9 +282,9 @@ sdp_usage(const struct sdparm_opt_coll * op)
             "    --hex | -H            output in hex rather than name/value "
             "pairs\n"
             "    --inner-hex | -x      print innermost fields in hex\n"
-            "    --json[=JO] | -jJO    output in JSON instead of plain "
+            "    --json[=JO] | -j[=JO]    output in JSON instead of plain "
             "text\n"
-            "                          test. Use --json=? for JSON help\n"
+            "                             Use --json=? for JSON help\n"
             "    --long | -l           add description to field output\n"
             "    --num-desc | -n       report number of mode page "
             "descriptors\n"
@@ -418,7 +418,7 @@ sdp_usage(const struct sdparm_opt_coll * op)
                 "              [--out=mask=,IM] [--pdt=DT] [--raw] [--six]\n"
                 "              [--transport=TN] [--vendor=VN] [--verbose]\n\n"
                 "Or the corresponding short option usage: \n"
-                "  sdparm [-a] [-B] [-E] [-f] [-g STR] [-H] [-x] [-j[JO]] "
+                "  sdparm [-a] [-B] [-E] [-f] [-g STR] [-H] [-x] [-j[=JO]] "
                 "[-J JFN] [-l]\n"
                 "         [-n] [-o OM] [-p PG[,SPG]] [-q] [-r] [-6] [-t TN] "
                 "[-M VN] [-v]\n"
@@ -430,14 +430,14 @@ sdp_usage(const struct sdparm_opt_coll * op)
                 "\n"
                 "  sdparm -C CMD [-H] [-l] [-r] [-v] DEVICE [DEVICE...]\n"
                 "\n"
-                "  sdparm -i [-a] [-E] [-f] [-H] [-j[JO]] [-J JFN] [-n] "
+                "  sdparm -i [-a] [-E] [-f] [-H] [-j[=JO]] [-J JFN] [-n] "
                 "[-p PG[,SPG]]\n"
                 "         [-q] [-r] [-t TN]  [-M VN] [-v] DEVICE "
                 "[DEVICE...]\n"
                 "\n"
                 "  sdparm -e [-a] [-i] [-l] [-p PG[,SPG]] [-t TN] [-M VN]\n"
                 "\n"
-                "  sdparm -I FN [-a] [-f] [-H] [-x] [-j[JO]] [-J JFN] [-i] "
+                "  sdparm -I FN [-a] [-f] [-H] [-x] [-j[=JO]] [-J JFN] [-i] "
                 "[-l]\n"
                 "         [-o ,IM] [-P PDT] [-R] [-6] [-t TN] [-M VN] [-v]\n"
                    );
@@ -469,9 +469,9 @@ sdp_usage(const struct sdparm_opt_coll * op)
             "acronym or pos\n"
             "    --hex | -H            output in hex rather than name/value "
             "pairs\n"
-            "    --json[=JO]|-jJO      output in JSON instead of plain "
+            "    --json[=JO]|-j[=JO]    output in JSON instead of plain "
             "text\n"
-            "                          test. Use --json=? for JSON help\n"
+            "                           Use --json=? for JSON help\n"
             "    --js-file=JFN|-J JFN    JFN is a filename to which JSON "
             "output is\n"
             "                            written (def: stdout); truncates "
@@ -565,6 +565,98 @@ sdp_usage(const struct sdparm_opt_coll * op)
     }
 }
 
+/* Handles short options after '-j' including a sequence of short options
+ * that include one 'j' (for JSON). Want optional argument to '-j' to be
+ * prefixed by '='. Return 0 for good, SG_LIB_SYNTAX_ERROR for syntax error
+ * and SG_LIB_OK_FALSE for exit with no error. */
+static int
+chk_short_opts(const char sopt_ch, struct sdparm_opt_coll * op)
+{
+    /* only need to process short, non-argument options */
+    switch (sopt_ch) {
+    case '6':
+        op->mode_6 = true;
+        break;
+    case 'a':
+        ++op->do_all;
+        break;
+    case 'B':
+        op->dbd = true;
+        break;
+    case 'd':
+        op->dummy = true;
+        break;
+    case 'D':
+        ++op->defaults;
+        op->do_rw = true;
+        break;
+    case 'e':
+        ++op->do_enum;
+        break;
+    case 'E':
+        op->examine = true;
+        break;
+    case 'f':
+        op->flexible = true;
+        break;
+    case 'F':
+        ++op->do_flags;
+        break;
+    case 'h':
+        ++op->do_help;
+        break;
+    case '?':
+        pr2serr("\n");
+        sdp_usage(op);
+        return SG_LIB_OK_FALSE;
+    case 'H':
+        ++op->do_hex;
+        break;
+    case 'i':
+        op->inquiry = true;
+        break;
+    case 'j':
+        break;  /* simply ignore second 'j' (e.g. '-jxj') */
+    case 'l':
+        ++op->do_long;
+        break;
+    case 'n':
+        op->num_desc = true;
+        break;
+    case 'q':
+        ++op->do_quiet;
+        break;
+    case 'r':
+        op->read_only = true;
+        break;
+    case 'R':
+        op->do_raw = true;
+        break;
+    case 'S':
+        op->save = true;
+        break;
+    case 'v':
+        op->verbose_given = true;
+        ++op->verbose;
+        break;
+    case 'V':
+        op->version_given = true;
+        break;
+#ifdef SG_LIB_WIN32
+    case 'w':
+        ++op->do_wscan;
+        break;
+#endif
+    case 'x':
+        ++op->inner_hex;
+        break;
+    default:
+        pr2serr("unrecognised option code %c [0x%x] ??\n", sopt_ch, sopt_ch);
+        return SG_LIB_SYNTAX_ERROR;
+    }
+    return 0;
+}
+
 int
 sdp_parse_cmdline(struct sdparm_opt_coll * op, int argc, char * argv[],
                   const char * device_name_arr[])
@@ -652,7 +744,24 @@ sdp_parse_cmdline(struct sdparm_opt_coll * op, int argc, char * argv[],
             break;
         case 'j':
             op->do_json = true;
-            op->json_arg = optarg;
+            /* Now want '=' to precede JSON optional arguments */
+            if (optarg) {
+                int k, n, q;
+
+                if ('=' == *optarg) {
+                    op->json_arg = optarg + 1;
+                    break;
+                }
+                n = strlen(optarg);
+                for (k = 0; k < n; ++k) {
+                    q = chk_short_opts(*(optarg + k), op);
+                    if (SG_LIB_SYNTAX_ERROR == q)
+                        return SG_LIB_SYNTAX_ERROR;
+                    if (SG_LIB_OK_FALSE == q)
+                        return 0;
+                }
+            } else
+                op->json_arg = NULL;
             break;
         case 'J':
             op->do_json = true;
@@ -662,7 +771,7 @@ sdp_parse_cmdline(struct sdparm_opt_coll * op, int argc, char * argv[],
             ++op->do_long;
             break;
         case 'M':
-            if (isalpha(optarg[0])) {
+            if (isalpha((uint8_t)optarg[0])) {
                 vnp = sdp_find_vendor_by_acron(optarg);
                 if (NULL == vnp) {
                     pr2serr("abbreviation does not match a vendor\n");
@@ -723,7 +832,7 @@ sdp_parse_cmdline(struct sdparm_opt_coll * op, int argc, char * argv[],
         case 'P':
             if ('-' == optarg[0])
                 op->cl_pdt = -1;           /* those in SPC */
-            else if (isdigit(optarg[0])) {
+            else if (isdigit((uint8_t)optarg[0])) {
                 op->cl_pdt = sg_get_num_nomult(optarg);
                 if ((op->cl_pdt < 0) || (op->cl_pdt > 0x1f)) {
                     pr2serr("--pdt= argument should be -1 to 31 or "
@@ -762,7 +871,7 @@ sdp_parse_cmdline(struct sdparm_opt_coll * op, int argc, char * argv[],
             op->save = true;
             break;
         case 't':
-            if (isalpha(optarg[0])) {
+            if (isalpha((uint8_t)optarg[0])) {
                 t_proto = sdp_find_transport_id_by_acron(optarg);
                 if (t_proto < 0) {
                     pr2serr("abbreviation does not match a transport "

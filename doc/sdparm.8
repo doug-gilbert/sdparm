@@ -1,4 +1,4 @@
-.TH SDPARM "8" "April 2023" "sdparm\-1.13" SDPARM
+.TH SDPARM "8" "May 2023" "sdparm\-1.13" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands
 .SH SYNOPSIS
@@ -324,11 +324,12 @@ output.
 \fI\-\-page=sinq\fR or \fI\-\-page=\-1\fR given with this option will
 output the standard INQUIRY response instead of a VPD page.
 .TP
-\fB\-j[JO]\fR, \fB\-\-json[=JO]\fR
-See the accompanying sdparm_json(8) manpage. Note that the \fIJO\fR argument
-is itself optional. The optional argument to the short form is shown here
-to stress that in this case there is no space between the "j" and its
-optional argument.
+\fB\-j\fR[=\fIJO\fR], \fB\-\-json\fR[=\fIJO\fR]
+output is in JSON format instead of plain text form. Note that arguments
+to the short and long form are themselves optional and if present start
+with "=" and no whitespace is permitted around that "=".
+.br
+See the sdparm_json(8) manpage or use '?' for \fIJO\fR to get a summary.
 .TP
 \fB\-J\fR, \fB\-\-js\-file\fR=\fIJFN\fR
 See the accompanying sdparm_json(8) manpage.
