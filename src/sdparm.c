@@ -81,7 +81,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.17 20230429 [svn: r378]";
+static const char * version_str = "1.17 20230508 [svn: r379]";
 
 static const char * my_name = "sdparm: ";
 
@@ -538,7 +538,7 @@ get_out_but_expect_back:
         else
             n = sg_scnpr(b, blen, "[0x%02x:%d:%-2d] ", mpip->start_byte,
                          mpip->start_bit, mpip->num_bits);
-        k = strlen(b);  /* k wil be > 0 */
+        k = strlen(b);  /* k will be > 0 */
         memcpy(e, b, k);
         e[k - 1] = '\0';        /* purposely trim last character (a space) */
         if (op->do_flags > 0) {
