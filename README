@@ -16,12 +16,11 @@ Starting with sdparm version 1.02 this package shares code with sg3_utils
 system this is done by having sdparm's "include/" and "lib/" subdirectories
 pointing to the correspondingly named directories in the sg3_utils package
 using the "svn:externals" property. These two "external" directories include
-more files than sdparm uses. The excess files include "lib/Makefile.am" and
-"lib/Makefile.in". The "Makefile.am" in sdparm's "src/" directory does the
-main part of the build. When the tarball is generated for this utility,
-various files are "exported" out of the subversion repository and
-"svn:externals" redirection is no longer visible (but the unused files are
-visible).
+more files than sdparm uses. One excess file is "lib/Makefile.am". The
+"Makefile.am" in sdparm's "src/" directory does the main part of the build.
+When the tarball is generated for this utility, various files are "exported"
+out of the subversion repository and "svn:externals" redirection is no
+longer visible (but the unused files are visible).
 
 The sdparm executable may or may not be built depending on the libsgutils
 (shared) library. Currently the ./configure rules are looking for a library
@@ -40,6 +39,13 @@ There is also a man page which is in section 8 (administration and privileged
 commands). It can be accessed with "man sdparm" once this package is
 installed. Prior to installation the man page can be viewed from this
 package's main directory with "man doc/sdparm.8".
+
+In sdparm version/release 1.13 (around subversion revision 380) JSON support
+on output was added. The default is still to produce plain text output, often
+indented to show levels of nesting. New '--json[=JO]' and '--js-file=JFN'
+options have been added. See "man doc/sdparm_json.8" for more details. Note
+that input to the sdparm utility (e.g. 'sdparm --set=WCE=0 /dev/sg3') remains
+in "name=value" form only (from the previous example: name=WCE and value=0).
 
 There is a web page about this utility at https://sg.danny.cz/sg/sdparm.html .
 
@@ -272,4 +278,4 @@ SCSI5:0,112,0 claimed=0 pdt=10h         LSI       PSEUDO DEVICE     2.34
 
 
 Douglas Gilbert
-2th April 2023
+11th April 2023

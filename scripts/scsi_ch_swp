@@ -103,7 +103,7 @@ elif [ "$swp" = "0" ] ; then
     # if [ $res -ne 0 ] ; then
         # exit $res
     # fi
-    ## There is still some uncertainity whether calling blockdev --rereadpt
+    ## There is still some uncertainty whether calling blockdev --rereadpt
     ## is needed or defeats this operation. Feedback please.
     # # Need to re-read partition table before --setro takes effect
     # if [ ${bdverbose} ] ; then
@@ -127,7 +127,7 @@ elif [ "$swp" = "1" ] ; then
     # if [ $res -ne 0 ] ; then
         # exit $res
     # fi
-    ## There is still some uncertainity whether calling blockdev --rereadpt
+    ## There is still some uncertainty whether calling blockdev --rereadpt
     ## is needed or defeats this operation. Feedback please.
     # # Need to re-read partition table before --setrw takes effect
     # if [ ${bdverbose} ] ; then

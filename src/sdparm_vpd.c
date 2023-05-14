@@ -43,6 +43,7 @@
 #include "sg_unaligned.h"
 #include "sdparm.h"
 #include "sg_pr2serr.h"
+#include "sg_json_sense.h"
 
 /* sdparm_vpd.c : does mainly VPD page processing associated with the
  * INQUIRY SCSI command.
