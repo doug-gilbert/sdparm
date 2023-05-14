@@ -54,6 +54,10 @@ sglib_SOURCES =		../lib/sg_lib.c \
 			../include/sg_cmds_mmc.h	\
 			../lib/sg_pr2serr.c	\
 			../include/sg_pr2serr.h	\
+			../lib/sg_json.c	\
+			../include/sg_json.h	\
+			../lib/sg_json_sense.c	\
+			../include/sg_json_sense.h	\
 			../lib/sg_json_builder.c	\
 			../lib/sg_json_builder.h	\
 			../include/sg_pt.h	\
