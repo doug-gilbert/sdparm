@@ -72,7 +72,7 @@ static struct option long_options[] = {
     {"inhex", required_argument, 0, 'I'},
     {"inner-hex", no_argument, 0, 'x'},
     {"inner_hex", no_argument, 0, 'x'},
-    {"json", optional_argument, 0, 'j'},
+    {"json", optional_argument, 0, '^'},    /* short option is '-j' */
     {"js-file", required_argument, 0, 'J'},
     {"js_file", required_argument, 0, 'J'},
     {"long", no_argument, 0, 'l'},
@@ -670,11 +670,11 @@ sdp_parse_cmdline(struct sdparm_opt_coll * op, int argc, char * argv[],
 
 #ifdef SG_LIB_WIN32
         c = getopt_long(argc, argv,
-                        "6aBc:C:dDeEfFg:hHiI:j::J:lM:no:p:P:qrRs:St:vVwx",
+                        "^6aBc:C:dDeEfFg:hHiI:j::J:lM:no:p:P:qrRs:St:vVwx",
                         long_options, &option_index);
 #else
         c = getopt_long(argc, argv,
-                        "6aBc:C:dDeEfFg:hHiI:j::J:lM:no:p:P:qrRs:St:vVx",
+                        "^6aBc:C:dDeEfFg:hHiI:j::J:lM:no:p:P:qrRs:St:vVx",
                         long_options, &option_index);
 #endif
         if (c == -1)
@@ -742,13 +742,17 @@ sdp_parse_cmdline(struct sdparm_opt_coll * op, int argc, char * argv[],
         case 'I':
             op->inhex_fn = optarg;
             break;
-        case 'j':
+        case 'j':       /* for: -j[=JO] */
+        case '^':       /* for: --json[=JO] */
             op->do_json = true;
-            /* Now want '=' to precede JSON optional arguments */
+            /* Now want '=' to precede all JSON optional arguments */
             if (optarg) {
                 int k, n, q;
 
-                if ('=' == *optarg) {
+                if ('^' == c) {
+                    op->json_arg = optarg;
+                    break;
+                } else if ('=' == *optarg) {
                     op->json_arg = optarg + 1;
                     break;
                 }
