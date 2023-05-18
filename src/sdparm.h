@@ -10,7 +10,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "sg_json.h"
+#include "sg_json_sg_lib.h"
 
 #ifdef __cplusplus
 extern "C" {
