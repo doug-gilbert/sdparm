@@ -567,12 +567,11 @@ decode_mode_policy_vpd(const uint8_t * buff, int len,
         if (op->do_hex > 1)
             hex2stdout(bp, 4, 1);
         else {
-            n = 0;
             ppc =  (bp[0] & 0x3f);
             pspc = bp[1];
-            n = sg_scnpr(b + n, blen - n, "  Policy page code: 0x%x", ppc);
+            n = sg_scnpr(b, blen, "  Policy page code: 0x%x", ppc);
             if (pspc)
-                sg_scnpr(b + n, blen - n, ",  subpage code: 0x%x", pspc);
+                sg_scn3pr(b, blen, n, ",  subpage code: 0x%x", pspc);
             sgj_pr_hr(jsp, "%s\n", b);
             if ((0 == k) && (0x3f == (0x3f & bp[0])) && (0xff == bp[1]))
                 sgj_pr_hr(jsp, "  therefore the policy applies to all modes "
@@ -1962,20 +1961,20 @@ decode_ata_info_vpd(const uint8_t * buff, int len, struct sdparm_opt_coll * op,
         cp = NULL;
     is_be = sg_is_big_endian();
     if (cp) {
-        n += sg_scnpr(b + n, blen - n, "  ATA command IDENTIFY %sDEVICE "
+        n += sg_scn3pr(b, blen, n, "  ATA command IDENTIFY %sDEVICE "
                       "response summary:\n", cp);
         num = sg_ata_get_chars((const unsigned short *)(buff + 60), 27, 20,
                                is_be, d);
         d[num] = '\0';
-        n += sg_scnpr(b + n, blen - n, "    model: %s\n", d);
+        n += sg_scn3pr(b, blen, n, "    model: %s\n", d);
         num = sg_ata_get_chars((const unsigned short *)(buff + 60), 10, 10,
                                is_be, d);
         d[num] = '\0';
-        n += sg_scnpr(b + n, blen - n, "    serial number: %s\n", d);
+        n += sg_scn3pr(b, blen, n, "    serial number: %s\n", d);
         num = sg_ata_get_chars((const unsigned short *)(buff + 60), 23, 4,
                                is_be, d);
         d[num] = '\0';
-        sg_scnpr(b + n, blen - n, "    firmware revision: %s\n", d);
+        sg_scn3pr(b, blen, n, "    firmware revision: %s\n", d);
         sgj_pr_hr(jsp, "%s", b);
         if (do_long_nq)
             sgj_pr_hr(jsp, "  ATA command IDENTIFY %sDEVICE response in "
@@ -2621,9 +2620,9 @@ decode_tapealert_supported_vpd(const uint8_t * buff, int len,
                 sgj_pr_hr(jsp, "%s\n", b);
                 n = 0;
             }
-            n += sg_scnpr(b + n, blen - n, "  Flag%02Xh: %d", k, supp);
+            n += sg_scn3pr(b, blen, n, "  Flag%02Xh: %d", k, supp);
         } else
-            n += sg_scnpr(b + n, blen - n, "  %02Xh: %d", k, supp);
+            n += sg_scn3pr(b, blen, n, "  %02Xh: %d", k, supp);
     }
     sgj_pr_hr(jsp, "%s\n", b);
 }
@@ -2805,10 +2804,10 @@ decode_block_dev_char_ext_vpd(const uint8_t * buff, int len,
                   u, true, (b_active ? NULL : rsv_s));
     n = sg_scnpr(b, blen, "%s: ", "Designed utilization");
     if (b_active)
-        n += sg_scnpr(b + n, blen - n, "%u %s for reads and ", u, uup);
+        n += sg_scn3pr(b, blen, n, "%u %s for reads and ", u, uup);
     u = sg_get_unaligned_be32(buff + 12);
     sgj_haj_vi(jsp, jop, 2, "Utilization A", SGJ_SEP_COLON_1_SPACE, u, true);
-    sg_scnpr(b + n, blen - n, "%u %s for %swrites, %s", u, uup,
+    sg_scn3pr(b, blen, n, "%u %s for %swrites, %s", u, uup,
              combined ? "reads and " : null_s, uip);
     sgj_pr_hr(jsp, "  %s\n", b);
     if (jsp->pr_string)
@@ -3509,14 +3508,13 @@ decode_std_inq(int blen, uint8_t * b, struct sdparm_opt_coll * op,
               "[BQue=%d]\n", !!(b[5] & 0x80), !!(b[5] & 0x40),
               ((b[5] & 0x30) >> 4), !!(b[5] & 0x08), !!(b[5] & 0x01),
               !!(b[6] & 0x80));
-    n = 0;
-    n += sg_scnpr(c + n, clen - n, "EncServ=%d  ", !!(b[6] & 0x40));
+    n = sg_scnpr(c, clen, "EncServ=%d  ", !!(b[6] & 0x40));
     if (b[6] & 0x10)
-        n += sg_scnpr(c + n, clen - n, "MultiP=1 (VS=%d)  ", !!(b[6] & 0x20));
+        n += sg_scn3pr(c, clen, n, "MultiP=1 (VS=%d)  ", !!(b[6] & 0x20));
     else
-        n += sg_scnpr(c + n, clen - n, "MultiP=0  ");
-    sg_scnpr(c + n, clen - n, "[MChngr=%d]  [ACKREQQ=%d]  Addr16=%d",
-             !!(b[6] & 0x08), !!(b[6] & 0x04), !!(b[6] & 0x01));
+        n += sg_scn3pr(c, clen, n, "MultiP=0  ");
+    sg_scn3pr(c, clen, n, "[MChngr=%d]  [ACKREQQ=%d]  Addr16=%d",
+              !!(b[6] & 0x08), !!(b[6] & 0x04), !!(b[6] & 0x01));
     sgj_pr_hr(jsp, "  %s\n", c);
     sgj_pr_hr(jsp, "  [RelAdr=%d]  WBus16=%d  Sync=%d  [Linked=%d]  "
               "[TranDis=%d]  CmdQue=%d\n", !!(b[7] & 0x80), !!(b[7] & 0x20),
