@@ -57,7 +57,7 @@ fi
 %{_mandir}/man8/*
 
 %changelog
-* Mon May 08 2023 - dgilbert at interlog dot com
+* Fri May 19 2023 - dgilbert at interlog dot com
 - track recent spc6 and sbc5 drafts
   * sdparm-1.13
 * Wed Apr 21 2021 - dgilbert at interlog dot com

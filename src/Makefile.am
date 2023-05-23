@@ -8,9 +8,11 @@ bin_PROGRAMS = sdparm
 
 if DEBUG
 DBG_CFLAGS = -Wextra -Wmisleading-indentation -Wduplicated-cond -Wlogical-op -Wnull-dereference -Wshadow -Wjump-misses-init
+DBG_CXXFLAGS = -Wextra -Wmisleading-indentation -Wduplicated-cond -Wlogical-op -Wnull-dereference -Wshadow
 DBG_CPPFLAGS = -DDEBUG
 else
 DBG_CFLAGS =
+DBG_CXXFLAGS =
 DBG_CPPFLAGS =
 endif
 
@@ -20,11 +22,13 @@ AM_CFLAGS = -Wall -W $(DBG_CFLAGS)
 # AM_CFLAGS = -Wall -W -Wextra -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wlogical-op -Wnull-dereference -Wshadow -Wjump-misses-init
 # AM_CFLAGS = -Wall -W -Werror=misleading-indentation
 # AM_CFLAGS = -Wall -W -pedantic $(DBG_CFLAGS) -fanalyzer
+# AM_CFLAGS = -Wall -W -pedantic -std=c11 $(DBG_CFLAGS) --analyze
 # AM_CFLAGS = -Wall -W -pedantic -std=c11
 # AM_CFLAGS = -Wall -W -pedantic -std=c++14
-# AM_CFLAGS = -Wall -W -pedantic -std=c++20 $(DBG_CFLAGS)
-# AM_CFLAGS = -Wall -W -pedantic -std=c++20 --analyze $(DBG_CFLAGS)
-# AM_CFLAGS = -Wall -W -pedantic -std=c++23 $(DBG_CFLAGS)
+# AM_CFLAGS = -Wall -W -pedantic -std=c++17
+# AM_CFLAGS = -Wall -W -pedantic -std=c++20 $(DBG_CXXFLAGS)
+# AM_CFLAGS = -Wall -W -pedantic -std=c++20 --analyze $(DBG_CXXFLAGS)
+# AM_CFLAGS = -Wall -W -pedantic -std=c++23 $(DBG_CXXFLAGS)
 
 sdparm_SOURCES =	sdparm.c	\
 			sdparm.h	\

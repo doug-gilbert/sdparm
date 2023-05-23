@@ -81,7 +81,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.17 20230517 [svn: r381]";
+static const char * version_str = "1.17 20230523 [svn: r382]";
 
 static const char * my_name = "sdparm: ";
 
@@ -268,8 +268,8 @@ print_mpi_extra(const char * extra, struct sdparm_opt_coll * op,
             n = blen - 1;
         strncpy(b, p, n);
         b[n] = '\0';
-        m += sg_scnpr(d + m, dlen - m, "\t%s\n", b);
-        o += sg_scnpr(e + o, elen - o, "%s; ", b);
+        m += sg_scn3pr(d, dlen, m, "\t%s\n", b);
+        o += sg_scn3pr(e, elen, o, "%s; ", b);
     }
     sgj_pr_hr(jsp, "%s\t%s\n", d, p);
     if (op->do_json) {
@@ -341,8 +341,8 @@ enumerate_mit_flags_str(int flags, char * a, int alen)
     a[0] = '\0';
     for (n = 0, k = 0; k < MF_BITS_USED; ++k, mask <<= 1) {
         if (flags & mask) {
-            n += sg_scnpr(a + n, alen - n, "%s%s",
-                          first_done ? "," : "", mf_flags_str_a[k]);
+            n += sg_scn3pr(a, alen, n, "%s%s", first_done ? "," : "",
+                           mf_flags_str_a[k]);
             first_done = true;
         }
     }
@@ -542,10 +542,10 @@ get_out_but_expect_back:
         memcpy(e, b, k);
         e[k - 1] = '\0';        /* purposely trim last character (a space) */
         if (op->do_flags > 0) {
-            n += sg_scnpr(b + n, blen - n, "flags: ");
+            n += sg_scn3pr(b, blen, n, "flags: ");
             n += enumerate_mit_flags_str(mpip->flags, b + n, blen - n);
             if (0 == op->do_quiet)
-                /* n += */ sg_scnpr(b + n, blen - n, "  description:");
+                /* n += */ sg_scn3pr(b, blen, n, "  description:");
         }
         if (0 == op->do_quiet)
             sgj_pr_hr(jsp, "  %-10s %s %s\n", mpip->acron, b,
@@ -672,18 +672,18 @@ list_mp_settings(const struct sdparm_mp_settings_t * mps, bool getter,
         mpip = &mps->it_vals[k].mp_it;
         n = 0;
         if (getter)
-            n += sg_scnpr(b + n, blen - n, "  [0x%x,0x%x]", mpip->pg_num,
-                          mpip->subpg_num);
+            n = sg_scnpr(b, blen, "  [0x%x,0x%x]", mpip->pg_num,
+                         mpip->subpg_num);
 
-        n += sg_scnpr(b + n, blen - n, "  pdt=%d start_byte=0x%x "
-                      "start_bit=%d num_bits=%d  val=%" PRId64 "",
-                      mpip->com_pdt, mpip->start_byte, mpip->start_bit,
-                      mpip->num_bits, mps->it_vals[k].val);
+        n += sg_scn3pr(b, blen, n, "  pdt=%d start_byte=0x%x start_bit=%d "
+                       "num_bits=%d  val=%" PRId64 "", mpip->com_pdt,
+                       mpip->start_byte, mpip->start_bit, mpip->num_bits,
+                       mps->it_vals[k].val);
         if (mpip->acron) {
-            n += sg_scnpr(b + n, blen - n, "  acronym: %s", mpip->acron);
+            n += sg_scn3pr(b, blen, n, "  acronym: %s", mpip->acron);
             if (mps->it_vals[k].descriptor_num > 0)
-                sg_scnpr(b + n, blen - n, "  descriptor_num=%d\n",
-                         mps->it_vals[k].descriptor_num);
+                sg_scn3pr(b, blen, n, "  descriptor_num=%d\n",
+                          mps->it_vals[k].descriptor_num);
             else
                 sgj_pr_hr(jsp, "%s\n", b);
         } else
@@ -727,84 +727,84 @@ print_a_mitem(const char * pre, int smask,
         prt_pre = true;
         if (force_decimal || (mpip->flags & MF_TWOS_COMP)) {
             sdp_signed_decimal_str(u, mpip->num_bits, false, e, elen);
-            n += sg_scnpr(b + n, blen - n, "%s", e);
+            n += sg_scn3pr(b, blen, n, "%s", e);
         } else if (mpip->flags & MF_HEX) {
             if ((mpip->flags & MF_ALL_1S) && all_set)
-                n += sg_scnpr(b + n, blen - n, "-1");
+                n += sg_scn3pr(b, blen, n, "-1");
             else
-                n += sg_scnpr(b + n, blen - n, "0x%" PRIx64 "", u);
+                n += sg_scn3pr(b, blen, n, "0x%" PRIx64 "", u);
         } else if (all_set)
-            n += sg_scnpr(b + n, blen - n, "-1");
+            n += sg_scn3pr(b, blen, n, "-1");
         else
-            n += sg_scnpr(b + n, blen - n, "%" PRIu64 "", u);
+            n += sg_scn3pr(b, blen, n, "%" PRIu64 "", u);
         if ((mpip->flags & MF_STOP_IF_SET) && (u != 0))
             stop_if_set = true;
     }
     if ((smask & (MP_OM_CHA | MP_OM_DEF | MP_OM_SAV)) && (op->do_quiet < 2)) {
         if (prt_pre)
-            n += sg_scnpr(b + n, blen - n, "  [");
+            n += sg_scn3pr(b, blen, n, "  [");
         if (cha_mp && (smask & MP_OM_CHA)) {
             u = sdp_mitem_get_value(mpip, cha_mp);
             if (op->do_json)
                 sgj_js_nv_ihex(jsp, jo2p, cha_s, u);
             if (! prt_pre) {
-                n += sg_scnpr(b + n, blen - n, "%s%-14s  [", pre, acron);
+                n += sg_scn3pr(b, blen, n, "%s%-14s  [", pre, acron);
                 prt_pre = true;
             }
-            n += sg_scnpr(b + n, blen - n, "cha: %s", (u ? "y" : "n"));
+            n += sg_scn3pr(b, blen, n, "cha: %s", (u ? "y" : "n"));
             sep = true;
         }
         if (def_mp && (smask & MP_OM_DEF)) {
             if (! prt_pre) {
-                n += sg_scnpr(b + n, blen - n, "%s%-14s  [", pre, acron);
+                n += sg_scn3pr(b, blen, n, "%s%-14s  [", pre, acron);
                 prt_pre = true;
             }
             all_set = false;
             u = sdp_mitem_get_value_check(mpip, def_mp, &all_set);
             if (op->do_json)
                 sgj_js_nv_ihex(jsp, jo2p, def_s, u);
-            n += sg_scnpr(b + n, blen - n, "%sdef:", (sep ? ", " : " "));
+            n += sg_scn3pr(b, blen, n, "%sdef:", (sep ? ", " : " "));
             if (force_decimal || (mpip->flags & MF_TWOS_COMP)) {
                 sdp_signed_decimal_str(u, mpip->num_bits, false, e, elen);
-                n += sg_scnpr(b + n, blen - n, "%s", e);
+                n += sg_scn3pr(b, blen, n, "%s", e);
             } else if (mpip->flags & MF_HEX) {
                 if ((mpip->flags & MF_ALL_1S) && all_set)
-                    n += sg_scnpr(b + n, blen - n, "-1");
+                    n += sg_scn3pr(b, blen, n, "-1");
                 else
-                    n += sg_scnpr(b + n, blen - n, "0x%" PRIx64 "", u);
+                    n += sg_scn3pr(b, blen, n, "0x%" PRIx64 "", u);
             } else if (all_set)
-                n += sg_scnpr(b + n, blen - n, " -1");
+                n += sg_scn3pr(b, blen, n, " -1");
             else
-                n += sg_scnpr(b + n, blen - n, "%3" PRIu64 "", u);
+                n += sg_scn3pr(b, blen, n, "%3" PRIu64 "", u);
             sep = true;
         }
         if (sav_mp && (smask & MP_OM_SAV)) {
             if (! prt_pre) {
-                n += sg_scnpr(b + n, blen - n, "%s%-14s  [", pre, acron);
+                n += sg_scn3pr(b, blen, n, "%s%-14s  [", pre, acron);
                 // prt_pre = true;
             }
             all_set = false;
             u = sdp_mitem_get_value_check(mpip, sav_mp, &all_set);
             if (op->do_json)
                 sgj_js_nv_ihex(jsp, jo2p, sav_s, u);
-            n += sg_scnpr(b + n, blen - n, "%ssav:", (sep ? ", " : " "));
+            n += sg_scn3pr(b, blen, n, "%ssav:", (sep ? ", " : " "));
             if (force_decimal || (mpip->flags & MF_TWOS_COMP)) {
                 sdp_signed_decimal_str(u, mpip->num_bits, false, e, elen);
-                n += sg_scnpr(b + n, blen - n, "%s", e);
+                n += sg_scn3pr(b, blen, n, "%s", e);
             } else if (mpip->flags & MF_HEX) {
                 if ((mpip->flags & MF_ALL_1S) && all_set)
-                    n += sg_scnpr(b + n, blen - n, "-1");
+                    n += sg_scn3pr(b, blen, n, "-1");
                 else
-                    n += sg_scnpr(b + n, blen - n, "0x%" PRIx64 "", u);
+                    n += sg_scn3pr(b, blen, n, "0x%" PRIx64 "", u);
             } else if (all_set)
-                n += sg_scnpr(b + n, blen - n, " -1");
+                n += sg_scn3pr(b, blen, n, " -1");
             else
-                n += sg_scnpr(b + n, blen - n, "%3" PRIu64 "", u);
+                n += sg_scn3pr(b, blen, n, "%3" PRIu64 "", u);
         }
-        n += sg_scnpr(b + n, blen - n, "]");
+        n += sg_scn3pr(b, blen, n, "]");
     }
     if (op->do_long && mpip->description)
-        /* n += */ sg_scnpr(b + n, blen - n, "  %s", mpip->description);
+        /* n += */ sg_scn3pr(b, blen, n, "  %s", mpip->description);
     sgj_pr_hr(jsp, "%s\n", b);
     if ((op->do_long > 1) && mpip->extra)
         print_mpi_extra(mpip->extra, op, jo2p);
@@ -1359,24 +1359,24 @@ print_get_mi_innerh(const char * pre, int smask,
         if (op->inner_hex && (! jsp->pr_as_json)) {
             if (smask & MP_OM_CUR) {
                 u = sdp_mitem_get_value(mpip, (const uint8_t *)pc_arr[0]);
-                n += sg_scnpr(b + n, blen - n, "0x%02" PRIx64 " ", u);
+                n += sg_scn3pr(b, blen, n, "0x%02" PRIx64 " ", u);
             } else
-                n += sg_scnpr(b + n, blen - n, "-    ");
+                n += sg_scn3pr(b, blen, n, "-    ");
             if (smask & MP_OM_CHA) {
                 u = sdp_mitem_get_value(mpip, (const uint8_t *)pc_arr[1]);
-                n += sg_scnpr(b + n, blen - n, "0x%02" PRIx64 " ", u);
+                n += sg_scn3pr(b, blen, n, "0x%02" PRIx64 " ", u);
             } else
-                n += sg_scnpr(b + n, blen - n, "-    ");
+                n += sg_scn3pr(b, blen, n, "-    ");
             if (smask & MP_OM_DEF) {
                 u = sdp_mitem_get_value(mpip, (const uint8_t *)pc_arr[2]);
-                n += sg_scnpr(b + n, blen - n, "0x%02" PRIx64 " ", u);
+                n += sg_scn3pr(b, blen, n, "0x%02" PRIx64 " ", u);
             } else
-                n += sg_scnpr(b + n, blen - n, "-    ");
+                n += sg_scn3pr(b, blen, n, "-    ");
             if (smask & MP_OM_SAV) {
                 u = sdp_mitem_get_value(mpip, (const uint8_t *)pc_arr[3]);
-                /* n += */ sg_scnpr(b + n, blen - n, "0x%02" PRIx64 " ", u);
+                /* n += */ sg_scn3pr(b, blen, n, "0x%02" PRIx64 " ", u);
             } else
-                /* n += */ sg_scnpr(b + n, blen - n, "-    ");
+                /* n += */ sg_scn3pr(b, blen, n, "-    ");
             sgj_pr_hr(jsp, "%s\n", b);
         } else
             stop_if_set = print_a_mitem(pre, smask, mpip, pc_arr,
@@ -1386,9 +1386,9 @@ print_get_mi_innerh(const char * pre, int smask,
         if (op->inner_hex) {
             if (smask & MP_OM_CUR) {
                 u = sdp_mitem_get_value(mpip, (const uint8_t *)pc_arr[0]);
-                sg_scnpr(b + n, blen - n, "0x%02" PRIx64 " ", u);
+                sg_scn3pr(b, blen, n, "0x%02" PRIx64 " ", u);
             } else
-                sg_scnpr(b + n, blen - n, "-    ");
+                sg_scn3pr(b, blen, n, "-    ");
             sgj_pr_hr(jsp, "%s\n", b);
         } else
             stop_if_set = print_a_mitem(pre, smask & 1, mpip, pc_arr,
@@ -1620,15 +1620,15 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
                 n = sg_scnpr(b, blen, "%s ", e);
                 if (op->verbose) {
                     if (l_spn)
-                        n += sg_scnpr(b + n, blen - n, "[0x%x,0x%x] ", l_pn,
-                                      l_spn);
+                        n += sg_scn3pr(b, blen, n, "[0x%x,0x%x] ", l_pn,
+                                       l_spn);
                     else
-                        n += sg_scnpr(b + n, blen - n, "[0x%x] ", l_pn);
+                        n += sg_scn3pr(b, blen, n, "[0x%x] ", l_pn);
                 }
-                n += sg_scnpr(b + n, blen - n, "%s", mp_s);
+                n += sg_scn3pr(b, blen, n, "%s", mp_s);
                 if ((op->do_long > 1) || op->verbose)
-                    /* n += */ sg_scnpr(b + n, blen - n, " [PS=%d]",
-                                        !!(first_mp[0] & 0x80));
+                    /* n += */ sg_scn3pr(b, blen, n, " [PS=%d]",
+                                         !!(first_mp[0] & 0x80));
                 if (op->do_quiet < 3)
                     sgj_pr_hr(jsp, "%s:\n", b);
                 if (op->do_json) {
@@ -2016,12 +2016,11 @@ get_is_active:
             n = sg_scnpr(b, blen, "%s ", c);
             if (vb) {
                 if (l_spn)
-                    n += sg_scnpr(b + n, blen - n, "[0x%x,0x%x] ", l_pn,
-                                  l_spn);
+                    n += sg_scn3pr(b, blen, n, "[0x%x,0x%x] ", l_pn, l_spn);
                 else
-                    n += sg_scnpr(b + n, blen - n, "[0x%x] ", l_pn);
+                    n += sg_scn3pr(b, blen, n, "[0x%x] ", l_pn);
             }
-            sg_scnpr(b + n, blen - n, "%s", mp_s);
+            sg_scn3pr(b, blen, n, "%s", mp_s);
             if (get_active) {
                 if ((op->do_long > 1) || (vb > 1))
                     sgj_pr_hr(jsp, "%s [PS=%d]:\n", b, !!(l_pg_p[0] & 0x80));
@@ -2148,7 +2147,7 @@ check_desc_convert_mpip(int desc_num, const struct sdparm_mp_name_t * mnp,
         sg_scnpr(b, b_len, "%s", ref_mpip->acron);
         b[(b_len > 10) ? (b_len - 8) : 4] = '\0';
         n = strlen(b);
-        snprintf(b + n, b_len - n, ".%d", desc_num);
+        sg_scn3pr(b, b_len, n, ".%d", desc_num);
         out_mpip->acron = b;
         return true;
     } else
@@ -3037,8 +3036,7 @@ open_and_simple_inquiry(const char * device_name, bool rw, int * pdt,
         n = sg_scnpr(b, blen, "    %s: %.8s  %.16s  %.4s",
                device_name, sir.vendor, sir.product, sir.revision);
         if (0 != l_pdt)
-            sg_scnpr(b + n, blen - n, "  [%s]",
-                     sg_get_pdt_str(l_pdt, clen, c));
+            sg_scn3pr(b, blen, n, "  [%s]", sg_get_pdt_str(l_pdt, clen, c));
         sgj_pr_hr(jsp, "%s\n", b);
     }
     return sg_fd;
