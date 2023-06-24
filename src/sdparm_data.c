@@ -50,49 +50,49 @@
 
 /* SSC's medium partition mode page has a variable number of
    partition size fields which are treated as descriptors here */
-static struct sdparm_mode_descriptor_t ssc_mpa_desc = {
+static const struct sdparm_mode_descriptor_t ssc_mpa_desc = {
     3, 1, 1, 8, 2, -1, -1, false, "SSC medium partition"
 };
 
 /* SMC's transport geometry parameters mode page doesn't give the number
    of following descriptors but rather parameter length (in bytes).
    This is flagged by -1 in num_descs_inc (third) field */
-static struct sdparm_mode_descriptor_t smc_tg_desc = {
+static const struct sdparm_mode_descriptor_t smc_tg_desc = {
     1, 1, -1, 2, 2, -1, -1, false, "SMC transport geometry"
 };
 
 /* SBC's logical block provisioning mode page doesn't give the number
    of following descriptors but rather parameter length (in bytes).
    This is flagged by -1 in num_descs_inc (third) field */
-static struct sdparm_mode_descriptor_t sbc_lbp_desc = {
+static const struct sdparm_mode_descriptor_t sbc_lbp_desc = {
     2, 2, -1, 16, 8, -1, -1, false, "SBC logical block provisioning"
 };
 
 /* SBC's application tag mode page doesn't give the number of
    following descriptors but rather parameter length (in bytes).
    This is flagged by -1 in num_descs_inc (third) field */
-static struct sdparm_mode_descriptor_t sbc_atag_desc = {
+static const struct sdparm_mode_descriptor_t sbc_atag_desc = {
     2, 2, -1, 16, 24, -1, -1, false, "SBC application tag"
 };
 
 /* SPC's command duration limit A/B mode pages don't give the number of
    following descriptors but rather parameter length (in bytes).
    This is flagged by -1 in num_descs_inc (third) field */
-static struct sdparm_mode_descriptor_t spc_cdl_desc = {
+static const struct sdparm_mode_descriptor_t spc_cdl_desc = {
     2, 2, -1, 8, 4, -1, -1, false, "command duration limit"
 };
 
 /* SBC's IO advice hints grouping mode page doesn't give the number of
    following descriptors but rather parameter length (in bytes).
    This is flagged by -1 in num_descs_inc (third) field */
-static struct sdparm_mode_descriptor_t sbc_ioadvi_desc = {
+static const struct sdparm_mode_descriptor_t sbc_ioadvi_desc = {
     2, 2, -1, 16, 16, -1, -1, false, "IO advice hints group"
 };
 
 /* Mode pages that aren't specific to any transport protocol or vendor.
    Note that all standard peripheral device types are included in this array.
    The pages are listed in acronym alphabetical order. */
-struct sdparm_mp_name_t sdparm_gen_mode_pg[] = {
+const struct sdparm_mp_name_t sdparm_gen_mode_pg[] = {
     {ADC_MP, MSP_ADC_DT_DPP, PDT_ADC, 0, "addp",
         "DT device primary port (ADC)", NULL, NULL},
     {ADC_MP, MSP_ADC_LU, PDT_ADC, 0, "adlu", "logical unit (ADC)", NULL, NULL},
@@ -193,7 +193,7 @@ struct sdparm_mp_name_t sdparm_gen_mode_pg[] = {
  * sg_get_trans_proto_str() function from the sg3_utils' library provides
  * the full protocol (transport) name. Those transports commented with
  * "none" don't have transport specific mode pages at this time. */
-struct sdparm_val_desc_t sdparm_transport_id[] = {
+const struct sdparm_val_desc_t sdparm_transport_id[] = {
     {TPROTO_FCP, "fcp"},
     {TPROTO_SPI, "spi"},
     {TPROTO_SSA, "ssa"},
@@ -213,7 +213,7 @@ struct sdparm_val_desc_t sdparm_transport_id[] = {
     {-1, NULL},
 };
 
-struct sdparm_val_desc_t sdparm_add_transport_acron[] = {
+const struct sdparm_val_desc_t sdparm_add_transport_acron[] = {
     {TPROTO_SPI, "para"},
     {TPROTO_SAS, "spl"},
     {TPROTO_PCIE, "nvme"},
@@ -223,7 +223,7 @@ struct sdparm_val_desc_t sdparm_add_transport_acron[] = {
     {-1, NULL},
 };
 
-static struct sdparm_mp_name_t sdparm_fcp_mode_pg[] = {    /* FCP-3,5 */
+static const struct sdparm_mp_name_t sdparm_fcp_mode_pg[] = {    /* FCP-3,5 */
     {DISCONNECT_MP, 0, -1, 0, "dr", "Disconnect-reconnect (FCP)", NULL, NULL},
     {PROT_SPEC_LU_MP, 0, -1, 0, "luc", "lu: control (FCP)", NULL, NULL},
     {PROT_SPEC_PORT_MP, 0, -1, 0, "pc", "port: control (FCP)", NULL, NULL},
@@ -234,7 +234,7 @@ static struct sdparm_mp_name_t sdparm_fcp_mode_pg[] = {    /* FCP-3,5 */
     {0, 0, 0, 0, NULL, NULL, NULL, NULL},
 };
 
-static struct sdparm_mp_name_t sdparm_spi_mode_pg[] = {    /* SPI-4 */
+static const struct sdparm_mp_name_t sdparm_spi_mode_pg[] = {    /* SPI-4 */
     {DISCONNECT_MP, 0, -1, 0, "dr", "Disconnect-reconnect (SPI)", NULL, NULL},
     {PROT_SPEC_LU_MP, 0, -1, 0, "luc", "lu: control (SPI)", NULL, NULL},
     {PROT_SPEC_PORT_MP, MSP_SPI_MC, -1, 0, "mc",
@@ -255,29 +255,29 @@ static struct sdparm_mp_name_t sdparm_spi_mode_pg[] = {    /* SPI-4 */
     {0, 0, 0, 0, NULL, NULL, NULL, NULL},
 };
 
-static struct sdparm_mp_name_t sdparm_srp_mode_pg[] = {    /* SRP */
+static const struct sdparm_mp_name_t sdparm_srp_mode_pg[] = {    /* SRP */
     {DISCONNECT_MP, 0, -1, 0, "dr", "Disconnect-reconnect (SRP)", NULL, NULL},
     {0, 0, 0, 0, NULL, NULL, NULL, NULL},
 };
 
-static struct sdparm_mode_descriptor_t sas_pcd_desc = {   /* desc SAS/SPL */
-    7, 1, 0, 8, 48, -1, -1, false, "SAS phy"
+static const struct sdparm_mode_descriptor_t sas_pcd_desc = {
+    7, 1, 0, 8, 48, -1, -1, false, "SAS phy"            /* desc SAS/SPL */
 };
 
-static struct sdparm_mode_descriptor_t sas_e_phy_desc = {  /* desc SAS/SPL */
-    7, 1, 0, 8, -1, 2, 2, false, "Enhanced phy"
+static const struct sdparm_mode_descriptor_t sas_e_phy_desc = {
+    7, 1, 0, 8, -1, 2, 2, false, "Enhanced phy"         /* desc SAS/SPL */
 };
 
 /* This one has a strange format, no number of descriptors and each
  * descriptor can have a variable size. */
-static struct sdparm_mode_descriptor_t sas_oob_m_c_desc = { /* desc SAS/SPL */
-    -1, -1, 0, 8, -1, 2, 2, true, "Attribute control"
+static const struct sdparm_mode_descriptor_t sas_oob_m_c_desc = {
+    -1, -1, 0, 8, -1, 2, 2, true, "Attribute control"   /* desc SAS/SPL */
 };
 
 /* N.B. In SAS 2.1 the spec was split with the upper levels going into the
  * SAS Protocol Layer (SPL) document. So now the SPL drafts are the
  * relevant SAS references. */
-static struct sdparm_mp_name_t sdparm_sas_mode_pg[] = {    /* SAS/SPL */
+static const struct sdparm_mp_name_t sdparm_sas_mode_pg[] = {    /* SAS/SPL */
     {DISCONNECT_MP, 0, -1, 0, "dr", "Disconnect-reconnect (SAS)", NULL, NULL},
     {PROT_SPEC_PORT_MP, MSP_SAS_OOB_M_C, -1, 0, "oobm",     /* spl5r01 */
         "Out of band management control (SAS)", NULL, &sas_oob_m_c_desc},
@@ -297,7 +297,7 @@ static struct sdparm_mp_name_t sdparm_sas_mode_pg[] = {    /* SAS/SPL */
 
 /* These VPD pages are listed in alphabetical order based on their
  * 'acron' field. The standard inquiry response is added to this list. */
-struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
+const struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
     {VPD_ATA_INFO, 0, -1, "ai", "ATA information (SAT)"},
     {VPD_ASCII_OP_DEF, 0, -1, "aod",
      "ASCII implemented operating definition (obs)"},
@@ -365,7 +365,7 @@ struct sdparm_vpd_page_t sdparm_vpd_pg[] = {
 
 /* Generic (i.e. non-transport specific) mode page items follow, */
 /* sorted by mode page (then subpage) number in ascending order */
-struct sdparm_mp_item_t sdparm_mitem_arr[] = {
+const struct sdparm_mp_item_t sdparm_mitem_arr[] = {
     /* Read write error recovery mode page [0x1] sbc2, mmc5, ssc3 */
     /* treat as spc since various command sets implement variants */
     {"AWRE", RW_ERR_RECOVERY_MP, 0, -1, 2, 7, 1, MF_COMMON,
@@ -1644,7 +1644,7 @@ struct sdparm_mp_item_t sdparm_mitem_arr[] = {
 
 /* << Transport protocol specific mode page items follow >> */
 
-static struct sdparm_mp_item_t sdparm_mitem_fcp_arr[] = {
+static const struct sdparm_mp_item_t sdparm_mitem_fcp_arr[] = {
     /* disconnect-reconnect mode page [0x2] fcp3-5 */
     {"BFR", DISCONNECT_MP, 0, -1, 2, 7, 8, MF_J_USE_DESC,   /* obs fcp-5 */
         "Buffer full ratio", NULL, NULL},
@@ -1710,7 +1710,7 @@ static struct sdparm_mp_item_t sdparm_mitem_fcp_arr[] = {
 };
 
 /* SPI == SCSI Parallel Interface (legacy) */
-static struct sdparm_mp_item_t sdparm_mitem_spi_arr[] = {
+static const struct sdparm_mp_item_t sdparm_mitem_spi_arr[] = {
     /* disconnect-reconnect mode page [0x2] spi4 */
     {"BFR", DISCONNECT_MP, 0, -1, 2, 7, 8, MF_J_USE_DESC,
         "Buffer full ratio", NULL, NULL},
@@ -1853,7 +1853,7 @@ static struct sdparm_mp_item_t sdparm_mitem_spi_arr[] = {
 };
 
 /* SRP == SCSI RDMA protocol */
-static struct sdparm_mp_item_t sdparm_mitem_srp_arr[] = {
+static const struct sdparm_mp_item_t sdparm_mitem_srp_arr[] = {
     /* disconnect-reconnect mode page [0x2] srp */
     {"MBS", DISCONNECT_MP, 0, -1, 10, 7, 16, MF_COMMON | MF_CLASH_OK |
         MF_J_NPARAM_DESC, "Maximum burst size (512 bytes)", NULL, NULL},
@@ -1866,7 +1866,7 @@ static struct sdparm_mp_item_t sdparm_mitem_srp_arr[] = {
 };
 
 /* SAS == Serial Attached SCSI */
-struct sdparm_mp_item_t sdparm_mitem_sas_arr[] = {
+const struct sdparm_mp_item_t sdparm_mitem_sas_arr[] = {
     /* disconnect-reconnect mode page [0x2] sas/spl */
     /* spl3r6 dropped the "time" from the name of BITL, keep acronym */
     {"BITL", DISCONNECT_MP, 0, -1, 4, 7, 16, MF_COMMON | MF_J_NPARAM_DESC,
@@ -2117,7 +2117,7 @@ struct sdparm_mp_item_t sdparm_mitem_sas_arr[] = {
 };
 
 /* fixed length, indexed by transport protocol number */
-struct sdparm_transport_pair sdparm_transport_mp[] = {
+const struct sdparm_transport_pair sdparm_transport_mp[] = {
     {sdparm_fcp_mode_pg, sdparm_mitem_fcp_arr}, /* 0 */
     {sdparm_spi_mode_pg, sdparm_mitem_spi_arr},
     {NULL, NULL},
@@ -2163,7 +2163,7 @@ const char * sdparm_mode_page_policy_arr[] =
     "per I_T nexus",
 };
 
-struct sdparm_command_t sdparm_command_arr[] =
+const struct sdparm_command_t sdparm_command_arr[] =
 {
     {CMD_CAPACITY, "capacity", "ca", NULL},
     {CMD_EJECT, "eject", "ej", NULL},
@@ -2179,7 +2179,7 @@ struct sdparm_command_t sdparm_command_arr[] =
     {-1, NULL, NULL, NULL},
 };
 
-struct sdparm_val_desc_t sdparm_profile_arr[] = {
+const struct sdparm_val_desc_t sdparm_profile_arr[] = {
         {0x0, "No current profile"},
         {0x1, "Non-removable disk (obs)"},
         {0x2, "Removable disk"},
