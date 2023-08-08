@@ -36,6 +36,27 @@ check_for_linux_nvme_headers() {
 			# include <linux/types.h>
 			#endif
 			]])
+	AC_CHECK_HEADERS([linux/major.h], [AC_DEFINE_UNQUOTED(HAVE_LINUX_MAJOR_H, 1,
+			[Found linux/major.h])], [], [])
+	AC_CHECK_HEADERS([linux/types.h], [AC_DEFINE_UNQUOTED(HAVE_LINUX_TYPES_H, 1,
+			[Found linux/types.h])], [], [])
+}
+
+check_for___u64() {
+	AC_MSG_CHECKING([for __u64])
+	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+	#ifdef HAVE_LINUX_TYPES_H
+	#include <linux/types.h>
+	#endif
+	]],[[
+	__u64 var = 0;
+	return var;
+	]])],
+	[
+	AC_MSG_RESULT(yes)
+	AC_DEFINE(HAVE___U64, 1, [__u64 is defined in <linux/types.h>])
+	],
+	[AC_MSG_RESULT(no)])
 }
 
 case "${host}" in
@@ -43,7 +64,8 @@ case "${host}" in
 		AC_SUBST([os_deps], ['sg_pt_linux.o sg_pt_linux_nvme.o'])
                 AC_DEFINE_UNQUOTED(SG_LIB_ANDROID, 1, [sdparm on android])
 		AC_DEFINE_UNQUOTED(SG_LIB_LINUX, 1, [sdparm on linux])
-		check_for_linux_nvme_headers;;
+		check_for_linux_nvme_headers
+		check_for___u64;;
         *-*-freebsd*|*-*-kfreebsd*-gnu*)
 		AC_SUBST([os_deps], ['sg_pt_freebsd.o'])
                 AC_DEFINE_UNQUOTED(SG_LIB_FREEBSD, 1, [sdparm on FreeBSD])
