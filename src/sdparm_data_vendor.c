@@ -44,7 +44,7 @@
 
 
 /* Vendor specific mode pages */
-struct sdparm_vendor_name_t sdparm_vendor_id[] = {
+const struct sdparm_vendor_name_t sdparm_vendor_id[] = {
     {VENDOR_SEAGATE, "sea", "Seagate disk"},    /* 0 */
     {VENDOR_HITACHI, "hit", "Hitachi disk"},
     {VENDOR_HITACHI, "wdc", "Hitachi disk->HGST->WDC"},
@@ -58,7 +58,7 @@ struct sdparm_vendor_name_t sdparm_vendor_id[] = {
     {0, NULL, NULL},
 };
 
-static struct sdparm_mp_name_t sdparm_v_seagate_mode_pg[] = {
+static const struct sdparm_mp_name_t sdparm_v_seagate_mode_pg[] = {
     {UNIT_ATTENTION_MP, 0, 0, 0, "ua", "Unit attention (seagate)", NULL, NULL},
     {0, 0, 0, 0, NULL, NULL, NULL, NULL},
 };
@@ -70,7 +70,7 @@ static struct sdparm_mp_name_t sdparm_v_seagate_mode_pg[] = {
  * as 'hd' in the description. They also make Solid-State Drives (SSDs) which
  * are abbreviated below as 'ssd'. If a field is support by both their hard
  * disks and SSDs then neither 'hd' nor 'ssd' appears in the description. */
-static struct sdparm_mp_item_t sdparm_mitem_v_seagate_arr[] = {
+static const struct sdparm_mp_item_t sdparm_mitem_v_seagate_arr[] = {
     /* Unit attention page, ua [0x0] Seagate */
     {"PM", UNIT_ATTENTION_MP, 0, 0, 2, 7, 1, MF_COMMON,
         "Performance Mode (hd)", NULL,
@@ -143,14 +143,14 @@ static struct sdparm_mp_item_t sdparm_mitem_v_seagate_arr[] = {
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL},
 };
 
-static struct sdparm_mp_name_t sdparm_v_hitachi_mode_pg[] = {
+static const struct sdparm_mp_name_t sdparm_v_hitachi_mode_pg[] = {
     {UNIT_ATTENTION_MP, 0, 0, 0, "vup", "Vendor unique parameters (hitachi)",
         NULL, NULL},
     {0, 0, 0, 0, NULL, NULL, NULL, NULL},
 };
 
 /* Western Digital (WD) and Hitachi are synonymous */
-static struct sdparm_mp_item_t sdparm_mitem_v_hitachi_arr[] = {
+static const struct sdparm_mp_item_t sdparm_mitem_v_hitachi_arr[] = {
     /* Vendor unique parameters page, vup [0x0] Hitachi/HGST/WDC */
     {"MRG", UNIT_ATTENTION_MP, 0, 0, 2, 3, 1, 0,
         "Merge Glist into Plist (during format)", NULL, NULL},
@@ -201,14 +201,14 @@ static struct sdparm_mp_item_t sdparm_mitem_v_hitachi_arr[] = {
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL},
 };
 
-static struct sdparm_mp_name_t sdparm_v_maxtor_mode_pg[] = {
+static const struct sdparm_mp_name_t sdparm_v_maxtor_mode_pg[] = {
     {UNIT_ATTENTION_MP, 0, 0, 0, "uac", "Unit attention condition (maxtor)",
         NULL, NULL},
 
     {0, 0, 0, 0, NULL, NULL, NULL, NULL},
 };
 
-static struct sdparm_mp_item_t sdparm_mitem_v_maxtor_arr[] = {
+static const struct sdparm_mp_item_t sdparm_mitem_v_maxtor_arr[] = {
     /* Unit attention page condition, uac [0x0] Maxtor */
     {"DUA", UNIT_ATTENTION_MP, 0, 0, 2, 4, 1, MF_COMMON,
         "Disable unit attention", NULL, NULL},
@@ -216,14 +216,14 @@ static struct sdparm_mp_item_t sdparm_mitem_v_maxtor_arr[] = {
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL},
 };
 
-static struct sdparm_mp_name_t sdparm_v_fujitsu_mode_pg[] = {
+static const struct sdparm_mp_name_t sdparm_v_fujitsu_mode_pg[] = {
     {0x21, 0, 0, 0, "aerp", "Additional error recovery parameters (fujitsu)",
         NULL, NULL},
 
     {0, 0, 0, 0, NULL, NULL, NULL, NULL},
 };
 
-static struct sdparm_mp_item_t sdparm_mitem_v_fujitsu_arr[] = {
+static const struct sdparm_mp_item_t sdparm_mitem_v_fujitsu_arr[] = {
     /* Additional error recovery parameters page, aerp [0x21] Fujitsu */
     {"RDSE", 0x21, 0, 0, 2, 3, 4, MF_COMMON,
         "Retries during a seek error", NULL, "0: no repositioning retries"},
@@ -231,7 +231,7 @@ static struct sdparm_mp_item_t sdparm_mitem_v_fujitsu_arr[] = {
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL},
 };
 
-static struct sdparm_mp_name_t sdparm_v_lto5_mode_pg[] = {
+static const struct sdparm_mp_name_t sdparm_v_lto5_mode_pg[] = {
     {0x24, 0, PDT_TAPE, 0, "l5vs", "Vendor specific (LTO-5)",
         NULL, NULL},
     {0x2f, 0, PDT_TAPE, 0, "l5bc", "Behaviour configuration (LTO-5)",
@@ -249,7 +249,7 @@ static struct sdparm_mp_name_t sdparm_v_lto5_mode_pg[] = {
     {0, 0, 0, 0, NULL, NULL, NULL, NULL},
 };
 
-static struct sdparm_mp_item_t sdparm_mitem_v_lto5_arr[] = {
+static const struct sdparm_mp_item_t sdparm_mitem_v_lto5_arr[] = {
     /* Vendor specific page [0x24] LTO-5 */
     {"ENCR_E", 0x24, 0, PDT_TAPE, 7, 3, 1, MF_COMMON,
         "Encryption enable", NULL, NULL},
@@ -333,7 +333,7 @@ static struct sdparm_mp_item_t sdparm_mitem_v_lto5_arr[] = {
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL},
 };
 
-static struct sdparm_mp_name_t sdparm_v_lto6_mode_pg[] = {
+static const struct sdparm_mp_name_t sdparm_v_lto6_mode_pg[] = {
     {0x3b, 0, PDT_TAPE, 0, "l6sno", "Serial number override (LTO-5)",
         NULL, NULL},
     {0x3c, 0, PDT_TAPE, 0, "l6dt", "Device time (LTO-5)",
@@ -346,7 +346,7 @@ static struct sdparm_mp_name_t sdparm_v_lto6_mode_pg[] = {
     {0, 0, 0, 0, NULL, NULL, NULL, NULL},
 };
 
-static struct sdparm_mp_item_t sdparm_mitem_v_lto6_arr[] = {
+static const struct sdparm_mp_item_t sdparm_mitem_v_lto6_arr[] = {
     /* Serial number override [0x3b] LTO-5, HP */
     {"MSN", 0x3b, 0, PDT_TAPE, 2, 1, 2, MF_COMMON | MF_CLASH_OK,
         "Non-auto", NULL, "0: not reported\t1: manufacturer's default SN\t2: "
@@ -398,7 +398,7 @@ static struct sdparm_mp_item_t sdparm_mitem_v_lto6_arr[] = {
     {NULL, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, NULL},
 };
 
-static struct sdparm_mp_name_t sdparm_v_nvme_mode_pg[] = {
+static const struct sdparm_mp_name_t sdparm_v_nvme_mode_pg[] = {
     {UNIT_ATTENTION_MP, 0, 0, 0, "nvme", "Unit attention (NVMe)", NULL, NULL},
     {0, 0, 0, 0, NULL, NULL, NULL, NULL},
 };
@@ -406,7 +406,7 @@ static struct sdparm_mp_name_t sdparm_v_nvme_mode_pg[] = {
 /* Only used by library's SNTL to override settings implied by NVMSR (byte
  * 253 of Identify controller response) field, namely the NVMEE and NVMESD
  * bits within that field */
-static struct sdparm_mp_item_t sdparm_mitem_v_nvme_arr[] = {
+static const struct sdparm_mp_item_t sdparm_mitem_v_nvme_arr[] = {
     /* Unit attention page [0x0] NVMe */
     {"ENC_OV", UNIT_ATTENTION_MP, 0, 0, 2, 7, 8, MF_COMMON,
         "Enclosure override", NULL,
@@ -417,7 +417,7 @@ static struct sdparm_mp_item_t sdparm_mitem_v_nvme_arr[] = {
 };
 
 /* Indexed by VENDOR_* define */
-struct sdparm_vendor_pair sdparm_vendor_mp[] = {
+const struct sdparm_vendor_pair sdparm_vendor_mp[] = {
     {sdparm_v_seagate_mode_pg, sdparm_mitem_v_seagate_arr},
     {sdparm_v_hitachi_mode_pg, sdparm_mitem_v_hitachi_arr},
     {sdparm_v_maxtor_mode_pg, sdparm_mitem_v_maxtor_arr},

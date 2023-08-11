@@ -250,7 +250,7 @@ struct sdparm_opt_coll {
     int do_all;         /* -iaa outputs all VPD pages found in the Supported
                          * VPD Pages VPD page (0x0) */
     int do_enum;
-    int do_flags;	/* -F ; show enumeration item flags */
+    int do_flags;       /* -F ; show enumeration item flags */
     int do_help;
     int do_hex;
     int do_long;
@@ -415,17 +415,17 @@ struct sdparm_mp_settings_t {
  * (which is a number from 0 to 15). Undefined or unsupported entries
  * contain NULL, NULL. */
 struct sdparm_transport_pair {
-    struct sdparm_mp_name_t * mpage;            /* array of transport specific
+    const struct sdparm_mp_name_t * mpage;      /* array of transport specific
                                                    mode pages */
-    struct sdparm_mp_item_t * mitem;            /* array of transport specific
+    const struct sdparm_mp_item_t * mitem;      /* array of transport specific
                                                    mode page fields (items) */
 };
 
 /* Template for a vendor's mode pages and fields. Array of these found in
  * sdparm_data_vendor.c . */
 struct sdparm_vendor_pair {
-    struct sdparm_mp_name_t * mpage;
-    struct sdparm_mp_item_t * mitem;
+    const struct sdparm_mp_name_t * mpage;
+    const struct sdparm_mp_item_t * mitem;
 };
 
 /* Template for a simple SCSI command supported by sdparm. Array of them
@@ -443,18 +443,18 @@ struct sdparm_val_desc_t {
         const char * desc;
 };
 
-extern struct sdparm_mp_name_t sdparm_gen_mode_pg[];
-extern struct sdparm_vpd_page_t sdparm_vpd_pg[];
-extern struct sdparm_val_desc_t sdparm_transport_id[];
-extern struct sdparm_val_desc_t sdparm_add_transport_acron[];
-extern struct sdparm_transport_pair sdparm_transport_mp[];
-extern struct sdparm_vendor_name_t sdparm_vendor_id[];
-extern struct sdparm_vendor_pair sdparm_vendor_mp[];
+extern const struct sdparm_mp_name_t sdparm_gen_mode_pg[];
+extern const struct sdparm_vpd_page_t sdparm_vpd_pg[];
+extern const struct sdparm_val_desc_t sdparm_transport_id[];
+extern const struct sdparm_val_desc_t sdparm_add_transport_acron[];
+extern const struct sdparm_transport_pair sdparm_transport_mp[];
+extern const struct sdparm_vendor_name_t sdparm_vendor_id[];
+extern const struct sdparm_vendor_pair sdparm_vendor_mp[];
 extern const int sdparm_vendor_mp_len;
-extern struct sdparm_mp_item_t sdparm_mitem_arr[];
-extern struct sdparm_mp_item_t sdparm_mitem_sas_arr[];
-extern struct sdparm_command_t sdparm_command_arr[];
-extern struct sdparm_val_desc_t sdparm_profile_arr[];
+extern const struct sdparm_mp_item_t sdparm_mitem_arr[];
+extern const struct sdparm_mp_item_t sdparm_mitem_sas_arr[];
+extern const struct sdparm_command_t sdparm_command_arr[];
+extern const struct sdparm_val_desc_t sdparm_profile_arr[];
 
 extern const char * sdparm_network_service_type_arr[];
 extern const char * sdparm_mode_page_policy_arr[];
