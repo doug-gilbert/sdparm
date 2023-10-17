@@ -779,6 +779,8 @@ const struct sdparm_mp_item_t sdparm_mitem_arr[] = {
      * page (i.e. 16 more than shown in t10's descriptor format table) */
     {"IOA_MODE", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 16, 7, 2, MF_J_USE_DESC,
         "IO advice hints mode", NULL, "0: valid; 1: invalid"},
+    {"ST_EN", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 16, 2, 1, 0,
+        "Stream identifier enable", "st_enbl", NULL},	/* sbc5r5 */
     {"CS_EN", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 16, 1, 1, 0,
         "Cache segment enable", "cs_enbl", NULL},
     {"IC_EN", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 16, 0, 1, 0,
