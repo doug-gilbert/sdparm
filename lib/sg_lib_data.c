@@ -19,8 +19,8 @@
 #include "sg_lib_data.h"
 
 
-const char * const sg_lib_version_str = "3.08 20230623";
-/* spc6r08, sbc5r04, zbc2r13 */
+const char * const sg_lib_version_str = "3.11 20231017";
+/* spc6r10, sbc5r05, zbc2r13 */
 
 
 /* indexed by pdt; those that map to own index do not decay */
@@ -1956,6 +1956,7 @@ const struct sg_value_2names_t sg_exit_str_arr[] = {
          "0xc"},
     {14, "Miscompare", "type: sense key"},
     {15, "File error", NULL},
+    {16, "Device not ready, something in progress", NULL},
     {17, "Illegal request with Info field", NULL},
     {18, "Medium or hardware error with Info", NULL},
     {19, "Illegal request, Invalid field in parameter list",

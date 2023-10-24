@@ -3230,6 +3230,9 @@ decode_block_limits_ext_vpd(const uint8_t * buff, int len,
         pr2serr("%s length too short=%d\n", ble_vpdp, len);
         return;
     }
+    sgj_haj_vi_nex(jsp, jop, 2, "RSCS", SGJ_SEP_COLON_1_SPACE,
+                   !!(buff[5] & 0x1), false,
+                   "Reduced Stream Control Supported");
     u = sg_get_unaligned_be16(buff + 6);
     sgj_haj_vistr(jsp, jop, 2, "Maximum number of streams",
                   SGJ_SEP_COLON_1_SPACE, u, true,

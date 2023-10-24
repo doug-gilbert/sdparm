@@ -166,8 +166,12 @@ sg_get_command_str(const uint8_t * cdbp, int sz, bool cmd_name, int blen,
 {
     int k, j, jj;
 
-    if ((cdbp == NULL) || (b == NULL) || (blen < 1))
+    if ((b == NULL) || (blen < 1))
         return b;
+    else if ((cdbp == NULL) || (sz < 1)) {
+        snprintf(b, blen, "<empty>");
+        return b;
+    }
     if (cmd_name && (blen > 16)) {
         sg_get_command_name(cdbp, 0, blen, b);
         j = (int)strlen(b);
@@ -360,7 +364,7 @@ sg_get_additional_sense_str(int asc, int ascq, bool add_sense_leadin,
     }
     for (k = 0; sg_lib_asc_ascq_range[k].text; ++k) {
         const struct sg_lib_asc_ascq_range_t * ei2p =
-					&sg_lib_asc_ascq_range[k];
+                                        &sg_lib_asc_ascq_range[k];
 
         if ((ei2p->asc == asc) &&
             (ascq >= ei2p->ascq_min)  &&
@@ -1524,7 +1528,6 @@ sg_get_sense_descriptors_str(const char * lip, const uint8_t * sbp,
     uint16_t sct_sc;
     bool processed;
     const uint8_t * descp;
-    char z[64];
     static const char * dtsp = "   >> descriptor too short";
     static const char * eccp = "Extended copy command";
     static const char * ddp = "destination device";
@@ -1532,10 +1535,6 @@ sg_get_sense_descriptors_str(const char * lip, const uint8_t * sbp,
     if ((NULL == b) || (blen <= 0))
         return 0;
     b[0] = '\0';
-    if (lip)
-        sg_scnpr(z, sizeof(z), "%.60s  ", lip);
-    else
-        sg_scnpr(z, sizeof(z), "  ");
     if ((sb_len < 8) || (0 == (add_sb_len = sbp[7])))
         return 0;
     add_sb_len = (add_sb_len < (sb_len - 8)) ? add_sb_len : (sb_len - 8);
@@ -1767,9 +1766,16 @@ sg_get_sense_descriptors_str(const char * lip, const uint8_t * sbp,
             else
                 n += sg_scn3pr(b, blen, n, "%s    Usage reason: "
                                "reserved[%d]\n", lip, descp[3]);
-            n += sg_get_designation_descriptor_str(z, descp + 4, descp[1] - 2,
-                                                   true, false, blen - n,
-                                                   b + n);
+            {
+                char z[96];
+
+                if (lip)
+                    sg_scnpr(z, sizeof(z), "%.60s  ", lip);
+                else
+                    sg_scnpr(z, sizeof(z), "  ");
+                n += sg_get_designation_descriptor_str(z, descp + 4,
+                               descp[1] - 2, true, false, blen - n, b + n);
+            }
             break;
         case 0xf:       /* Added in SPC-5 rev 10 (for Write buffer) */
             n += sg_scn3pr(b, blen, n, "Microcode activation ");
@@ -1872,13 +1878,14 @@ sg_get_sense_str(const char * lip, const uint8_t * sbp, int sb_len,
     bool descriptor_format = false;
     bool sdat_ovfl = false;
     bool valid_info_fld;
-    int len, progress, n, r, pr, rem, blen;
+    int len, progress, n, r, pr, rem;
     unsigned int info;
     uint8_t resp_code;
     const char * ebp = NULL;
     char ebuff[64];
     char b[256];
     struct sg_scsi_sense_hdr ssh;
+    static const int blen = sizeof(b);
 
     if ((NULL == cbp) || (cblen <= 0))
         return 0;
@@ -1886,7 +1893,6 @@ sg_get_sense_str(const char * lip, const uint8_t * sbp, int sb_len,
         cbp[0] = '\0';
         return 0;
     }
-    blen = sizeof(b);
     if (NULL == lip)
         lip = "";
     if ((NULL == sbp) || (sb_len < 1))
@@ -2298,10 +2304,24 @@ sg_err_category_sense(const uint8_t * sbp, int sb_len)
         case SPC_SK_RECOVERED_ERROR:
             return SG_LIB_CAT_RECOVERED;
         case SPC_SK_NOT_READY:
-            if ((0x04 == ssh.asc) && (0x0b == ssh.ascq))
+            if (0x04 != ssh.asc)
+                return SG_LIB_CAT_NOT_READY;
+            switch (ssh.ascq) {
+            case 0x04:  /* Format in progress */
+            case 0x05:  /* Rebuild in progress */
+            case 0x06:  /* Recalculation in progress */
+            case 0x14:  /* Space allocation in progress */
+            case 0x1b:  /* Sanitize in progress */
+            case 0x1d:  /* Configuration in progress */
+            case 0x24:  /* Depopulation in progress */
+            case 0x25:  /* Depopulation restoration in progress */
+                return SG_LIB_PROGRESS_NOT_READY;
+            case 0x0b:
                 return SG_LIB_CAT_STANDBY;
-            if ((0x04 == ssh.asc) && (0x0c == ssh.ascq))
+            case 0x0c:
                 return SG_LIB_CAT_UNAVAILABLE;
+            }
+            /* drop through, including [0x2,0x4,0x1a]: SSU cmd in progress */
             return SG_LIB_CAT_NOT_READY;
         case SPC_SK_MEDIUM_ERROR:
         case SPC_SK_HARDWARE_ERROR:
@@ -3657,7 +3677,8 @@ sg_f2hex_arr(const char * fname, bool as_binary, bool no_space,
              uint8_t * mp_arr, int * mp_arr_len, int max_arr_len_and)
 {
     bool has_stdin, split_line, skip_first, redo_first;
-    int fn_len, in_len, k, j, m, fd, err, max_arr_len;
+    int fn_len, in_len, k, m, fd, err, max_arr_len;
+    int j = 0;
     int off = 0;
     int ret = 0;
     unsigned int h;
@@ -3765,13 +3786,9 @@ sg_f2hex_arr(const char * fname, bool as_binary, bool no_space,
                 carry_over[2] = '\0';
                 if (1 == sscanf(carry_over, "%4x", &h)) {
                     if (off > 0) {
-                        if (off > max_arr_len) {
-                            pr2ws("%s: array length [%d>%d] exceeded\n",
-                                  __func__, off, max_arr_len);
-                            ret = SG_LIB_LBA_OUT_OF_RANGE;
-                            *mp_arr_len = max_arr_len;
-                            goto fini;
-                        } else
+                        if (off > max_arr_len)
+                            goto fini_exceed;
+                        else
                             mp_arr[off - 1] = h; /* back up and overwrite */
                     }
                 } else {
@@ -3811,13 +3828,9 @@ sg_f2hex_arr(const char * fname, bool as_binary, bool no_space,
                     ret = SG_LIB_SYNTAX_ERROR;
                     goto fini;
                 }
-                if ((off + k) >= max_arr_len) {
-                    pr2ws("%s: array length [%d>=%d] exceeded\n",
-                          __func__, off + k, max_arr_len);
-                    *mp_arr_len = max_arr_len;
-                    ret = SG_LIB_LBA_OUT_OF_RANGE;
-                    goto fini;
-                } else
+                if ((off + k) >= max_arr_len)
+                    goto fini_exceed;
+                else
                     mp_arr[off + k] = h;
             }
             if (isxdigit(*lcp) && (! isxdigit(*(lcp + 1))))
@@ -3838,13 +3851,9 @@ sg_f2hex_arr(const char * fname, bool as_binary, bool no_space,
                         /* single trailing hex digit might be a split pair */
                         carry_over[0] = *lcp;
                     }
-                    if ((off + k) >= max_arr_len) {
-                        pr2ws("%s: array length [%d>=%d] exceeded\n",
-                              __func__, off + k, max_arr_len);
-                        ret = SG_LIB_LBA_OUT_OF_RANGE;
-                        *mp_arr_len = max_arr_len;
-                        goto fini;
-                    } else if ((0 == k) && skip_first && (! redo_first))
+                    if ((off + k) >= max_arr_len)
+                        goto fini_exceed;
+                    else if ((0 == k) && skip_first && (! redo_first))
                         redo_first = true;
                     else {
                         redo_first = false;
@@ -3879,6 +3888,11 @@ sg_f2hex_arr(const char * fname, bool as_binary, bool no_space,
     if (fp && (! has_stdin))
         fclose(fp);
     return 0;
+fini_exceed:
+    pr2ws("%s: array length [%d] exceeded on line %d of input\n", __func__,
+          max_arr_len, j + 1);
+    ret = SG_LIB_LBA_OUT_OF_RANGE;
+    *mp_arr_len = max_arr_len;
 fini:
     if (fp && (! has_stdin))
         fclose(fp);

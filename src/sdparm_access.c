@@ -253,7 +253,7 @@ sdp_usage(const struct sdparm_opt_coll * op)
         return;
     }
     if (1 == op->do_help) {
-        pr2serr("Usage for mode pages:\n");
+        pr2serr("Usage for mode pages for DEVICEs:\n");
         mp_rd_usage(true);
         mp_wr_usage(true);
         pr2serr("\n");

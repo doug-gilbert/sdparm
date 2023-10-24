@@ -47,46 +47,54 @@
  * documents found at http://www.t10.org
  */
 
+static const char * const ioahg_s = "IO advice hints grouping";
+
 
 /* SSC's medium partition mode page has a variable number of
    partition size fields which are treated as descriptors here */
 static const struct sdparm_mode_descriptor_t ssc_mpa_desc = {
-    3, 1, 1, 8, 2, -1, -1, false, "SSC medium partition"
+    3, 1, 1, 8, 2, -1, -1, false, "Partition size descriptors", NULL
 };
 
 /* SMC's transport geometry parameters mode page doesn't give the number
    of following descriptors but rather parameter length (in bytes).
    This is flagged by -1 in num_descs_inc (third) field */
 static const struct sdparm_mode_descriptor_t smc_tg_desc = {
-    1, 1, -1, 2, 2, -1, -1, false, "SMC transport geometry"
+    1, 1, -1, 2, 2, -1, -1, false, "Transport geometry descriptors", NULL
 };
 
 /* SBC's logical block provisioning mode page doesn't give the number
    of following descriptors but rather parameter length (in bytes).
    This is flagged by -1 in num_descs_inc (third) field */
 static const struct sdparm_mode_descriptor_t sbc_lbp_desc = {
-    2, 2, -1, 16, 8, -1, -1, false, "SBC logical block provisioning"
+    2, 2, -1, 16, 8, -1, -1, false, "Threshold descriptors", NULL
 };
 
 /* SBC's application tag mode page doesn't give the number of
    following descriptors but rather parameter length (in bytes).
    This is flagged by -1 in num_descs_inc (third) field */
 static const struct sdparm_mode_descriptor_t sbc_atag_desc = {
-    2, 2, -1, 16, 24, -1, -1, false, "SBC application tag"
+    2, 2, -1, 16, 24, -1, -1, false, "Application tag descriptors", NULL
 };
 
 /* SPC's command duration limit A/B mode pages don't give the number of
    following descriptors but rather parameter length (in bytes).
    This is flagged by -1 in num_descs_inc (third) field */
 static const struct sdparm_mode_descriptor_t spc_cdl_desc = {
-    2, 2, -1, 8, 4, -1, -1, false, "command duration limit"
+    2, 2, -1, 8, 4, -1, -1, false, "Command duration limit descriptor list",
+    NULL
+};
+static const struct sdparm_mode_descriptor_t spc_cdl_t2_desc = {
+    2, 2, -1, 8, 4, -1, -1, false,
+    "T2 command duration limit descriptor list", NULL
 };
 
 /* SBC's IO advice hints grouping mode page doesn't give the number of
    following descriptors but rather parameter length (in bytes).
    This is flagged by -1 in num_descs_inc (third) field */
 static const struct sdparm_mode_descriptor_t sbc_ioadvi_desc = {
-    2, 2, -1, 16, 16, -1, -1, false, "IO advice hints group"
+    2, 2, -1, 16, 16, -1, -1, false, "IO advice hints group descriptor list",
+    "group"
 };
 
 /* Mode pages that aren't specific to any transport protocol or vendor.
@@ -116,9 +124,9 @@ const struct sdparm_mp_name_t sdparm_gen_mode_pg[] = {
     {CONTROL_MP, MSP_SPC_CDLB, -1, 0, "cdlb", "Command duration limit B",
         NULL, &spc_cdl_desc},
     {CONTROL_MP, MSP_SPC_CDLT2A, -1, 0, "cdt2a", "Command duration limit T2A",
-        NULL, NULL /* spc6r01 */ },
+        NULL, &spc_cdl_t2_desc /* spc6r01 */ },
     {CONTROL_MP, MSP_SPC_CDLT2B, -1, 0, "cdt2b", "Command duration limit T2B",
-        NULL, NULL /* spc6r01 */ },
+        NULL, &spc_cdl_t2_desc /* spc6r01 */ },
     {MMCMS_MP, 0, PDT_MMC, 1, "cms", "CD/DVD (MM) capabilities and "
         "mechanical status (MMC)", NULL, NULL},        /* read only */
     {CONTROL_MP, 0, -1, 0, "co", "Control", NULL, NULL},
@@ -144,8 +152,8 @@ const struct sdparm_mp_name_t sdparm_gen_mode_pg[] = {
     {FLEX_DISK_MP, 0, PDT_DISK, 0, "fd", "Flexible disk (SBC)", NULL, NULL},
     {FORMAT_MP, 0, PDT_DISK, 0, "fo", "Format (SBC)", NULL, NULL},
     {IEC_MP, 0, -1, 0, "ie", "Informational exceptions control", NULL, NULL},
-    {CONTROL_MP, MSP_SBC_IO_ADVI, 0, 0, "ioad", "IO advice hints grouping",
-        NULL, &sbc_ioadvi_desc},
+    {CONTROL_MP, MSP_SBC_IO_ADVI, 0, 0, "ioad", ioahg_s, NULL,
+         &sbc_ioadvi_desc},
     {IEC_MP, MSP_SBC_LB_PROV, PDT_DISK, 0, "lbp", "Logical block "
         "provisioning (SBC)", NULL, &sbc_lbp_desc},
     {LUN_MAPPING_MP, 0, PDT_SAC, 0, "lmap", "LUN mapping (SCC)", NULL,
@@ -260,18 +268,20 @@ static const struct sdparm_mp_name_t sdparm_srp_mode_pg[] = {    /* SRP */
     {0, 0, 0, 0, NULL, NULL, NULL, NULL},
 };
 
-static const struct sdparm_mode_descriptor_t sas_pcd_desc = {
-    7, 1, 0, 8, 48, -1, -1, false, "SAS phy"            /* desc SAS/SPL */
+static const struct sdparm_mode_descriptor_t sas_pcd_desc = { /* SAS/SPL */
+    7, 1, 0, 8, 48, -1, -1, false, "SAS phy mode descriptor list", NULL
 };
 
 static const struct sdparm_mode_descriptor_t sas_e_phy_desc = {
-    7, 1, 0, 8, -1, 2, 2, false, "Enhanced phy"         /* desc SAS/SPL */
+    7, 1, 0, 8, -1, 2, 2, false, "Enhanced phy control mode descriptor list",
+     NULL   /* desc SAS/SPL */
 };
 
 /* This one has a strange format, no number of descriptors and each
  * descriptor can have a variable size. */
 static const struct sdparm_mode_descriptor_t sas_oob_m_c_desc = {
-    -1, -1, 0, 8, -1, 2, 2, true, "Attribute control"   /* desc SAS/SPL */
+    -1, -1, 0, 8, -1, 2, 2, true, "Attribute control descriptor list",
+    NULL /* desc SAS/SPL */
 };
 
 /* N.B. In SAS 2.1 the spec was split with the upper levels going into the
@@ -779,15 +789,17 @@ const struct sdparm_mp_item_t sdparm_mitem_arr[] = {
      * page (i.e. 16 more than shown in t10's descriptor format table) */
     {"IOA_MODE", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 16, 7, 2, MF_J_USE_DESC,
         "IO advice hints mode", NULL, "0: valid; 1: invalid"},
-    {"CS_EN", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 16, 1, 1, 0,
+    {"ST_EN", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 16, 2, 1, MF_J_USE_DESC,
+        "Stream identifier enable", "st_enbl", NULL},   /* sbc5r5 */
+    {"CS_EN", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 16, 1, 1, MF_J_USE_DESC,
         "Cache segment enable", "cs_enbl", NULL},
-    {"IC_EN", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 16, 0, 1, 0,
+    {"IC_EN", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 16, 0, 1, MF_J_USE_DESC,
         "Information collection enable", "ic_enable", NULL},
     /* Assume Logical Block Markup (LBM) descriptor type 0 (i.e. access
      * patterns) */
-    {"ACDLU", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 20, 7, 1, 0,
+    {"ACDLU", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 20, 7, 1, MF_J_USE_DESC,
         "Access continue during low utilization", NULL, NULL},
-    {"RLBSR", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 20, 5, 2, 0,
+    {"RLBSR", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 20, 5, 2, MF_J_USE_DESC,
         "Related logical blocks and subsequent reads", NULL,
      "0: no information; 1: LBs associated, no subsequent reads expected;\t"
      "3: LBs associated, subsequent reads expected"},
@@ -809,7 +821,7 @@ const struct sdparm_mp_item_t sdparm_mitem_arr[] = {
     {"SU_IO", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 22, 3, 2, MF_J_USE_DESC,
         "Subsequent I/O", NULL,
         "0: unknown; 1: low probability; 2: high probability"},
-    {"OSI_PR", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 22, 1, 2, 0,
+    {"OSI_PR", CONTROL_MP, MSP_SBC_IO_ADVI, -1, 22, 1, 2, MF_J_USE_DESC,
         "Operating System Initialization (OSI) proximity", "osi_proximity",
         "0: unknown; 1: improbable; 2: probable"},
 
@@ -1940,8 +1952,8 @@ const struct sdparm_mp_item_t sdparm_mitem_sas_arr[] = {
         MF_J_USE_DESC, "Number of phys", NULL, "one descriptor per phy"},
     /* Phy mode descriptor starts here, <start_byte> relative to start of
      * mode page (i.e. 8 more than t10's phy mode descriptor table) */
-    {"PHID", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 9, 7, 8, MF_J_USE_DESC,
-        "Phy identifier", NULL, NULL},
+    {"PHID", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 9, 7, 8,
+        MF_J_USE_DESC, "Phy identifier", NULL, NULL},
     {"ADT", PROT_SPEC_PORT_MP, MSP_SAS_PCD, -1, 12, 6, 3, MF_J_USE_DESC,
         "Attached SAS device type", NULL, /* the word SAS added in spl4r01 */
         "0: no device attached; 1: end device\t"

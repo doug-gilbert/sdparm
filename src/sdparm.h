@@ -326,7 +326,8 @@ struct sdparm_mode_descriptor_t {
     /* Hence: <desc_len> = deref(base + d_len_off, d_len_bytes) + */
     /*                     d_len_off + d_len_bytes */
     bool have_desc_id;    /* descriptor has 4 bit ID, byte 0, bits 3 to 0 */
-    const char * name;
+    const char * dl_name; /* descriptor list name (from T10 docs) */
+    const char * de_name; /* descriptor element name: NULL for none */
 };
 
 /* Template for each mode page, array populated in sdparm_data.c for generic

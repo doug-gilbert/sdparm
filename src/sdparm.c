@@ -81,7 +81,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.17 20230808 [svn: r384]";
+static const char * version_str = "1.17 20231023 [svn: r385]";
 
 static const char * my_name = "sdparm: ";
 
@@ -117,6 +117,8 @@ static const char * sav_s = "saveable";
 static const char * cffa_s = "couldn't find field acronym";
 static const char * tn_s = "'--transport=<tn>'";
 static const char * vn_s = "'--vendor=<vn>'";
+static const char * const pad_2_s = "  ";
+static const char * const pad_4_s = "    ";
 
 static int msense6_good_count;
 static int msense6_pc_not_sup_count;  /* > 0 page controls not supported */
@@ -466,11 +468,12 @@ get_out_but_expect_back:
                 have_desc = true;
                 have_desc_id = mdp->have_desc_id;
                 if (long_o || (e_num > 1)) {
-                    if (mdp->name)
-                        sgj_pr_hr(jsp, "  <<%s mode descriptor>>\n",
-                                  mdp->name);
+                    if (mdp->dl_name)
+                        sgj_pr_hr(jsp, "  <<%s>>\n", mdp->dl_name);
                     else
-                        sgj_pr_hr(jsp, "  <<mode descriptor>>\n");
+                        sgj_pr_hr(jsp, "  <<no descriptor list name>>\n");
+                    if (mdp->de_name)
+                        sgj_pr_hr(jsp, "    <<%s>>\n", mdp->de_name);
                     sgj_pr_hr(jsp, "    <<num_descs_off=%d, num_descs_bytes"
                               "=%d, num_descs_inc=%d, first_desc_off=%d>>\n",
                               mdp->num_descs_off, mdp->num_descs_bytes,
@@ -514,8 +517,8 @@ get_out_but_expect_back:
                 if (have_desc) {
                     jo3p = sgj_named_subobject_r(jsp, jo2p,
                                                  "descriptor_meta");
-                    if (mdp->name)
-                        sgj_js_nv_s(jsp, jo3p, "name", mdp->name);
+                    if (mdp->dl_name)
+                        sgj_js_nv_s(jsp, jo3p, "name", mdp->dl_name);
                     sgj_js_nv_ihex(jsp, jo3p, "num_descs_off",
                                    mdp->num_descs_off);
                     sgj_js_nv_ihex(jsp, jo3p, "num_descs_bytes",
@@ -573,29 +576,6 @@ get_out_but_expect_back:
                                long_o, true, dlen, d);
         pr2serr("%s %s: no items found\n", d, mp_s);
     }
-#if 0
-pr2serr("%s: end, have_desc=%d\n", __func__, (int)have_desc);
-    if (found && have_desc && (long_o || (e_num > 1))) {
-#if 0
-        if ((-1 == mdp->num_descs_off) && (-1 == mdp->num_descs_bytes))
-            return;     /* Nothing to warn about in this case */
-#endif
-        if (mdp->name)
-            sgj_pr_hr(jsp, "  <<%s mode descriptor>>\n", mdp->name);
-        else
-            sgj_pr_hr(jsp, "  <<mode descriptor>>\n");
-        sgj_pr_hr(jsp, "    num_descs_off=%d, num_descs_bytes=%d, "
-                  "num_descs_inc=%d, first_desc_off=%d\n",
-                  mdp->num_descs_off, mdp->num_descs_bytes,
-                  mdp->num_descs_inc,  mdp->first_desc_off);
-        if (mdp->desc_len > 0)
-            sgj_pr_hr(jsp, "    descriptor_len=%d, ", mdp->desc_len);
-        else
-            sgj_pr_hr(jsp, "    desc_len_off=%d, desc_len_bytes=%d, ",
-                      mdp->desc_len_off, mdp->desc_len_bytes);
-        sgj_pr_hr(jsp, "desc_id=%s\n", (have_desc_id ? "true" : "false"));
-    }
-#endif
     if (get_active) {
         found = false;
         goto re_enter_for;
@@ -952,20 +932,21 @@ check_mode_page(uint8_t * cur_mp, int pn, int rep_len,
 }
 
 /* When mode page has descriptor, print_full_mpgs() and
- * print_mpgs_from_hex() will print the items associated with the first
+ * print_mpgs_inhex() will print the items associated with the first
  * descriptor. This function is called to print items associated with
  * subsequent descriptors */
 static void
 print_a_mitem_desc(void ** pc_arr, int rep_len,
                    const struct sdparm_mp_name_t * mnp,
                    const struct sdparm_mp_item_t * fdesc_mpip,
-                   const struct sdparm_mp_item_t * last_mpip,
+                   const struct sdparm_mp_item_t * prev_mpip,
                    int smask, int desc_len1, bool stop_if_set,
-                   struct sdparm_opt_coll * op, sgj_opaque_p jop)
+                   struct sdparm_opt_coll * op, sgj_opaque_p jap)
 {
     bool sis;
     bool broke = false;
     bool have_desc_id = false;
+    bool increase_pad = false;
     int k, len, d_off, n;
     int desc_id = -1;
     int num = 0;
@@ -973,9 +954,13 @@ print_a_mitem_desc(void ** pc_arr, int rep_len,
     const struct sdparm_mp_item_t * mpip;
     const uint8_t * cur_mp = (const uint8_t *)pc_arr[0];
     const uint8_t * bp;
+    const char * pad = pad_2_s;
+    sgj_state * jsp = &op->json_st;
+    sgj_opaque_p jop = NULL;
     struct sdparm_mp_item_t a_mp_it;
     uint64_t u;
-    char b[32];
+    char b[80];
+    static const int blen = sizeof(b);
 
     if ((NULL == mdp) || (NULL == cur_mp) || (rep_len < 4) ||
         (mdp->num_descs_off >= rep_len))
@@ -1028,6 +1013,8 @@ print_a_mitem_desc(void ** pc_arr, int rep_len,
     } else
         len = mdp->desc_len;
     d_off = mdp->first_desc_off + len;
+
+    // k is descriptor count. k==0 was handled in caller
     for (k = 1; k < num; ++k, d_off += len) {
         if (op->verbose > 3)
             pr2serr("%s: desc_len1=%d, d_off=%d, len=%d\n", __func__,
@@ -1035,7 +1022,17 @@ print_a_mitem_desc(void ** pc_arr, int rep_len,
         if ((! op->flexible) && stop_if_set)
             break;
         broke = false;
-        for (mpip = fdesc_mpip; mpip <= last_mpip; ++mpip) {
+        if (jsp->pr_as_json && jap) {
+            if (jop)
+                sgj_js_nv_o(jsp, jap, NULL /* name */, jop);
+            jop = sgj_new_unattached_object_r(jsp);
+            if (mdp->de_name) {
+                sgj_convert2snake(mdp->de_name, b, blen);
+                sgj_js_nv_i(jsp, jop, b, k);
+            }
+        }
+        pad = pad_2_s;
+        for (mpip = fdesc_mpip; mpip <= prev_mpip; ++mpip) {
             if (have_desc_id) {
                 if (mpip->flags & MF_CLASH_OK) {
                     if (desc_id != sdp_get_desc_id(mpip->flags))
@@ -1045,11 +1042,17 @@ print_a_mitem_desc(void ** pc_arr, int rep_len,
                     len = sg_get_unaligned_be16(cur_mp + d_off + 2) + 4;
                 }
             }
-            sg_scnpr(b, sizeof(b), "%s", mpip->acron);
+            if (increase_pad) {
+                increase_pad = false;
+                pad = pad_4_s;
+            }
+            if ((pad == pad_2_s) && (mpip->start_byte >= mdp->first_desc_off))
+                increase_pad = true;
+            sg_scnpr(b, blen, "%s", mpip->acron);
             a_mp_it = *mpip;
-            b[sizeof(b) - 8] = '\0';
+            b[24] = '\0';
             n = strlen(b);
-            snprintf(b + n, sizeof(b) - n, ".%d", k);
+            snprintf(b + n, blen - n, ".%d", k);
             a_mp_it.acron = b;
             a_mp_it.start_byte += (d_off - mdp->first_desc_off);
             if (a_mp_it.start_byte >= rep_len) {
@@ -1058,7 +1061,7 @@ print_a_mitem_desc(void ** pc_arr, int rep_len,
                 broke = true;
                 break;
             }
-            sis = print_a_mitem("  ", smask, &a_mp_it, pc_arr, false,
+            sis = print_a_mitem(pad, smask, &a_mp_it, pc_arr, false,
                                 op, jop);
             if (sis)
                 stop_if_set = true;
@@ -1072,6 +1075,8 @@ print_a_mitem_desc(void ** pc_arr, int rep_len,
             len = mdp->desc_len_off + mdp->desc_len_bytes + u;
         }
     }
+    if (jsp->pr_as_json && jap)
+        sgj_js_nv_o(jsp, jap, NULL /* name */, jop);
 }
 
 static const char * pc_nm_arr[] =
@@ -1403,14 +1408,16 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
                 struct sdparm_opt_coll * op, sgj_opaque_p jop)
 {
     bool single_pg, fetch_pg, desc_part, warned, have_desc_id, sis;
+    bool increase_pad = false;
     bool mode6 = op->mode_6;
+    bool postpone_desc = false;
     bool stop_if_set = false;
     int res, pg_len, verb, smask, rep_len, req_len, decay_pdt;
     int n, desc_id, desc_len, l_pn, l_spn;
     int desc0_off = 0;
     int skip_spn = INT_MIN;
     const struct sdparm_mp_item_t * mpip;
-    const struct sdparm_mp_item_t * last_mpip;
+    const struct sdparm_mp_item_t * prev_mpip;
     const struct sdparm_mp_item_t * fdesc_mpip = NULL;
     const struct sdparm_mp_name_t * mnp = NULL;
     const struct sdparm_mode_descriptor_t * mdp;
@@ -1420,8 +1427,11 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
     uint8_t * def_mp;
     uint8_t * sav_mp;
     uint8_t * first_mp;
+    const char * pad = pad_2_s;
     sgj_state * jsp = &op->json_st;
     sgj_opaque_p jo2p = NULL;
+    sgj_opaque_p jo3p = NULL;
+    sgj_opaque_p jap = NULL;
     char b[144];
     char e[80];
     static const int blen = sizeof(b);
@@ -1483,7 +1493,7 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
     if (NULL == mpip)
         return SG_LIB_CAT_OTHER;
 
-    last_mpip = mpip;
+    prev_mpip = mpip;
     if (l_pn >= 0) {      /* step to first item of given page */
         single_pg = true;
         fetch_pg = true;
@@ -1495,7 +1505,7 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
         }
         if (NULL == mpip->acron) {       /* page has no known fields */
             if (op->do_hex)
-                mpip = last_mpip;    /* trick to enter main loop once */
+                mpip = prev_mpip;    /* trick to enter main loop once */
             else if (op->examine || op->do_hex)
                 return print_mode_page_hex(sg_fd, l_pn, l_spn, op);
             else {
@@ -1514,7 +1524,7 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
     } else {    /* want all, so check all items in given namespace */
         single_pg = false;
         fetch_pg = false;
-        mpip = last_mpip;
+        mpip = prev_mpip;
     }
     mdp = NULL;
     pg_len = 0;
@@ -1540,13 +1550,16 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
             if (! ((l_pn == mpip->pg_num) && (l_spn == mpip->subpg_num))) {
                 /* page changed? some clean up to do */
                 if (fdesc_mpip) {
-                    last_mpip = mpip - 1;
-                    if ((l_pn == last_mpip->pg_num) &&
-                        (l_spn == last_mpip->subpg_num) &&
-                        (single_pg || op->do_all))
+                    prev_mpip = mpip - 1;
+                    if ((l_pn == prev_mpip->pg_num) &&
+                        (l_spn == prev_mpip->subpg_num) &&
+                        (single_pg || op->do_all)) {
+                        if (jap && jo3p)
+                            sgj_js_nv_o(jsp, jap, NULL /* name */, jo3p);
                         print_a_mitem_desc(pc_arr, pg_len, mnp, fdesc_mpip,
-                                           last_mpip, smask, desc_len,
-                                           stop_if_set, op, jo2p);
+                                           prev_mpip, smask, desc_len,
+                                           stop_if_set, op, jap);
+                    }
                 }
                 if (single_pg)
                     break;
@@ -1561,6 +1574,7 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
         }
         if (fetch_pg) {
             pg_len = 0;
+            pad = pad_2_s;
             /* Only fetch mode page when needed (e.g. item mpage changed) */
             mnp = sdp_get_mp_nm_with_str(l_pn, l_spn, pdt, op->transport,
                                          op->vendor_id, op->do_long,
@@ -1642,6 +1656,9 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
                     jo2p = sgj_named_subobject_r(jsp, jop, cp);
                     if (op->inner_hex > 0)
                         sgj_js_nv_s(jsp, jo2p, "mp_name", e);
+                    if (mdp && fdesc_mpip)
+                        postpone_desc = true;
+                    jo3p = jo2p;
                 }
 
                 pg_len = sdp_mpage_len(first_mp);
@@ -1665,6 +1682,13 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
             }
         }       /* end of if(fetch_pg) block */
         if (smask) {
+            if (increase_pad) {
+                increase_pad = false;
+                pad = pad_4_s;
+            }
+            if (mdp && (pad == pad_2_s) &&
+                (mpip->start_byte >= desc0_off))
+                increase_pad = true;
             if (mpip->start_byte >= pg_len) {
                 if ((! op->flexible) && (0 == op->verbose))
                     continue;   // step over
@@ -1682,6 +1706,15 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
                 if (! op->flexible)
                     continue;
             }
+            if (postpone_desc && (mpip->start_byte >= desc0_off)) {
+                postpone_desc = false;
+                jap = sgj_snake_named_subarray_r(jsp, jo2p, mdp->dl_name);
+                jo3p = sgj_new_unattached_object_r(jsp);
+                if (mdp->de_name) {
+                    sgj_convert2snake(mdp->de_name, e, elen);
+                    sgj_js_nv_i(jsp, jo3p, e, 0);
+                }
+            }
             if (have_desc_id && (mpip->start_byte == desc0_off) &&
                 (! (mpip->flags & MF_CLASH_OK))) {
                 desc_id = 0xf & *(first_mp + mpip->start_byte);
@@ -1693,16 +1726,19 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
                 if (desc_id != sdp_get_desc_id(mpip->flags))
                     continue;
             }
-            sis = print_get_mi_innerh("  ", smask, mpip, 0, pc_arr, op, jo2p);
+            sis = print_get_mi_innerh(pad, smask, mpip, 0, pc_arr, op, jo3p);
             if (sis)
                 stop_if_set = true;
         }
     }   /* end of mode page item loop */
     if ((0 == res) && mpip && (NULL == mpip->acron) && fdesc_mpip) {
         --mpip;
-        if ((l_pn == mpip->pg_num) && (l_spn == mpip->subpg_num))
+        if ((l_pn == mpip->pg_num) && (l_spn == mpip->subpg_num)) {
+            if (jap && jo3p)
+                sgj_js_nv_o(jsp, jap, NULL /* name */, jo3p);
             print_a_mitem_desc(pc_arr, pg_len, mnp, fdesc_mpip, mpip, smask,
-                               desc_len, stop_if_set, op, jo2p);
+                               desc_len, stop_if_set, op, jap);
+        }
     }
     return res;
 }
@@ -1774,14 +1810,15 @@ desc_adjust_start_byte(int desc_num, const struct sdparm_mp_name_t * mnp,
  * Note that MF_COMMON flag is ignored with --inhex=FN , in the absence
  * of other options, the first mode page in FN is decoded.  */
 static int
-print_mpgs_from_hex(uint8_t * msense_resp,
+print_mpgs_inhex(uint8_t * msense_resp,
                     const struct sdparm_mp_it_val_t * ivp,
                     struct sdparm_opt_coll * op, sgj_opaque_p jop)
 {
     bool first_time, desc_part, warned, nxt_spf, have_desc_id, sis;
-    bool deja_vu;
+    bool deja_vu, get_active;
+    bool increase_pad = false;
     bool mode6 = op->mode_6;
-    bool get_active;
+    bool postpone_desc = false;
     bool stop_if_set = false;
     int smask, resp_len, resp_mp_len, v, off, desc0_off, l_pn, l_spn;
     int pdt, decay_pdt, k, pg_len, transport, vendor_id, desc_id, desc_len;
@@ -1791,14 +1828,17 @@ print_mpgs_from_hex(uint8_t * msense_resp,
     uint64_t g_val;
     // const struct sdparm_mp_item_t * mpip;
     const struct sdparm_mp_item_t * mpip;
-    const struct sdparm_mp_item_t * last_mpip;
+    const struct sdparm_mp_item_t * prev_mpip;
     const struct sdparm_mp_item_t * fdesc_mpip = NULL;
     const struct sdparm_mp_name_t * mnp = NULL;
     const struct sdparm_mode_descriptor_t * mdp;
+    const char * pad = pad_2_s;
     uint8_t * l_pg_p;
     uint8_t * nxt_pg_p;
     sgj_state * jsp = &op->json_st;
     sgj_opaque_p jo2p = NULL;
+    sgj_opaque_p jo3p = NULL;
+    sgj_opaque_p jap = NULL;
     void * pc_arr[MP_NUM_PG_CTL];
     char b[192];
     char c[96];
@@ -1922,9 +1962,6 @@ and_again:
     }
     b[0] = '\0';
     c[0] = '\0';
-#if 0
-    orig_pn = l_pn;
-#endif
     /* choose a mode page item namespace (vendor, transport or generic) */
     transport = op->transport;
     vendor_id = op->vendor_id;
@@ -1944,7 +1981,7 @@ and_again:
     deja_vu = false;
 
 now_try_generic:
-    // last_mpip = mpip;
+    // prev_mpip = mpip;
     for ( ; mpip->acron; ++mpip) {
         if ((l_pn == mpip->pg_num) && (l_spn == mpip->subpg_num)) {
             if (sg_pdt_s_eq(pdt, mpip->com_pdt) || op->flexible)
@@ -1985,7 +2022,8 @@ get_is_active:
     /* starting at first match, loop over each mode page item in given
      * namespace */
     for (warned = false, first_time = true ; mpip->acron; ++mpip) {
-        if (first_time) {
+        if (first_time) {       /* for this mode (sub)page */
+            pad = pad_2_s;
             first_time = false;
             mnp = sdp_get_mp_nm_with_str(l_pn, l_spn, pdt, transport,
                                          vendor_id, op->do_long,
@@ -2038,32 +2076,37 @@ get_is_active:
                 jo2p = sgj_named_subobject_r(jsp, jop, cp);
                 if (op->inner_hex > 0)
                     sgj_js_nv_s(jsp, jo2p, "mp_name", c);
+                if (mdp && fdesc_mpip)
+                    postpone_desc = true;
+                jo3p = jo2p;
             }
             check_mode_page(l_pg_p, l_pn, pg_len, op);
-        } else {        /* if not first_time */
+        } else {        /* if not first_time for this mode (sub)page */
             if (get_active)
                 break;
             if ((l_pn == mpip->pg_num) && (l_spn == mpip->subpg_num)) {
                 if (! sg_pdt_s_eq(pdt, mpip->com_pdt) && ! op->flexible)
                     continue;
-#if 0
-                if (! (((orig_pn >= 0) ? true : op->do_all) ||
-                       (MF_COMMON & mpip->flags)))
-                    continue;
-#endif
             } else {    /* mode page or subpage changed */
                 if (fdesc_mpip) {
-                    last_mpip = mpip - 1; /* last_mpip that matched ... */
-                    if ((l_pn == last_mpip->pg_num) &&
-                        (l_spn == last_mpip->subpg_num))
+                    prev_mpip = mpip - 1; /* prev_mpip that matched ... */
+                    if ((l_pn == prev_mpip->pg_num) &&
+                        (l_spn == prev_mpip->subpg_num)) {
+                        if (jap && jo3p)
+                            sgj_js_nv_o(jsp, jap, NULL /* name */, jo3p);
                         print_a_mitem_desc(pc_arr, pg_len, mnp, fdesc_mpip,
-                                           last_mpip, smask, desc_len,
-                                           stop_if_set, op, jo2p);
+                                           prev_mpip, smask, desc_len,
+                                           stop_if_set, op, jap);
+                    }
                 }
                 break;
             }
         }
         if (smask) {
+            if (increase_pad) {
+                increase_pad = false;
+                pad = pad_4_s;
+            }
             if (mpip->start_byte >= pg_len) {
                 if ((! op->flexible) && (0 == vb))
                     continue;   // step over
@@ -2080,6 +2123,17 @@ get_is_active:
                 }
                 if (! op->flexible)
                     continue;
+            }
+            if (mdp && (pad == pad_2_s) && (mpip->start_byte >= desc0_off))
+                increase_pad = true;
+            if (postpone_desc && (mpip->start_byte >= desc0_off)) {
+                postpone_desc = false;
+                jap = sgj_snake_named_subarray_r(jsp, jo2p, mdp->dl_name);
+                jo3p = sgj_new_unattached_object_r(jsp);
+                if (mdp->de_name) {
+                    sgj_convert2snake(mdp->de_name, c, clen);
+                    sgj_js_nv_i(jsp, jo3p, c, 0);
+                }
             }
             if (have_desc_id && (mpip->start_byte == desc0_off) &&
                 (! (mpip->flags & MF_CLASH_OK))) {
@@ -2102,11 +2156,11 @@ get_is_active:
                             mpip->acron);
                     return SG_LIB_CAT_OTHER;
                 }
-                sis = print_get_mi_innerh("  ", smask, &a_mp_it, g_val,
-                                          pc_arr, op, jo2p);
+                sis = print_get_mi_innerh(pad, smask, &a_mp_it, g_val,
+                                          pc_arr, op, jo3p);
             } else
-                sis = print_get_mi_innerh("  ", smask, mpip, g_val, pc_arr,
-                                          op, jo2p);
+                sis = print_get_mi_innerh(pad, smask, mpip, g_val, pc_arr,
+                                          op, jo3p);
             if (sis)
                 stop_if_set = true;
         }
@@ -2115,9 +2169,12 @@ get_is_active:
         return 0;
     if (mpip && (NULL == mpip->acron) && fdesc_mpip) {
         --mpip;
-        if ((l_pn == mpip->pg_num) && (l_spn == mpip->subpg_num))
+        if ((l_pn == mpip->pg_num) && (l_spn == mpip->subpg_num)) {
+            if (jap && jo3p)
+                sgj_js_nv_o(jsp, jap, NULL /* name */, jo3p);
             print_a_mitem_desc(pc_arr, pg_len, mnp, fdesc_mpip, mpip, smask,
-                               desc_len, stop_if_set, op, jo2p);
+                               desc_len, stop_if_set, op, jap);
+        }
     }
 fini:
     if (op->do_all || op->page_str || get_active) {
@@ -2155,9 +2212,9 @@ check_desc_convert_mpip(int desc_num, const struct sdparm_mp_name_t * mnp,
 }
 
 static int
-print_get_mitems_from_hex(uint8_t * msense_resp,
-                          const struct sdparm_mp_settings_t * mps,
-                          struct sdparm_opt_coll * op, sgj_opaque_p jop)
+print_get_mitems_inhex(uint8_t * msense_resp,
+                       const struct sdparm_mp_settings_t * mps,
+                       struct sdparm_opt_coll * op, sgj_opaque_p jop)
 {
     int k, desc_num;
     int res = 0;
@@ -2193,10 +2250,9 @@ print_get_mitems_from_hex(uint8_t * msense_resp,
             }
         }
 
-        res = print_mpgs_from_hex(msense_resp, ivp, op, jop);
+        res = print_mpgs_inhex(msense_resp, ivp, op, jop);
         if (res)
             return res;
-//  yyyyyyyyyyyyyyyyyyyyyy  may need more here (descriptor stuff)
     }
 out:
     return res;
@@ -2229,8 +2285,10 @@ print_get_mitems(int sg_fd, const struct sdparm_mp_settings_t * mps,
     struct sdparm_mp_item_t a_mp_it;
     char b[144];
     char e[144];
+    char f[32];
     static const int blen = sizeof(b);
     static const int elen = sizeof(e);
+    static const int flen = sizeof(f);
 
     req_len = mode6 ? DEF_MODE_6_RESP_LEN : DEF_MODE_RESP_LEN;
     cur_mp = sg_memalign(req_len, 0, &free_cur_mp, false);
@@ -2256,7 +2314,7 @@ print_get_mitems(int sg_fd, const struct sdparm_mp_settings_t * mps,
                                      (op->do_hex > 0), blen, b);
         if (desc_num > 0) {
             if (check_desc_convert_mpip(desc_num, mnp, mpip, &a_mp_it,
-                                        elen, e)) {
+                                        flen, f)) {
                 adapt = true;
                 mpip = &a_mp_it;
             } else {
@@ -3578,9 +3636,9 @@ main(int argc, char * argv[])
                                        t_com_pdt, protect, inhex_buffp,
                                        NULL, 0, op, jo2p);
         else if (mps->num_it_vals > 0)
-            ret = print_get_mitems_from_hex(inhex_buffp, mps, op, jo2p);
+            ret = print_get_mitems_inhex(inhex_buffp, mps, op, jo2p);
         else
-            ret = print_mpgs_from_hex(inhex_buffp, NULL, op, jo2p);
+            ret = print_mpgs_inhex(inhex_buffp, NULL, op, jo2p);
         goto fini;
     }
 
