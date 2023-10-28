@@ -59,8 +59,8 @@ const struct sdparm_vendor_name_t sdparm_vendor_id[] = {
 };
 
 static const struct sdparm_mp_name_t sdparm_v_seagate_mode_pg[] = {
-    {UNIT_ATTENTION_MP, 0, 0, 0, "ua", "Unit attention (seagate)", NULL, NULL},
-    {0, 0, 0, 0, NULL, NULL, NULL, NULL},
+    {UNIT_ATTENTION_MP, 0, 0, 0, "ua", "Unit attention (seagate)", NULL},
+    {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
 // MF_J_NPARAM_DESC
@@ -145,8 +145,8 @@ static const struct sdparm_mp_item_t sdparm_mitem_v_seagate_arr[] = {
 
 static const struct sdparm_mp_name_t sdparm_v_hitachi_mode_pg[] = {
     {UNIT_ATTENTION_MP, 0, 0, 0, "vup", "Vendor unique parameters (hitachi)",
-        NULL, NULL},
-    {0, 0, 0, 0, NULL, NULL, NULL, NULL},
+        NULL},
+    {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
 /* Western Digital (WD) and Hitachi are synonymous */
@@ -203,9 +203,9 @@ static const struct sdparm_mp_item_t sdparm_mitem_v_hitachi_arr[] = {
 
 static const struct sdparm_mp_name_t sdparm_v_maxtor_mode_pg[] = {
     {UNIT_ATTENTION_MP, 0, 0, 0, "uac", "Unit attention condition (maxtor)",
-        NULL, NULL},
+        NULL},
 
-    {0, 0, 0, 0, NULL, NULL, NULL, NULL},
+    {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
 static const struct sdparm_mp_item_t sdparm_mitem_v_maxtor_arr[] = {
@@ -218,9 +218,9 @@ static const struct sdparm_mp_item_t sdparm_mitem_v_maxtor_arr[] = {
 
 static const struct sdparm_mp_name_t sdparm_v_fujitsu_mode_pg[] = {
     {0x21, 0, 0, 0, "aerp", "Additional error recovery parameters (fujitsu)",
-        NULL, NULL},
+        NULL},
 
-    {0, 0, 0, 0, NULL, NULL, NULL, NULL},
+    {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
 static const struct sdparm_mp_item_t sdparm_mitem_v_fujitsu_arr[] = {
@@ -233,20 +233,20 @@ static const struct sdparm_mp_item_t sdparm_mitem_v_fujitsu_arr[] = {
 
 static const struct sdparm_mp_name_t sdparm_v_lto5_mode_pg[] = {
     {0x24, 0, PDT_TAPE, 0, "l5vs", "Vendor specific (LTO-5)",
-        NULL, NULL},
+        NULL},
     {0x2f, 0, PDT_TAPE, 0, "l5bc", "Behaviour configuration (LTO-5)",
-        NULL, NULL},
+        NULL},
     {0x3b, 0, PDT_TAPE, 0, "l5sno", "Serial number override (LTO-5)",
-        NULL, NULL},
+        NULL},
     {0x3c, 0, PDT_TAPE, 0, "l5dt", "Device time (LTO-5)",
-        NULL, NULL},
+        NULL},
     {0x3d, 0, PDT_TAPE, 0, "l5er", "Extended reset (LTO-5)",
-        NULL, NULL},
+        NULL},
     {0x3e, 0, PDT_TAPE, 0, "l5cde", "cd-rom emulation / disaster recovery "
-        "(LTO-5)", NULL, NULL},
+        "(LTO-5)", NULL},
     /* Device attribute settings [0x30] LTO-5 */
 
-    {0, 0, 0, 0, NULL, NULL, NULL, NULL},
+    {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
 static const struct sdparm_mp_item_t sdparm_mitem_v_lto5_arr[] = {
@@ -334,16 +334,13 @@ static const struct sdparm_mp_item_t sdparm_mitem_v_lto5_arr[] = {
 };
 
 static const struct sdparm_mp_name_t sdparm_v_lto6_mode_pg[] = {
-    {0x3b, 0, PDT_TAPE, 0, "l6sno", "Serial number override (LTO-5)",
-        NULL, NULL},
-    {0x3c, 0, PDT_TAPE, 0, "l6dt", "Device time (LTO-5)",
-        NULL, NULL},
-    {0x3d, 0, PDT_TAPE, 0, "l6er", "Extended reset (LTO-5)",
-        NULL, NULL},
+    {0x3b, 0, PDT_TAPE, 0, "l6sno", "Serial number override (LTO-5)", NULL},
+    {0x3c, 0, PDT_TAPE, 0, "l6dt", "Device time (LTO-5)", NULL},
+    {0x3d, 0, PDT_TAPE, 0, "l6er", "Extended reset (LTO-5)", NULL},
     {0x3e, 0, PDT_TAPE, 0, "l6cde", "cd-rom emulation / disaster recovery "
-        "(LTO-5)", NULL, NULL},
+        "(LTO-5)", NULL},
 
-    {0, 0, 0, 0, NULL, NULL, NULL, NULL},
+    {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
 static const struct sdparm_mp_item_t sdparm_mitem_v_lto6_arr[] = {
@@ -399,8 +396,8 @@ static const struct sdparm_mp_item_t sdparm_mitem_v_lto6_arr[] = {
 };
 
 static const struct sdparm_mp_name_t sdparm_v_nvme_mode_pg[] = {
-    {UNIT_ATTENTION_MP, 0, 0, 0, "nvme", "Unit attention (NVMe)", NULL, NULL},
-    {0, 0, 0, 0, NULL, NULL, NULL, NULL},
+    {UNIT_ATTENTION_MP, 0, 0, 0, "nvme", "Unit attention (NVMe)", NULL},
+    {0, 0, 0, 0, NULL, NULL, NULL},
 };
 
 /* Only used by library's SNTL to override settings implied by NVMSR (byte

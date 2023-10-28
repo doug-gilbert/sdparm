@@ -207,10 +207,10 @@ decode_supported_vpd(uint8_t * buff, int len, struct sdparm_opt_coll * op,
         vpp = sdp_get_vpd_detail(pn, -1, pdt);
         if (vpp) {
             if (op->do_long)
-                sgj_pr_hr(jsp, "  %s  %s [%s]\n", b, vpp->name,
+                sgj_pr_hr(jsp, "  %s  %s [%s]\n", b, vpp->vpd_name,
                           vpp->vpd_acron);
             else
-                sgj_pr_hr(jsp, "  %s [%s]\n", vpp->name, vpp->vpd_acron);
+                sgj_pr_hr(jsp, "  %s [%s]\n", vpp->vpd_name, vpp->vpd_acron);
         } else
             sgj_pr_hr(jsp, "  %s\n", b);
         if (jsp->pr_as_json) {
@@ -218,7 +218,7 @@ decode_supported_vpd(uint8_t * buff, int len, struct sdparm_opt_coll * op,
             sgj_js_nv_i(jsp, jo2p, "i", pn);
             sgj_js_nv_s(jsp, jo2p, "hex", b + 2);
             if (vpp) {
-                sgj_js_nv_s(jsp, jo2p, "name", vpp->name);
+                sgj_js_nv_s(jsp, jo2p, "name", vpp->vpd_name);
                 sgj_js_nv_s(jsp, jo2p, "acronym", vpp->vpd_acron);
             } else {
                 sgj_js_nv_s(jsp, jo2p, "name", "unknown");
@@ -462,7 +462,7 @@ decode_dev_ids(const char * print_if_found, int num_leading, uint8_t * buff,
     char sp[82];
     static const int blen = sizeof(b);
 
-    if (op->do_quiet && (! jsp->pr_as_json))
+    if ((op->do_quiet > 0) && (! jsp->pr_as_json))
         return decode_dev_ids_quiet(buff, len, m_assoc, m_desig_type,
                                     m_code_set);
     sgj_out_hr = false;
@@ -1634,7 +1634,7 @@ static void
 decode_ext_inq_vpd(const uint8_t * b, int len, bool protect,
                    struct sdparm_opt_coll * op, sgj_opaque_p jop)
 {
-    bool do_long_nq = op->do_long && (! op->do_quiet);
+    bool do_long_nq = op->do_long && (0 == op->do_quiet);
     int n;
     sgj_state * jsp = &op->json_st;
     sgj_opaque_p jo2p;
@@ -1906,7 +1906,7 @@ static void
 decode_ata_info_vpd(const uint8_t * buff, int len, struct sdparm_opt_coll * op,
                     sgj_opaque_p jop)
 {
-    bool do_long_nq = op->do_long && (! op->do_quiet);
+    bool do_long_nq = op->do_long && (0 == op->do_quiet);
     int num, is_be, cc, n;
     sgj_state * jsp = &op->json_st;
     const char * cp;
@@ -3837,7 +3837,7 @@ try_larger:
         if (dhex < 3) {
             if (op->do_long)
                 sgj_pr_hr(jsp, "%s [0x83]:\n", di_vpdp);
-            else if (! op->do_quiet)
+            else if (0 == op->do_quiet)
                 sgj_pr_hr(jsp, "%s:\n", di_vpdp);
         }
         if (dhex > 0) {
@@ -3882,7 +3882,7 @@ try_larger:
         if (dhex < 3) {
             if (op->do_long)
                 sgj_pr_hr(jsp, "%s [0x86]:\n", eid_vpdp);
-            else if (! op->do_quiet)
+            else if (0 == op->do_quiet)
                 sgj_pr_hr(jsp, "%s:\n", eid_vpdp);
         }
         if (dhex > 0) {
@@ -3963,7 +3963,7 @@ try_larger:
         if (dhex < 3) {
             if (op->do_long)
                 sgj_pr_hr(jsp, "%s [0x8a]:\n", pc_vpdp);
-            else if (! op->do_quiet)
+            else if (0 == op->do_quiet)
                 sgj_pr_hr(jsp, "%s:\n", pc_vpdp);
         }
         if (dhex > 0) {
@@ -3988,7 +3988,7 @@ try_larger:
         if (dhex < 3) {
             if (op->do_long)
                 sgj_pr_hr(jsp, "%s [0x8b]:\n", dc_vpdp);
-            else if (! op->do_quiet)
+            else if (0 == op->do_quiet)
                 sgj_pr_hr(jsp, "%s:\n", dc_vpdp);
         }
         if (dhex > 0) {
@@ -4018,7 +4018,7 @@ try_larger:
         if (dhex < 3) {
             if (op->do_long)
                 sgj_pr_hr(jsp, "%s [0x86]:\n", cpi_vpdp);
-            else if (! op->do_quiet)
+            else if (0 == op->do_quiet)
                 sgj_pr_hr(jsp, "%s:\n", cpi_vpdp);
         }
         if (dhex > 0) {
@@ -4745,7 +4745,7 @@ try_larger:
         len = sg_get_unaligned_be16(b + 2) + 4;
         vpp = sdp_get_vpd_detail(pn, -1, pdt);
         if (vpp)
-            snprintf(c, clen, "%s VPD page", vpp->name);
+            snprintf(c, clen, "%s VPD page", vpp->vpd_name);
         else
             snprintf(c, clen, "VPD page 0x%x", pn);
         if (dhex < 3)
