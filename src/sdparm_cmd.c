@@ -169,7 +169,7 @@ do_cmd_read_capacity(int sg_fd, bool do_long, int verbose)
 #define MAX_REQ_SENSE_SZ 64
 
 static int
-do_cmd_sense(int sg_fd, bool hex, bool do_quiet, int verbose)
+do_cmd_sense(int sg_fd, bool hex, int do_quiet, int verbose)
 {
     bool something;
     int res, resp_len, sk, asc, ascq, progress, pr, rem;
@@ -216,7 +216,7 @@ do_cmd_sense(int sg_fd, bool hex, bool do_quiet, int verbose)
                                                    (int)sizeof(b), b));
             return 0;
         } else {
-            if (! (something || verbose || do_quiet)) {
+            if (! (something || verbose || (do_quiet > 0))) {
                 pr2serr("Decode response as sense data:\n");
                 sg_print_sense(NULL, buff, resp_len, 0);
             }
@@ -290,7 +290,7 @@ do_cmd_speed(int sg_fd, int cmd_arg, const struct sdparm_opt_coll * op)
                 printf("starting LBA: %u\n", lba);
             }
             u = sg_get_unaligned_be32(buff + 12);
-            if (op->do_quiet)
+            if (op->do_quiet > 0)
                 printf("%u\n", u);
             else
                 printf("Nominal speed at starting LBA: %u kiloBytes/sec\n",
@@ -420,17 +420,17 @@ sdp_build_cmd(const char * cmd_str, bool * rwp, int * argp)
     if (argp)
         *argp = arg;
 
-    for (scmdp = sdparm_command_arr; scmdp->name; ++scmdp) {
-        if (sdp_strcase_eq(scmdp->name, cp))
+    for (scmdp = sdparm_command_arr; scmdp->cmd_name; ++scmdp) {
+        if (sdp_strcase_eq(scmdp->cmd_name, cp))
             break;
     }
-    if ((NULL == scmdp->name) && (strlen(cp) >= 2)) {
-        for (scmdp = sdparm_command_arr; scmdp->name; ++scmdp) {
+    if ((NULL == scmdp->cmd_name) && (strlen(cp) >= 2)) {
+        for (scmdp = sdparm_command_arr; scmdp->cmd_name; ++scmdp) {
             if (0 == memcmp(scmdp->min_abbrev, cp, 2))
                 break;
         }
     }
-    if (scmdp->name) {
+    if (scmdp->cmd_name) {
         if (rwp) {
             if ((CMD_READY  == scmdp->cmd_num) ||
                 (CMD_SENSE  == scmdp->cmd_num) ||
@@ -450,11 +450,11 @@ sdp_enumerate_commands(struct sdparm_opt_coll * op)
     const struct sdparm_command_t * scmdp;
     sgj_state * jsp = &op->json_st;
 
-    for (scmdp = sdparm_command_arr; scmdp->name; ++scmdp) {
+    for (scmdp = sdparm_command_arr; scmdp->cmd_name; ++scmdp) {
         if (scmdp->extra_arg)
-            sgj_pr_hr(jsp, "  %s[=%s]\n", scmdp->name, scmdp->extra_arg);
+            sgj_pr_hr(jsp, "  %s[=%s]\n", scmdp->cmd_name, scmdp->extra_arg);
         else
-            sgj_pr_hr(jsp, "  %s\n", scmdp->name);
+            sgj_pr_hr(jsp, "  %s\n", scmdp->cmd_name);
     }
 }
 
@@ -508,7 +508,7 @@ sdp_process_cmd(int sg_fd, const struct sdparm_command_t * scmdp, int cmd_arg,
         }
         break;
     case CMD_SENSE:
-        res = do_cmd_sense(sg_fd, (op->do_hex > 0), (op->do_quiet > 0),
+        res = do_cmd_sense(sg_fd, (op->do_hex > 0), op->do_quiet,
                            op->verbose);
         break;
     case CMD_SPEED:

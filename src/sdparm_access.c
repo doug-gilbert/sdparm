@@ -76,6 +76,7 @@ static struct option long_options[] = {
     {"js-file", required_argument, 0, 'J'},
     {"js_file", required_argument, 0, 'J'},
     {"long", no_argument, 0, 'l'},
+    {"mph", no_argument, 0, 'm'},
     {"num-desc", no_argument, 0, 'n'},
     {"num_desc", no_argument, 0, 'n'},
     {"numdesc", no_argument, 0, 'n'},
@@ -107,19 +108,19 @@ static void mp_rd_usage(bool long_opt)
             "[--hex]\n"
             "           [--inner-hex] [--json[=JO]] [--js-file=JFN] "
             "[--long]\n"
-            "           [--num-desc] [--out-mask=OM] [--page=PG[,SPG]] "
-            "[--quiet]\n"
-            "           [--readonly] [--six] [--transport=TN] "
-            "[--vendor=VN]\n"
-            "           [--verbose] DEVICE [DEVICE...]\n"
+            "           [--mph] [--num-desc] [--out-mask=OM] "
+            "[--page=PG[,SPG]]\n"
+            "           [--quiet] [--readonly] [--six] "
+            "[--transport=TN]\n"
+            "           [--vendor=VN] [--verbose] DEVICE [DEVICE...]\n"
               );
     else
         pr2serr(
             "    sdparm [-a] [-B] [-E] [-f] [-g STR] [-H] [-x] [-j[=JO]] "
             "[-J JFN] [-l]\n"
-            "           [-n] [-o OM] [-p PG[,SPG]] [-q] [-r] [-6] [-t TN] "
-            "[-M VN] [-v]\n"
-            "           DEVICE [DEVICE...]\n"
+            "           [-m] [-n] [-o OM] [-p PG[,SPG]] [-q] [-r] [-6] "
+            "[-t TN] [-M VN]\n"
+            "           [-v] DEVICE [DEVICE...]\n"
               );
 }
 
@@ -200,15 +201,15 @@ static void inhex_usage(bool long_opt)
             "[--inner-hex]\n"
             "           [--inquiry] [--json[=JO]] [--js-file=JFN] "
             "[--long]\n"
-            "           [--out=mask=,IM] [--page=PG[,SPG]] [--pdt=DT] "
-            "[--raw] [--six]\n"
-            "           [--transport=TN] [--vendor=VN] [--verbose]\n"
+            "           [--mph] [--out=mask=,IM] [--page=PG[,SPG]] "
+            "[--pdt=DT] [--raw]\n"
+            "           [--six] [--transport=TN] [--vendor=VN] [--verbose]\n"
               );
     else
         pr2serr(
             "    sdparm -I FN [-a] [-f] [-g STR] [-H] [-x] [-i] [-j[=JO]] "
             "[-J JFN]\n"
-            "           [-l] [-o ,IM] [-p PG[,SPG]] [-P PDT] [-R] [-6] "
+            "           [-l] [-m] [-o ,IM] [-p PG[,SPG]] [-P PDT] [-R] [-6] "
             "[-t TN]\n"
             "           [-M VN] [-v]\n"
               );
@@ -345,6 +346,8 @@ sdp_usage(const struct sdparm_opt_coll * op)
             "output is\n"
             "                              written (def: stdout); truncates "
             "then writes\n"
+            "    --mph | -m             show Mode parameter header + block "
+	    "descs\n"
             "    --out-mask=,IM | -o ,IM    mask like '-o OM' but applies "
             "to inhex\n"
             "    --pdt=DT|-P DT        peripheral Device Type (e.g. "
@@ -620,6 +623,9 @@ chk_short_opts(const char sopt_ch, struct sdparm_opt_coll * op)
     case 'l':
         ++op->do_long;
         break;
+    case 'm':
+        op->mph = true;
+        break;
     case 'n':
         op->num_desc = true;
         break;
@@ -670,11 +676,11 @@ sdp_parse_cmdline(struct sdparm_opt_coll * op, int argc, char * argv[],
 
 #ifdef SG_LIB_WIN32
         c = getopt_long(argc, argv,
-                        "^6aBc:C:dDeEfFg:hHiI:j::J:lM:no:p:P:qrRs:St:vVwx",
+                        "^6aBc:C:dDeEfFg:hHiI:j::J:lmM:no:p:P:qrRs:St:vVwx",
                         long_options, &option_index);
 #else
         c = getopt_long(argc, argv,
-                        "^6aBc:C:dDeEfFg:hHiI:j::J:lM:no:p:P:qrRs:St:vVx",
+                        "^6aBc:C:dDeEfFg:hHiI:j::J:lmM:no:p:P:qrRs:St:vVx",
                         long_options, &option_index);
 #endif
         if (c == -1)
@@ -773,6 +779,9 @@ sdp_parse_cmdline(struct sdparm_opt_coll * op, int argc, char * argv[],
             break;
         case 'l':
             ++op->do_long;
+            break;
+        case 'm':
+            op->mph = true;
             break;
         case 'M':
             if (isalpha((uint8_t)optarg[0])) {

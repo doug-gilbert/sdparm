@@ -6,10 +6,10 @@ sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands
 [\fI\-\-all\fR] [\fI\-\-dbd\fR] [\fI\-\-examine\fR] [\fI\-\-flexible\fR]
 [\fI\-\-get=STR\fR] [\fI\-\-hex\fR] [\fI\-\-inner\-hex\fR]
 [\fI\-\-json[=JO]\fR] [\fI\-\-js\-file=JFN\fR] [\fI\-\-long\fR]
-[\fI\-\-num\-desc\fR] [\fI\-\-out\-mask=OM\fR] [\fI\-\-page=PG[,SPG]\fR]
-[\fI\-\-quiet\fR] [\fI\-\-readonly\fR] [\fI\-\-six\fR]
-[\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR] [\fI\-\-verbose\fR]
-\fIDEVICE\fR [\fIDEVICE\fR...]
+[\fI\-\-mph\fR] [\fI\-\-num\-desc\fR] [\fI\-\-out\-mask=OM\fR]
+[\fI\-\-page=PG[,SPG]\fR] [\fI\-\-quiet\fR] [\fI\-\-readonly\fR]
+[\fI\-\-six\fR] [\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
+[\fI\-\-verbose\fR] \fIDEVICE\fR [\fIDEVICE\fR...]
 .PP
 .B sdparm
 [\fI\-\-clear=STR\fR] [\fI\-\-defaults\fR] [\fI\-\-dummy\fR]
@@ -36,12 +36,12 @@ sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands
 [\fI\-\-vendor=VN\fR]
 .PP
 .B sdparm
-\fI\-\-inhex=FN\fR [\fI\-\-all\fR] [\fI\-\-flexible\fR] [\fI\-\-get=STR\fR]
-[\fI\-\-hex\fR] [\fI\-\-inner\-hex\fR] [\fI\-\-inquiry\fR]
+\fI\-\-inhex=FN\fR [\fI\-\-all\fR] [\fI\-\-dbd\fR] [\fI\-\-flexible\fR]
+[\fI\-\-get=STR\fR] [\fI\-\-hex\fR] [\fI\-\-inner\-hex\fR] [\fI\-\-inquiry\fR]
 [\fI\-\-json[=JO]\fR] [\fI\-\-js\-file=JFN\fR] [\fI\-\-long\fR]
-[\fI\-\-out\-mask=OM\fR] [\fI\-\-page=PG[,SPG]\fR] [\fI\-\-pdt=DT\fR]
-[\fI\-\-raw\fR] [\fI\-\-six\fR] [\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR]
-[\fI\-\-verbose\fR]
+[\fI\-\-mph\fR] [\fI\-\-out\-mask=OM\fR] [\fI\-\-page=PG[,SPG]\fR]
+[\fI\-\-pdt=DT\fR] [\fI\-\-quiet\fR] [\fI\-\-raw\fR] [\fI\-\-six\fR]
+[\fI\-\-transport=TN\fR] [\fI\-\-vendor=VN\fR] [\fI\-\-verbose\fR]
 .PP
 .B sdparm
 \fI\-\-wscan\fR [\fI\-\-verbose\fR]
@@ -83,6 +83,12 @@ mode page found in \fIFN\fR are decoded. To list all mode pages add the
 \fI\-\-all\fR. To decode a specific mode page use the \fI\-\-page=PG[,SPG]\fR
 option and to search for a specific field (or several) use the
 \fI\-\-get=STR\fR option.
+.PP
+Mode pages are part of the response to the SCSI MODE SENSE command. The
+first part of the response is a "Mode parameter header", followed by zero or
+more "Block descriptors", followed by one or more mode pages. Mode pages
+can be altered with the SCSI MODE SELECT command. See the NOTES section below
+for more information about those commands.
 .PP
 This utility completes with an exit status of 0 when successful. For other
 values see the EXIT STATUS section below.
@@ -160,6 +166,9 @@ disable block descriptors. This is a bit in MODE SENSE cdbs that
 rarely needs to be set. One known case is a MODE SENSE 6 issued to a
 Reduced Block Commands (RBC) device where the RBC standard says it
 shall be set.
+.br
+This option can also be used when the \fI\-\-inhex=FN\fR option is active. In
+this case it will suppress the output of block descriptors.
 .TP
 \fB\-D\fR, \fB\-\-defaults\fR
 sets the given mode page to its default values. Requires the
@@ -253,7 +262,7 @@ for each mode page there are up to four outputs, one for each of the current,
 changeable, default and saveable page controls. A subset of the available
 page controls can be output by using the \fI\-\-out\-mask=OM\fR option.
 .br
-It is recommended that the '\-HHHHH' option (i.e. '--hex' five times) is
+It is recommended that the '\-HHHHH' option (i.e. '\-\-hex' five times) is
 used since this adds a comment line above each block of hex. The comment
 start with '#' and briefly describes the following hex block. This will make
 it easier to debug if something goes wrong. Any line starting with '#'
@@ -345,6 +354,15 @@ When this option is used along with \fI\-\-command=capacity\fR then the
 READ CAPACITY(16) is sent to the \fIDEVICE\fR and if successful its extended
 response is output.
 .TP
+\fB\-m\fR, \fB\-\-mph\fR
+show the Mode parameter header and the block descriptors before any mode
+pages in the output. The Mode parameter header has some fields that are
+independent of any mode page, however a MODE SENSE command response must
+contain 1 or more mode pages, otherwise it yields an error.
+.br
+Using the \fI\-\-long\fR option also shows the Mode parameter header and
+the block descriptors but makes the output of mode pages more verbose.
+.TP
 \fB\-n\fR, \fB\-\-num\-desc\fR
 for a mode page that can have descriptors, the number of descriptors for the
 given page on the \fIDEVICE\fR is output. Otherwise 0 is output.
@@ -405,7 +423,8 @@ available.
 .br
 If this option is used thrice then the displaying of the mode page name is
 suppressed when the fields of a full or partial mode page(s) are being
-displayed.
+displayed. This may useful if only the Mode parameter header and Block
+descriptors are wanted in the output.
 .TP
 \fB\-r\fR, \fB\-\-readonly\fR
 override other logic to open \fIDEVICE\fR in read\-only mode. The default
@@ -489,11 +508,17 @@ is added. When used four times only a SCSI adapter scan is shown.
 See examples below and the "Win32 port" section in the README file.
 .SH NOTES
 The reference document used for interpreting mode and VPD pages (and the
-INQUIRY standard response) is T10/BSR INCITS 502 Revision 17 (SPC\-5, 19
-September 2017) found at http://www.t10.org . Obsolete and reserved items
+INQUIRY standard response) is T10/BSR INCITS 566 Revision 10 (SPC\-6, 25
+September 2023) found at http://www.t10.org . Obsolete and reserved items
 in the standard INQUIRY response output are displayed in brackets. Recent
-drafts of other T10 documents are also used: SBC\-4 (disks), SSC\-5 (tapes),
-SPL\-5 (SAS transport) and SAT\-4 (SCSI to ATA Translation).
+drafts of other T10 documents are also used: SBC\-5 (disks), SSC\-5 (tapes),
+SPL\-5 (SAS transport) and SAT\-5 (SCSI to ATA Translation).
+.PP
+In SPC\-6 draft revision 7 (21 January 2023) MODE SELECT(6) and MODE SENSE(6)
+were made obsolete and the 10 byte variants were renamed MODE SELECT and
+MODE SENSE. This utility already defaults to the 10 byte variants of those
+commands but will still decode the 6 byte variants if asked (e.g. with the
+\fI\-\-six\fR option).
 .PP
 A mode page for which no abbreviation is known (e.g. a vendor specific mode
 page) can be listed in hexadecimal by using the option
@@ -1100,4 +1125,4 @@ https://sg.danny.cz/sg/sdparm.html .
 .B sdparm_json(8), hdparm(hdparm),
 .B sg_modes, sg_wr_mode, sginfo, sg_inq, sg_vpd, sg_decode_sense
 .B (all in sg3_utils), smartmontools(smartmontools.sourceforge.net)
-.B mt(mt-st), eject(eject)
+.B mt(mt\-st), eject(eject)

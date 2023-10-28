@@ -235,6 +235,7 @@ struct sdparm_opt_coll {
     bool do_json;       /* -j (or -J) */
     bool do_raw;        /* -R (usually '-r' but already used) */
     bool do_rw;         /* true: requires RDWR, false: perhaps RDONLY ok */
+    bool mph;           /* show 'Mode parameter header' and block descs */
     bool read_only;
     bool save;
     bool set_clear;     /* --set= or --clear= has been invoked */
@@ -313,7 +314,7 @@ struct sdparm_opt_coll {
  * many descriptors, one or more of one desc_id and one or more of another
  * desc_id. And descriptors with different desc_id_s can have different
  * lengths and different fields (items).                    */
-struct sdparm_mode_descriptor_t {
+struct sdparm_mode_descriptor_t {       /* 'mdp->' used in code */
     int num_descs_off;    /* byte offset of start of num_descriptors */
     int num_descs_bytes;  /* number of bytes in num_descriptors field */
     int num_descs_inc;    /* number to add to num_descriptors */
@@ -332,7 +333,7 @@ struct sdparm_mode_descriptor_t {
 
 /* Template for each mode page, array populated in sdparm_data.c for generic
  * and transport mpages. Vendor mode pages found in sdparm_data_vendor.c . */
-struct sdparm_mp_name_t {
+struct sdparm_mp_name_t {       /* 'mnp->' used in code */
     int page;
     int subpage;
     int com_pdt;     /* compound peripheral device type id, -1 is the default
@@ -341,19 +342,18 @@ struct sdparm_mp_name_t {
                       *    PDT_DISK | (PDT_ZBC << 8)    */
     int ro;          /* read-only */
     const char * mp_acron;
-    const char * mp_name;
-    const char * js_name;    /* NULL means use sdp_mp_convert2snake((name) */
+    const char * mp_name;    /* mode page name */
     const struct sdparm_mode_descriptor_t * mp_desc;
                     /* non-NULL when mpage has descriptor format */
 };
 
 /* Template for each VPD page, array populated in sdparm_data.c */
-struct sdparm_vpd_page_t {
+struct sdparm_vpd_page_t {      /* 'vpp->' used in code */
     int vpd_num;
     int subvalue;
     int com_pdt;       /* see com_pdt explanation above */
     const char * vpd_acron;
-    const char * name;
+    const char * vpd_name;
 };
 
 /* Template for each mode/VPD page vendor, array populated in
@@ -366,9 +366,8 @@ struct sdparm_vendor_name_t {
 
 /* Template for each mode page field (item), arrays for generic and each
  * transport populated in sdparm_data.c . Arrays for vendors populated
- * in sdparm_data_vendor.c . The 'mpip' variable is pointer to an
- * instance of this structure. */
-struct sdparm_mp_item_t {
+ * in sdparm_data_vendor.c . */
+struct sdparm_mp_item_t {       /* 'mpip->' used in code */
     const char * acron;
     int pg_num;
     int subpg_num;
@@ -378,7 +377,7 @@ struct sdparm_mp_item_t {
     int num_bits;
     int flags;       /* bit settings OR-ed together, see MF_* */
     const char * description;
-    const char * js_name;       /* NULL means use sgj_convert2snake((acron) */
+    const char * js_name;     /* NULL means use sgj_convert2snake((acron) */
     const char * extra;
 };
 
@@ -386,7 +385,7 @@ struct sdparm_mp_item_t {
  * one or more instances of this structure. On the command line each
  * has the form: <mitem>[.<d_num>][=<val>]
  * struct sdparm_mp_settings_t contains an array of these. */
-struct sdparm_mp_it_val_t {
+struct sdparm_mp_it_val_t {     /* 'ivp->' used in code */
     struct sdparm_mp_item_t mp_it;   /* holds <mitem> in above form */
     int64_t val;        /* holds <val> in above form. Defaults to 1 for
                          * for --set=, and to 0 for --clear= and --get= .
@@ -403,7 +402,7 @@ struct sdparm_mp_it_val_t {
  * mode page number and sub-page number. That argument could be empty, a
  * single <mitem>[.<d_num>][=<val>] instance or a comma separated list of
  * them. */
-struct sdparm_mp_settings_t {
+struct sdparm_mp_settings_t {   /* 'mps->' used in code */
     int pg_num;
     int subpg_num;
     struct sdparm_mp_it_val_t it_vals[MAX_MP_IT_VAL];
@@ -433,7 +432,7 @@ struct sdparm_vendor_pair {
  * found in sdparm_data.c */
 struct sdparm_command_t {
     int cmd_num;
-    const char * name;
+    const char * cmd_name;
     const char * min_abbrev;
     const char * extra_arg;
 };

@@ -81,7 +81,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.17 20231023 [svn: r385]";
+static const char * version_str = "1.17 20231027 [svn: r388]";
 
 static const char * my_name = "sdparm: ";
 
@@ -109,6 +109,7 @@ static const char * mp_sn = "mode_page";
 static const char * mpgf_s = "Mode pages for";
 static const char * sdp_sn = "sdparm";
 static const char * sdp_rsp_sn = "sdparm_response";
+static const char * sdp_inhex_sn = "sdparm_inhex";
 static const char * sdp_enum_sn = "sdparm_enumeration";
 static const char * cur_s = "current";
 static const char * cha_s = "changeable";
@@ -117,6 +118,7 @@ static const char * sav_s = "saveable";
 static const char * cffa_s = "couldn't find field acronym";
 static const char * tn_s = "'--transport=<tn>'";
 static const char * vn_s = "'--vendor=<vn>'";
+static const char * sddap_s = "so don't decode any pages";
 static const char * const pad_2_s = "  ";
 static const char * const pad_4_s = "    ";
 
@@ -169,13 +171,8 @@ enumerate_mpage_names(int transport, int vendor_id,
                 sg_scnpr(b, blen, "  %-4s 0x%02x       %s", mnp->mp_acron,
                          mnp->page, mnp->mp_name);
             if (op->do_long > 2) {
-                if (mnp->js_name)
-                    sgj_pr_hr(jsp, "%s\n\t\t[json_name: %s]\n", b,
-                              mnp->js_name);
-                else {
-                    sdp_mp_convert2snake(mnp->mp_name, c, clen);
-                    sgj_pr_hr(jsp, "%s\n\t\t[json_name: %s]\n", b, c);
-                }
+                sdp_mp_convert2snake(mnp->mp_name, c, clen);
+                sgj_pr_hr(jsp, "%s\n\t\t[json_name: %s]\n", b, c);
             } else
                 sgj_pr_hr(jsp, "%s\n", b);
         }
@@ -189,13 +186,13 @@ enumerate_vpd_names(struct sdparm_opt_coll * op)
     sgj_state * jsp = &op->json_st;
 
     for (vpp = sdparm_vpd_pg; vpp->vpd_acron; ++vpp) {
-        if (vpp->name) {
+        if (vpp->vpd_name) {
             if (vpp->vpd_num < 0)
                 sgj_pr_hr(jsp, "  %-10s -1        %s\n", vpp->vpd_acron,
-                          vpp->name);
+                          vpp->vpd_name);
             else
                 sgj_pr_hr(jsp, "  %-10s 0x%02x      %s\n", vpp->vpd_acron,
-                          vpp->vpd_num, vpp->name);
+                          vpp->vpd_num, vpp->vpd_name);
         }
     }
 }
@@ -1245,12 +1242,113 @@ one_more:
     return 0;
 }
 
+// Prints Mode parameter header in plain text or JSON.
+static void
+print_mode_param_hdr(const uint8_t * mph_desc, int rsp_len, int decay_pdt,
+                     struct sdparm_opt_coll * op, sgj_opaque_p jop)
+{
+    bool mode6 = op->mode_6;
+    bool longlba = false;
+    uint16_t mdlen, bdlen;
+    int v, a_bd_len, num_bd;
+    sgj_state * jsp = &op->json_st;
+    sgj_opaque_p jo2p = sgj_named_subobject_r(jsp, jop,
+                                              "mode_parameter_header");
+
+    sgj_pr_hr(jsp, "Mode parameter header:\n");
+    if (rsp_len < 4) {
+        if (op->verbose > 1)
+            pr2serr("%s: truncated response\n", __func__);
+        return;
+    }
+    mdlen = mode6 ? mph_desc[0] : sg_get_unaligned_be16(mph_desc + 0);
+    sgj_haj_vi(jsp, jo2p, 2, "Mode data length", SGJ_SEP_COLON_1_SPACE,
+               mdlen, false);
+    sgj_haj_vi(jsp, jo2p, 2, "Medium type", SGJ_SEP_COLON_1_SPACE,
+               mph_desc[mode6 ? 1 : 2], true);
+    v = mph_desc[mode6 ? 2 : 3];
+    sgj_haj_vi(jsp, jo2p, 2, "Device-specific parameter",
+               SGJ_SEP_COLON_1_SPACE, v, true);
+    if (0 == decay_pdt) {
+        sgj_opaque_p jo3p = sgj_named_subobject_r(jsp, jo2p,
+                              "device_specific_parameter_for_direct_access");
+        sgj_pr_hr(jsp, "  Parameter for direct access:\n");
+        sgj_haj_vi_nex(jsp, jo3p, 4, "WP", SGJ_SEP_COLON_1_SPACE,
+                       !!(v & 0x80), false, "Write Protect");
+        sgj_haj_vi_nex(jsp, jo3p, 4, "CAPPID", SGJ_SEP_COLON_1_SPACE,
+                       !!(v & 0x20), false,
+                       "Capacity/product identification");
+        sgj_haj_vi_nex(jsp, jo3p, 4, "DPOFUA", SGJ_SEP_COLON_1_SPACE,
+                       !!(v & 0x10), false,
+                       "Capability to set both FUA and DPO bits");
+    }
+    if (! mode6) {
+        if (1 & mph_desc[4])
+            longlba = true;
+        sgj_haj_vi_nex(jsp, jo2p, 2, "LONGLBA", SGJ_SEP_COLON_1_SPACE,
+                       (int)longlba, false,
+                       "Long LBA: 6 or 12 block descriptor length");
+    }
+    bdlen = mode6 ? mph_desc[3] : sg_get_unaligned_be16(mph_desc + 6);
+    sgj_haj_vi(jsp, jo2p, 2, "Block descriptor length", SGJ_SEP_COLON_1_SPACE,
+               bdlen, false);
+    a_bd_len = longlba ? 16 : 8;
+    num_bd = bdlen / a_bd_len;
+    sgj_haj_vi(jsp, jo2p, 2, "Number of block descriptors",
+               SGJ_SEP_COLON_1_SPACE, num_bd, false);
+    if ((! op->dbd) && (num_bd > 0)) {
+        int k;
+        const uint8_t * bdp = mph_desc + (mode6 ? 4 : 8);
+        sgj_opaque_p jap = sgj_named_subarray_r(jsp, jop,
+                                                "block_descriptor_list");
+
+        for (k = 0; k < num_bd; ++k, bdp += a_bd_len) {
+            sgj_opaque_p jo3p = NULL;
+
+            if (jsp->pr_as_json)
+                jo3p = sgj_new_unattached_object_r(jsp);
+            else
+                sgj_pr_hr(jsp, "Block descriptor %d:\n", k + 1);
+            if (mode6) {        /* 8 byte block descriptor */
+                if (0 == decay_pdt) {   /* different for disks than others */
+                    sgj_haj_vi(jsp, jo3p, 2, "Number of blocks",
+                               SGJ_SEP_COLON_1_SPACE,
+                               sg_get_unaligned_be32(bdp + 0), false);
+                    sgj_haj_vi(jsp, jo3p, 2, "Logical block length",
+                               SGJ_SEP_COLON_1_SPACE,
+                               sg_get_unaligned_be24(bdp + 5), false);
+                } else {
+                    sgj_haj_vi(jsp, jo3p, 2, "Density code",
+                               SGJ_SEP_COLON_1_SPACE, bdp[0], true);
+                    sgj_haj_vi(jsp, jo3p, 2, "Number of blocks",
+                               SGJ_SEP_COLON_1_SPACE,
+                               sg_get_unaligned_be24(bdp + 1), false);
+                    sgj_haj_vi(jsp, jo3p, 2, "Block length",
+                               SGJ_SEP_COLON_1_SPACE,
+                               sg_get_unaligned_be24(bdp + 5), false);
+                }
+            } else {    /* 16 byte block descriptor, only used by disks ? */
+                sgj_haj_vi(jsp, jo3p, 2, "Number of logical blocks",
+                           SGJ_SEP_COLON_1_SPACE,
+                           sg_get_unaligned_be64(bdp + 0), false);
+                sgj_haj_vi(jsp, jo3p, 2, "Logical block length",
+                           SGJ_SEP_COLON_1_SPACE,
+                           sg_get_unaligned_be32(bdp + 12), false);
+            }
+            if (jsp->pr_as_json)
+                sgj_js_nv_o(jsp, jap, NULL /* name */, jo3p);
+        }
+    }
+}
+
 /* Print WP, CAPPID and DPOFUA bits for direct access devices (disks).
  * Return 0 for success, else error value. */
 static int
-print_mode_param_hdr(int sg_fd, int verb, const struct sdparm_opt_coll * op)
+fetch_print_mparam_hdr(int sg_fd, int decay_pdt, struct sdparm_opt_coll * op,
+                       sgj_opaque_p jop)
 {
-    int res, v, req_len, resp_len, resid;
+    int res, req_len, resid;
+    int verb = (op->verbose > 0) ? op->verbose - 1 : 0;
     uint8_t * cur_mp = oth_aligned_mp;
 
     memset(cur_mp, 0, op->mode_6 ? DEF_MODE_6_RESP_LEN : DEF_MODE_RESP_LEN);
@@ -1258,19 +1356,7 @@ print_mode_param_hdr(int sg_fd, int verb, const struct sdparm_opt_coll * op)
     res = ll_mode_sense(sg_fd, ALL_MPAGES, 0, true, cur_mp, req_len, &resid,
                         verb, op);
     if (0 == res) {
-        bool mode6 = op->mode_6;
-
-        resp_len = req_len - resid;
-        if (resp_len < 4) {
-            if (verb > 0)
-                pr2serr("%s: resid=%d too large, implies truncated "
-                        "response\n", __func__, resid);
-        } else {
-            v = cur_mp[mode6 ? 2 : 3];
-            printf("    Direct access device specific parameters: WP=%d  "
-                   "CAPPID=%d  DPOFUA=%d\n", !!(v & 0x80), !!(v & 0x20),
-                   !!(v & 0x10));
-        }
+        print_mode_param_hdr(cur_mp, req_len - resid, decay_pdt, op, jop);
     } else if (SG_LIB_CAT_ILLEGAL_REQ != res)
         return verb ? report_error(res, op->mode_6) : res;
     return 0;
@@ -1468,11 +1554,18 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
         }
         pdt = decay_pdt;
     }
-    if ((0 == pdt) && (op->do_long > 0) && (0 == op->do_quiet) &&
-        (! op->examine)) {
-        res = print_mode_param_hdr(sg_fd, verb, op);
-        if (res)
-            return res;
+    if (! op->examine) {
+        if (op->mph || (op->do_quiet >= 3) ||
+            ((op->do_long > 0) && (0 == op->do_quiet))) {
+            res = fetch_print_mparam_hdr(sg_fd, pdt, op, jop);
+            if (res)
+                return res;
+            if (op->do_quiet >= 3) {
+                if (verb > 0)
+                    sgj_pr_hr(jsp, "-qqq or more, %s\n", sddap_s);
+                return 0;
+            }
+        }
     }
     if (NULL == first_mp) {
         printf("No page control selected by --out_mask=OM\n");
@@ -1820,13 +1913,12 @@ print_mpgs_inhex(uint8_t * msense_resp,
     bool mode6 = op->mode_6;
     bool postpone_desc = false;
     bool stop_if_set = false;
-    int smask, resp_len, resp_mp_len, v, off, desc0_off, l_pn, l_spn;
+    int smask, resp_len, resp_mp_len, off, desc0_off, l_pn, l_spn;
     int pdt, decay_pdt, k, pg_len, transport, vendor_id, desc_id, desc_len;
     int n, inhx_mp_len, want_pn, want_spn, desc_num;
     int inhx_len = op->inhex_len;
     int vb = op->verbose;
     uint64_t g_val;
-    // const struct sdparm_mp_item_t * mpip;
     const struct sdparm_mp_item_t * mpip;
     const struct sdparm_mp_item_t * prev_mpip;
     const struct sdparm_mp_item_t * fdesc_mpip = NULL;
@@ -1896,14 +1988,14 @@ print_mpgs_inhex(uint8_t * msense_resp,
                         __func__, inhx_mp_len, resp_mp_len);
         }
     }
-    if ((0 == pdt) && (op->do_long > 0) && (0 == op->do_quiet)) {
-        v = msense_resp[mode6 ? 2 : 3];
-        sgj_pr_hr(jsp, "    Direct access device specific parameters: "
-                  "WP=%d  CAPPID=%d  DPOFUA=%d\n", !!(v & 0x80),
-                  !!(v & 0x20), !!(v & 0x10));
-    }
-    if (0 == op->in_mask) {
-        sgj_pr_hr(jsp, "in_mask is 0, so don't decode any pages\n");
+    if (op->mph || (op->do_quiet >= 3) ||
+        ((op->do_long > 0) && (0 == op->do_quiet)))
+        print_mode_param_hdr(msense_resp, resp_len, pdt, op, jop);
+    if ((0 == op->in_mask) || (op->do_quiet >= 3)) {
+        if (0 == op->in_mask)
+            sgj_pr_hr(jsp, "in_mask is 0, %s\n", sddap_s);
+        else if (op->verbose)
+            sgj_pr_hr(jsp, "-qqq or more, %s\n", sddap_s);
         return 0;
     }
 
@@ -2793,7 +2885,8 @@ set_all_page_defaults(int sg_fd, const struct sdparm_opt_coll * op)
  * successful, else false. */
 static bool
 build_mp_settings(const char * arg, struct sdparm_mp_settings_t * mps,
-                  struct sdparm_opt_coll * op, bool clear, bool get)
+                  struct sdparm_opt_coll * op /* op->transport may be set */,
+                  bool clear, bool get)
 {
     bool cont;
     int len, num, from, colon;
@@ -3175,17 +3268,7 @@ enumerate_mp_contents(int pn, int spn, int com_pdt,
     char b[256];
     static const int blen = sizeof(b);
     static const char * tp_s = "Transport protocol";
-    static const char * weig_s = "when '--enumerate' is given";
 
-    if (op->num_devices > 0)
-        /* think about --get= with --enumerate */
-        pr2serr("<scsi_device> as well as most options are ignored %s\n",
-                weig_s);
-    if (op->set_clear || op->save) {
-        pr2serr("'--clear=', '--save', and '--set=' cannot be used %s\n",
-                weig_s);
-        return SG_LIB_CONTRADICT;
-    }
     if (mps && (mps->num_it_vals > 0)) {
         enumerate_mitems(pn, spn, com_pdt, mps, op, jop);
         return 0;
@@ -3415,22 +3498,21 @@ main(int argc, char * argv[])
     struct sdparm_opt_coll * op;
     const char * device_name_arr[MAX_DEV_NAMES];
     sgj_state * jsp;
+    sgj_opaque_p jo_p = NULL;
     sgj_opaque_p jop = NULL;
     sgj_opaque_p jo2p = NULL;
     const struct sdparm_command_t * scmdp = NULL;
-    struct sdparm_opt_coll opts;
-    struct sdparm_mp_settings_t mp_settings;
+    struct sdparm_opt_coll opts SG_C_CPP_ZERO_INIT;
+    struct sdparm_mp_settings_t mp_settings SG_C_CPP_ZERO_INIT;
     struct sdparm_mp_settings_t * mps = &mp_settings;
 
     op = &opts;
-    memset(op, 0, sizeof(opts));
     op->out_mask = MP_OM_ALL;   /* 0xf */
     op->in_mask = MP_IM_ALL;    /* 0xf */
     op->cl_pdt = -1;
     op->transport = -1;
     op->vendor_id = -1;
     memset(device_name_arr, 0, sizeof(device_name_arr));
-    memset(mps, 0, sizeof(* mps));
     t_com_pdt = -1;
 
     if (getenv("SG3_UTILS_INVOCATION"))
@@ -3497,8 +3579,6 @@ main(int argc, char * argv[])
             goto fini;
         }
         jop = sgj_start_r(sdp_sn, version_str, argc, argv, jsp);
-        jo2p = sgj_named_subobject_r(jsp, jop,
-                                 op->do_enum ? sdp_enum_sn : sdp_rsp_sn);
     }
     as_json = jsp->pr_as_json;
 
@@ -3509,6 +3589,20 @@ main(int argc, char * argv[])
             goto fini;
         pn = op->cl_pn;
         spn = op->cl_spn;
+    }
+    if (op->do_enum) {
+         static const char * weig_s = "when '--enumerate' is given";
+
+        if (op->num_devices > 0)
+            pr2serr("<scsi_device> as well as many options are ignored %s\n",
+                    weig_s);
+        if (op->inhex_fn)
+            pr2serr("--inhex= option is ignored %s\n", weig_s);
+        if (op->set_clear || op->save) {
+            pr2serr("'--clear=', '--save', and '--set=' cannot be used %s\n",
+                    weig_s);
+            ret = SG_LIB_CONTRADICT;
+        }
     }
 
     if (op->inquiry) {  /* VPD pages or standard INQUIRY response */
@@ -3562,13 +3656,14 @@ main(int argc, char * argv[])
             mps->pg_num = pn;
             mps->subpg_num = spn;
         }
-        if (op->get_str) {
+        if (op->get_str) {      /* --enumerate works with --get= */
             if (! build_mp_settings(op->get_str, mps, op, false, true)) {
                 ret = SG_LIB_SYNTAX_ERROR;
                 goto fini;
             }
         }
         if (op->do_enum) {
+            jo2p = sgj_named_subobject_r(jsp, jop, sdp_enum_sn);
             ret = enumerate_mp_contents(pn, spn, t_com_pdt, mps, op, jo2p);
             goto fini;
         }
@@ -3631,6 +3726,7 @@ main(int argc, char * argv[])
         if (vb > 3)
             hex2stderr(inhex_buffp, op->inhex_len, 0);
         op->do_raw = false;
+        jo2p = sgj_named_subobject_r(jsp, jop, sdp_inhex_sn);
         if (op->inquiry)
             ret = sdp_process_vpd_page(-1, pn, ((spn < 0) ? 0: spn),
                                        t_com_pdt, protect, inhex_buffp,
@@ -3645,7 +3741,7 @@ main(int argc, char * argv[])
     if (0 == op->num_devices) {
         pr2serr("one or more device names required (or --inhex or "
                 "--enumerate)\n");
-        if (! op->do_quiet) {
+        if (0 == op->do_quiet) {
             pr2serr("\n");
             sdp_usage(op);
         }
@@ -3671,6 +3767,8 @@ main(int argc, char * argv[])
         goto fini;
     }
 
+    if (as_json)
+        jo_p = sgj_named_subobject_r(jsp, jop, sdp_rsp_sn);
     req_pdt = t_com_pdt;
     ret = 0;
     for (k = 0; k < op->num_devices; ++k) {
@@ -3685,6 +3783,18 @@ main(int argc, char * argv[])
             if (0 == ret)
                 ret = -sg_fd;
             continue;
+        }
+        if (as_json) {
+            if (op->num_devices > 1) {
+                char b[32];
+                static const int blen = sizeof(b);
+
+                snprintf(b, blen, "argument_%d", k + 1);
+                jo2p = sgj_named_subobject_r(jsp, jo_p, b);
+                sgj_haj_vs(jsp, jo2p, 2, "device_name", SGJ_SEP_COLON_1_SPACE,
+                           device_name_arr[k]);
+            } else
+                jo2p = jo_p;
         }
 
         if (op->inquiry) {
