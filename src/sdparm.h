@@ -20,6 +20,8 @@ extern "C" {
 #define DEF_MODE_RESP_LEN 512
 #define MAX_MP_BUFF_SZ 8192     /* assume all mode pages+subpages will fit */
 #define DEF_INQ_RESP_LEN 252
+/* standard INQUIRY response including version descriptors */
+#define STD_INQ_VD_RESP_LEN 74
 #define VPD_ATA_INFO_RESP_LEN 572
 #define VPD_XCOPY_RESP_LEN 572
 #define VPD_LARGE_RESP_LEN 1020
