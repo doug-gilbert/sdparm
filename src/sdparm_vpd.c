@@ -68,6 +68,7 @@ static const char * product_id_sn = "product_identification";
 static const char * product_rev_lev_hr = "Product_revision_level";
 static const char * product_rev_lev_sn = "product_revision_level";
 
+static const char * sinq_resp_s = "Standard INQUIRY data format";
 static const char * di_vpdp = "Device identification VPD page";
 static const char * sp_vpdp = "SCSI ports VPD page";
 static const char * svp_vpdp = "Supported VPD pages VPD page";
@@ -3473,7 +3474,6 @@ decode_std_inq(int blen, uint8_t * b, struct sdparm_opt_coll * op,
     const char * cp;
     char c[256];
     static const int clen = sizeof(c);
-    static const char * np = "Standard INQUIRY data format:";
 
     if (blen < 4) {
         pr2serr("%s: len [%d] too short\n", __func__, blen);
@@ -3483,7 +3483,7 @@ decode_std_inq(int blen, uint8_t * b, struct sdparm_opt_coll * op,
     pdt = b[0] & PDT_MASK;
     hp = (b[1] >> 4) & 0x3;
     ver = b[2];
-    sgj_pr_hr(jsp, "%s", np);
+    sgj_pr_hr(jsp, "%s:", sinq_resp_s);
     if (0 == pqual)
         sgj_pr_hr(jsp, "\n");
     else {
@@ -3550,7 +3550,7 @@ fetch_decode_std_inq(int sg_fd, struct sdparm_opt_coll * op, sgj_opaque_p jop)
         pr2serr("%s: unalign to allocate ram\n", __func__);
         return sg_convert_errno(ENOMEM);
     }
-    sz = op->do_long ? b_sz : 36;
+    sz = op->do_long ? b_sz : STD_INQ_VD_RESP_LEN; /* + version descriptors */
     res = sg_ll_inquiry_v2(sg_fd, false, 0, b, sz, 0, &resid, false, verb);
     if (res) {
         pr2serr("INQUIRY fetching standard response failed\n");
@@ -3565,7 +3565,13 @@ fetch_decode_std_inq(int sg_fd, struct sdparm_opt_coll * op, sgj_opaque_p jop)
             goto fini;
         }
     }
-    decode_std_inq(sz, b, op, jop);
+    if (op->do_hex > 0) {
+        if (op->do_hex > 2)
+            named_hhh_output(sinq_resp_s, b, sz, op);
+        else
+            hex2stdout(b, sz, no_ascii_4hex(op));
+    } else
+        decode_std_inq(sz, b, op, jop);
     res = 0;
 fini:
     if (free_b)

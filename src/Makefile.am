@@ -65,7 +65,9 @@ sglib_SOURCES =		../lib/sg_lib.c \
 			../lib/sg_json_builder.c	\
 			../lib/sg_json_builder.h	\
 			../include/sg_pt.h	\
-			../include/sg_pt_nvme.h	\
+			../include/sg_nvme.h	\
+			../include/sg_snt.h	\
+			../lib/sg_snt.c		\
 			../lib/sg_pt_common.c
 
 if HAVE_SGUTILS
