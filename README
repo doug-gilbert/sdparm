@@ -20,7 +20,12 @@ more files than sdparm uses. One excess file is "lib/Makefile.am". The
 "Makefile.am" in sdparm's "src/" directory does the main part of the build.
 When the tarball is generated for this utility, various files are "exported"
 out of the subversion repository and "svn:externals" redirection is no
-longer visible (but the unused files are visible).
+longer visible (but the unused files are visible). When the library or
+header files ( lib/ and include/ directories respectively) are updated
+and commited in sg3_utils than the latest sg3_utils subversion revision
+should be updated, with for example this command:
+    svn propedit svn:externals .
+in the top level directory of this package.
 
 The sdparm executable may or may not be built depending on the libsgutils
 (shared) library. Currently the ./configure rules are looking for a library
@@ -278,4 +283,4 @@ SCSI5:0,112,0 claimed=0 pdt=10h         LSI       PSEUDO DEVICE     2.34
 
 
 Douglas Gilbert
-11th April 2023
+21st March 2026

@@ -51,6 +51,9 @@ sglib_SOURCES =		../lib/sg_lib.c \
 			../include/sg_lib.h	\
 			../lib/sg_lib_data.c	\
 			../include/sg_lib_data.h	\
+			../lib/sg_lib_names.c	\
+			../include/sg_lib_names.h	\
+			../include/sg_unaligned.h	\
 			../lib/sg_cmds_basic.c	\
 			../lib/sg_cmds_basic2.c	\
 			../include/sg_cmds_basic.h	\
@@ -95,4 +98,7 @@ EXTRA_sdparm_SOURCES =	../lib/sg_pt_linux.c	\
 			port_getopt.h
 
 distclean-local:
-	rm -rf .deps
+	rm -rf \
+          .deps \
+          Makefile.in \
+	  chk_sdparm_data
