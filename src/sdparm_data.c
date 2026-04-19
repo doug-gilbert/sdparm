@@ -140,6 +140,7 @@ const struct sdparm_mp_name_t sdparm_gen_mode_pg[] = {
         &ssc_mpa_desc},
     {MRW_MP, 0, PDT_MMC, 0, "mrw", "Mount rainier reWritable (MMC)", NULL},
     {NOTCH_MP, 0, PDT_DISK, 0, "not", "Notch and partition (SBC)", NULL},
+    {CONTROL_MP, MSP_NVME_CTL, -1, 0, "nvmec", "NVMe Control", NULL},
     {CONTROL_MP, MSP_SAT_PATA, -1, 0, "pat", "pATA control", NULL},
     {PROT_SPEC_LU_MP, 0, -1, 0, "pl", "Protocol specific logical unit", NULL},
     {POWER_MP, 0, -1, 0, "po", "Power condition", NULL},

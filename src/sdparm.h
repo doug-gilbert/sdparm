@@ -80,6 +80,7 @@ extern "C" {
 #define MSP_SAT_AFC 0xf2        /* SAT ATA Feature Control [a,f2] */
 #define MSP_SAT_PATA 0xf1       /* SAT PATA Control [a,f1] */
 #define MSP_SAT_POWER 0xf1      /* SAT ATA Power condition [1a,f1] */
+#define MSP_NVME_CTL 0xf8       /* SNT NVMe Control [1a,f8] (spc7r05) */
 #define MSP_DEV_CONF_EXT 1      /* device conf extension (ssc) */
 #define MSP_EXT_DEV_CAP 0x41    /* extended device capabilities (smc) */
 #define MSP_ADC_TGT_DEV 0x1

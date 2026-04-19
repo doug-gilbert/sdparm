@@ -120,11 +120,11 @@ AC_ARG_ENABLE([debug],
 AM_CONDITIONAL([DEBUG], [test x$debug = xtrue])
 
 AC_ARG_ENABLE([linuxbsg],
-  AC_HELP_STRING([--disable-linuxbsg], [option ignored, this is placeholder]),
+  AS_HELP_STRING([--disable-linuxbsg], [option ignored, this is placeholder]),
   [AC_DEFINE_UNQUOTED(IGNORE_LINUX_BSG, 1, [option ignored], )], [])
 
 AC_ARG_ENABLE([libsgutils],
-  AC_HELP_STRING([--disable-libsgutils], [ignore libsgutils if present]),
+  AS_HELP_STRING([--disable-libsgutils], [ignore libsgutils if present]),
           [have_sgutils=no],
           [AC_CHECK_LIB(sgutils2, sg_ll_inquiry_v2,
         [SGUTILS_LIBS="-lsgutils2"; have_sgutils=yes], have_sgutils=no)])
@@ -137,11 +137,11 @@ AC_ARG_ENABLE([scsistrings],
   [], [AC_DEFINE_UNQUOTED(SG_SCSI_STRINGS, 1, [full SCSI sense strings], )])
 
 AC_ARG_ENABLE([nvme-supp],
-  AC_HELP_STRING([--disable-nvme-supp], [remove all or most NVMe code]),
+  AS_HELP_STRING([--disable-nvme-supp], [remove all or most NVMe code]),
   [AC_DEFINE_UNQUOTED(IGNORE_NVME, 1, [compile out NVMe support], )], [])
 
 AC_ARG_ENABLE([fast-lebe],
-  AC_HELP_STRING([--disable-fast-lebe], [use generic little-endian/big-endian code instead]),
+  AS_HELP_STRING([--disable-fast-lebe], [use generic little-endian/big-endian code instead]),
   [AC_DEFINE_UNQUOTED(IGNORE_FAST_LEBE, 1, [use generic little-endian/big-endian instead], )], [])
 
 # AC_PROG_LIBTOOL
