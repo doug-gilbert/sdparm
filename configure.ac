@@ -124,7 +124,7 @@ AC_ARG_ENABLE([linuxbsg],
   [AC_DEFINE_UNQUOTED(IGNORE_LINUX_BSG, 1, [option ignored], )], [])
 
 AC_ARG_ENABLE([libsgutils],
-  AS_HELP_STRING([--disable-libsgutils], [ignore libsgutils if present]),
+  AS_HELP_STRING([--disable-libsgutils], [ignore libsgutils2-dev if present]),
           [have_sgutils=no],
           [AC_CHECK_LIB(sgutils2, sg_ll_inquiry_v2,
         [SGUTILS_LIBS="-lsgutils2"; have_sgutils=yes], have_sgutils=no)])
