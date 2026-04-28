@@ -2,7 +2,7 @@ The version number is hardcoded into sdparm.c (in a C string);
 the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 
-ChangeLog for pre-release sdparm-1.13 [20260425] [svn: r395]
+ChangeLog for pre-release sdparm-1.13 [20260426] [svn: r396]
   - add --json[=JO] and --js-file=JFN options
     - apart from with a real device, json output can be
       requested with --enumerate or --inhex=FN
@@ -38,6 +38,8 @@ ChangeLog for pre-release sdparm-1.13 [20260425] [svn: r395]
     - this reduces size of svn and git repositories but still
       plan to have these intermediate files in release tarballs
   - add bootstrap script that just calls ./autogen.sh
+  - cmake: experimental build alternative
+    - can build deb and rpm packages with 'cpack .'
 
 ChangeLog for released sdparm-1.12 [20210421] [svn: r347]
   - add Command duration limits T2A and T2B mpages

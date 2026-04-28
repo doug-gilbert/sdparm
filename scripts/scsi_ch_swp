@@ -6,7 +6,7 @@
 #
 # Uses sdparm and blockdev utilities.
 #
-# Douglas Gilbert 20160224
+# Douglas Gilbert 20260427
 
 
 rdonly="--readonly"
@@ -40,7 +40,7 @@ while test ! -z "$opt" -a -z "${opt##-*}"; do
     opt=${opt#-}
     case "$opt" in
         h|-help) usage ; exit 0 ;;
-        s|-set) shift ; let swp="$1" ;;
+        s|-set) shift ; swp="$1" ;;
         v|-verbose) verbose="-v" ;;
         w|-wr) rdonly="" ;;
         vv) verbose="-vv" ;;
