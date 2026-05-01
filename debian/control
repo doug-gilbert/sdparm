@@ -2,8 +2,9 @@ Source: sdparm
 Section: admin
 Priority: optional
 Maintainer: Tomas Fasth <tomfa@debian.org>
-Build-Depends: cdbs (>= 0.4.15), debhelper (>= 4.0.0), autotools-dev
-Standards-Version: 3.9.1
+Build-Depends: debhelper (>= 10), autoconf, automake
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
 
 Package: sdparm
 Architecture: any

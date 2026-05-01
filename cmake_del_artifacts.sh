@@ -1,6 +1,7 @@
 #!/bin/sh
 
 rm -rf \
+	build \
 	CMakeCache.txt \
 	CMakeFiles \
 	CPackConfig.cmake \

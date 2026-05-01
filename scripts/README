@@ -2,8 +2,9 @@
                       =========================
 Introduction
 ============
-This directory contains bash shell scripts. Currently there is only one.
-It assumes the sdparm executable is on the PATH of the user.
+This directory contains bash shell scripts. It assumes the sdparm executable
+is on the PATH of the user. That will be the case if the sdparm package is
+installed (e.g. Linux Debian, Ubuntu, RedHat and Suse).
 
 Details
 =======
@@ -14,4 +15,4 @@ information. Following is a usage summary with a one line description:
 	- blink LED on <device> using RLM (Ready LED Meaning) bit
 
 Douglas Gilbert
-11th August 2009
+30th April 2026

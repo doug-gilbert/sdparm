@@ -13,7 +13,6 @@ AC_PROG_INSTALL
 ifdef([AM_PROG_AR], [AM_PROG_AR], [])
 
 # check for headers
-AC_HEADER_STDC
 AC_CHECK_HEADERS([byteswap.h], [], [], [])
 
 AC_CHECK_FUNCS(getopt_long,

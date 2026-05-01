@@ -1,50 +1,63 @@
 cmake_minimum_required ( VERSION 3.10 )
 
 project(sdparm VERSION 1.12.9)
-# Use version number: x.y.9 to indicate pre-release of x.(y+1) 
+# Use version number: x.y.9 to indicate pre-release of x.(y+1)
 # Example: VERSION 1.12.9 is pre-release of 1.13
 
-option ( BUILD_SHARED_LIBS "Build using shared libraries" ON)
+set ( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -g" )
 
-set (CMAKE_CXX_STANDARD 20 )
-set (CMAKE_CXX_STANDARD_REQUIRED ON)
-set (CMAKE_CXX_EXTENSIONS OFF)
+option ( BUILD_SHARED_LIBS "Build using shared libraries" ON)
+option ( ENABLE_DEBUG "Turn on debugging (extra warnings)" OFF)
+option ( DISABLE_NVME_SUPP "Remove all or most NVMe code" OFF)
+option ( DISABLE_FAST_LEBE "Use generic little-endian/big-endian code instead" OFF)
 
 include ( CheckIncludeFile )
-include ( CheckIncludeFileCXX )
+CHECK_INCLUDE_FILE( "linux/nvme_ioctl.h" NVME_PRESENT )
+CHECK_INCLUDE_FILE( "byteswap.h" HAVE_BYTESWAP_H )
+
+if ( NVME_PRESENT )
+  add_definitions ( -DHAVE_NVME )
+  add_definitions ( -DHAVE_LINUX_NVME_IOCTL_H )
+  MESSAGE( ">> Have NVME" )
+endif ( NVME_PRESENT )
+
+if ( HAVE_BYTESWAP_H )
+  add_definitions ( -DHAVE_BYTESWAP_H )
+endif ( HAVE_BYTESWAP_H )
+
+if ( DISABLE_NVME_SUPP )
+  add_definitions ( -DIGNORE_NVME )
+endif ( DISABLE_NVME_SUPP )
+
+if ( DISABLE_FAST_LEBE )
+  add_definitions ( -DIGNORE_FAST_LEBE )
+endif ( DISABLE_FAST_LEBE )
+
 
 set ( sourcefiles_sdparm
-	src/sdparm.c
-	src/sdparm_access.c
-	src/sdparm_cmd.c
-	src/sdparm_data.c
-	src/sdparm_data_vendor.c
-	src/sdparm_vpd.c
-)
-
-set ( headerfiles
-	src/sdparm.h
-	lib/sg_json_builder.h
-	include/sg_lib.h
-	include/sg_json.h
-	include/sg_json_sg_lib.h
+        src/sdparm.c
+        src/sdparm_access.c
+        src/sdparm_cmd.c
+        src/sdparm_data.c
+        src/sdparm_data_vendor.c
+        src/sdparm_vpd.c
 )
 
 set ( src_nolib_sdparm
-	lib/sg_lib.c
-	lib/sg_lib_data.c
-	lib/sg_cmds_basic.c
-	lib/sg_cmds_basic2.c
-	lib/sg_cmds_mmc.c
-	lib/sg_pr2serr.c
-	lib/sg_pt_common.c
-	lib/sg_pt_linux.c
-	lib/sg_pt_linux_nvme.c
-	lib/sg_cmds_extra.c
-	lib/sg_snt.c
-	lib/sg_json_builder.c
-	lib/sg_json.c
-	lib/sg_json_sg_lib.c
+        lib/sg_lib.c
+        lib/sg_lib_data.c
+        lib/sg_cmds_basic.c
+        lib/sg_cmds_basic2.c
+        lib/sg_cmds_mmc.c
+        lib/sg_pr2serr.c
+        lib/sg_pt_common.c
+        lib/sg_pt_linux.c
+        lib/sg_pt_linux_nvme.c
+        lib/sg_cmds_extra.c
+        lib/sg_snt.c
+        lib/sg_json_builder.c
+        lib/sg_json.c
+        lib/sg_json_sg_lib.c
 )
 
 if ( BUILD_SHARED_LIBS )
@@ -52,22 +65,36 @@ if ( BUILD_SHARED_LIBS )
     find_library(LIBSGUTILS NAMES sgutils2 PATH_SUFFIXES lib)
     if ( LIBSGUTILS )
         MESSAGE( ">> Found shared library: ${LIBSGUTILS}" )
-        add_executable ( sdparm ${sourcefiles_sdparm} ${headerfiles} )
-        target_include_directories(sdparm PUBLIC include)
-	target_link_libraries(sdparm PRIVATE ${LIBSGUTILS})
+        add_executable ( sdparm ${sourcefiles_sdparm} )
+        # target_include_directories(sdparm PUBLIC include)
+        target_link_libraries(sdparm PRIVATE ${LIBSGUTILS})
     else ( LIBSGUTILS )
         MESSAGE( ">> Did not find shared library: ${LIBSGUTILS}" )
-        add_executable ( sdparm ${sourcefiles_sdparm} ${src_nolib_sdparm} ${headerfiles} )
-        target_include_directories(sdparm PUBLIC include)
+        add_definitions ( -DSG_LIB_LINUX )
+        add_executable ( sdparm ${sourcefiles_sdparm} ${src_nolib_sdparm} )
+        # target_include_directories(sdparm PUBLIC include)
         target_link_libraries(sdparm)
     endif ( LIBSGUTILS )
 else ( BUILD_SHARED_LIBS )
     MESSAGE( ">> Trying to build a static executable" )
-    add_executable ( sdparm ${sourcefiles_sdparm} ${src_nolib_sdparm} ${headerfiles} )
+    add_definitions ( -DSG_LIB_LINUX )
+    add_executable ( sdparm ${sourcefiles_sdparm} ${src_nolib_sdparm} )
     add_definitions ( -static )
-    target_include_directories(sdparm PUBLIC include)
+    # target_include_directories(sdparm PUBLIC include)
     target_link_libraries(sdparm -static)
 endif ( BUILD_SHARED_LIBS )
+
+target_compile_definitions(sdparm PRIVATE _LARGEFILE64_SOURCE _FILE_OFFSET_BITS=64)
+target_compile_options(sdparm PRIVATE -Wall -W)
+target_include_directories(sdparm PRIVATE include ${CMAKE_SOURCE_DIR}/src)
+
+if ( ENABLE_DEBUG )
+  target_compile_definitions(sdparm PRIVATE DEBUG)
+  target_compile_options(sdparm PRIVATE
+    -Wextra -Wmisleading-indentation -Wduplicated-cond -Wlogical-op
+    -Wnull-dereference -Wshadow -Wunused -Wsizeof-array-argument
+    -Wduplicated-branches -Wjump-misses-init -Wparentheses)
+endif ( ENABLE_DEBUG )
 
 install(TARGETS sdparm RUNTIME DESTINATION bin)
 
