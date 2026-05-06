@@ -144,4 +144,11 @@ AC_ARG_ENABLE([fast-lebe],
   [AC_DEFINE_UNQUOTED(IGNORE_FAST_LEBE, 1, [use generic little-endian/big-endian instead], )], [])
 
 # AC_PROG_LIBTOOL
-AC_OUTPUT(Makefile src/Makefile doc/Makefile scripts/Makefile)
+
+AC_CONFIG_FILES([
+	Makefile
+	src/Makefile
+	doc/Makefile
+	scripts/Makefile
+])
+AC_OUTPUT
