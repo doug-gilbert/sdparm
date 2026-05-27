@@ -8,110 +8,113 @@ set ( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -g" )
 
 option ( BUILD_SHARED_LIBS "Build using shared libraries" ON)
 option ( ENABLE_DEBUG "Turn on debugging (extra warnings)" OFF)
-option ( DISABLE_NVME_SUPP "Remove all or most NVMe code" OFF)
 option ( DISABLE_FAST_LEBE "Use generic little-endian/big-endian code instead" OFF)
+option ( DISABLE_SCSISTRINGS "Save space in executable using numeric error codes instead of strings" OFF)
+option ( DISABLE_LINUXBSG "Remove support for /dev/bsg/* devices" OFF)
+option ( DISABLE_LIBSGUTILS "Same as -DBUILD_SHARED_LIBS=OFF" OFF)
+option ( DISABLE_NVME_SUPP "Remove all or most NVMe code" OFF)
 
+include ( CMakePackageConfigHelpers )
+include ( GNUInstallDirs )
 include ( CheckIncludeFile )
+
+string(TIMESTAMP BUILD_TIME "%Y%m%d %H:%M:%S")
+
 CHECK_INCLUDE_FILE( "linux/nvme_ioctl.h" NVME_PRESENT )
 CHECK_INCLUDE_FILE( "byteswap.h" HAVE_BYTESWAP_H )
 
-if ( NVME_PRESENT )
-  add_definitions ( -DHAVE_NVME )
-  add_definitions ( -DHAVE_LINUX_NVME_IOCTL_H )
-  MESSAGE( ">> Have NVME" )
-endif ( NVME_PRESENT )
+if (DISABLE_LIBSGUTILS)
+    set(BUILD_SHARED_LIBS OFF)
+endif ()
 
-if ( HAVE_BYTESWAP_H )
-  add_definitions ( -DHAVE_BYTESWAP_H )
-endif ( HAVE_BYTESWAP_H )
-
-if ( DISABLE_NVME_SUPP )
-  add_definitions ( -DIGNORE_NVME )
-endif ( DISABLE_NVME_SUPP )
-
-if ( DISABLE_FAST_LEBE )
-  add_definitions ( -DIGNORE_FAST_LEBE )
-endif ( DISABLE_FAST_LEBE )
-
-
-set ( sourcefiles_sdparm
-        src/sdparm.c
-        src/sdparm_access.c
-        src/sdparm_cmd.c
-        src/sdparm_data.c
-        src/sdparm_data_vendor.c
-        src/sdparm_vpd.c
-)
-
-set ( src_nolib_sdparm
-        lib/sg_lib.c
-        lib/sg_lib_data.c
-        lib/sg_cmds_basic.c
-        lib/sg_cmds_basic2.c
-        lib/sg_cmds_mmc.c
-        lib/sg_pr2serr.c
-        lib/sg_pt_common.c
-        lib/sg_pt_linux.c
-        lib/sg_pt_linux_nvme.c
-        lib/sg_cmds_extra.c
-        lib/sg_snt.c
-        lib/sg_json_builder.c
-        lib/sg_json.c
-        lib/sg_json_sg_lib.c
-)
-
-if ( BUILD_SHARED_LIBS )
-    MESSAGE( ">> Build using shared libraries (default)" )
-    find_library(LIBSGUTILS NAMES sgutils2 PATH_SUFFIXES lib)
-    if ( LIBSGUTILS )
-        MESSAGE( ">> Found shared library: ${LIBSGUTILS}" )
-        add_executable ( sdparm ${sourcefiles_sdparm} )
-        # target_include_directories(sdparm PUBLIC include)
-        target_link_libraries(sdparm PRIVATE ${LIBSGUTILS})
-    else ( LIBSGUTILS )
-        MESSAGE( ">> Did not find shared library: ${LIBSGUTILS}" )
-        add_definitions ( -DSG_LIB_LINUX )
-        add_executable ( sdparm ${sourcefiles_sdparm} ${src_nolib_sdparm} )
-        # target_include_directories(sdparm PUBLIC include)
-        target_link_libraries(sdparm)
-    endif ( LIBSGUTILS )
-else ( BUILD_SHARED_LIBS )
-    MESSAGE( ">> Trying to build a static executable" )
-    add_definitions ( -DSG_LIB_LINUX )
-    add_executable ( sdparm ${sourcefiles_sdparm} ${src_nolib_sdparm} )
-    add_definitions ( -static )
-    # target_include_directories(sdparm PUBLIC include)
-    target_link_libraries(sdparm -static)
-endif ( BUILD_SHARED_LIBS )
-
-target_compile_definitions(sdparm PRIVATE _LARGEFILE64_SOURCE _FILE_OFFSET_BITS=64)
-target_compile_options(sdparm PRIVATE -Wall -W)
-target_include_directories(sdparm PRIVATE include ${CMAKE_SOURCE_DIR}/src)
+set(FEATURE_COMMENT "//")
 
 if ( ENABLE_DEBUG )
-  target_compile_definitions(sdparm PRIVATE DEBUG)
-  target_compile_options(sdparm PRIVATE
-    -Wextra -Wmisleading-indentation -Wduplicated-cond -Wlogical-op
-    -Wnull-dereference -Wshadow -Wunused -Wsizeof-array-argument
-    -Wduplicated-branches -Wjump-misses-init -Wparentheses)
+    MESSAGE( STATUS ">> Compile with DEBUG set" )
 endif ( ENABLE_DEBUG )
 
-install(TARGETS sdparm RUNTIME DESTINATION bin)
+set(IGNORE_FAST_LEBE 0)
+if (DISABLE_FAST_LEBE)
+    set(IGNORE_FAST_LEBE 1)
+endif (DISABLE_FAST_LEBE)
 
-include(GNUInstallDirs)
-file(ARCHIVE_CREATE OUTPUT sdparm.8.gz PATHS doc/sdparm.8 FORMAT raw COMPRESSION GZip)
-file(ARCHIVE_CREATE OUTPUT sdparm_json.8.gz PATHS doc/sdparm_json.8 FORMAT raw COMPRESSION GZip)
-install(FILES sdparm.8.gz DESTINATION "${CMAKE_INSTALL_MANDIR}/man8")
-install(FILES sdparm_json.8.gz DESTINATION "${CMAKE_INSTALL_MANDIR}/man8")
+set(IGNORE_LINUX_BSG 0)
+if (DISABLE_LINUXBSG)
+    set(IGNORE_LINUX_BSG 1)
+endif ()
+
+set(SG_SCSI_STRINGS 1)
+if (DISABLE_SCSISTRINGS)
+    set(SG_SCSI_STRINGS 0)
+endif()
+
+set(IGNORE_NVME 0)
+if (DISABLE_NVME_SUPP)
+    set(IGNORE_NVME 1)
+endif()
+
+set(OS_LINUX 0)
+set(SG_LIB_LINUX 0)
+set(OS_ANDROID 0)
+set(OS_FREEBSD 0)
+set(SG_LIB_FREEBSD 0)
+set(OS_SOLARIS 0)
+set(SG_LIB_SOLARIS 0)
+set(OS_AIX 0)
+set(OS_WINDOWS 0)
+set(OS_CYGWIN 0)
+set(OS_MINGW 0)
+
+if(CYGWIN)
+    message(STATUS "Cygwin")
+    set(OS_CYGWIN 1)
+elseif(MINGW)
+    message(STATUS "MinGW")
+    set(OS_MINGW 1)
+elseif(WIN32)
+    message(STATUS "Windows")
+    set(OS_WINDOWS 1)
+elseif(ANDROID)
+    message(STATUS "Android")
+    set(OS_ANDROID 1)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(STATUS "Linux")
+    set(OS_LINUX 1)
+    set(SG_LIB_LINUX 1)
+    CHECK_INCLUDE_FILE( "linux/types.h" HAVE_LINUX_TYPES_H )
+    CHECK_INCLUDE_FILE( "linux/bsg.h" HAVE_LINUX_BSG_H )
+    CHECK_INCLUDE_FILE( "linux/kdev_t.h" HAVE_LINUX_KDEV_T_H )
+elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+    message(STATUS "FreeBSD")
+    set(OS_FREEBSD 1)
+    set(SG_LIB_FREEBSD 1)
+    target_include_directories( smp_utils PRIVATE /usr/local/include )
+elseif(CMAKE_SYSTEM_NAME STREQUAL "SunOS")
+    message(STATUS "Solaris")
+    set(OS_SOLARIS 1)
+    set(SG_LIB_SOLARIS 1)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "AIX")
+    message(STATUS "AIX")
+    set(OS_AIX 1)
+elseif(APPLE)
+    message(STATUS "macOS")
+    set(OS_MACOS 1)
+else()
+    message(STATUS "Unknown system: ${CMAKE_SYSTEM_NAME}")
+endif()
+
+configure_file( ${CMAKE_SOURCE_DIR}/config.h.in.cmake ${CMAKE_BINARY_DIR}/config.h )
+add_definitions ( -DHAVE_CONFIG_H )
+
+
+add_subdirectory( src )
+
+add_subdirectory( doc )
+
 install(FILES ChangeLog DESTINATION "${CMAKE_INSTALL_DOCDIR}")
 install(FILES README DESTINATION "${CMAKE_INSTALL_DOCDIR}")
 install(FILES AUTHORS DESTINATION "${CMAKE_INSTALL_DOCDIR}")
 install(FILES CREDITS DESTINATION "${CMAKE_INSTALL_DOCDIR}")
-
-if ( ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" )
-    MESSAGE( ">> Detected FreeBSD" )
-    target_include_directories( sdparm PRIVATE /usr/local/include )
-endif ( )
 
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})

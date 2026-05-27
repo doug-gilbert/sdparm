@@ -36,6 +36,10 @@
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
+#else
+#ifdef DEBUG
+#warning "config.h file NOT found"
+#endif
 #endif
 
 #ifdef HAVE_GETOPT_LONG
@@ -63,7 +67,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.13 20260501 [svn: r398]";
+static const char * version_str = "1.14 20260526 [svn: r399]";
 
 static const char * my_name = "sdparm: ";
 

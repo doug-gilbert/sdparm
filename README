@@ -122,6 +122,12 @@ install_manifest.txt file that can be used to remove the files
 installed like this:
     xargs rm < install_manifest.txt
 
+Options can be requested like this in the first step of a cmake build:
+    # cmake . -DENABLE_DEBUG=ON
+
+[The available options can be viewed with 'cmake -LH .' . for this
+ package it can be seen that ENABLE_DEBUG is default OFF .]
+
 License
 -------
 This utility is covered by a FreeBSD license. The intention of the author

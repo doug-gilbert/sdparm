@@ -946,6 +946,10 @@ const struct sdparm_mp_item_t sdparm_mitem_arr[] = {
         "1: ATA 0->cdl_action, CDL A mpage supported, maybe CDL B\t"
         "2: ATA 1->cdl_action, CDL T2A mpage supported, maybe CDL T2B"},
 
+    /* SNT: NVMe control mode subpage: nvmec [0xa,0xf8] snt-r05 */
+    {"MBIT", CONTROL_MP, MSP_NVME_CTL, -1, 4, 0, 1, 0,
+        "MBIT setting in the NVMe Format NVM command", NULL, NULL},
+
     /* Notch and partition mode page [0xc] sbc2 (obsolete in sbc2r14) */
     {"ND", NOTCH_MP, 0, PDT_DISK, 2, 7, 1, 0,
         "Notched device", NULL, NULL},
