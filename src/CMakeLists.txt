@@ -8,6 +8,10 @@ set ( sourcefiles_sdparm
         sdparm_vpd.c
 )
 
+if ( OS_CYGWIN OR OS_MINGW )
+    list(APPEND sourcefiles_sdparm sdparm_wscan.c)
+endif ()
+
 set ( src_nolib_sdparm
         ${CMAKE_SOURCE_DIR}/lib/sg_lib.c
         ${CMAKE_SOURCE_DIR}/lib/sg_lib_data.c
@@ -73,9 +77,21 @@ if ( ENABLE_DEBUG )
   target_compile_definitions(sdparm PRIVATE DEBUG)
   target_compile_options(sdparm PRIVATE
     -Wextra -Wmisleading-indentation -Wduplicated-cond -Wlogical-op
-    -Wnull-dereference -Wshadow -Wunused -Wsizeof-array-argument
-    -Wduplicated-branches -Wjump-misses-init -Wparentheses)
+    -Wnull-dereference -Wshadow -Wjump-misses-init
+    -Wunused -Wsizeof-array-argument -Wduplicated-branches -Wparentheses)
 endif ( ENABLE_DEBUG )
+
+if ( OS_FREEBSD )
+    target_link_libraries(sdparm PRIVATE cam)
+endif ()
+
+if ( OS_CYGWIN )
+    target_compile_options(sdparm PRIVATE -Wno-char-subscripts)
+endif ()
+
+if ( OS_MINGW )
+    target_compile_definitions(sdparm PRIVATE __USE_MINGW_ANSI_STDIO)
+endif ()
 
 install(TARGETS sdparm RUNTIME DESTINATION bin)
 
