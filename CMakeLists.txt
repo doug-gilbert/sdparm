@@ -17,6 +17,7 @@ option ( DISABLE_NVME_SUPP "Remove all or most NVMe code" OFF)
 include ( CMakePackageConfigHelpers )
 include ( GNUInstallDirs )
 include ( CheckIncludeFile )
+find_package ( PkgConfig )
 
 string(TIMESTAMP BUILD_TIME "%Y%m%d %H:%M:%S")
 
@@ -125,6 +126,10 @@ SET(CPACK_DEBIAN_PACKAGE_SECTION "admin")
 SET(CPACK_RPM_PACKAGE_DESCRIPTION "Permits reading and setting of SCSI device mode pages (cf hdparm for ATA disks)")
 SET(CPACK_RPM_PACKAGE_LICENSE "BSD-2-clause")
 SET(CPACK_RPM_PACKAGE_VENDOR "Douglas Gilbert")
+if ( BUILD_SHARED_LIBS )
+    SET(CPACK_RPM_PACKAGE_REQUIRES "sg3_utils-libs")
+    SET(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+endif ()
 
 include(CPack)
 include(CTest)
