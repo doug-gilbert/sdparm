@@ -67,7 +67,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.14 20260526 [svn: r399]";
+static const char * version_str = "1.14 20260608 [svn: r400]";
 
 static const char * my_name = "sdparm: ";
 
@@ -3565,7 +3565,11 @@ main(int argc, char * argv[])
             goto fini;
         }
         jop = sgj_start_r(sdp_sn, version_str, argc, argv, jsp);
+        if ((op->verbose > 0) && (0 == jsp->verbose))
+            jsp->verbose = op->verbose;
     }
+    if (op->do_long > 0)
+        jsp->z_counter = op->do_long;
     as_json = jsp->pr_as_json;
 
     t_com_pdt = op->cl_pdt;

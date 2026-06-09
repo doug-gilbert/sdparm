@@ -9,12 +9,12 @@ set(SDPARM_MP
 foreach(util ${SDPARM_MP})
 
     file(ARCHIVE_CREATE
-         OUTPUT doc/${util}.8.gz
-         PATHS doc/${util}.8
+         OUTPUT ${CMAKE_BINARY_DIR}/doc/${util}.8.gz
+         PATHS ${CMAKE_SOURCE_DIR}/doc/${util}.8
          FORMAT raw
          COMPRESSION GZip
     )
-    install(FILES ${util}.8.gz
+    install(FILES ${CMAKE_BINARY_DIR}/doc/${util}.8.gz
             DESTINATION "${CMAKE_INSTALL_MANDIR}/man8"
     )
 

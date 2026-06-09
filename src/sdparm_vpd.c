@@ -400,8 +400,8 @@ decode_dev_ids_quiet(uint8_t * buff, int len, int m_assoc,
 }
 
 static int
-decode_json_dev_ids(uint8_t * buff, int len, int m_assoc,
-                    struct sdparm_opt_coll * op, sgj_opaque_p jap)
+decode_desig_descs(uint8_t * buff, int len, int num_leading, int m_assoc,
+                   struct sdparm_opt_coll * op, sgj_opaque_p jap)
 {
     int u, off, i_len;
     sgj_opaque_p jo2p;
@@ -418,7 +418,12 @@ decode_json_dev_ids(uint8_t * buff, int len, int m_assoc,
             return SG_LIB_CAT_MALFORMED;
         }
         jo2p = sgj_new_unattached_object_r(jsp);
-        sgj_js_designation_descriptor(jsp, jo2p, bp, i_len + 4);
+        sgj_haj_designation_descriptor(jsp, jo2p, num_leading, true, bp,
+                                       i_len + 4);
+
+// bool sgj_haj_designation_descriptor(sgj_state * jsp, sgj_opaque_p jop,
+                                    // int leadin_sp, bool pr_assoc,
+                                    // const uint8_t * ddp, int dd_len);
         sgj_js_nv_o(jsp, jap, NULL /* name */, jo2p);
     }
     if (-2 == u) {
@@ -437,20 +442,27 @@ decode_dev_ids(const char * print_if_found, int num_leading, uint8_t * buff,
                int len, int m_assoc, int m_desig_type, int m_code_set,
                struct sdparm_opt_coll * op, sgj_opaque_p jap)
 {
+#if 0
     bool printed, sgj_out_hr;
     int assoc, off, u, i_len;
     const uint8_t * bp;
-    sgj_state * jsp = &op->json_st;
     char b[1024];
     char sp[82];
     static const int blen = sizeof(b);
+#endif
+    sgj_state * jsp = &op->json_st;
 
+    sgj_pr_hr(jsp, "%*s  %s:\n", num_leading, "", print_if_found);
     if ((op->do_quiet > 0) && (! jsp->pr_as_json))
         return decode_dev_ids_quiet(buff, len, m_assoc, m_desig_type,
                                     m_code_set);
+
+    return  decode_desig_descs(buff, len, num_leading, m_assoc, op, jap);
+
+#if 0
     sgj_out_hr = false;
     if (jsp->pr_as_json) {
-        int ret = decode_json_dev_ids(buff, len, m_assoc, op, jap);
+        int ret = decode_desig_descs(buff, len, m_assoc, op, jap);
 
         if (ret || (! jsp->pr_out_hr))
             return ret;
@@ -512,6 +524,7 @@ decode_dev_ids(const char * print_if_found, int num_leading, uint8_t * buff,
         return SG_LIB_CAT_MALFORMED;
     }
     return 0;
+#endif
 }
 
 static const char * mode_page_policy_arr[] =
@@ -2537,7 +2550,7 @@ decode_block_lb_prov_vpd(const uint8_t * buff, int len,
     if (dp && (len > 11)) {
         int i_len;
         const uint8_t * bp;
-        sgj_opaque_p jo2p;
+        sgj_opaque_p jo2p = NULL;
 
         bp = buff + 8;
         i_len = bp[3];
@@ -2545,10 +2558,11 @@ decode_block_lb_prov_vpd(const uint8_t * buff, int len,
             pr2serr("%s too short=%d\n", pgd, i_len);
             return;
         }
-        if (jsp->pr_as_json) {
+        if (jsp->pr_as_json)
             jo2p = sgj_snake_named_subobject_r(jsp, jop, pgd);
-            sgj_js_designation_descriptor(jsp, jo2p, bp, i_len + 4);
-        }
+
+        sgj_haj_designation_descriptor(jsp, jo2p, 4, true, bp, i_len + 4);
+#if 0
         sgj_pr_hr(jsp, "  %s:\n", pgd);
         sg_get_designation_descriptor_str("    ", bp, i_len + 4, true,
                                           op->do_long, blen, b);
@@ -2556,6 +2570,7 @@ decode_block_lb_prov_vpd(const uint8_t * buff, int len,
             sgj_hr_str_out(jsp, b, strlen(b));
         else
             sgj_pr_hr(jsp, "%s", b);
+#endif
     }
 }
 
