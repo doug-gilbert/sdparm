@@ -4,8 +4,12 @@ project(sdparm VERSION 1.12.9 LANGUAGES C)
 # Use version number: x.y.9 to indicate pre-release of x.(y+1)
 # Example: VERSION 1.12.9 is pre-release of 1.13
 
-include(GNUInstallDirs)
-include(CMakePackageConfigHelpers)
+include ( CMakePackageConfigHelpers )
+include ( GNUInstallDirs )
+include ( CheckIncludeFile )
+include ( CheckFunctionExists )
+include ( CheckCSourceCompiles )
+find_package ( PkgConfig )
 
 set ( CMAKE_C_STANDARD 99 )
 set ( CMAKE_C_STANDARD_REQUIRED ON )
@@ -67,7 +71,6 @@ if (ENABLE_WIN32_SPT_DIRECT)
     set(WIN32_SPT_DIRECT 1)
 endif (ENABLE_WIN32_SPT_DIRECT)
 
-include ( CheckIncludeFile )
 CHECK_INCLUDE_FILE( "byteswap.h" HAVE_BYTESWAP_H )
 CHECK_INCLUDE_FILE( "getopt.h" HAVE_GETOPT_H )    # non-standard but common
 CHECK_INCLUDE_FILE( "sys/random.h" HAVE_SYS_RANDOM_H )
@@ -75,8 +78,6 @@ CHECK_INCLUDE_FILE( "stdatomic.h" HAVE_STDATOMIC_H )
 CHECK_INCLUDE_FILE( "linux/bsg.h" HAVE_LINUX_BSG_H )
 CHECK_INCLUDE_FILE( "linux/nvme_ioctl.h" HAVE_LINUX_NVME_IOCTL_H )
 CHECK_INCLUDE_FILE( "sys/types.h" HAVE_SYS_TYPES_H )
-
-include(CheckFunctionExists)
 
 check_function_exists(posix_memalign HAVE_POSIX_MEMALIGN)
 check_function_exists(posix_fadvise HAVE_POSIX_FADVISE)
@@ -221,6 +222,11 @@ SET(CPACK_DEBIAN_PACKAGE_SECTION "admin")
 SET(CPACK_RPM_PACKAGE_DESCRIPTION "Permits reading and setting of SCSI device mode pages (cf hdparm for ATA disks)")
 SET(CPACK_RPM_PACKAGE_LICENSE "BSD-2-clause")
 SET(CPACK_RPM_PACKAGE_VENDOR "Douglas Gilbert")
+
+if ( BUILD_SHARED_LIBS )
+    SET(CPACK_RPM_PACKAGE_REQUIRES "sg3_utils-libs")
+    SET(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+endif ()
 
 if ( SG_LIB_LINUX )
     set(CPACK_GENERATOR "") 
