@@ -16,7 +16,6 @@
  * logically similar (e.g. the Caching mode page contains both the Write
  * Cache Enable (WCE) and Read Cache Disable (RCD) parameters).
  *
- *
  */
 
 #include <unistd.h>
@@ -67,7 +66,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.14 20260609 [svn: r401]";
+static const char * version_str = "1.14 20260701 [svn: r402]";
 
 static const char * my_name = "sdparm: ";
 
@@ -249,10 +248,10 @@ print_mpi_extra(const char * extra, struct sdparm_opt_coll * op,
     e[0] = '\0';
     for (p = (char *)extra; (cp = (char *)strchr(p, '\t')); p = cp + 1) {
         n = cp - p;
+        b[0] = '\0';    /* if n == 0 then sg_strscpy() does nothing */
         if (n > (blen - 1))
             n = blen - 1;
-        strncpy(b, p, n);
-        b[n] = '\0';
+        sg_strscpy(b, p, n);    /* if n > 0 then b will be null terminated */
         m += sg_scn3pr(d, dlen, m, "\t%s\n", b);
         o += sg_scn3pr(e, elen, o, "%s; ", b);
     }
@@ -2902,17 +2901,19 @@ build_mp_settings(const char * arg, struct sdparm_mp_settings_t * mps,
                 ++cp;
                 continue;
             }
-            strncpy(b, cp, (len < (blen - 1) ? len : (blen - 1)));
+            sg_strscpy(b, cp, (len < blen) ? len : blen);
         } else
-            strncpy(b, cp, (blen - 1));
+            sg_strscpy(b, cp, blen);
         colon = strchr(b, ':') ? 1 : 0;
         if ((isalpha((uint8_t)b[0]) && (! colon)) ||
             (isdigit((uint8_t)b[0]) && ('_' == b[1]))) { /* expect acronym */
             ecp = strchr(b, '=');
             if (ecp) {
-                strncpy(acron, b, ecp - b);
-                acron[ecp - b] = '\0';
-                strcpy(vb, ecp + 1);
+                if (ecp > b)
+                    sg_strscpy(acron, b, ecp - b);
+                else
+                    acron[0] = '\0';
+                sg_strscpy(vb, ecp + 1, sizeof(vb));
                 if (0 == strcmp("-1", vb))
                     ivp->val = -1;
                 else {
@@ -2924,14 +2925,16 @@ build_mp_settings(const char * arg, struct sdparm_mp_settings_t * mps,
                     }
                 }
             } else {
-                strcpy(acron, b);
+                sg_strscpy(acron, b, sizeof(acron));
                 ivp->val = ((clear || get) ? 0 : -1);
             }
             if ((ecp = strchr(acron, '.'))) {
-                strcpy(vb, acron);
-                strncpy(acron, vb, ecp - acron);
-                acron[ecp - acron] = '\0';
-                strcpy(vb, ecp + 1);
+                sg_strscpy(vb, acron, sizeof(vb));
+                if (ecp > acron)
+                    sg_strscpy(acron, vb, ecp - acron);
+                else
+                    acron[0] = '\0';
+                sg_strscpy(vb, ecp + 1, sizeof(vb));
                 ivp->descriptor_num = sg_get_llnum_nomult(vb);
                 if (ivp->descriptor_num < 0) {
                     pr2serr("unable to decode: %s descriptor number\n", b);
