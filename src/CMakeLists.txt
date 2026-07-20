@@ -23,7 +23,12 @@ set ( src_nolib_sdparm
         ${CMAKE_SOURCE_DIR}/lib/sg_json_sg_lib.c
 )
 
-if ( SG_LIB_LINUX )
+if ( PT_DUMMY )
+    set ( src_plat_sdparm
+        ${CMAKE_SOURCE_DIR}/lib/sg_pt_dummy.c
+    )
+    MESSAGE( STATUS "<<>> PT_DUMMY configured, no HAL")
+elseif ( SG_LIB_LINUX )
     set ( src_plat_sdparm
         ${CMAKE_SOURCE_DIR}/lib/sg_pt_linux.c
         ${CMAKE_SOURCE_DIR}/lib/sg_pt_linux_nvme.c
@@ -32,11 +37,28 @@ elseif ( SG_LIB_FREEBSD )
     set ( src_plat_sdparm
         ${CMAKE_SOURCE_DIR}/lib/sg_pt_freebsd.c
     )
+elseif ( SG_LIB_WIN32 )
+    set ( src_plat_sdparm
+        ${CMAKE_SOURCE_DIR}/lib/sg_pt_win32.c
+    )
+elseif ( SG_LIB_HAIKU )
+    set ( src_plat_sdparm
+        ${CMAKE_SOURCE_DIR}/lib/sg_pt_haiku.c
+    )
+elseif ( SG_LIB_NETBSD )
+    set ( src_plat_sdparm
+        ${CMAKE_SOURCE_DIR}/lib/sg_pt_netbsd.c
+    )
+elseif ( SG_LIB_SOLARIS )
+    set ( src_plat_sdparm
+        ${CMAKE_SOURCE_DIR}/lib/sg_pt_solaris.c
+    )
 else ()
+    MESSAGE( STATUS "<<>> PT_DUMMY set due to fall through, no HAL")
     set ( src_plat_sdparm
         ${CMAKE_SOURCE_DIR}/lib/sg_pt_dummy.c
     )
-endif ()
+endif ( PT_DUMMY )
 
 set ( SET_INC_DIR 0 )
 if ( BUILD_SHARED_LIBS )

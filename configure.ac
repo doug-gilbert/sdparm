@@ -20,7 +20,6 @@ AC_CHECK_FUNCS(getopt_long,
 AC_CHECK_FUNCS(posix_fadvise)
 AC_CHECK_FUNCS(posix_memalign)
 AC_CHECK_FUNCS(sysconf)
-AC_CHECK_FUNCS(lseek64)
 AC_SUBST(GETOPT_O_FILES)
 
 AC_CANONICAL_HOST
@@ -90,6 +89,8 @@ case "${host}" in
                 AC_DEFINE_UNQUOTED(SG_LIB_WIN32, 1, [sdparm on Win32])
 		AC_DEFINE_UNQUOTED(SG_LIB_MINGW, 1, [also MinGW environment])
 		AC_DEFINE_UNQUOTED(HAVE_NVME, 1, [Found NVMe])
+		AC_CHECK_FUNCS(setmode)
+		AC_CHECK_FUNCS(_setmode)
 		CFLAGS="$CFLAGS -D__USE_MINGW_ANSI_STDIO";;
         *-*-linux-gnu* | *-*-linux* | *)
 		AC_SUBST([os_deps], ['sg_pt_linux.o sg_pt_linux_nvme.o'])

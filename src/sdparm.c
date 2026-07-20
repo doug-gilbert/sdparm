@@ -66,7 +66,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.14 20260701 [svn: r402]";
+static const char * version_str = "1.14 20260719 [svn: r403]";
 
 static const char * my_name = "sdparm: ";
 
