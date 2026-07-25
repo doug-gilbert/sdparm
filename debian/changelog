@@ -1,8 +1,8 @@
-sdparm (1.12-9.20260719) unstable; urgency=low
+sdparm (1.12-9.20260725) unstable; urgency=low
 
   * see ChangeLog, switch build from cdbs back to debhelper
 
- -- Douglas Gilbert <dgilbert@interlog.com>  Sun, 19 Jul 2026 22:00:00 -0400
+ -- Douglas Gilbert <dgilbert@interlog.com>  Sat, 25 Jul 2026 11:00:00 -0400
 
 sdparm (1.12-0.1) unstable; urgency=low
 

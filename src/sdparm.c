@@ -66,7 +66,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.14 20260719 [svn: r403]";
+static const char * version_str = "1.13 20260725 [svn: r404]";
 
 static const char * my_name = "sdparm: ";
 
@@ -2553,6 +2553,8 @@ change_mode_page(int sg_fd, int pdt,
         if (SG_LIB_CAT_INVALID_OP == res) {
             pr2serr("%s byte %s cdb not supported, try again with%s '-6' "
                     "option\n", cdbLenS, ms_s, mode6 ? "out" : "");
+            if (! op->dbd)
+                pr2serr("  Another possibility is to try setting --dbd\n");
         } else {
             char bb[80];
 
@@ -2801,10 +2803,12 @@ set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
     res = ll_mode_page_controls(sg_fd, op->mode_6, pn, spn, req_len, &smask,
                                 pc_arr, &rep_len, op->verbose, op);
     if (res) {
-        if (SG_LIB_CAT_INVALID_OP == res)
+        if (SG_LIB_CAT_INVALID_OP == res) {
             pr2serr("%s byte %s cdb not supported, try again with%s '-6' "
                     "option\n", cdbLenS, ms_s, mode6 ? "out" : "");
-        else if (SG_LIB_CAT_NOT_READY == res)
+            if (! op->dbd)
+                pr2serr("  Another possibility is to try setting --dbd\n");
+        } else if (SG_LIB_CAT_NOT_READY == res)
             pr2serr("%s(%s) failed, device not ready\n", ms_s, cdbLenS);
         else if (SG_LIB_CAT_ABORTED_COMMAND == res)
             pr2serr("%s(%s) failed, aborted command\n", ms_s, cdbLenS);
