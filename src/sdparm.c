@@ -66,7 +66,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.13 20260725 [svn: r404]";
+static const char * version_str = "1.13 20260725 [svn: r405]";
 
 static const char * my_name = "sdparm: ";
 
@@ -247,11 +247,10 @@ print_mpi_extra(const char * extra, struct sdparm_opt_coll * op,
     d[0] = '\0';
     e[0] = '\0';
     for (p = (char *)extra; (cp = (char *)strchr(p, '\t')); p = cp + 1) {
-        n = cp - p;
-        b[0] = '\0';    /* if n == 0 then sg_strscpy() does nothing */
-        if (n > (blen - 1))
-            n = blen - 1;
-        sg_strscpy(b, p, n);    /* if n > 0 then b will be null terminated */
+        n = cp + 1 - p;         /* n is always > 0 */
+        if (n > blen)
+            n = blen;
+        sg_strscpy(b, p, n);    /* as n > 0 then b will be null terminated */
         m += sg_scn3pr(d, dlen, m, "\t%s\n", b);
         o += sg_scn3pr(e, elen, o, "%s; ", b);
     }
@@ -853,7 +852,7 @@ ll_mode_page_controls(int sg_fd, bool mode_6, int pn, int spn, int req_len,
 }
 
 static int
-report_error(int res, bool mode6)
+report_error(int res, bool mode6, bool dbd)
 {
     const char * cdbLenS = mode6 ? "6" : "10";
     char b[96];
@@ -862,6 +861,8 @@ report_error(int res, bool mode6)
     case SG_LIB_CAT_INVALID_OP:
         pr2serr("%s(%s) cdb not supported, try again with%s '-6' "
                 "option\n", ms_s, cdbLenS, mode6 ? "out" : "");
+        if (! dbd)
+            pr2serr("  Another possibility is to try setting --dbd\n");
         break;
     case SG_LIB_CAT_NOT_READY:
         pr2serr("%s(%s) failed, device not ready\n", ms_s,
@@ -1121,7 +1122,7 @@ try_again:
                 goto try_again;
             }
         }
-        return verb ? report_error(res, l_mode_6) : res;
+        return verb ? report_error(res, l_mode_6, op->dbd) : res;
     }
     md_len = l_mode_6 ? (oth_mp[0] + 1) : (sg_get_unaligned_be16(oth_mp) + 2);
     bd_len = l_mode_6 ? oth_mp[3] : sg_get_unaligned_be16(oth_mp + 6);
@@ -1152,9 +1153,9 @@ one_more:
                 l_spn = 0;      /* may not support subpages, try without */
                 goto one_more;
             }
-            return verb ? report_error(res, l_mode_6) : res;
+            return verb ? report_error(res, l_mode_6, op->dbd) : res;
         } else if (SG_LIB_CAT_ILLEGAL_REQ != res)
-            return verb ? report_error(res, l_mode_6) : res;
+            return verb ? report_error(res, l_mode_6, op->dbd) : res;
     } else if (verb > 2)
         pr2serr("%s: get_mp_controls: [0x%x,0x%x] req_len=%d, resp_len=%d\n",
                 __func__, l_pn, l_spn, req_len, resp_len);
@@ -1343,7 +1344,7 @@ fetch_print_mparam_hdr(int sg_fd, int decay_pdt, struct sdparm_opt_coll * op,
     if (0 == res) {
         print_mode_param_hdr(cur_mp, req_len - resid, decay_pdt, op, jop);
     } else if (SG_LIB_CAT_ILLEGAL_REQ != res)
-        return verb ? report_error(res, op->mode_6) : res;
+        return verb ? report_error(res, op->mode_6, op->dbd) : res;
     return 0;
 }
 
@@ -1667,7 +1668,7 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
             res = ll_mode_page_controls(sg_fd, mode6, l_pn, l_spn, req_len,
                                         &smask, pc_arr, &rep_len, verb, op);
             if (res && (SG_LIB_CAT_ILLEGAL_REQ != res))
-                return verb ? report_error(res, mode6) : res;
+                return verb ? report_error(res, mode6, op->dbd) : res;
             else if (verb > 2)
                 pr2serr("%s: get_mp_controls: [0x%x,0x%x] res=%d, "
                         "req_len=%d, resp_len=%d\n", __func__, l_pn, l_spn,
@@ -2446,7 +2447,7 @@ print_get_mitems(int sg_fd, const struct sdparm_mp_settings_t * mps,
                                         &smask, pc_arr, &rep_len, verb, op);
             if (res && (SG_LIB_CAT_ILLEGAL_REQ != res)) {
                 if (verb)
-                    report_error(res, mode6);
+                    report_error(res, mode6, op->dbd);
                 goto out;
             } else if (verb > 2)
                 pr2serr("%s: get_mp_controls: [0x%x,0x%x] res=%d, "
@@ -2882,8 +2883,8 @@ build_mp_settings(const char * arg, struct sdparm_mp_settings_t * mps,
     unsigned int u;
     int64_t ll;
     char b[64];
-    char acron[64];
-    char vb[64];
+    char acron[64];     /* name buffer, as in name=value */
+    char vb[64];        /* value buffer */
     const char * cp;
     const char * ncp;
     const char * ecp;
@@ -2900,12 +2901,13 @@ build_mp_settings(const char * arg, struct sdparm_mp_settings_t * mps,
             break;
         ncp = strchr(cp, ',');
         if (ncp) {
-            len = ncp - cp;
-            if (len <= 0) {
+            len = ncp - cp;     /* len excluding next ',' */
+            if (len <= 0) {     /* if cp[0] == ',' then step over */
                 ++cp;
                 continue;
             }
-            sg_strscpy(b, cp, (len < blen) ? len : blen);
+            /* len > 0 so b will end in null; so len + 1 char is null */
+            sg_strscpy(b, cp, (len < blen) ? len + 1 : blen);
         } else
             sg_strscpy(b, cp, blen);
         colon = strchr(b, ':') ? 1 : 0;
@@ -2914,10 +2916,10 @@ build_mp_settings(const char * arg, struct sdparm_mp_settings_t * mps,
             ecp = strchr(b, '=');
             if (ecp) {
                 if (ecp > b)
-                    sg_strscpy(acron, b, ecp - b);
+                    sg_strscpy(acron, b, ecp + 1 - b); /* allow for null */
                 else
                     acron[0] = '\0';
-                sg_strscpy(vb, ecp + 1, sizeof(vb));
+                sg_strscpy(vb, ecp + 1, sizeof(vb)); /* after = to before , */
                 if (0 == strcmp("-1", vb))
                     ivp->val = -1;
                 else {
@@ -2935,7 +2937,7 @@ build_mp_settings(const char * arg, struct sdparm_mp_settings_t * mps,
             if ((ecp = strchr(acron, '.'))) {
                 sg_strscpy(vb, acron, sizeof(vb));
                 if (ecp > acron)
-                    sg_strscpy(acron, vb, ecp - acron);
+                    sg_strscpy(acron, vb, ecp + 1 - acron);
                 else
                     acron[0] = '\0';
                 sg_strscpy(vb, ecp + 1, sizeof(vb));

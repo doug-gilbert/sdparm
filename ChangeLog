@@ -3,7 +3,7 @@ the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 References to github are to https://github.com/doug-gilbert/sdparm
 
-ChangeLog for pre-release sdparm-1.13 [20260725] [svn: r404]
+ChangeLog for pre-release sdparm-1.13 [20260725] [svn: r405]
   - add --json[=JO] and --js-file=JFN options
     - apart from with a real device, json output can be
       requested with --enumerate or --inhex=FN

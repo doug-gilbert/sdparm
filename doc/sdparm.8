@@ -169,6 +169,10 @@ shall be set.
 .br
 This option can also be used when the \fI\-\-inhex=FN\fR option is active. In
 this case it will suppress the output of block descriptors.
+.br
+If this utility is reporting 'invalid operation code' or 'illegal request'
+then it may be worth setting this option as it simplifies the response (and
+some vendors like to 'simplify').
 .TP
 \fB\-D\fR, \fB\-\-defaults\fR
 sets the given mode page to its default values. Requires the
@@ -523,6 +527,17 @@ commands but will still decode the 6 byte variants if asked (e.g. with the
 A mode page for which no abbreviation is known (e.g. a vendor specific mode
 page) can be listed in hexadecimal by using the option
 combination '\-\-page=PG \-\-hex'.
+.PP
+Most SCSI storage devices need some mode pages (e.g. to allow the OS SCSI
+sub-system to turn on or off write caching in a standardized way). For this
+the MODE SENSE command needs to work (although it is not mandatory). The
+original MODE SENSE cdb was 6 bytes long and this is indicated by MODE
+SENSE(6). Then MODE SENSE(10) was introduced and now MODE SENSE(6) is
+obsolete. [These changes happened over a 20 year period.] Some old SCSI
+devices only support MODE SENSE(6), and newer ones only support MODE
+SENSE(10). And one recent SCSI storage device (e.g. a 'no-name' UFS module)
+only supports MODE SENSE(10) with the DBD (disable block descriptors) bit
+set. To this utility that means setting the --dbd option.
 .PP
 Numbers input to sdparm (e.g. in the command line arguments) are assumed
 to be in decimal unless there is a hexadecimal indicator. A hexadecimal
