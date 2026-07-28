@@ -6,13 +6,14 @@
  *
  */
 
- /* Version 1.18 20260321  */
+ /* Version 1.19 20260728  */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "sdparm.h"
 #include "sg_lib.h"
@@ -108,6 +109,11 @@ static int check(const struct sdparm_mp_item_t * mpi,
         }
         k_clash_ok = !! (kp->flags & MF_CLASH_OK);
         acron = kp->acron ? kp->acron : "?";
+        if (isdigit(acron[0])) {
+            ++bad_count;
+            printf("  mode page 0x%x,0x%x acronym: %s starts with digit\n",
+                   kp->pg_num, kp->subpg_num, acron);
+        }
         if ((prev_mp != kp->pg_num) || (prev_msp != kp->subpg_num)) {
             if (prev_mp > kp->pg_num) {
                 printf("  mode page 0x%x,0x%x out of order\n", kp->pg_num,

@@ -2009,13 +2009,13 @@ const struct sdparm_mp_item_t sdparm_mitem_sas_arr[] = {
         "Power loss timeout(ms)", NULL, NULL},
     {"PGRATO", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 9, 7, 8, MF_J_NPARAM_DESC,
         "Power grant timeout(sec)", NULL, NULL},
-    {"4PHYS", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 10, 2, 1, 0, "4 phy wide "
+    {"W4PHYS", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 10, 2, 1, 0, "4 phy wide "
         "port(s) when set", "fourphys", /* start of spl5r07 addition */
         "If more than 4 phys, group adjacent (by phy id) phys"},
-    {"2PHYS", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 10, 1, 1, 0,
+    {"W2PHYS", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 10, 1, 1, 0,
         "2 phy wide port(s) when set", "twophys", "If more than 2 phys, "
         "group adjacent (by phy id) phys"},
-    {"1PHY", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 10, 0, 1, 0,
+    {"N1PHY", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 10, 0, 1, 0,
         "single phy (narrow) ports", "onephy", "Each phy is a SCSI port "
         "with own SAS address"},
     {"PMCDT", PROT_SPEC_PORT_MP, MSP_SAS_SPC, -1, 11, 7, 8, MF_J_NPARAM_DESC,

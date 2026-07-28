@@ -1,4 +1,4 @@
-.TH SDPARM "8" "2026-07-25" "sdparm\-1.13" SDPARM
+.TH SDPARM "8" "2026\-07\-28" "sdparm\-1.13" SDPARM
 .SH NAME
 sdparm \- access SCSI modes pages; read VPD pages; send simple SCSI commands
 .SH SYNOPSIS
@@ -91,15 +91,15 @@ can be altered with the SCSI MODE SELECT command. See the NOTES section below
 for more information about those commands.
 .PP
 This utility completes with an exit status of 0 when successful. For other
-values see the EXIT STATUS section below.
+exit values see the EXIT STATUS section below.
 .PP
 One or more \fIDEVICE\fR arguments can be given. The utility will
-essentially apply the given options to each \fIDEVICE\fR in the list. If a
-error is detected, it is noted and the utility continues. Error value 5 (file
-open or close problem) is treated as lower priority when other errors are
-detected. The exit status is the most recently detected error value
-(excluding error value 5 if other errors have been detected). If all actions
-succeed the exit status is zero.
+essentially apply the given options to each \fIDEVICE\fR in the list. If an
+error is detected, it is noted and the utility continues. Exit status
+15 (file open or close problem) is treated as lower priority when other
+errors are detected. The exit status is the most recently detected error
+value (excluding exit status 15 if other errors have been detected). If all
+actions succeed the exit status is zero.
 .PP
 By default this utility shows mode pages that are common to all transport
 protocols. These are termed as "generic" mode pages. If there is no match on
@@ -396,13 +396,13 @@ interpreted as decimal unless prefixed with "0x" or a trailing. Sub page
 numbers are only valid for mode pages (not VPD pages). Alternatively an
 abbreviation for a page can be given (see next entry).
 .TP
-\fB\-p\fR, \fB\-\-page\fR=\fISTR\fR
+\fB\-p\fR, \fB\-\-page\fR=\fIPG_ABBREV\fR
 a two or three letter abbreviation for a page can be given. Known mode page
 abbreviations are checked first followed by known VPD page abbreviations.
 For example '\-\-page=ca' matches the caching mode page. If no match is found
 then an error is issued and a list of possibilities in the current context
-is given (so '\-p x' can be quite useful). If the \fISTR\fR matches a known
-VPD page abbreviation then the \fI\-\-inquiry\fR option is assumed. For
+is given (so '\-p x' can be quite useful). If the \fIPG_ABBREV\fR matches a
+known VPD page abbreviation then the \fI\-\-inquiry\fR option is assumed. For
 usage with \fI\-\-enumerate\fR see the ENUMERATE section below.
 .TP
 \fB\-P\fR, \fB\-\-pdt\fR=\fIDT\fR
@@ -529,15 +529,15 @@ page) can be listed in hexadecimal by using the option
 combination '\-\-page=PG \-\-hex'.
 .PP
 Most SCSI storage devices need some mode pages (e.g. to allow the OS SCSI
-sub-system to turn on or off write caching in a standardized way). For this
+sub\-system to turn on or off write caching in a standardized way). For this
 the MODE SENSE command needs to work (although it is not mandatory). The
 original MODE SENSE cdb was 6 bytes long and this is indicated by MODE
 SENSE(6). Then MODE SENSE(10) was introduced and now MODE SENSE(6) is
 obsolete. [These changes happened over a 20 year period.] Some old SCSI
 devices only support MODE SENSE(6), and newer ones only support MODE
-SENSE(10). And one recent SCSI storage device (e.g. a 'no-name' UFS module)
+SENSE(10). And one recent SCSI storage device (e.g. a 'no\-name' UFS module)
 only supports MODE SENSE(10) with the DBD (disable block descriptors) bit
-set. To this utility that means setting the --dbd option.
+set. To this utility that means setting the \-\-dbd option.
 .PP
 Numbers input to sdparm (e.g. in the command line arguments) are assumed
 to be in decimal unless there is a hexadecimal indicator. A hexadecimal
@@ -622,9 +622,22 @@ defaults to "all ones" (i.e. as many as <num_bits> permits). For
 example '\-\-clear=WCE' and '\-\-clear=WCE=0' have the same meaning: clear
 Writeback Cache Enable or, put more simply: turn off the writeback cache.
 .PP
-Multiple fields within the same mode page can be changed by giving a comma
-separated list of acronym_names and/or the numerical form. For
-example: '\-\-set=TEST,MRIE=6'.
+Multiple fields can be changed within the
+.B same
+mode page by giving a comma separated list of acronym_names and/or the
+numerical alternative. For example: '\-\-set=TEST,MRIE=6' will set TEST to 1
+and MRIE to 6 in the Informational Exceptions Control mode page [0x1c] in a
+.B single
+MODE SELECT command. In some cases this is important, for example in the
+SAS/SPL Shared Port Control mode page in which W4PHYS, W2PHYS, N1PHY bits
+if changeable must be changed in such a way that one and only one is set
+and the other two are cleared. So if N1PHY is set
+then '\-\-set=w2phys=1,n1phy=0' will clear N1PHY and set W2PHYS leaving
+W4PHYS clear. Trying to do that with two invocations fails on the author's
+hardware with an "invalid field in parameter list" additional sense key (as
+per spl5r15). Note T10 calls those fields FOURPHYS, TWOPHYS and ONEPHY
+which this utility shortens and prefixes with 'W' for wide port and 'N' for
+narrow port.
 .PP
 Some mode page have multiple descriptors. They typically have a fixed header
 section at the start of the mode page that includes a field containing the
@@ -855,6 +868,26 @@ The previous example can also by written as:
 .PP
    sdparm \-s WCE=1,RCD=0 \-S /dev/sda
 .PP
+Some actions require multiple fields in the same mode page to be changed
+in unison. For example a SAS disk usually contains two phys configured
+as two 'narrow' SAS/SCSI ports. [Narrow in this context means 1 phy per
+SCSI port, so the SAS disk will have two SCSI ports.] Some SAS disks allow
+that to be changed:
+.PP
+   sdparm /dev/sdb \-s w2phys=1,n1phy=0 \-S
+.PP
+The above changes the two phys on that SAS disk to be both in the same 'wide'
+port. That doubles the theoretical throughput of each SCSI IO command (e.g.
+READ(16) ) at the expense of the redundancy offered by two independent
+SAS/SCSI ports.
+.br
+Note the getopt_long() command line processing is quite flexible allowing
+the argument ('/dev/sg2' in this case) to appear
+.B before
+the options. The field name acronymns are shown (output) in upper case but
+may be input in either case. Field names are chosen to be unique so there is
+no need to specify the mode page.
+.PP
 To re\-establish the manufacturer's defaults in the current and saved
 values of the caching mode page:
 .PP
@@ -943,14 +976,16 @@ spinning up but not at speed) so the utility may work after a wait.
 .B 3
 the \fIDEVICE\fR reports a medium or hardware error (or a blank
 check). For example an attempt to read a corrupted block on a disk
-will yield this value.
+will yield this exit value.
 .TP
 .B 5
 the \fIDEVICE\fR reports an "illegal request" with an additional
-sense code other than "invalid operation code". This is often a
-supported command with a field set requesting an unsupported
-capability. For commands that require a "service action" field
-this value can indicate that the command is not supported.
+sense code
+.B other than
+"invalid operation code". This is often a supported command with a field
+set requesting an unsupported capability. For SCSI commands that require
+a "service action" field this exit value can indicate that the command
+is not supported.
 .TP
 .B 6
 the \fIDEVICE\fR reports a "unit attention" condition. This usually
@@ -999,7 +1034,7 @@ problems. Adding the \fI\-v\fR option may give more information.
 .B 20
 the \fIDEVICE\fR reports it has a check condition but "no sense".
 Some polling commands (e.g. REQUEST SENSE) can react this way.
-It is unlikely that this value will occur as an exit status.
+It is unlikely that this exit value will occur as an exit status.
 .TP
 .B 21
 the \fIDEVICE\fR reports a "recovered error". The requested command
@@ -1067,7 +1102,7 @@ thus be unable to return the user data from a READ command.
 .TP
 .B 40
 the command sent to \fIDEVICE\fR has received an "aborted command" sense
-key with an additional sense code of 0x10. This value is related to
+key with an additional sense code of 0x10. This exit value is related to
 problems with protection information (PI or DIF). For example this error
 may occur when reading a block on a drive that has never been written (or
 is unmapped) if that drive was formatted with type 1, 2 or 3 protection.
@@ -1097,8 +1132,8 @@ the \fIDEVICE\fR reports it has a check condition but the error
 doesn't fit into any of the above categories.
 .TP
 .B 99
-any errors that can't be categorized into values 1 to 98 may yield
-this value. This includes transport and operating system errors
+any errors that can't be categorized into exit values 1 to 98 may yield
+this exit value. This includes transport and operating system errors
 after the command has been sent to the device.
 .TP
 .B 126

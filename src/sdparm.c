@@ -66,7 +66,7 @@ static int map_if_lk24(int sg_fd, const char * device_name, bool rw,
 #include "sg_pr2serr.h"
 #include "sdparm.h"
 
-static const char * version_str = "1.13 20260725 [svn: r405]";
+static const char * version_str = "1.13 20260728 [svn: r406]";
 
 static const char * my_name = "sdparm: ";
 
@@ -107,14 +107,15 @@ static const char * sddap_s = "so don't decode any pages";
 static const char * const pad_2_s = "  ";
 static const char * const pad_4_s = "    ";
 
-static int msense6_good_count;
-static int msense6_pc_not_sup_count;  /* > 0 page controls not supported */
-static int msense6_ill_req_count;
-static int msense6_oth_err_count;
-static int msense10_good_count;
-static int msense10_pc_not_sup_count;
-static int msense10_ill_req_count;
-static int msense10_oth_err_count;
+struct msense_result_stats {
+    int good_count;
+    int invalid_opcode_count;
+    int illegal_request_count;
+    int other_err_count;
+};
+
+static struct msense_result_stats msense6;
+static struct msense_result_stats msense10;
 
 static int print_full_mpgs(int sg_fd, int pn, int spn, int pdt,
                            struct sdparm_opt_coll * op, sgj_opaque_p jop);
@@ -783,29 +784,26 @@ ll_mode_sense(int fd, int pn, int spn, bool llbaa, uint8_t * resp,
 {
     int res;
     const int vb = (verb >= 0) ? verb : op->verbose;
+    struct msense_result_stats * msense_statsp
+                                     = op->mode_6 ? &msense6 : &msense10;
 
     if (op->mode_6) {
         if (residp)
             *residp = 0;
         res = sg_ll_mode_sense6(fd, op->dbd, 0 /*current */, pn, spn,
                                 resp, mx_resp_len, true /* noisy */, vb);
-        if (0 == res)
-            ++msense6_good_count;
-        else if (SG_LIB_CAT_ILLEGAL_REQ == res)
-            ++msense6_ill_req_count; /* N.B. doesn't include invalid opcode */
-        else
-            ++msense6_oth_err_count;
-    } else {
+    } else
         res = sg_ll_mode_sense10_v2(fd, llbaa, op->dbd, 0, pn,
                                     spn, resp, mx_resp_len, 0, residp,
                                     true /* noisy */, vb);
-        if (0 == res)
-            ++msense10_good_count;
-        else if (SG_LIB_CAT_ILLEGAL_REQ == res)
-            ++msense10_ill_req_count; /* N.B. doesn't include invalid opcode */
-        else
-            ++msense10_oth_err_count;
-    }
+    if (0 == res)
+        ++msense_statsp->good_count;
+    else if (SG_LIB_CAT_INVALID_OP == res)
+        ++msense_statsp->invalid_opcode_count;
+    else if (SG_LIB_CAT_ILLEGAL_REQ == res)
+        ++msense_statsp->illegal_request_count; /* excludes invalid opcode */
+    else
+        ++msense_statsp->other_err_count;
     if ((0 == res) && (vb > 2)) {
         int resid = residp ? *residp : 0;
         int num_ret = mx_resp_len - resid;
@@ -824,35 +822,33 @@ ll_mode_page_controls(int sg_fd, bool mode_6, int pn, int spn, int req_len,
                       int * smaskp, void * pc_arr[], int * resp_lenp, int verb,
                       const struct sdparm_opt_coll * op)
 {
+    struct msense_result_stats * msense_statsp
+                                     = mode_6 ? &msense6 : &msense10;
     int res = sg_get_mode_page_controls(sg_fd, mode_6, pn, spn, op->dbd,
-                                    op->flexible, req_len, smaskp, pc_arr,
-                                    resp_lenp, verb);
-    if (mode_6) {
-        if (0 == res)
-            ++msense6_good_count;
-        else if (SG_LIB_CAT_ILLEGAL_REQ == res) {
-            if (*smaskp)
-                ++msense6_pc_not_sup_count;
-            else
-                ++msense6_ill_req_count; /* N.B. excluding invalid opcode */
-        } else
-            ++msense6_oth_err_count;
-    } else {
-        if (0 == res)
-            ++msense10_good_count;
-        else if (SG_LIB_CAT_ILLEGAL_REQ == res) {
-            if (*smaskp)
-                ++msense10_pc_not_sup_count;
-            else
-                ++msense10_ill_req_count; /* N.B. excluding invalid opcode */
-        } else
-            ++msense10_oth_err_count;
+                                        op->flexible, req_len, smaskp, pc_arr,
+                                        resp_lenp, verb);
+    int msk = *smaskp;
+
+    if (msk) {
+        int k;
+        int shift = 1;
+
+        for (k = 0; k < 4; ++k, shift <<= 1) {
+            if (shift & msk)
+                ++msense_statsp->good_count;
+        }
     }
+    if (SG_LIB_CAT_INVALID_OP == res)
+        ++msense_statsp->invalid_opcode_count;
+    else if (SG_LIB_CAT_ILLEGAL_REQ == res)
+        ++msense_statsp->illegal_request_count;
+    else if (0 != res)
+        ++msense_statsp->other_err_count;
     return res;
 }
 
 static int
-report_error(int res, bool mode6, bool dbd)
+report_error(int res, bool mode6)
 {
     const char * cdbLenS = mode6 ? "6" : "10";
     char b[96];
@@ -861,8 +857,6 @@ report_error(int res, bool mode6, bool dbd)
     case SG_LIB_CAT_INVALID_OP:
         pr2serr("%s(%s) cdb not supported, try again with%s '-6' "
                 "option\n", ms_s, cdbLenS, mode6 ? "out" : "");
-        if (! dbd)
-            pr2serr("  Another possibility is to try setting --dbd\n");
         break;
     case SG_LIB_CAT_NOT_READY:
         pr2serr("%s(%s) failed, device not ready\n", ms_s,
@@ -1122,7 +1116,7 @@ try_again:
                 goto try_again;
             }
         }
-        return verb ? report_error(res, l_mode_6, op->dbd) : res;
+        return verb ? report_error(res, l_mode_6) : res;
     }
     md_len = l_mode_6 ? (oth_mp[0] + 1) : (sg_get_unaligned_be16(oth_mp) + 2);
     bd_len = l_mode_6 ? oth_mp[3] : sg_get_unaligned_be16(oth_mp + 6);
@@ -1153,12 +1147,15 @@ one_more:
                 l_spn = 0;      /* may not support subpages, try without */
                 goto one_more;
             }
-            return verb ? report_error(res, l_mode_6, op->dbd) : res;
+            return verb ? report_error(res, l_mode_6) : res;
         } else if (SG_LIB_CAT_ILLEGAL_REQ != res)
-            return verb ? report_error(res, l_mode_6, op->dbd) : res;
-    } else if (verb > 2)
-        pr2serr("%s: get_mp_controls: [0x%x,0x%x] req_len=%d, resp_len=%d\n",
-                __func__, l_pn, l_spn, req_len, resp_len);
+            return verb ? report_error(res, l_mode_6) : res;
+    } else {
+        if (verb > 2)
+            pr2serr("%s: get_mp_controls: [0x%x,0x%x] req_len=%d, "
+                    "resp_len=%d\n", __func__, l_pn, l_spn, req_len,
+                    resp_len);
+    }
     if (resp_len < 4) {
         if (verb > 0)
             pr2serr("%s: response length %d too small\n", __func__, resp_len);
@@ -1344,7 +1341,7 @@ fetch_print_mparam_hdr(int sg_fd, int decay_pdt, struct sdparm_opt_coll * op,
     if (0 == res) {
         print_mode_param_hdr(cur_mp, req_len - resid, decay_pdt, op, jop);
     } else if (SG_LIB_CAT_ILLEGAL_REQ != res)
-        return verb ? report_error(res, op->mode_6, op->dbd) : res;
+        return verb ? report_error(res, op->mode_6) : res;
     return 0;
 }
 
@@ -1668,7 +1665,7 @@ print_full_mpgs(int sg_fd, int o_pn, int o_spn, int pdt,
             res = ll_mode_page_controls(sg_fd, mode6, l_pn, l_spn, req_len,
                                         &smask, pc_arr, &rep_len, verb, op);
             if (res && (SG_LIB_CAT_ILLEGAL_REQ != res))
-                return verb ? report_error(res, mode6, op->dbd) : res;
+                return verb ? report_error(res, mode6) : res;
             else if (verb > 2)
                 pr2serr("%s: get_mp_controls: [0x%x,0x%x] res=%d, "
                         "req_len=%d, resp_len=%d\n", __func__, l_pn, l_spn,
@@ -2447,7 +2444,7 @@ print_get_mitems(int sg_fd, const struct sdparm_mp_settings_t * mps,
                                         &smask, pc_arr, &rep_len, verb, op);
             if (res && (SG_LIB_CAT_ILLEGAL_REQ != res)) {
                 if (verb)
-                    report_error(res, mode6, op->dbd);
+                    report_error(res, mode6);
                 goto out;
             } else if (verb > 2)
                 pr2serr("%s: get_mp_controls: [0x%x,0x%x] res=%d, "
@@ -2554,8 +2551,6 @@ change_mode_page(int sg_fd, int pdt,
         if (SG_LIB_CAT_INVALID_OP == res) {
             pr2serr("%s byte %s cdb not supported, try again with%s '-6' "
                     "option\n", cdbLenS, ms_s, mode6 ? "out" : "");
-            if (! op->dbd)
-                pr2serr("  Another possibility is to try setting --dbd\n");
         } else {
             char bb[80];
 
@@ -2667,6 +2662,9 @@ change_mode_page(int sg_fd, int pdt,
                                      op->save, mdpg, md_len, true, vb);
     if (0 != res) {
         pr2serr("%s: failed setting page: %s\n", __func__, b);
+        if (SG_LIB_CAT_INVALID_PARAM == res)
+            pr2serr("%s: invalid parameter%s\n", __func__,
+                    op->verbose ? "" : ", try adding '-v' or '-vv'");
         return res;
     }
     return 0;
@@ -2764,6 +2762,9 @@ set_def_mode_page(int sg_fd, int pn, int spn,
         sdp_get_mp_nm_with_str(pn, spn, -1, op->transport, op->vendor_id,
                                0, false, sizeof(b), b);
         pr2serr("%s: failed setting page: %s\n", __func__, b);
+        if (SG_LIB_CAT_INVALID_PARAM == ret)
+            pr2serr("%s: invalid parameter%s\n", __func__,
+                    op->verbose ? "" : ", try adding '-v' or '-vv'");
         goto err_out;
     }
 
@@ -2785,6 +2786,8 @@ set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
     uint8_t * free_cur_mp = NULL;
     uint8_t * free_def_mp = NULL;
     void * pc_arr[MP_NUM_PG_CTL];
+    struct msense_result_stats * msense_statsp
+                                     = mode6 ? &msense6 : &msense10;
     char b[128];
     static const int blen = sizeof(b);
 
@@ -2807,16 +2810,17 @@ set_mp_defaults(int sg_fd, int pn, int spn, int pdt,
         if (SG_LIB_CAT_INVALID_OP == res) {
             pr2serr("%s byte %s cdb not supported, try again with%s '-6' "
                     "option\n", cdbLenS, ms_s, mode6 ? "out" : "");
-            if (! op->dbd)
-                pr2serr("  Another possibility is to try setting --dbd\n");
         } else if (SG_LIB_CAT_NOT_READY == res)
             pr2serr("%s(%s) failed, device not ready\n", ms_s, cdbLenS);
         else if (SG_LIB_CAT_ABORTED_COMMAND == res)
             pr2serr("%s(%s) failed, aborted command\n", ms_s, cdbLenS);
         goto out;
-    } else if (op->verbose > 2)
-        pr2serr("%s: get_mp_controls: [0x%x,0x%x] req_len=%d, resp_len=%d\n",
-                __func__, pn, spn, req_len, rep_len);
+    } else {
+         ++msense_statsp->good_count;
+         if (op->verbose > 2)
+             pr2serr("%s: get_mp_controls: [0x%x,0x%x] req_len=%d, "
+                     "resp_len=%d\n", __func__, pn, spn, req_len, rep_len);
+    }
     if (op->verbose && (! op->flexible) && (rep_len > 0xa00)) {
         sdp_get_mp_nm_with_str(pn, spn, pdt, op->transport, op->vendor_id,
                                0, false, blen, b);
@@ -3477,12 +3481,24 @@ parse_page_str(int * t_com_pdtp, struct sdparm_opt_coll * op)
     return res;
 }
 
+static void
+print_stats_count(const struct msense_result_stats * msense_statsp)
+{
+    pr2serr("mode_sense(%d) counts: good=%d, invalid_op_code=%d, "
+            "illegal_request=%d,\n                      "
+            "other_err=%d\n", (&msense6 == msense_statsp ? 6 : 10),
+            msense_statsp->good_count, msense_statsp->invalid_opcode_count,
+            msense_statsp->illegal_request_count,
+            msense_statsp->other_err_count);
+}
+
 
 int
 main(int argc, char * argv[])
 {
     bool protect = false;
     bool as_json = false;
+    bool all_illegal_reqs = false;
     int t_com_pdt, req_pdt, k, r, vb;
     int res = 0;
     int sg_fd = -1;
@@ -3500,6 +3516,8 @@ main(int argc, char * argv[])
     struct sdparm_opt_coll opts SG_C_CPP_ZERO_INIT;
     struct sdparm_mp_settings_t mp_settings SG_C_CPP_ZERO_INIT;
     struct sdparm_mp_settings_t * mps = &mp_settings;
+    const struct msense_result_stats * msense_statsp;
+    const struct msense_result_stats * ms_statsp;
 
     op = &opts;
     op->out_mask = MP_OM_ALL;   /* 0xf */
@@ -3844,7 +3862,7 @@ fini:           /* error expected in ret, ret==0 means no error */
         /* suppress ILLEGAL REQUEST errors cause by either a page control
          * (e.g. 'save') not being supported or a page_code/subpage_code
          * not being supported. These are expected. */
-        if ((0 == msense6_oth_err_count) && (0 == msense10_oth_err_count))
+        if ((0 == msense6.other_err_count) && (0 == msense10.other_err_count))
             ret = 0;
     }
     if (as_json) {
@@ -3868,18 +3886,28 @@ fini:           /* error expected in ret, ret==0 means no error */
         if ((0 == ret) && (res > 0))
             ret = res;
     }
-    if ((0 == op->do_quiet) && (non_spg_warning > 0))
-        pr2serr("%d instances of mode subpage requested but non-subpage "
-                "returned\n", non_spg_warning);
+    msense_statsp = op->mode_6 ? &msense6 : &msense10;
+    if ((msense_statsp->illegal_request_count > 0) &&
+        (0 == msense_statsp->good_count)) {
+        all_illegal_reqs = true;
+        if (0 == ret)
+            ret = SG_LIB_CAT_ILLEGAL_REQ;
+    }
+
+    if (0 == op->do_quiet) {
+        if (all_illegal_reqs && (! op->dbd))
+            pr2serr(">>> unexpected results, try setting --dbd option\n");
+        if (non_spg_warning > 0)
+            pr2serr("%d instances of mode subpage requested but non-subpage "
+                    "returned\n", non_spg_warning);
+    }
     if (vb > 1) {
-        pr2serr("mode_sense_6 counts: good=%d, pc_not_sup=%d, ill_req=%d, "
-                "oth_err=%d\n", msense6_good_count, msense6_pc_not_sup_count,
-                msense6_ill_req_count,
-                msense6_oth_err_count);
-        pr2serr("mode_sense_10 counts: good=%d, pc_not_sup=%d, ill_req=%d, "
-                "oth_err=%d\n", msense10_good_count,
-                msense10_pc_not_sup_count, msense10_ill_req_count,
-                msense10_oth_err_count);
+        for (k = 0, ms_statsp = &msense6; k < 2; ++k, ms_statsp = &msense10) {
+            if (ms_statsp == msense_statsp)
+                print_stats_count(ms_statsp);
+            else if (vb > 2)
+                print_stats_count(ms_statsp);
+        }
     }
     return ret;
 }

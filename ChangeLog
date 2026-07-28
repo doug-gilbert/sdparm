@@ -3,7 +3,7 @@ the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 References to github are to https://github.com/doug-gilbert/sdparm
 
-ChangeLog for pre-release sdparm-1.13 [20260725] [svn: r405]
+ChangeLog for pre-release sdparm-1.13 [20260728] [svn: r406]
   - add --json[=JO] and --js-file=JFN options
     - apart from with a real device, json output can be
       requested with --enumerate or --inhex=FN
@@ -29,6 +29,8 @@ ChangeLog for pre-release sdparm-1.13 [20260725] [svn: r405]
   - add RSCS field to Block limits ext. vpage [sbc5r5]
   - add MAXIMUM COALESCING COPY LBA RANGE DESCRIPTORS
     field in Block Limits VPD page [0xb0] sbc6r02
+  - shared port control mode page [0x19,0x2] sas/spl change
+    1PHY, 2PHYS, 4PHYS to N1PHY, W2PHYS, W4PHYS respectively
   - add --inner-hex option to take overloading from --hex
     - use with -j for more searchable mode page names
   - device identification VPD page: change IEEE OUI to AOI
