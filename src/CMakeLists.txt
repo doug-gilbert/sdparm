@@ -134,13 +134,7 @@ if ( NOT SET_INC_DIR )
 endif ( NOT SET_INC_DIR )
 target_include_directories(sdparm PRIVATE ${CMAKE_BINARY_DIR})
 
-if ( ENABLE_DEBUG )
-  target_compile_definitions(sdparm PRIVATE DEBUG)
-  target_compile_options(sdparm PRIVATE
-    -Wextra -Wmisleading-indentation -Wduplicated-cond -Wlogical-op
-    -Wnull-dereference -Wshadow -Wunused -Wsizeof-array-argument
-    -Wduplicated-branches -Wjump-misses-init -Wparentheses)
-endif ( ENABLE_DEBUG )
+l_set_compile_options ( sdparm )
 
 install(TARGETS sdparm RUNTIME DESTINATION bin)
 

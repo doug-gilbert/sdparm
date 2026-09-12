@@ -1,6 +1,6 @@
 cmake_minimum_required ( VERSION 3.10 )
 
-project(sdparm VERSION 1.12.9 LANGUAGES C)
+project(sdparm VERSION 1.12.9 LANGUAGES C CXX)
 # Use version number: x.y.9 to indicate pre-release of x.(y+1)
 # Example: VERSION 1.12.9 is pre-release of 1.13
 
@@ -10,11 +10,6 @@ include ( CheckIncludeFile )
 include ( CheckFunctionExists )
 include ( CheckCSourceCompiles )
 find_package ( PkgConfig )
-
-set ( CMAKE_C_STANDARD 99 )
-set ( CMAKE_C_STANDARD_REQUIRED ON )
-set ( CMAKE_C_EXTENSIONS OFF )
-set ( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -g -Wall -W -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -DHAVE_CONFIG_H" )
 
 string(TIMESTAMP BUILD_TIME "%Y%m%d %H:%M:%S")
 
@@ -111,10 +106,12 @@ set(SG_LIB_OPENBSD 0)
 set(OS_SOLARIS 0)
 set(SG_LIB_SOLARIS 0)
 set(OS_AIX 0)
+set(OS_HAIKU 0)
 set(OS_WIN32 0)  # OS_WIN32_MINGW + OS_WIN32_CYGWIN only used in Makefile.am
 set(SG_LIB_WIN32 0)
 set(SG_LIB_MINGW 0)
 set(SG_LIB_CYGWIN 0)   # not used currently, may use in future
+set(OS_MACOS 0)
 
 set(NEED_GETOPT_H 1)
 if ( HAVE_GETOPT_H )
@@ -128,13 +125,13 @@ endif ( HAVE_GETOPT_LONG )
 
 message(STATUS ">> cmake System Name: ${CMAKE_SYSTEM_NAME}")
 if (CYGWIN)
-    message(STATUS ">> Cygwin build")
+    message(STATUS ">> Cygwin environment on Win32")
     set(OS_WIN32 1)
     set(SG_LIB_WIN32 1)
     set(SG_LIB_CYGWIN 1)
     set(HAVE_NVME 1)
 elseif (MINGW)
-    message(STATUS ">> MinGW build")
+    message(STATUS ">> MinGW environment on Win32")
     set(OS_WIN32 1)
     set(SG_LIB_WIN32 1)
     set(SG_LIB_MINGW 1)
@@ -142,11 +139,11 @@ elseif (MINGW)
     check_function_exists(setmode HAVE_SETMODE)
     check_function_exists(_setmode HAVE__SETMODE)
 elseif (WIN32)
-    message(STATUS ">> Windows build")
+    message(STATUS ">> Windows platform")
     set(OS_WIN32 1)
     set(SG_LIB_WIN32 1)
 elseif (ANDROID)
-    message(STATUS ">> Android build")
+    message(STATUS ">> Android platform")
     set(OS_ANDROID 1)
     set(SG_LIB_LINUX 1)
     set(SG_LIB_ANDROID 1)
@@ -154,7 +151,7 @@ elseif (ANDROID)
         set(HAVE_NVME 1)
     endif ()
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    message(STATUS ">> Linux build")
+    message(STATUS ">> Linux platform")
     set(OS_LINUX 1)
     set(SG_LIB_LINUX 1)
     CHECK_INCLUDE_FILE( "linux/major.h" HAVE_LINUX_MAJOR_H )
@@ -165,39 +162,115 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
         set(HAVE_NVME 1)
     endif ()
 elseif (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-    message(STATUS ">> FreeBSD build")
+    message(STATUS ">> FreeBSD platform")
     set(OS_FREEBSD 1)
     set(SG_LIB_FREEBSD 1)
     set(HAVE_NVME 1)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
-    message(STATUS ">> NetBSD build")
+    message(STATUS ">> NetBSD platform")
     set(OS_NETBSD 1)
     set(SG_LIB_NETBSD 1)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
-    message(STATUS ">> OpenBSD build")
+    message(STATUS ">> OpenBSD platform")
     set(OS_OPENBSD 1)
     set(SG_LIB_OPENBSD 1)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "SunOS")
-    message(STATUS ">> Solaris build")
+    message(STATUS ">> Solaris platform")
     set(OS_SOLARIS 1)
     set(SG_LIB_SOLARIS 1)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "AIX")
-    message(STATUS ">> AIX build")
+    message(STATUS ">> AIX platform")
     set(OS_AIX 1)
     set(SG_LIB_AIX 1)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "HAIKU")
-    message(STATUS ">> HAIKU build")
+    message(STATUS ">> HAIKU platform")
     set(OS_HAIKU 1)
     set(SG_LIB_HAIKU 1)
 elseif (APPLE)
-    message(STATUS ">> Apply (macOS) build")
+    message(STATUS ">> Apple (macOS) platform")
     set(OS_MACOS 1)
 else()
     message(STATUS "Unknown system: ${CMAKE_SYSTEM_NAME}")
 endif()
 
+set(COMP_GCC 0)
+set(COMP_CLANG 0)
+set(COMP_MSVC 0)
+set(COMP_UNKNOWN 0)
+
+message(STATUS "CMAKE_C_COMPILER     = ${CMAKE_C_COMPILER}")
+message(STATUS "CMAKE_C_COMPILER_ID  = ${CMAKE_C_COMPILER_ID}")
+message(STATUS "CMAKE_C_COMPILER_VERSION = ${CMAKE_C_COMPILER_VERSION}")
+
+if ( $ENV{CC} MATCHES "gcc" )
+    MESSAGE( STATUS ">> GCC compiler selected [ev]" )
+    set(COMP_GCC 1)
+elseif ( $ENV{CC} MATCHES "clang" )
+    MESSAGE( STATUS ">> CLANG compiler selected [ev]" )
+    set(COMP_CLANG 1)
+elseif ( CMAKE_C_COMPILER_ID MATCHES "GNU" )
+    MESSAGE( STATUS ">> GCC compiler detected" )
+    set(COMP_GCC 1)
+elseif (CMAKE_C_COMPILER_ID MATCHES "Clang")
+    MESSAGE( STATUS ">> CLANG compiler detected" )
+    set(COMP_CLANG 1)
+elseif ( MSVC )
+    MESSAGE( STATUS ">> MSVC compiler detected" )
+    set(COMP_MSVC 1)
+else ()
+    MESSAGE( STATUS ">> did NOT detect compiler" )
+    set(COMP_UNKNOWN 1)
+endif ()
+
+function ( l_set_compile_options util_name )
+
+    # For testing it can be useful to compile C code with a C++ compiler.
+    # That can be done by expanding the project() cmake command at the top of
+    # this file to: project( ...... LANGUAGES C CXX) and uncommenting
+    # the following line:
+    set_source_files_properties( ${util_name} PROPERTIES LANGUAGE CXX )
+
+    if ( ENABLE_DEBUG )
+        target_compile_definitions(${util_name} PRIVATE DEBUG)
+        if ( COMP_GCC )
+            target_compile_options(${util_name} PRIVATE
+                -Wextra -Wmisleading-indentation -Wduplicated-cond -Wlogical-op
+                -Wnull-dereference -Wshadow -Wunused -Wsizeof-array-argument
+                -Wduplicated-branches -Wparentheses)
+                # -Wjump-misses-init is C++ only
+        elseif ( COMP_CLANG )
+            target_compile_options(${util_name} PRIVATE
+                -Wextra -Wshadow
+                -Wnull-dereference -Wdouble-promotion -Wformat=2 -Wundef
+                -Wimplicit-fallthrough -Woverloaded-virtual -Wnon-virtual-dtor
+                -Wcast-align -Wcast-qual -Wunused -Wno-deprecated
+                -Wunreachable-code)
+                # -Wpedantic -Wconversion -Wsign-conversion -Wold-style-cast
+                # -Weverything # generates way too much nitpicking
+        elseif ( COMP_MSVC )
+            # MESSAGE( STATUS ">> MSVC compiler detected" )
+        else ()
+            # MESSAGE( STATUS ">> did NOT detect compiler" )
+        endif ()
+    endif ( ENABLE_DEBUG )
+
+endfunction ( l_set_compile_options )
+
+set ( CMAKE_C_STANDARD 99 )
+set ( CMAKE_C_STANDARD_REQUIRED ON )
+set ( CMAKE_C_EXTENSIONS OFF )
+set ( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -g -Wall -W" )
+
+set ( CMAKE_CXX_STANDARD 23 )
+set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -W" )
+
+if (MSVC)
+    add_compile_definitions ( HAVE_CONFIG_H )
+else ()
+    add_compile_definitions ( _LARGEFILE64_SOURCE _FILE_OFFSET_BITS=64 HAVE_CONFIG_H )
+endif ()
+
 configure_file( ${CMAKE_SOURCE_DIR}/config.h.in.cmake ${CMAKE_BINARY_DIR}/config.h )
-# add_definitions ( -DHAVE_CONFIG_H )
 
 
 add_subdirectory( src )
