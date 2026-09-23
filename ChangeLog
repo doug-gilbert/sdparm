@@ -3,7 +3,7 @@ the rpm spec file: sdparm.spec ; the debian/changelog file;
 and the configure.ac file (in the AC_INIT item).
 References to github are to https://github.com/doug-gilbert/sdparm
 
-ChangeLog for pre-release sdparm-1.13 [20260911] [svn: r407]
+ChangeLog for pre-release sdparm-1.13 [20260914] [svn: r408]
   - add --json[=JO] and --js-file=JFN options
     - apart from with a real device, json output can be
       requested with --enumerate or --inhex=FN
@@ -47,6 +47,7 @@ ChangeLog for pre-release sdparm-1.13 [20260911] [svn: r407]
   - cmake: build system, alternative to Autotools
     - can build deb and rpm packages with 'cpack .'
     - hand apply github PR #6 from Paul Evans
+    - add USE_CXX option to compile C code as C++
   - debian: switch from cdbs back to debhelper
   - debian: rename build_debian.sh to debian_build.sh
 

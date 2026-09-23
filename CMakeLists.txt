@@ -23,6 +23,7 @@ option ( DISABLE_NVME_SUPP "Remove support for NVMe devices (/dev/nvme*)" OFF)
 option ( DISABLE_LINUX_SGV4 "for Linux sg driver avoid v4 interface even if available" OFF)
 option ( DISABLE_LINUXBSG "Remove support for /dev/bsg/* devices" OFF)
 option ( DISABLE_LIBSGUTILS "Library code compiled in directly" OFF)
+option ( USE_CXX "Compile C code with C++ compiler" OFF)
 
 
 set(FEATURE_COMMENT "//")
@@ -222,13 +223,25 @@ else ()
     set(COMP_UNKNOWN 1)
 endif ()
 
+function ( l_set_cxx_compilation util_name )
+    if(TARGET ${util_name})
+        get_target_property(sources ${util_name} SOURCES)
+        if(sources)
+            set_source_files_properties( ${sources} PROPERTIES LANGUAGE CXX )
+        endif()
+    else()
+        set_source_files_properties( ${util_name} PROPERTIES LANGUAGE CXX )
+    endif()
+endfunction ( l_set_cxx_compilation )
+
 function ( l_set_compile_options util_name )
 
     # For testing it can be useful to compile C code with a C++ compiler.
     # That can be done by expanding the project() cmake command at the top of
-    # this file to: project( ...... LANGUAGES C CXX) and uncommenting
-    # the following line:
-    set_source_files_properties( ${util_name} PROPERTIES LANGUAGE CXX )
+    # this file to: project( ...... LANGUAGES C CXX)
+    if ( USE_CXX )
+        l_set_cxx_compilation ( ${util_name} )
+    endif ( USE_CXX )
 
     if ( ENABLE_DEBUG )
         target_compile_definitions(${util_name} PRIVATE DEBUG)
@@ -302,7 +315,7 @@ if ( BUILD_SHARED_LIBS )
 endif ()
 
 if ( SG_LIB_LINUX )
-    set(CPACK_GENERATOR "") 
+    set(CPACK_GENERATOR "")
     find_program(DPKG_EXECUTABLE dpkg)
     if (DPKG_EXECUTABLE)
         list(APPEND CPACK_GENERATOR "DEB")
