@@ -1,0 +1,70 @@
+
+scsiincludedir      = $(includedir)/scsi
+
+scsiinclude_HEADERS = \
+	sg_lib.h \
+	sg_lib_data.h \
+	sg_lib_names.h \
+	sg_cmds.h \
+	sg_cmds_basic.h \
+	sg_cmds_extra.h \
+	sg_cmds_mmc.h \
+	sg_json.h \
+	sg_json_sg_lib.h \
+	sg_pr2serr.h \
+	sg_unaligned.h \
+	sg_nvme.h \
+	sg_snt.h \
+	sg_pt.h
+
+if OS_LINUX
+scsiinclude_HEADERS += \
+	sg_linux_inc.h \
+	sg_io_linux.h \
+	sg_pt_linux.h
+	
+noinst_HEADERS = \
+	sg_pt_win32.h
+endif
+
+if OS_WIN32_MINGW
+scsiinclude_HEADERS += sg_pt_win32.h
+	
+noinst_HEADERS = \
+	sg_linux_inc.h \
+	sg_io_linux.h
+endif
+
+if OS_WIN32_CYGWIN
+scsiinclude_HEADERS += sg_pt_win32.h
+	
+noinst_HEADERS = \
+	sg_linux_inc.h \
+	sg_io_linux.h
+endif
+
+if OS_FREEBSD
+noinst_HEADERS = \
+	sg_linux_inc.h \
+	sg_io_linux.h \
+	sg_pt_win32.h
+endif
+
+if OS_SOLARIS
+noinst_HEADERS = \
+	sg_linux_inc.h \
+	sg_io_linux.h \
+	sg_pt_win32.h
+endif
+
+if OS_OSF
+noinst_HEADERS = \
+	sg_linux_inc.h \
+	sg_io_linux.h \
+	sg_pt_win32.h
+endif
+
+distclean-local:
+	rm -rf \
+	  Makefile.in \
+	  getopt.h
