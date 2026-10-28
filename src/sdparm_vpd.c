@@ -64,6 +64,7 @@ static const char * mpp_vpdp = "Mode page policy VPD page";
 static const char * pc_vpdp = "Power condition VPD page";
 static const char * sfs_vpdp = "SCSI feature sets VPD page";
 static const char * dc_vpdp = "Device constituents VPD page";
+static const char * nvmei_vpdp = "NVMe Information VPD page";
 static const char * psm_vpdp = "Power consumption VPD page";
 static const char * cpi_vpdp = "CFA profile information VPD page";
 static const char * pslu_vpdp = "Protocol-specific logical unit information "
@@ -748,6 +749,94 @@ decode_cga_profile_vpd(const uint8_t * buff, int len,
                        SGJ_SEP_COLON_1_SPACE, u, true, "unit: LB");
         sgj_js_nv_o(jsp, jap, NULL /* name */, jo2p);
     }
+}
+
+static const char * const inhex_s = "in hex";
+
+/* VPD_NVME_INFO    0x8e ["nvmei"] */
+static void
+decode_nvme_info_vpd(const uint8_t * buff, int len,
+                     struct sdparm_opt_coll * op, sgj_opaque_p jop)
+{
+    // bool do_long_nq = op->do_long && (! op->do_quiet);
+    bool bv;
+    sgj_state * jsp = &op->json_st;
+    char b[512];
+    static const char * snt_vip = "SNT Vendor identification";
+    static const char * snt_pip = "SNT Product identification";
+    static const char * snt_prlp = "SNT Product revision level";
+
+    if (len < 36) {
+        pr2serr("%s length too short=%d\n", nvmei_vpdp, len);
+        return;
+    }
+    if (op->do_hex > 0) {
+        if (op->do_hex > 2)
+            named_hhh_output(nvmei_vpdp, buff, len, op);
+        else
+            hex2stdout(buff, len, no_ascii_4hex(op));
+        return;
+    }
+    memcpy(b, buff + 8, 8);
+    b[8] = '\0';
+    sgj_haj_vs(jsp, jop, 2, snt_vip, SGJ_SEP_COLON_1_SPACE, b);
+    memcpy(b, buff + 16, 16);
+    b[16] = '\0';
+    sgj_haj_vs(jsp, jop, 2, snt_pip, SGJ_SEP_COLON_1_SPACE, b);
+    memcpy(b, buff + 32, 4);
+    b[4] = '\0';
+    sgj_haj_vs(jsp, jop, 2, snt_prlp, SGJ_SEP_COLON_1_SPACE, b);
+    if (len < 56)
+        return;
+    memcpy(b, buff + 36, 40);
+    b[40] = '\0';
+    sgj_haj_vs(jsp, jop, 2, "Model number", SGJ_SEP_COLON_1_SPACE, b);
+    memcpy(b, buff + 76, 20);
+    b[20] = '\0';
+    sgj_haj_vs(jsp, jop, 2, "Serial number", SGJ_SEP_COLON_1_SPACE, b);
+    memcpy(b, buff + 96, 8);
+    b[8] = '\0';
+    sgj_haj_vs(jsp, jop, 2, "Firmware revision", SGJ_SEP_COLON_1_SPACE, b);
+    sgj_haj_vi(jsp, jop, 2, "PCI vendor ID", SGJ_SEP_COLON_1_SPACE,
+               sg_get_unaligned_be16(buff + 104), true);
+    sgj_haj_vi(jsp, jop, 2, "PCI subsystem vendor ID", SGJ_SEP_COLON_1_SPACE,
+               sg_get_unaligned_be16(buff + 106), true);
+    sgj_haj_vi(jsp, jop, 2, "PCI device ID", SGJ_SEP_COLON_1_SPACE,
+               sg_get_unaligned_be16(buff + 108), true);
+    sgj_haj_vi(jsp, jop, 2, "PCI subsystem device ID", SGJ_SEP_COLON_1_SPACE,
+               sg_get_unaligned_be16(buff + 110), true);
+    memcpy(b, buff + 112, 8);
+    b[8] = '\0';
+    sgj_haj_vs(jsp, jop, 2, "PCI device serial number",
+               SGJ_SEP_COLON_1_SPACE, b);
+    sgj_haj_vi(jsp, jop, 2, "Controller ID", SGJ_SEP_COLON_1_SPACE,
+               sg_get_unaligned_be16(buff + 120), true);
+    sgj_haj_vi(jsp, jop, 2, "Form factor", SGJ_SEP_COLON_1_SPACE,
+               (unsigned int)*(buff + 122), true);
+    bv = *(buff + 123) & 0x1;
+    sgj_haj_vb(jsp, jop, 2, "EUI64 valid", SGJ_SEP_COLON_1_SPACE, bv);
+    bv = *(buff + 123) & 0x2;
+    sgj_haj_vb(jsp, jop, 2, "NGUID valid", SGJ_SEP_COLON_1_SPACE, bv);
+    bv = *(buff + 123) & 0x4;
+    sgj_haj_vb(jsp, jop, 2, "NUUID valid", SGJ_SEP_COLON_1_SPACE, bv);
+    bv = *(buff + 123) & 0x8;
+    sgj_haj_vb(jsp, jop, 2, "VSID valid", SGJ_SEP_COLON_1_SPACE, bv);
+    sgj_haj_vs_hex_bytes_nex(jsp, jop, 2, "EUI64", SGJ_SEP_COLON_1_SPACE,
+                             buff + 124, 8, NULL);
+    sgj_haj_vs_hex_bytes_nex(jsp, jop, 2, "NGUID", SGJ_SEP_COLON_1_SPACE,
+                             buff + 132, 16, inhex_s);
+    sgj_haj_vs_hex_bytes_nex(jsp, jop, 2, "NUUID", SGJ_SEP_COLON_1_SPACE,
+                             buff + 148, 16, inhex_s);
+    sgj_haj_vs_hex_bytes_nex(jsp, jop, 2, "VSID", SGJ_SEP_COLON_1_SPACE,
+                             buff + 164, 8, inhex_s);
+    sgj_haj_vs_hex_bytes_nex(jsp, jop, 2, "FWUP", SGJ_SEP_COLON_1_SPACE,
+                             buff + 172, 1, inhex_s);
+    sgj_haj_vi(jsp, jop, 2, "NVME base version", SGJ_SEP_COLON_1_SPACE,
+               sg_get_unaligned_le32(buff + 180), true);
+    sgj_haj_vi(jsp, jop, 2, "NVM command set version", SGJ_SEP_COLON_1_SPACE,
+               sg_get_unaligned_le32(buff + 184), true);
+    sgj_haj_vi(jsp, jop, 2, "ZNS command set version", SGJ_SEP_COLON_1_SPACE,
+               sg_get_unaligned_le32(buff + 188), true);
 }
 
 static const char * network_service_type_arr[] =
@@ -4083,6 +4172,31 @@ try_larger:
                                        "power_consumption_descriptor_list");
         }
         decode_power_consumption_vpd(b, len, op, jap);
+        break;
+    case VPD_NVME_INFO:
+        if (b[1] != pn)
+            goto dumb_inq;
+        len = sg_get_unaligned_be16(b + 2) + 4;
+        if (len > sz) {
+            pr2serr("Response to %s truncated\n", nvmei_vpdp);
+            len = sz;
+        }
+        if (dhex < 3) {
+            if (op->do_long)
+                sgj_pr_hr(jsp, "%s [0x8a]:\n", nvmei_vpdp);
+            else if (0 == op->do_quiet)
+                sgj_pr_hr(jsp, "%s:\n", nvmei_vpdp);
+        }
+        if (dhex > 0) {
+            if (dhex > 2)
+                named_hhh_output(nvmei_vpdp, b, len, op);
+            else
+                hex2stdout(b, len, hex_format);
+            goto fini;
+        }
+        if (as_json)
+            jo2p = sg_vpd_js_hdr(jsp, jop, nvmei_vpdp, b);
+        decode_nvme_info_vpd(b, len, op, jo2p);
         break;
     case VPD_PROTO_LU:                  /* 0x90 */
         if (b[1] != pn)

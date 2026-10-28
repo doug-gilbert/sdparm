@@ -121,6 +121,7 @@ extern "C" {
 #define VPD_DEVICE_CONSTITUENTS 0x8b
 #define VPD_CFA_PROFILE_INFO 0x8c
 #define VPD_POWER_CONSUMPTION 0x8d
+#define VPD_NVME_INFO 0x8e              /* SNT */
 #define VPD_3PARTY_COPY 0x8f
 #define VPD_PROTO_LU 0x90
 #define VPD_PROTO_PORT 0x91
