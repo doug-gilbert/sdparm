@@ -119,6 +119,7 @@ static struct sg_opcode_info_t sg_opcode_info_arr[] =
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0} },
 };
 
+
 const char *
 sg_snt_get_rev_level_str()
 {
