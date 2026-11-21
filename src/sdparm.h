@@ -157,7 +157,8 @@ extern "C" {
 #define VPD_DI_SEL_AS_IS 32
 
 #ifndef SG_NVME_VPD_NICR
-#define SG_NVME_VPD_NICR 0xde   /* NVME Identify Controller Response */
+/* 'sg3_utils NVMe Information (Identify Controller Response)' VPD page */
+#define SG_NVME_VPD_NICR 0xde   /* Vendor (sg3_utils specific */
 #endif
 
 #define DEF_TRANSPORT_PROTOCOL TPROTO_SAS
